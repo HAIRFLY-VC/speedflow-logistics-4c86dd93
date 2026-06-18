@@ -20,6 +20,15 @@ import {
   DollarSign,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
