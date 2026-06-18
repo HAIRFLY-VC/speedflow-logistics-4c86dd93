@@ -222,6 +222,8 @@ function OrderDetailPage() {
 
             <ApprovalActions orderId={order.id} status={order.status} />
             <FulfillmentActions orderId={order.id} status={order.status} />
+            <DeliveryActions orderId={order.id} status={order.status} />
+
 
 
 
