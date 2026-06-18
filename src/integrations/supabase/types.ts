@@ -52,6 +52,60 @@ export type Database = {
           },
         ]
       }
+      company_settings: {
+        Row: {
+          address: string | null
+          auto_approve_below: number
+          cnpj: string | null
+          commercial_approval_threshold: number
+          company_name: string
+          created_at: string
+          credit_approval_threshold: number
+          email: string | null
+          id: number
+          phone: string | null
+          sla_commercial_approval_hours: number
+          sla_credit_approval_hours: number
+          sla_delivery_hours: number
+          sla_fulfillment_hours: number
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          auto_approve_below?: number
+          cnpj?: string | null
+          commercial_approval_threshold?: number
+          company_name?: string
+          created_at?: string
+          credit_approval_threshold?: number
+          email?: string | null
+          id?: number
+          phone?: string | null
+          sla_commercial_approval_hours?: number
+          sla_credit_approval_hours?: number
+          sla_delivery_hours?: number
+          sla_fulfillment_hours?: number
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          auto_approve_below?: number
+          cnpj?: string | null
+          commercial_approval_threshold?: number
+          company_name?: string
+          created_at?: string
+          credit_approval_threshold?: number
+          email?: string | null
+          id?: number
+          phone?: string | null
+          sla_commercial_approval_hours?: number
+          sla_credit_approval_hours?: number
+          sla_delivery_hours?: number
+          sla_fulfillment_hours?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address_line: string | null

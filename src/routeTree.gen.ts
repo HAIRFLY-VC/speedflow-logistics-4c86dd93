@@ -18,6 +18,7 @@ import { Route as AuthenticatedMinhasRotasRouteImport } from './routes/_authenti
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
 import { Route as AuthenticatedFretistasRouteImport } from './routes/_authenticated/fretistas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedBorderosRouteImport } from './routes/_authenticated/borderos'
 import { Route as AuthenticatedRotasIndexRouteImport } from './routes/_authenticated/rotas.index'
@@ -70,6 +71,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedConfiguracoesRoute =
+  AuthenticatedConfiguracoesRouteImport.update({
+    id: '/configuracoes',
+    path: '/configuracoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
@@ -109,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/borderos': typeof AuthenticatedBorderosRoute
   '/clientes': typeof AuthenticatedClientesRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/fretistas': typeof AuthenticatedFretistasRoute
   '/kanban': typeof AuthenticatedKanbanRoute
@@ -125,6 +133,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/borderos': typeof AuthenticatedBorderosRoute
   '/clientes': typeof AuthenticatedClientesRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/fretistas': typeof AuthenticatedFretistasRoute
   '/kanban': typeof AuthenticatedKanbanRoute
@@ -143,6 +152,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/borderos': typeof AuthenticatedBorderosRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
+  '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/fretistas': typeof AuthenticatedFretistasRoute
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/borderos'
     | '/clientes'
+    | '/configuracoes'
     | '/dashboard'
     | '/fretistas'
     | '/kanban'
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/borderos'
     | '/clientes'
+    | '/configuracoes'
     | '/dashboard'
     | '/fretistas'
     | '/kanban'
@@ -194,6 +206,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/borderos'
     | '/_authenticated/clientes'
+    | '/_authenticated/configuracoes'
     | '/_authenticated/dashboard'
     | '/_authenticated/fretistas'
     | '/_authenticated/kanban'
@@ -277,6 +290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/configuracoes': {
+      id: '/_authenticated/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clientes': {
       id: '/_authenticated/clientes'
       path: '/clientes'
@@ -325,6 +345,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBorderosRoute: typeof AuthenticatedBorderosRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
+  AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFretistasRoute: typeof AuthenticatedFretistasRoute
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
@@ -340,6 +361,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBorderosRoute: AuthenticatedBorderosRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
+  AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFretistasRoute: AuthenticatedFretistasRoute,
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
