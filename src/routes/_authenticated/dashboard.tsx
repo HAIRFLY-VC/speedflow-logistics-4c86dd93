@@ -306,6 +306,8 @@ function DashboardPage() {
             )}
           </CardContent>
         </Card>
+          );
+        })()}
       </div>
     </AppShell>
   );
