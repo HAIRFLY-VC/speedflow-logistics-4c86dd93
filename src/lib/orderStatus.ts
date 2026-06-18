@@ -44,3 +44,44 @@ export const STATUS_TONE: Record<OrderStatus, string> = {
 export function formatCurrency(n: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 }
+
+export type SlaSettings = {
+  sla_commercial_approval_hours: number;
+  sla_credit_approval_hours: number;
+  sla_fulfillment_hours: number;
+  sla_delivery_hours: number;
+};
+
+export function slaHoursForStatus(
+  status: OrderStatus,
+  s: SlaSettings | null | undefined,
+): number | null {
+  if (!s) return null;
+  switch (status) {
+    case "aguardando_aprovacao_comercial":
+      return s.sla_commercial_approval_hours;
+    case "aguardando_aprovacao_credito":
+      return s.sla_credit_approval_hours;
+    case "aguardando_faturamento":
+    case "em_separacao":
+    case "aguardando_roteirizacao":
+      return s.sla_fulfillment_hours;
+    case "faturado":
+    case "em_transporte":
+      return s.sla_delivery_hours;
+    default:
+      return null;
+  }
+}
+
+export function isStageLate(
+  status: OrderStatus,
+  statusSince: string,
+  s: SlaSettings | null | undefined,
+): boolean {
+  const hours = slaHoursForStatus(status, s);
+  if (hours == null || hours <= 0) return false;
+  const limit = new Date(statusSince).getTime() + hours * 3600_000;
+  return Date.now() > limit;
+}
+

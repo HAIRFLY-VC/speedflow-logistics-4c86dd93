@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { AlertTriangle } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -7,12 +8,15 @@ import {
   ORDER_STATUS_LABEL,
   STATUS_TONE,
   formatCurrency,
+  isStageLate,
   type OrderStatus,
+  type SlaSettings,
 } from "@/lib/orderStatus";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
@@ -44,8 +48,24 @@ function KanbanPage() {
     },
   });
 
+  const slaQ = useQuery({
+    queryKey: ["company_settings", "sla"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_settings")
+        .select(
+          "sla_commercial_approval_hours,sla_credit_approval_hours,sla_fulfillment_hours,sla_delivery_hours",
+        )
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as SlaSettings | null;
+    },
+  });
+
   const orders = data ?? [];
   const grouped = KANBAN_COLUMNS.reduce<Record<OrderStatus, KanbanOrder[]>>(
+
     (acc, s) => {
       acc[s] = [];
       return acc;
@@ -96,7 +116,7 @@ function KanbanPage() {
                         Sem pedidos
                       </p>
                     ) : (
-                      items.map((o) => <OrderCard key={o.id} order={o} />)
+                      items.map((o) => <OrderCard key={o.id} order={o} sla={slaQ.data ?? null} />)
                     )}
                   </div>
                 </div>
@@ -109,7 +129,7 @@ function KanbanPage() {
   );
 }
 
-function OrderCard({ order }: { order: KanbanOrder }) {
+function OrderCard({ order, sla }: { order: KanbanOrder; sla: SlaSettings | null }) {
   const customer =
     order.customers?.trade_name || order.customers?.legal_name || "Cliente";
   const since = formatDistanceToNow(new Date(order.status_since), {
@@ -118,9 +138,12 @@ function OrderCard({ order }: { order: KanbanOrder }) {
   });
   const slaLate =
     order.sla_deliver_by && new Date(order.sla_deliver_by).getTime() < Date.now();
+  const stageLate = isStageLate(order.status, order.status_since, sla);
 
   return (
-    <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+    <Card
+      className={`hover:border-primary/50 transition-colors cursor-pointer ${stageLate ? "border-destructive/60" : ""}`}
+    >
       <CardContent className="p-3 space-y-1.5">
         <div className="flex items-center justify-between">
           <span className="text-xs font-mono text-muted-foreground">#{order.order_number}</span>
@@ -129,11 +152,18 @@ function OrderCard({ order }: { order: KanbanOrder }) {
           </span>
         </div>
         <div className="text-sm font-medium truncate">{customer}</div>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{since}</span>
-          {slaLate ? (
-            <span className="text-destructive font-medium">SLA vencido</span>
-          ) : null}
+        <div className="flex items-center justify-between text-xs text-muted-foreground gap-2">
+          <span className="truncate">{since}</span>
+          <div className="flex items-center gap-1 shrink-0">
+            {stageLate ? (
+              <span className="inline-flex items-center gap-0.5 text-destructive font-medium">
+                <AlertTriangle className="h-3 w-3" /> Etapa atrasada
+              </span>
+            ) : null}
+            {slaLate ? (
+              <span className="text-destructive font-medium">SLA</span>
+            ) : null}
+          </div>
         </div>
       </CardContent>
     </Card>
