@@ -67,6 +67,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Truck className="h-5 w-5 text-primary" />
               <span className="font-semibold tracking-tight">Speed Logística</span>
             </div>
+            <div className="ml-auto">
+              <NotificationsBell />
+            </div>
           </header>
           <main className="flex-1 p-4 md:p-6 overflow-auto">{children}</main>
         </div>
