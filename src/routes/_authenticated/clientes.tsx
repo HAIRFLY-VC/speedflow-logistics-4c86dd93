@@ -86,7 +86,7 @@ function ClientesPage() {
 
   const upsertMutation = useMutation({
     mutationFn: async (input: CustomerInput) => {
-      const payload = normalize(input);
+      const payload = normalize(input) as never;
       if (editing) {
         const { error } = await supabase.from("customers").update(payload).eq("id", editing.id);
         if (error) throw error;

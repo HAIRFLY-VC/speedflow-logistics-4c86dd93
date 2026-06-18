@@ -78,16 +78,16 @@ function ProdutosPage() {
 
   const upsertMutation = useMutation({
     mutationFn: async (input: ProductInput) => {
-      const payload: Record<string, unknown> = {
+      const payload = {
         ...input,
         description: input.description || null,
         weight_kg: input.weight_kg === "" || input.weight_kg === undefined ? null : input.weight_kg,
-      };
+      } as never;
       if (editing) {
         const { error } = await supabase.from("products").update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("products").insert(payload as never);
+        const { error } = await supabase.from("products").insert(payload);
         if (error) throw error;
       }
     },
