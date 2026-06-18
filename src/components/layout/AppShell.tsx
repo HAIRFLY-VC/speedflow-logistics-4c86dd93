@@ -30,6 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth, type AppRole } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { NotificationsBell } from "./NotificationsBell";
 
 type NavItem = {
   title: string;
@@ -65,6 +66,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-2">
               <Truck className="h-5 w-5 text-primary" />
               <span className="font-semibold tracking-tight">Speed Logística</span>
+            </div>
+            <div className="ml-auto">
+              <NotificationsBell />
             </div>
           </header>
           <main className="flex-1 p-4 md:p-6 overflow-auto">{children}</main>
