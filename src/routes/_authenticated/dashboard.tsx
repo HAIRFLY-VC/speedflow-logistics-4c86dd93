@@ -255,6 +255,14 @@ function DashboardPage() {
           </Card>
         </div>
 
+        {(() => {
+          const byStatus = orders.reduce<Record<string, number>>((acc, o) => {
+            acc[o.status] = (acc[o.status] ?? 0) + 1;
+            return acc;
+          }, {});
+          return (
+
+
 
 
         <Card>
