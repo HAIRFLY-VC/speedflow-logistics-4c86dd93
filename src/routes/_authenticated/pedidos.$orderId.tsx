@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FileText, MapPin, User } from "lucide-react";
 import { ApprovalActions } from "@/components/orders/ApprovalActions";
 import { FulfillmentActions } from "@/components/orders/FulfillmentActions";
+import { DeliveryActions } from "@/components/orders/DeliveryActions";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -221,6 +222,8 @@ function OrderDetailPage() {
 
             <ApprovalActions orderId={order.id} status={order.status} />
             <FulfillmentActions orderId={order.id} status={order.status} />
+            <DeliveryActions orderId={order.id} status={order.status} />
+
 
 
 
