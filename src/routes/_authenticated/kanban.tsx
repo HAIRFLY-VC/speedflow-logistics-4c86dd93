@@ -116,7 +116,7 @@ function KanbanPage() {
                         Sem pedidos
                       </p>
                     ) : (
-                      items.map((o) => <OrderCard key={o.id} order={o} />)
+                      items.map((o) => <OrderCard key={o.id} order={o} sla={slaQ.data ?? null} />)
                     )}
                   </div>
                 </div>
