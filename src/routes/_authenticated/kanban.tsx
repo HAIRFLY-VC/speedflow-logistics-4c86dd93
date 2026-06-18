@@ -169,5 +169,3 @@ function OrderCard({ order, sla }: { order: KanbanOrder; sla: SlaSettings | null
     </Card>
   );
 }
-
-}
