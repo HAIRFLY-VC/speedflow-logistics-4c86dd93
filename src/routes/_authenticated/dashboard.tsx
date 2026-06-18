@@ -99,12 +99,13 @@ function DashboardPage() {
           <p className="text-muted-foreground">Visão geral dos pedidos e da operação logística.</p>
         </div>
 
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
           <Kpi icon={ShoppingCart} label="Pedidos" value={totals.total} loading={isLoading} />
           <Kpi icon={Clock} label="Aguard. aprovação" value={totals.pendingApproval} loading={isLoading} />
           <Kpi icon={Truck} label="Em transporte" value={totals.inTransport} loading={isLoading} />
           <Kpi icon={CheckCircle2} label="Entregues" value={totals.delivered} loading={isLoading} tone="text-emerald-600" />
-          <Kpi icon={AlertTriangle} label="SLA estourado" value={totals.atRisk} loading={isLoading} tone="text-destructive" />
+          <Kpi icon={AlertTriangle} label="SLA entrega" value={totals.atRisk} loading={isLoading} tone="text-destructive" />
+          <Kpi icon={AlertTriangle} label="Etapa atrasada" value={totals.stageLate} loading={isLoading} tone="text-destructive" />
           <Kpi
             icon={DollarSign}
             label="Receita"
@@ -112,6 +113,7 @@ function DashboardPage() {
             loading={isLoading}
           />
         </div>
+
 
         <Card>
           <CardHeader>
