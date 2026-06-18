@@ -25,7 +25,6 @@ export const getRouter = () => {
     defaultPreloadDelay: 50,
     // Deixa o React Query controlar o cache; o router só dispara o preload
     defaultPreloadStaleTime: 0,
-    defaultSsr: false,
   });
 
   return router;
