@@ -48,8 +48,24 @@ function DashboardPage() {
     },
   });
 
+  const slaQ = useQuery({
+    queryKey: ["company_settings", "sla"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_settings")
+        .select(
+          "sla_commercial_approval_hours,sla_credit_approval_hours,sla_fulfillment_hours,sla_delivery_hours",
+        )
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as SlaSettings | null;
+    },
+  });
+
   const orders = data ?? [];
   const now = Date.now();
+  const sla = slaQ.data ?? null;
 
   const totals = {
     total: orders.length,
@@ -65,8 +81,10 @@ function DashboardPage() {
         o.status !== "cancelado" &&
         new Date(o.sla_deliver_by).getTime() < now,
     ).length,
+    stageLate: orders.filter((o) => isStageLate(o.status, o.status_since, sla)).length,
     revenue: orders.reduce((s, o) => s + Number(o.total_amount ?? 0), 0),
   };
+
 
   const byStatus = orders.reduce<Record<string, number>>((acc, o) => {
     acc[o.status] = (acc[o.status] ?? 0) + 1;
