@@ -76,9 +76,10 @@ export function slaHoursForStatus(
 
 export function isStageLate(
   status: OrderStatus,
-  statusSince: string,
+  statusSince: string | null | undefined,
   s: SlaSettings | null | undefined,
 ): boolean {
+  if (!statusSince) return false;
   const hours = slaHoursForStatus(status, s);
   if (hours == null || hours <= 0) return false;
   const limit = new Date(statusSince).getTime() + hours * 3600_000;
