@@ -20,6 +20,15 @@ import {
   DollarSign,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
@@ -86,10 +95,71 @@ function DashboardPage() {
   };
 
 
-  const byStatus = orders.reduce<Record<string, number>>((acc, o) => {
-    acc[o.status] = (acc[o.status] ?? 0) + 1;
-    return acc;
-  }, {});
+  // Pedidos por mês (últimos 6 meses)
+  const monthly = (() => {
+    const out: { label: string; key: string; pedidos: number }[] = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      out.push({
+        key,
+        label: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
+        pedidos: 0,
+      });
+    }
+    const idx = new Map(out.map((m, i) => [m.key, i]));
+    for (const o of orders) {
+      const d = new Date(o.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const i = idx.get(key);
+      if (i != null) out[i].pedidos += 1;
+    }
+    return out;
+  })();
+
+  // Tempo médio por etapa (em horas), a partir do histórico
+  const stageHistoryQ = useQuery({
+    queryKey: ["dashboard", "stage_times"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("order_status_history")
+        .select("order_id,from_status,to_status,changed_at")
+        .order("changed_at", { ascending: true })
+        .limit(5000);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const avgByStage = (() => {
+    const rows = stageHistoryQ.data ?? [];
+    const byOrder = new Map<string, typeof rows>();
+    for (const r of rows) {
+      const arr = byOrder.get(r.order_id) ?? [];
+      arr.push(r);
+      byOrder.set(r.order_id, arr);
+    }
+    const totals: Record<string, { sum: number; n: number }> = {};
+    for (const arr of byOrder.values()) {
+      for (let i = 0; i < arr.length - 1; i++) {
+        const stage = arr[i].to_status as string;
+        const dur =
+          (new Date(arr[i + 1].changed_at).getTime() - new Date(arr[i].changed_at).getTime()) /
+          3600_000;
+        if (dur < 0) continue;
+        totals[stage] = totals[stage] ?? { sum: 0, n: 0 };
+        totals[stage].sum += dur;
+        totals[stage].n += 1;
+      }
+    }
+    return (Object.keys(ORDER_STATUS_LABEL) as OrderStatus[])
+      .filter((s) => totals[s]?.n)
+      .map((s) => ({
+        stage: ORDER_STATUS_LABEL[s],
+        horas: Number((totals[s].sum / totals[s].n).toFixed(1)),
+      }));
+  })();
 
   return (
     <AppShell>
@@ -113,6 +183,86 @@ function DashboardPage() {
             loading={isLoading}
           />
         </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Pedidos por mês</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthly} margin={{ left: -20, right: 8, top: 8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={12} />
+                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} fontSize={12} />
+                  <Tooltip
+                    cursor={{ fill: "hsl(var(--muted))" }}
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  />
+                  <Bar dataKey="pedidos" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Tempo médio por etapa (h)</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[260px]">
+              {stageHistoryQ.isLoading ? (
+                <Skeleton className="h-full w-full" />
+              ) : avgByStage.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Sem histórico suficiente ainda.
+                </p>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={avgByStage}
+                    layout="vertical"
+                    margin={{ left: 8, right: 8, top: 8, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis type="number" tickLine={false} axisLine={false} fontSize={12} />
+                    <YAxis
+                      type="category"
+                      dataKey="stage"
+                      tickLine={false}
+                      axisLine={false}
+                      fontSize={11}
+                      width={130}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "hsl(var(--muted))" }}
+                      contentStyle={{
+                        background: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: 8,
+                        fontSize: 12,
+                      }}
+                    />
+                    <Bar dataKey="horas" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {(() => {
+          const byStatus = orders.reduce<Record<string, number>>((acc, o) => {
+            acc[o.status] = (acc[o.status] ?? 0) + 1;
+            return acc;
+          }, {});
+          return (
+
+
 
 
         <Card>
@@ -156,6 +306,8 @@ function DashboardPage() {
             )}
           </CardContent>
         </Card>
+          );
+        })()}
       </div>
     </AppShell>
   );
