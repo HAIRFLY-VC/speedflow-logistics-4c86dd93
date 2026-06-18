@@ -48,8 +48,24 @@ function KanbanPage() {
     },
   });
 
+  const slaQ = useQuery({
+    queryKey: ["company_settings", "sla"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_settings")
+        .select(
+          "sla_commercial_approval_hours,sla_credit_approval_hours,sla_fulfillment_hours,sla_delivery_hours",
+        )
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as SlaSettings | null;
+    },
+  });
+
   const orders = data ?? [];
   const grouped = KANBAN_COLUMNS.reduce<Record<OrderStatus, KanbanOrder[]>>(
+
     (acc, s) => {
       acc[s] = [];
       return acc;
