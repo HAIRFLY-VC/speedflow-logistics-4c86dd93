@@ -129,7 +129,7 @@ function KanbanPage() {
   );
 }
 
-function OrderCard({ order }: { order: KanbanOrder }) {
+function OrderCard({ order, sla }: { order: KanbanOrder; sla: SlaSettings | null }) {
   const customer =
     order.customers?.trade_name || order.customers?.legal_name || "Cliente";
   const since = formatDistanceToNow(new Date(order.status_since), {
@@ -138,9 +138,12 @@ function OrderCard({ order }: { order: KanbanOrder }) {
   });
   const slaLate =
     order.sla_deliver_by && new Date(order.sla_deliver_by).getTime() < Date.now();
+  const stageLate = isStageLate(order.status, order.status_since, sla);
 
   return (
-    <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+    <Card
+      className={`hover:border-primary/50 transition-colors cursor-pointer ${stageLate ? "border-destructive/60" : ""}`}
+    >
       <CardContent className="p-3 space-y-1.5">
         <div className="flex items-center justify-between">
           <span className="text-xs font-mono text-muted-foreground">#{order.order_number}</span>
@@ -149,13 +152,22 @@ function OrderCard({ order }: { order: KanbanOrder }) {
           </span>
         </div>
         <div className="text-sm font-medium truncate">{customer}</div>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{since}</span>
-          {slaLate ? (
-            <span className="text-destructive font-medium">SLA vencido</span>
-          ) : null}
+        <div className="flex items-center justify-between text-xs text-muted-foreground gap-2">
+          <span className="truncate">{since}</span>
+          <div className="flex items-center gap-1 shrink-0">
+            {stageLate ? (
+              <span className="inline-flex items-center gap-0.5 text-destructive font-medium">
+                <AlertTriangle className="h-3 w-3" /> Etapa atrasada
+              </span>
+            ) : null}
+            {slaLate ? (
+              <span className="text-destructive font-medium">SLA</span>
+            ) : null}
+          </div>
         </div>
       </CardContent>
     </Card>
   );
+}
+
 }
