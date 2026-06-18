@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { AlertTriangle } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -7,12 +8,15 @@ import {
   ORDER_STATUS_LABEL,
   STATUS_TONE,
   formatCurrency,
+  isStageLate,
   type OrderStatus,
+  type SlaSettings,
 } from "@/lib/orderStatus";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
