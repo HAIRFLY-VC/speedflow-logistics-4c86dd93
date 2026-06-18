@@ -7,7 +7,9 @@ import {
   ORDER_STATUS_LABEL,
   STATUS_TONE,
   formatCurrency,
+  isStageLate,
   type OrderStatus,
+  type SlaSettings,
 } from "@/lib/orderStatus";
 import {
   ShoppingCart,
@@ -46,8 +48,24 @@ function DashboardPage() {
     },
   });
 
+  const slaQ = useQuery({
+    queryKey: ["company_settings", "sla"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_settings")
+        .select(
+          "sla_commercial_approval_hours,sla_credit_approval_hours,sla_fulfillment_hours,sla_delivery_hours",
+        )
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as SlaSettings | null;
+    },
+  });
+
   const orders = data ?? [];
   const now = Date.now();
+  const sla = slaQ.data ?? null;
 
   const totals = {
     total: orders.length,
@@ -63,8 +81,10 @@ function DashboardPage() {
         o.status !== "cancelado" &&
         new Date(o.sla_deliver_by).getTime() < now,
     ).length,
+    stageLate: orders.filter((o) => isStageLate(o.status, o.status_since, sla)).length,
     revenue: orders.reduce((s, o) => s + Number(o.total_amount ?? 0), 0),
   };
+
 
   const byStatus = orders.reduce<Record<string, number>>((acc, o) => {
     acc[o.status] = (acc[o.status] ?? 0) + 1;
@@ -79,12 +99,13 @@ function DashboardPage() {
           <p className="text-muted-foreground">Visão geral dos pedidos e da operação logística.</p>
         </div>
 
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
           <Kpi icon={ShoppingCart} label="Pedidos" value={totals.total} loading={isLoading} />
           <Kpi icon={Clock} label="Aguard. aprovação" value={totals.pendingApproval} loading={isLoading} />
           <Kpi icon={Truck} label="Em transporte" value={totals.inTransport} loading={isLoading} />
           <Kpi icon={CheckCircle2} label="Entregues" value={totals.delivered} loading={isLoading} tone="text-emerald-600" />
-          <Kpi icon={AlertTriangle} label="SLA estourado" value={totals.atRisk} loading={isLoading} tone="text-destructive" />
+          <Kpi icon={AlertTriangle} label="SLA entrega" value={totals.atRisk} loading={isLoading} tone="text-destructive" />
+          <Kpi icon={AlertTriangle} label="Etapa atrasada" value={totals.stageLate} loading={isLoading} tone="text-destructive" />
           <Kpi
             icon={DollarSign}
             label="Receita"
@@ -92,6 +113,7 @@ function DashboardPage() {
             loading={isLoading}
           />
         </div>
+
 
         <Card>
           <CardHeader>
