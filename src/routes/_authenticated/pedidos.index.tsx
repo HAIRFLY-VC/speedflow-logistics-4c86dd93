@@ -108,6 +108,51 @@ function PedidosPage() {
     });
   }, [ordersQ.data, search, statusFilter]);
 
+  function exportCsv() {
+    const rows = filtered;
+    const header = [
+      "numero",
+      "cliente",
+      "status",
+      "total",
+      "frete",
+      "criado_em",
+      "sla_entrega",
+      "etapa_atrasada",
+    ];
+    const sla = slaQ.data;
+    const escape = (v: unknown) => {
+      const s = v === null || v === undefined ? "" : String(v);
+      return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [header.join(";")];
+    for (const o of rows) {
+      const late = isStageLate(o.status, o.status_since, sla);
+      lines.push(
+        [
+          o.order_number,
+          o.customers?.trade_name || o.customers?.legal_name || "",
+          ORDER_STATUS_LABEL[o.status],
+          Number(o.total_amount ?? 0).toFixed(2),
+          Number(o.freight_amount ?? 0).toFixed(2),
+          new Date(o.created_at).toLocaleString("pt-BR"),
+          o.sla_deliver_by ? new Date(o.sla_deliver_by).toLocaleString("pt-BR") : "",
+          late ? "sim" : "nao",
+        ]
+          .map(escape)
+          .join(";"),
+      );
+    }
+    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pedidos-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${rows.length} pedido(s) exportados`);
+  }
+
   return (
     <AppShell>
       <div className="space-y-4">
@@ -118,10 +163,16 @@ function PedidosPage() {
               Pedidos de venda da indústria até a entrega.
             </p>
           </div>
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Novo pedido
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={exportCsv} disabled={!ordersQ.data?.length}>
+              <Download className="h-4 w-4 mr-1" />
+              Exportar CSV
+            </Button>
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" />
+              Novo pedido
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-3">
@@ -183,6 +234,7 @@ function PedidosPage() {
                     new Date(o.sla_deliver_by).getTime() < Date.now() &&
                     o.status !== "entregue" &&
                     o.status !== "cancelado";
+                  const stageLate = isStageLate(o.status, o.status_since, slaQ.data);
                   return (
                     <TableRow key={o.id} className="cursor-pointer hover:bg-muted/40">
                       <TableCell className="font-mono text-xs">
@@ -198,11 +250,19 @@ function PedidosPage() {
                         {o.customers?.trade_name || o.customers?.legal_name || "—"}
                       </TableCell>
                       <TableCell>
-                        <span
-                          className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${STATUS_TONE[o.status]}`}
-                        >
-                          {ORDER_STATUS_LABEL[o.status]}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${STATUS_TONE[o.status]}`}
+                          >
+                            {ORDER_STATUS_LABEL[o.status]}
+                          </span>
+                          {stageLate ? (
+                            <span className="inline-flex items-center gap-1 rounded-md border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-medium text-destructive">
+                              <AlertTriangle className="h-3 w-3" />
+                              Etapa atrasada
+                            </span>
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {formatCurrency(Number(o.total_amount ?? 0))}
@@ -227,6 +287,7 @@ function PedidosPage() {
           </Table>
         </div>
       </div>
+
 
       <NewOrderDialog
         open={dialogOpen}
