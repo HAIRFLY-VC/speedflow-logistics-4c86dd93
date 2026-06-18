@@ -57,6 +57,7 @@ type OrderRow = {
   total_amount: number;
   freight_amount: number;
   created_at: string;
+  status_since: string | null;
   sla_deliver_by: string | null;
   customers: { trade_name: string | null; legal_name: string } | null;
 };
@@ -73,12 +74,27 @@ function PedidosPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id,order_number,status,total_amount,freight_amount,created_at,sla_deliver_by,customers(trade_name,legal_name)",
+          "id,order_number,status,total_amount,freight_amount,created_at,status_since,sla_deliver_by,customers(trade_name,legal_name)",
         )
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
       return (data ?? []) as unknown as OrderRow[];
+    },
+  });
+
+  const slaQ = useQuery({
+    queryKey: ["company_settings", "sla"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_settings")
+        .select(
+          "sla_commercial_approval_hours,sla_credit_approval_hours,sla_fulfillment_hours,sla_delivery_hours",
+        )
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as SlaSettings | null;
     },
   });
 
