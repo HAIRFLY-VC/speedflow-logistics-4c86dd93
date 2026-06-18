@@ -44,7 +44,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-export const Route = createFileRoute("/_authenticated/pedidos")({
+export const Route = createFileRoute("/_authenticated/pedidos/")({
   component: PedidosPage,
 });
 
