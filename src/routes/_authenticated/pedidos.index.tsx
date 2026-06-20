@@ -58,6 +58,8 @@ type OrderRow = {
   status: OrderStatus;
   total_amount: number;
   freight_amount: number;
+  weight: number | null;
+  cod_agenda: number | null;
   created_at: string;
   status_since: string | null;
   sla_deliver_by: string | null;
