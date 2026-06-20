@@ -96,13 +96,20 @@ function RotasPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,route_date,status,total_freight,driver_name,notes,freight_carriers(full_name,vehicle_plate),route_orders(count)",
+          "id,code,route_date,status,total_freight,driver_name,notes,freight_carriers(full_name,vehicle_plate),route_orders(orders(customer_id,total_amount,weight))",
         )
-        .order("route_date", { ascending: false });
+        .order("route_date", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as unknown as RouteRow[];
+      const rows = (data ?? []) as unknown as RouteRow[];
+      const nameOf = (r: RouteRow) =>
+        (r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code).toLowerCase();
+      return rows.sort((a, b) => {
+        if (a.route_date !== b.route_date) return a.route_date < b.route_date ? -1 : 1;
+        return nameOf(a).localeCompare(nameOf(b));
+      });
     },
   });
+
 
   return (
     <AppShell>
