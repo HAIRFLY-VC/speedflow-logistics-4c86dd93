@@ -205,10 +205,6 @@ function PedidosPage() {
               <Download className="h-4 w-4 mr-1" />
               Exportar CSV
             </Button>
-            <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-1" />
-              Novo pedido
-            </Button>
           </div>
         </div>
 
