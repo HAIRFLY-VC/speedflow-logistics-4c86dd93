@@ -13,6 +13,7 @@ type ErpQueryResponse = {
 
 type ErpOrderRow = {
   PEDIDO: number;
+  COD_AGENDA: number | null;
   COD_CLIENTE: number;
   CLIENTE_RS: string | null;
   CLIENTE_NF: string | null;
