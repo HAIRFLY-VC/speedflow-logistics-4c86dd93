@@ -73,12 +73,14 @@ function PedidosPage() {
   const erpSyncFn = useServerFn(triggerErpSync);
   const erpSync = useMutation({
     mutationFn: () => erpSyncFn(),
-    onSuccess: (r) => {
+    onSuccess: async (r) => {
       toast.success(
         `ERP: ${r.created} criado(s), ${r.updated} atualizado(s), ${r.skipped} ignorado(s)` +
           (r.errors.length ? ` — ${r.errors.length} erro(s)` : ""),
       );
-      qc.invalidateQueries({ queryKey: ["orders"] });
+      setSearch("");
+      setStatusFilter("all");
+      await qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["kanban"] });
     },
