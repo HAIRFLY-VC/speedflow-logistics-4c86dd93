@@ -269,14 +269,16 @@ function RotasPage() {
                         <TableCell className="text-right tabular-nums">
                           {weightFmt.format(groupPeso)}
                         </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs">
-                            {Array.from(groupStatusMap.entries()).map(([st, count]) => (
-                              <span key={st} className="inline-flex items-center gap-1">
-                                <span className="font-medium">{st}:</span>
-                                <span className="tabular-nums">{count}</span>
-                              </span>
-                            ))}
+                        <TableCell className="align-top">
+                          <div className="flex flex-col gap-0.5 text-xs">
+                            {Array.from(groupStatusMap.entries())
+                              .sort((a, b) => a[0].localeCompare(b[0]))
+                              .map(([st, count]) => (
+                                <div key={st} className="flex items-center justify-between gap-3">
+                                  <span className="font-medium">{st}</span>
+                                  <span className="tabular-nums text-muted-foreground">{count}</span>
+                                </div>
+                              ))}
                           </div>
                         </TableCell>
                         <TableCell />
