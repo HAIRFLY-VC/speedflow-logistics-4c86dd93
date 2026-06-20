@@ -1,110 +1,59 @@
-# Speed Logística — Plano de Implementação
+## Importação de Pedidos do ERP (Oracle)
 
-Sistema para a Hairfly Cosméticos otimizar o ciclo do pedido de venda até a entrega, com 4 papéis (ADM, GESTOR, OPERADOR, FRETISTA), máquina de estados do pedido e rastreabilidade completa.
+Vamos integrar a API Oracle (do outro projeto) ao Speed Logística para trazer os pedidos ainda não expedidos, com sincronização automática (cron) e botão manual.
 
-## Stack
+### 1. Secrets a criar
+Vou pedir via `add_secret` (você cola os valores):
+- `ERP_API_BASE_URL` — URL base da API Oracle (ex.: `https://erp.suaempresa.com/api`)
+- `ERP_API_KEY` — Bearer/x-api-key
+- `ERP_SYNC_SECRET` — segredo extra que o cron envia no header para autorizar o endpoint público (defesa em profundidade além do `apikey`)
 
-- Frontend: TanStack Start + React + TypeScript + Tailwind + shadcn/ui + Lucide
-- Backend: **Lovable Cloud** (Supabase gerenciado) — Postgres, Auth, RLS, Storage
-- Server-side: `createServerFn` do TanStack Start (sem Edge Functions)
-- Estado de servidor: TanStack Query
-- Auth: email/senha (Supabase Auth) com proteção de rotas por role via layout `_authenticated`
+### 2. Mudanças de schema (migração única)
+- `orders`: adicionar coluna `erp_updated_at timestamptz` (para detectar mudanças do ERP) e índice único parcial em `erp_id` (já existe a coluna).
+- `customers`: garantir índice único em `erp_id`.
+- `products`: garantir índice único em `erp_id`.
+- Nova tabela `erp_sync_runs` (auditoria de cada importação):
+  - `started_at`, `finished_at`, `trigger` (`manual|cron`), `triggered_by` (uuid nullable), `orders_created`, `orders_updated`, `orders_skipped`, `errors` (jsonb), `status` (`success|partial|failed`)
+  - RLS: SELECT para `adm`/`gestor`; INSERT/UPDATE apenas service_role
+- Ajuste no trigger `enforce_order_status_transition`: permitir bypass quando a alteração vem com flag de sync do ERP (via `current_setting('app.erp_sync', true) = 'on'`) para o caso "Upsert completo, incluindo reset de status" — só reseta status de pedidos que **ainda não entraram em fluxo operacional** (status atual ∈ {`aguardando_aprovacao_comercial`, `aguardando_aprovacao_credito`, `aguardando_faturamento`}). Se já está em separação, transporte ou entregue, **preserva** o status local e só atualiza dados cadastrais/itens.
 
-## Ordem de entrega (cada item é uma entrega isolada; paro e mostro antes de seguir)
+### 3. Server-side: lógica de sincronização
+- `src/lib/erp-sync.server.ts` — helper privilegiado (carrega `supabaseAdmin` em runtime):
+  - `fetchPendingOrdersFromErp()` — chama `GET {ERP_API_BASE_URL}/orders?status=not_shipped` com `Authorization: Bearer ${ERP_API_KEY}`. Valida resposta com Zod.
+  - `syncOrders(payload, { trigger, userId })`:
+    1. Abre registro em `erp_sync_runs`.
+    2. Para cada pedido: upsert do `customers` (por `erp_id`) → upsert do `products` (por `erp_id`) → upsert do `orders` + `order_items` (transação via RPC ou múltiplas chamadas controladas).
+    3. Aplica regra de preservação de status descrita acima.
+    4. Acumula contadores e erros por pedido (não aborta o lote inteiro).
+    5. Fecha o registro com `status` final.
+- `src/lib/erp.functions.ts`:
+  - `triggerErpSync` — `createServerFn` com `requireSupabaseAuth` + checagem `has_role(adm|gestor)`, dispara `syncOrders({ trigger: 'manual' })`.
+  - `listSyncRuns` — server fn paginada para a tela de configurações.
 
-1. **Habilitar Lovable Cloud + Schema completo + RLS** ← começamos aqui
-2. Auth (login/cadastro) + proteção de rotas por role + redirecionamento por papel
-3. Layout base (sidebar por role, dark mode, responsivo) + Dashboard com KPIs + Kanban
-4. CRUD de Clientes e Produtos
-5. CRUD de Pedidos + tela de detalhe com histórico de status
-6. Fluxo de aprovações (comercial e crédito) com transições de status
-7. Faturamento + Separação
-8. Fretistas, Rotas e Borderô
-9. Entrega + Canhoto (upload de foto/assinatura em Storage)
-10. Gestão de usuários (ADM) + configurações
+### 4. Endpoint público para o cron
+- `src/routes/api/public/hooks/erp-sync.ts` (POST):
+  - Valida header `x-erp-sync-secret === process.env.ERP_SYNC_SECRET` (timing-safe). 401 se falhar.
+  - Chama `syncOrders({ trigger: 'cron' })`.
+  - Retorna `{ ok, created, updated, skipped, errors_count }`.
 
----
+### 5. pg_cron
+- Habilitar `pg_cron` + `pg_net` (se ainda não estiverem).
+- Job `erp-sync-orders` a cada 15 min chamando `https://project--0f575c65-0542-477f-8d03-b4c26e47b952.lovable.app/api/public/hooks/erp-sync` com `apikey` + `x-erp-sync-secret`.
 
-## Entrega 1 — Schema Supabase + RLS (detalhe técnico)
+### 6. UI
+- Em `src/routes/_authenticated/pedidos.index.tsx`: botão **"Importar do ERP"** (visível só para `adm`/`gestor`) com loading e toast mostrando resultado (`X criados, Y atualizados, Z ignorados`).
+- Em `src/routes/_authenticated/configuracoes.tsx`: nova aba **"Sincronização ERP"** com:
+  - Última execução (timestamp, trigger, resultado, erros expandíveis)
+  - Tabela das últimas 20 execuções (`erp_sync_runs`)
+  - Botão de sincronizar manualmente
 
-### Enums
+### 7. Validação
+- Após implementar: criar registro fake na tabela `erp_sync_runs` via teste? Não — vamos testar de verdade chamando o endpoint manual.
+- Se você ainda não tem a API pronta/acessível, eu posso deixar um modo MOCK ativado por env (`ERP_API_MOCK=1`) que retorna 3 pedidos fictícios para você ver o fluxo funcionando ponta a ponta antes de plugar a Oracle real.
 
-- `app_role`: `adm | gestor | operador | fretista`
-- `order_status`:
-  `aguardando_aprovacao_comercial | aguardando_aprovacao_credito | aguardando_faturamento | em_separacao | aguardando_roteirizacao | faturado | em_transporte | entregue | reprovado_comercial | reprovado_credito | cancelado`
+### Perguntas que vou precisar responder antes de começar a codar
+1. **Formato da resposta da API Oracle**: você pode colar 1 exemplo de JSON de pedido que a API retorna (com cliente, itens, valor)? Sem isso, faço suposições sobre os nomes dos campos e mapeio errado.
+2. **Endpoint exato** para "pedidos não expedidos": é `/orders?status=not_shipped`, `/sales-orders/pending`, ou outro caminho?
+3. **Quer o modo MOCK** descrito no passo 7 para testar antes da API estar plugada?
 
-### Tabelas
-
-- `profiles` (1:1 com `auth.users`) — nome, telefone, ativo
-- `user_roles` (tabela separada, conforme padrão de segurança) — `user_id`, `role`
-- `customers` — clientes B2B (CNPJ, razão social, endereço, geolocalização, `erp_id`)
-- `products` — SKU, nome, preço, estoque, peso
-- `freight_carriers` (fretistas) — vinculados opcionalmente a um `user_id` para login
-- `orders` — número, cliente, vendedor, valor total, status (enum), `current_status_since`, `erp_id`
-- `order_items` — produto, quantidade, preço
-- `order_status_history` — auditoria: `order_id`, `from_status`, `to_status`, `changed_by`, `changed_at`, `note`
-- `approvals` — `order_id`, `type` (comercial/credito), `decision`, `decided_by`, `decided_at`, `reason`
-- `invoices` (faturamento) — `order_id`, `nfe_number`, `nfe_key`, `boleto_url`, `issued_at`
-- `picking_tasks` (separação) — `order_id`, `picker_id`, `started_at`, `finished_at`
-- `routes` — `carrier_id`, `route_date`, `status`, métricas
-- `route_orders` (N:N orders↔routes)
-- `delivery_manifests` (borderô) — `route_id`, `code`, `issued_at`, `issued_by`
-- `deliveries` — `order_id`, `delivered_at`, `received_by`, `notes`
-- `delivery_receipts` (canhotos) — `delivery_id`, `photo_url` (Storage), `signature_url`
-
-### Funções e triggers
-
-- `has_role(_user_id uuid, _role app_role) returns boolean` — SECURITY DEFINER (evita recursão RLS)
-- `handle_new_user()` — cria `profiles` ao inserir em `auth.users`
-- `set_updated_at()` — trigger em todas as tabelas
-- `enforce_order_status_transition()` — trigger BEFORE UPDATE em `orders`: valida a máquina de estados (só permite avançar conforme regras) e grava `order_status_history` automaticamente
-- Função `transition_order_status(order_id, to_status, note)` para uso pelo app (RPC)
-
-### Máquina de estados (validada no trigger)
-
-```text
-aguardando_aprovacao_comercial → aguardando_aprovacao_credito | reprovado_comercial | cancelado
-aguardando_aprovacao_credito   → aguardando_faturamento | reprovado_credito | cancelado
-aguardando_faturamento         → em_separacao | cancelado
-em_separacao                   → aguardando_roteirizacao | cancelado
-aguardando_roteirizacao        → faturado | cancelado
-faturado                       → em_transporte | cancelado   (exige route_orders + invoice)
-em_transporte                  → entregue
-```
-
-### GRANTs e RLS (uma policy por role)
-
-Para CADA tabela em `public`:
-1. `GRANT` apropriado a `authenticated` e `service_role`
-2. `ENABLE ROW LEVEL SECURITY`
-3. Policies explícitas:
-   - **ADM/GESTOR**: SELECT/INSERT/UPDATE/DELETE em tudo (via `has_role`)
-   - **OPERADOR**: SELECT em tudo operacional, UPDATE conforme etapa do fluxo
-   - **FRETISTA**: SELECT apenas em `routes`, `route_orders`, `orders`, `deliveries`, `delivery_receipts` ligados ao seu `freight_carriers.user_id`; INSERT em `deliveries` e `delivery_receipts` apenas das suas rotas
-4. `user_roles`: SELECT só do próprio usuário ou ADM; INSERT/UPDATE/DELETE só ADM
-
-### Storage
-
-- Bucket privado `delivery-receipts` com policies: fretista grava nos próprios; ADM/GESTOR/OPERADOR leem tudo
-
-### Índices
-
-- `orders(status)`, `orders(customer_id)`, `order_status_history(order_id, changed_at)`, `route_orders(route_id)`, `deliveries(order_id)`
-
-### Entregável desta etapa
-
-- Migração SQL completa aplicada via Lovable Cloud
-- Documento curto explicando o schema e como testar a RLS
-
----
-
-## Padrões aplicados em todas as entregas
-
-- Componentes pequenos, tipados, em `src/components/<dominio>/`
-- Server functions em `src/lib/<dominio>.functions.ts` com `requireSupabaseAuth`
-- Validação com Zod no frontend E nas server functions
-- Toasts (sonner) para feedback, skeletons para loading, empty states desenhados
-- Rotas protegidas sob `src/routes/_authenticated/` (layout gerenciado pela integração)
-- Mobile-first (essencial para o fretista)
-
-Confirma que posso iniciar pela **Entrega 1 (habilitar Lovable Cloud + schema + RLS)**?
+Confirma o plano e me responde essas 3 perguntas que eu sigo direto para implementação.
