@@ -201,6 +201,7 @@ export async function syncErpOrders(opts: {
             .update({
               customer_id: customerId,
               total_amount: totalAmount,
+              weight: row.PESO,
               notes: notes || null,
               dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
               nome_rota: row.NOME_ROTA || null,
@@ -216,11 +217,13 @@ export async function syncErpOrders(opts: {
             erp_id: pedidoStr,
             customer_id: customerId,
             total_amount: totalAmount,
+            weight: row.PESO,
             notes: notes || null,
             dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
             nome_rota: row.NOME_ROTA || null,
             nome_motorista: row.NOME_MOTORISTA || null,
           });
+
           if (error) {
             // Se já existe pelo order_number (conflito), pula
             if (error.code === "23505") {
