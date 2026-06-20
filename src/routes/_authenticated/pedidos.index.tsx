@@ -277,6 +277,16 @@ function PedidosPage() {
                   const stageLate = isStageLate(o.status, o.status_since, slaQ.data);
                   return (
                     <TableRow key={o.id} className="cursor-pointer hover:bg-muted/40">
+                      <TableCell className="text-xs text-muted-foreground">
+                        {(() => {
+                          if (!o.dt_prev_exp) return "—";
+                          const d = new Date(o.dt_prev_exp);
+                          if (isNaN(d.getTime()) || d.getFullYear() >= 3000) return "—";
+                          return d.toLocaleDateString("pt-BR");
+                        })()}
+                      </TableCell>
+                      <TableCell className="text-xs">{o.nome_rota || "—"}</TableCell>
+                      <TableCell className="text-xs">{o.nome_motorista || "—"}</TableCell>
                       <TableCell className="font-mono text-xs">
                         <Link
                           to="/pedidos/$orderId"
