@@ -60,7 +60,7 @@ type RouteRow = {
   notes: string | null;
   freight_carriers: { full_name: string; vehicle_plate: string | null } | null;
   route_orders: {
-    orders: { customer_id: string | null; total_amount: number | null; weight: number | null } | null;
+    orders: { customer_id: string | null; total_amount: number | null; weight: number | null; erp_status: string | null } | null;
   }[];
 };
 
