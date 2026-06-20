@@ -27,10 +27,15 @@ type KanbanOrder = {
   order_number: string;
   status: OrderStatus;
   total_amount: number;
+  weight: number | null;
   status_since: string;
   sla_deliver_by: string | null;
   customers: { trade_name: string | null; legal_name: string } | null;
 };
+
+function formatWeight(kg: number) {
+  return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(kg)} kg`;
+}
 
 function KanbanPage() {
   const { data, isLoading } = useQuery({
@@ -39,7 +44,7 @@ function KanbanPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id,order_number,status,total_amount,status_since,sla_deliver_by,customers(trade_name,legal_name)",
+          "id,order_number,status,total_amount,weight,status_since,sla_deliver_by,customers(trade_name,legal_name)",
         )
         .order("status_since", { ascending: false })
         .limit(500);
@@ -47,6 +52,7 @@ function KanbanPage() {
       return (data ?? []) as unknown as KanbanOrder[];
     },
   });
+
 
   const slaQ = useQuery({
     queryKey: ["company_settings", "sla"],
