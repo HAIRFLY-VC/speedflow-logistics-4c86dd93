@@ -29,13 +29,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { Database } from "@/integrations/supabase/types";
 
 type RouteStatus = Database["public"]["Enums"]["route_status"];
@@ -63,9 +56,23 @@ type RouteRow = {
   route_date: string;
   status: RouteStatus;
   total_freight: number;
+  driver_name: string | null;
+  notes: string | null;
   freight_carriers: { full_name: string; vehicle_plate: string | null } | null;
   route_orders: { count: number }[];
 };
+
+function slugify(s: string): string {
+  return (
+    s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "rota"
+  );
+}
 
 function RotasPage() {
   const qc = useQueryClient();
@@ -77,7 +84,7 @@ function RotasPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,route_date,status,total_freight,freight_carriers(full_name,vehicle_plate),route_orders(count)",
+          "id,code,route_date,status,total_freight,driver_name,notes,freight_carriers(full_name,vehicle_plate),route_orders(count)",
         )
         .order("route_date", { ascending: false });
       if (error) throw error;
@@ -105,8 +112,9 @@ function RotasPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Código</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Fretista</TableHead>
+                <TableHead>Data planejada</TableHead>
+                <TableHead>Nome da rota</TableHead>
+                <TableHead>Motorista</TableHead>
                 <TableHead className="text-right">Paradas</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
@@ -115,59 +123,57 @@ function RotasPage() {
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={5}>
+                    <TableCell colSpan={6}>
                       <Skeleton className="h-6 w-full" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : (data ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                     Nenhuma rota criada.
                   </TableCell>
                 </TableRow>
               ) : (
-                data!.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-mono text-xs">
-                      <Link
-                        to="/rotas/$routeId"
-                        params={{ routeId: r.id }}
-                        className="text-primary hover:underline"
-                      >
-                        {r.code}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(r.route_date), "dd/MM/yyyy", { locale: ptBR })}
-                    </TableCell>
-                    <TableCell>
-                      {r.freight_carriers ? (
-                        <>
-                          {r.freight_carriers.full_name}
-                          {r.freight_carriers.vehicle_plate ? (
-                            <span className="text-xs text-muted-foreground">
-                              {" · "}
-                              {r.freight_carriers.vehicle_plate}
-                            </span>
-                          ) : null}
-                        </>
-                      ) : (
-                        <span className="text-muted-foreground">Não atribuído</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {r.route_orders?.[0]?.count ?? 0}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${ROUTE_STATUS_TONE[r.status]}`}
-                      >
-                        {ROUTE_STATUS_LABEL[r.status]}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))
+                data!.map((r) => {
+                  const motorista =
+                    r.driver_name ?? r.freight_carriers?.full_name ?? null;
+                  const nomeRota = r.notes?.startsWith("Rota ")
+                    ? r.notes.slice(5)
+                    : r.code;
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-mono text-xs">
+                        <Link
+                          to="/rotas/$routeId"
+                          params={{ routeId: r.id }}
+                          className="text-primary hover:underline"
+                        >
+                          {r.code}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(r.route_date), "dd/MM/yyyy", { locale: ptBR })}
+                      </TableCell>
+                      <TableCell>{nomeRota}</TableCell>
+                      <TableCell>
+                        {motorista ?? (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {r.route_orders?.[0]?.count ?? 0}
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${ROUTE_STATUS_TONE[r.status]}`}
+                        >
+                          {ROUTE_STATUS_LABEL[r.status]}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -193,35 +199,21 @@ function NewRouteDialog({
   onCreated: () => void;
 }) {
   const [routeDate, setRouteDate] = useState(new Date().toISOString().slice(0, 10));
-  const [carrierId, setCarrierId] = useState<string>("");
+  const [routeName, setRouteName] = useState("");
+  const [driverName, setDriverName] = useState("");
   const [freight, setFreight] = useState("0");
   const [notes, setNotes] = useState("");
 
-  const carriersQ = useQuery({
-    queryKey: ["carriers", "active"],
-    enabled: open,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("freight_carriers")
-        .select("id,full_name,vehicle_plate")
-        .eq("is_active", true)
-        .order("full_name");
-      if (error) throw error;
-      return data;
-    },
-  });
-
   const create = useMutation({
     mutationFn: async () => {
-      const code = `ROT-${routeDate.replace(/-/g, "")}-${Math.floor(Math.random() * 1000)
-        .toString()
-        .padStart(3, "0")}`;
+      if (!routeName.trim()) throw new Error("Informe o nome da rota");
+      const code = `${slugify(routeName)}-${routeDate.replace(/-/g, "")}`;
       const { error } = await supabase.from("routes").insert({
         code,
         route_date: routeDate,
-        carrier_id: carrierId || null,
+        driver_name: driverName.trim() || null,
         total_freight: Number(freight || 0),
-        notes: notes || null,
+        notes: notes.trim() ? notes : `Rota ${routeName.trim()}`,
       });
       if (error) throw error;
     },
@@ -229,7 +221,8 @@ function NewRouteDialog({
       toast.success("Rota criada");
       onCreated();
       onOpenChange(false);
-      setCarrierId("");
+      setRouteName("");
+      setDriverName("");
       setFreight("0");
       setNotes("");
     },
@@ -246,8 +239,16 @@ function NewRouteDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5 md:col-span-2">
+            <Label className="text-xs">Nome da rota *</Label>
+            <Input
+              value={routeName}
+              onChange={(e) => setRouteName(e.target.value)}
+              placeholder="Ex: Rota Centro"
+            />
+          </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Data da rota *</Label>
+            <Label className="text-xs">Data planejada de saída *</Label>
             <Input type="date" value={routeDate} onChange={(e) => setRouteDate(e.target.value)} />
           </div>
           <div className="space-y-1.5">
@@ -261,20 +262,12 @@ function NewRouteDialog({
             />
           </div>
           <div className="space-y-1.5 md:col-span-2">
-            <Label className="text-xs">Fretista</Label>
-            <Select value={carrierId} onValueChange={setCarrierId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o fretista" />
-              </SelectTrigger>
-              <SelectContent>
-                {(carriersQ.data ?? []).map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.full_name}
-                    {c.vehicle_plate ? ` · ${c.vehicle_plate}` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="text-xs">Motorista</Label>
+            <Input
+              value={driverName}
+              onChange={(e) => setDriverName(e.target.value)}
+              placeholder="Nome do motorista"
+            />
           </div>
           <div className="space-y-1.5 md:col-span-2">
             <Label className="text-xs">Observações</Label>

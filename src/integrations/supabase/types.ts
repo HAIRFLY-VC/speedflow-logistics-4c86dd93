@@ -716,6 +716,7 @@ export type Database = {
           carrier_id: string | null
           code: string
           created_at: string
+          driver_name: string | null
           id: string
           notes: string | null
           route_date: string
@@ -727,6 +728,7 @@ export type Database = {
           carrier_id?: string | null
           code: string
           created_at?: string
+          driver_name?: string | null
           id?: string
           notes?: string | null
           route_date: string
@@ -738,6 +740,7 @@ export type Database = {
           carrier_id?: string | null
           code?: string
           created_at?: string
+          driver_name?: string | null
           id?: string
           notes?: string | null
           route_date?: string
