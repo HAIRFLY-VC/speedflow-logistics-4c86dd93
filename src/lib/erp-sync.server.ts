@@ -232,6 +232,7 @@ export async function syncErpOrders(opts: {
       dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
       nome_rota: row.NOME_ROTA || null,
       nome_motorista: row.NOME_MOTORISTA || null,
+      erp_status: row.STATUS || null,
     });
     if (error) {
       if (error.code === "23505") return { customerCreated, outcome: "skipped" as const };
