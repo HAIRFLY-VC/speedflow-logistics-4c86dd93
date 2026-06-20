@@ -61,6 +61,9 @@ type OrderRow = {
   created_at: string;
   status_since: string | null;
   sla_deliver_by: string | null;
+  dt_prev_exp: string | null;
+  nome_rota: string | null;
+  nome_motorista: string | null;
   customers: { trade_name: string | null; legal_name: string } | null;
 };
 
@@ -93,8 +96,11 @@ function PedidosPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id,order_number,status,total_amount,freight_amount,created_at,status_since,sla_deliver_by,customers(trade_name,legal_name)",
+          "id,order_number,status,total_amount,freight_amount,created_at,status_since,sla_deliver_by,dt_prev_exp,nome_rota,nome_motorista,customers(trade_name,legal_name)",
         )
+        .order("dt_prev_exp", { ascending: true })
+        .order("nome_rota", { ascending: true })
+        .order("nome_motorista", { ascending: true })
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -235,6 +241,9 @@ function PedidosPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Prev. Exp.</TableHead>
+                <TableHead>Rota</TableHead>
+                <TableHead>Motorista</TableHead>
                 <TableHead>Pedido</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Status</TableHead>
@@ -247,14 +256,14 @@ function PedidosPage() {
               {ordersQ.isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={6}>
+                    <TableCell colSpan={9}>
                       <Skeleton className="h-6 w-full" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-10">
                     Nenhum pedido encontrado.
                   </TableCell>
                 </TableRow>
@@ -268,6 +277,16 @@ function PedidosPage() {
                   const stageLate = isStageLate(o.status, o.status_since, slaQ.data);
                   return (
                     <TableRow key={o.id} className="cursor-pointer hover:bg-muted/40">
+                      <TableCell className="text-xs text-muted-foreground">
+                        {(() => {
+                          if (!o.dt_prev_exp) return "—";
+                          const d = new Date(o.dt_prev_exp);
+                          if (isNaN(d.getTime()) || d.getFullYear() >= 3000) return "—";
+                          return d.toLocaleDateString("pt-BR");
+                        })()}
+                      </TableCell>
+                      <TableCell className="text-xs">{o.nome_rota || "—"}</TableCell>
+                      <TableCell className="text-xs">{o.nome_motorista || "—"}</TableCell>
                       <TableCell className="font-mono text-xs">
                         <Link
                           to="/pedidos/$orderId"

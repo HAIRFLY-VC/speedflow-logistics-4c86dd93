@@ -28,6 +28,9 @@ type ErpOrderRow = {
   DT_EMISSAO: string | null;
   OBS: string | null;
   STATUS: string | null;
+  DT_PREV_EXP: string | null;
+  NOME_ROTA: string | null;
+  NOME_MOTORISTA: string | null;
 };
 
 const PENDING_ORDERS_SQL = `
@@ -182,6 +185,12 @@ export async function syncErpOrders(opts: {
           .eq("erp_id", pedidoStr)
           .maybeSingle();
 
+        function parseErpDate(val: unknown): string | null {
+          if (val == null) return null;
+          const d = new Date(String(val));
+          return isNaN(d.getTime()) ? null : d.toISOString();
+        }
+
         if (existingOrder) {
           // Atualiza só campos cadastrais. NUNCA muda status (preserva fluxo operacional).
           const { error } = await supabaseAdmin
@@ -190,6 +199,9 @@ export async function syncErpOrders(opts: {
               customer_id: customerId,
               total_amount: totalAmount,
               notes: notes || null,
+              dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
+              nome_rota: row.NOME_ROTA || null,
+              nome_motorista: row.NOME_MOTORISTA || null,
             })
             .eq("id", existingOrder.id);
           if (error) throw error;
@@ -202,6 +214,9 @@ export async function syncErpOrders(opts: {
             customer_id: customerId,
             total_amount: totalAmount,
             notes: notes || null,
+            dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
+            nome_rota: row.NOME_ROTA || null,
+            nome_motorista: row.NOME_MOTORISTA || null,
           });
           if (error) {
             // Se já existe pelo order_number (conflito), pula
