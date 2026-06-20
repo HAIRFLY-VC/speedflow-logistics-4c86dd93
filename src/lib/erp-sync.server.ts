@@ -28,6 +28,9 @@ type ErpOrderRow = {
   DT_EMISSAO: string | null;
   OBS: string | null;
   STATUS: string | null;
+  DT_PREV_EXP: string | null;
+  NOME_ROTA: string | null;
+  NOME_MOTORISTA: string | null;
 };
 
 const PENDING_ORDERS_SQL = `
