@@ -136,6 +136,7 @@ function RotasPage() {
                 <TableHead className="text-right">Paradas</TableHead>
                 <TableHead className="text-right">Valor total</TableHead>
                 <TableHead className="text-right">Peso total (kg)</TableHead>
+                <TableHead>Pedidos por status</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -143,14 +144,14 @@ function RotasPage() {
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={8}>
                       <Skeleton className="h-6 w-full" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : (data ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                     Nenhuma rota criada.
                   </TableCell>
                 </TableRow>
