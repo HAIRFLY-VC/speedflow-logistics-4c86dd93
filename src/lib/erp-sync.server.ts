@@ -214,6 +214,9 @@ export async function syncErpOrders(opts: {
             customer_id: customerId,
             total_amount: totalAmount,
             notes: notes || null,
+            dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
+            nome_rota: row.NOME_ROTA || null,
+            nome_motorista: row.NOME_MOTORISTA || null,
           });
           if (error) {
             // Se já existe pelo order_number (conflito), pula
