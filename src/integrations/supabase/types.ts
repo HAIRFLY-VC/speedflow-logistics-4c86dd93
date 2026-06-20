@@ -493,6 +493,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          cod_agenda: number | null
           created_at: string
           customer_id: string
           dt_prev_exp: string | null
@@ -512,6 +513,7 @@ export type Database = {
           weight: number | null
         }
         Insert: {
+          cod_agenda?: number | null
           created_at?: string
           customer_id: string
           dt_prev_exp?: string | null
@@ -531,6 +533,7 @@ export type Database = {
           weight?: number | null
         }
         Update: {
+          cod_agenda?: number | null
           created_at?: string
           customer_id?: string
           dt_prev_exp?: string | null
