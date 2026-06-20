@@ -25,6 +25,7 @@ import { Route as AuthenticatedRotasIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedRotasRouteIdRouteImport } from './routes/_authenticated/rotas.$routeId'
 import { Route as AuthenticatedPedidosOrderIdRouteImport } from './routes/_authenticated/pedidos.$orderId'
+import { Route as ApiPublicHooksErpSyncRouteImport } from './routes/api/public/hooks/erp-sync'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -110,6 +111,11 @@ const AuthenticatedPedidosOrderIdRoute =
     path: '/pedidos/$orderId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicHooksErpSyncRoute = ApiPublicHooksErpSyncRouteImport.update({
+  id: '/api/public/hooks/erp-sync',
+  path: '/api/public/hooks/erp-sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -127,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
   '/rotas/': typeof AuthenticatedRotasIndexRoute
+  '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByTo {
   '/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
   '/rotas': typeof AuthenticatedRotasIndexRoute
+  '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -163,6 +171,7 @@ export interface FileRoutesById {
   '/_authenticated/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
   '/_authenticated/rotas/': typeof AuthenticatedRotasIndexRoute
+  '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/rotas/$routeId'
     | '/pedidos/'
     | '/rotas/'
+    | '/api/public/hooks/erp-sync'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/rotas/$routeId'
     | '/pedidos'
     | '/rotas'
+    | '/api/public/hooks/erp-sync'
   id:
     | '__root__'
     | '/'
@@ -217,12 +228,14 @@ export interface FileRouteTypes {
     | '/_authenticated/rotas/$routeId'
     | '/_authenticated/pedidos/'
     | '/_authenticated/rotas/'
+    | '/api/public/hooks/erp-sync'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicHooksErpSyncRoute: typeof ApiPublicHooksErpSyncRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -339,6 +352,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPedidosOrderIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/erp-sync': {
+      id: '/api/public/hooks/erp-sync'
+      path: '/api/public/hooks/erp-sync'
+      fullPath: '/api/public/hooks/erp-sync'
+      preLoaderRoute: typeof ApiPublicHooksErpSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -381,17 +401,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicHooksErpSyncRoute: ApiPublicHooksErpSyncRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
