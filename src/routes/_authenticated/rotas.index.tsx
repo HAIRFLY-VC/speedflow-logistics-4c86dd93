@@ -155,58 +155,97 @@ function RotasPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                data!.map((r) => {
-                  const motorista =
-                    r.driver_name ?? r.freight_carriers?.full_name ?? null;
-                  const nomeRota = r.notes?.startsWith("Rota ")
-                    ? r.notes.slice(5)
-                    : r.code;
-                  const clientesUnicos = new Set<string>();
-                  let totalValor = 0;
-                  let totalPeso = 0;
-                  for (const ro of r.route_orders ?? []) {
-                    const o = ro.orders;
-                    if (!o) continue;
-                    if (o.customer_id) clientesUnicos.add(o.customer_id);
-                    totalValor += Number(o.total_amount ?? 0);
-                    totalPeso += Number(o.weight ?? 0);
+                (() => {
+                  // agrupa por data planejada
+                  const groups = new Map<string, RouteRow[]>();
+                  for (const r of data!) {
+                    const arr = groups.get(r.route_date) ?? [];
+                    arr.push(r);
+                    groups.set(r.route_date, arr);
                   }
-                  return (
-                    <TableRow key={r.id}>
-                      <TableCell>
-                        <Link
-                          to="/rotas/$routeId"
-                          params={{ routeId: r.id }}
-                          className="text-primary hover:underline"
-                        >
-                          {format(new Date(r.route_date), "dd/MM/yyyy", { locale: ptBR })}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{nomeRota}</TableCell>
-                      <TableCell>
-                        {motorista ?? (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {clientesUnicos.size}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {currencyFmt.format(totalValor)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {weightFmt.format(totalPeso)}
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${ROUTE_STATUS_TONE[r.status]}`}
-                        >
-                          {ROUTE_STATUS_LABEL[r.status]}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                  const dates = Array.from(groups.keys()).sort();
+                  const rows: React.ReactNode[] = [];
+                  for (const date of dates) {
+                    const group = groups.get(date)!;
+                    let groupStops = 0;
+                    let groupValor = 0;
+                    let groupPeso = 0;
+                    for (const r of group) {
+                      const motorista =
+                        r.driver_name ?? r.freight_carriers?.full_name ?? null;
+                      const nomeRota = r.notes?.startsWith("Rota ")
+                        ? r.notes.slice(5)
+                        : r.code;
+                      const clientesUnicos = new Set<string>();
+                      let totalValor = 0;
+                      let totalPeso = 0;
+                      for (const ro of r.route_orders ?? []) {
+                        const o = ro.orders;
+                        if (!o) continue;
+                        if (o.customer_id) clientesUnicos.add(o.customer_id);
+                        totalValor += Number(o.total_amount ?? 0);
+                        totalPeso += Number(o.weight ?? 0);
+                      }
+                      groupStops += clientesUnicos.size;
+                      groupValor += totalValor;
+                      groupPeso += totalPeso;
+                      rows.push(
+                        <TableRow key={r.id}>
+                          <TableCell>
+                            <Link
+                              to="/rotas/$routeId"
+                              params={{ routeId: r.id }}
+                              className="text-primary hover:underline"
+                            >
+                              {format(new Date(r.route_date), "dd/MM/yyyy", { locale: ptBR })}
+                            </Link>
+                          </TableCell>
+                          <TableCell>{nomeRota}</TableCell>
+                          <TableCell>
+                            {motorista ?? (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {clientesUnicos.size}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {currencyFmt.format(totalValor)}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {weightFmt.format(totalPeso)}
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${ROUTE_STATUS_TONE[r.status]}`}
+                            >
+                              {ROUTE_STATUS_LABEL[r.status]}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }
+                    // linha de total do grupo
+                    rows.push(
+                      <TableRow key={`total-${date}`} className="bg-muted/50 font-semibold">
+                        <TableCell colSpan={3} className="text-muted-foreground text-xs uppercase tracking-wider">
+                          Total {format(new Date(date), "dd/MM/yyyy", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {groupStops}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {currencyFmt.format(groupValor)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {weightFmt.format(groupPeso)}
+                        </TableCell>
+                        <TableCell />
+                      </TableRow>
+                    );
+                  }
+                  return rows;
+                })()
               )}
             </TableBody>
 
