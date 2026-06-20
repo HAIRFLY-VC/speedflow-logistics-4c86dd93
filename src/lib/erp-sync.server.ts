@@ -173,7 +173,7 @@ export async function syncErpOrders(opts: {
     }
 
     const pedidoStr = String(row.PEDIDO);
-    const totalAmount = Number(row.VALOR_PEDIDO ?? row.VALOR ?? 0);
+    const totalAmount = Number(row.VALOR ?? row.VALOR_PEDIDO ?? 0);
     const notes = [
       row.OBS ? `OBS: ${row.OBS.trim()}` : null,
       row.STATUS ? `Status ERP: ${row.STATUS}` : null,
