@@ -59,8 +59,20 @@ type RouteRow = {
   driver_name: string | null;
   notes: string | null;
   freight_carriers: { full_name: string; vehicle_plate: string | null } | null;
-  route_orders: { count: number }[];
+  route_orders: {
+    orders: { customer_id: string | null; total_amount: number | null; weight: number | null } | null;
+  }[];
 };
+
+const currencyFmt = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+const weightFmt = new Intl.NumberFormat("pt-BR", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
 
 function slugify(s: string): string {
   return (
