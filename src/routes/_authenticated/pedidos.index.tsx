@@ -238,6 +238,40 @@ function PedidosPage() {
           </div>
         </div>
 
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { title: "PEDIDOS", data: agendaTotals.pedidos, accent: "border-l-primary" },
+            { title: "BONIFICAÇÃO", data: agendaTotals.bonificacao, accent: "border-l-amber-500" },
+            { title: "TOTAL", data: agendaTotals.total, accent: "border-l-emerald-500" },
+          ].map((c) => (
+            <div
+              key={c.title}
+              className={`rounded-lg border border-l-4 ${c.accent} bg-card p-4 shadow-sm`}
+            >
+              <p className="text-xs font-semibold tracking-wider text-muted-foreground">
+                {c.title}
+              </p>
+              <p className="mt-2 text-2xl font-bold tabular-nums">
+                {formatCurrency(c.data.valor)}
+              </p>
+              <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                <span>
+                  Peso:{" "}
+                  <span className="font-medium text-foreground tabular-nums">
+                    {formatWeight(c.data.peso)}
+                  </span>
+                </span>
+                <span>
+                  Pedidos:{" "}
+                  <span className="font-medium text-foreground tabular-nums">
+                    {c.data.qtd}
+                  </span>
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-[240px] max-w-md">
             <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
