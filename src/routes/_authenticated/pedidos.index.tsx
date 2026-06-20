@@ -58,6 +58,8 @@ type OrderRow = {
   status: OrderStatus;
   total_amount: number;
   freight_amount: number;
+  weight: number | null;
+  cod_agenda: number | null;
   created_at: string;
   status_since: string | null;
   sla_deliver_by: string | null;
@@ -96,7 +98,7 @@ function PedidosPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id,order_number,status,total_amount,freight_amount,created_at,status_since,sla_deliver_by,dt_prev_exp,nome_rota,nome_motorista,customers(trade_name,legal_name)",
+          "id,order_number,status,total_amount,freight_amount,weight,cod_agenda,created_at,status_since,sla_deliver_by,dt_prev_exp,nome_rota,nome_motorista,customers(trade_name,legal_name)",
         )
         .order("dt_prev_exp", { ascending: true })
         .order("nome_rota", { ascending: true })
@@ -132,6 +134,34 @@ function PedidosPage() {
       return o.order_number.toLowerCase().includes(term) || name.toLowerCase().includes(term);
     });
   }, [ordersQ.data, search, statusFilter]);
+
+  const agendaTotals = useMemo(() => {
+    const init = () => ({ valor: 0, peso: 0, qtd: 0 });
+    const acc = { a417: init(), a427: init() };
+    for (const o of ordersQ.data ?? []) {
+      if (o.cod_agenda === 417) {
+        acc.a417.valor += Number(o.total_amount ?? 0);
+        acc.a417.peso += Number(o.weight ?? 0);
+        acc.a417.qtd += 1;
+      } else if (o.cod_agenda === 427) {
+        acc.a427.valor += Number(o.total_amount ?? 0);
+        acc.a427.peso += Number(o.weight ?? 0);
+        acc.a427.qtd += 1;
+      }
+    }
+    return {
+      pedidos: acc.a417,
+      bonificacao: acc.a427,
+      total: {
+        valor: acc.a417.valor + acc.a427.valor,
+        peso: acc.a417.peso + acc.a427.peso,
+        qtd: acc.a417.qtd + acc.a427.qtd,
+      },
+    };
+  }, [ordersQ.data]);
+
+  const formatWeight = (kg: number) =>
+    `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(kg)} kg`;
 
   function exportCsv() {
     const rows = filtered;
@@ -206,6 +236,40 @@ function PedidosPage() {
               Exportar CSV
             </Button>
           </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { title: "PEDIDOS", data: agendaTotals.pedidos, accent: "border-l-primary" },
+            { title: "BONIFICAÇÃO", data: agendaTotals.bonificacao, accent: "border-l-amber-500" },
+            { title: "TOTAL", data: agendaTotals.total, accent: "border-l-emerald-500" },
+          ].map((c) => (
+            <div
+              key={c.title}
+              className={`rounded-lg border border-l-4 ${c.accent} bg-card p-4 shadow-sm`}
+            >
+              <p className="text-xs font-semibold tracking-wider text-muted-foreground">
+                {c.title}
+              </p>
+              <p className="mt-2 text-2xl font-bold tabular-nums">
+                {formatCurrency(c.data.valor)}
+              </p>
+              <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                <span>
+                  Peso:{" "}
+                  <span className="font-medium text-foreground tabular-nums">
+                    {formatWeight(c.data.peso)}
+                  </span>
+                </span>
+                <span>
+                  Pedidos:{" "}
+                  <span className="font-medium text-foreground tabular-nums">
+                    {c.data.qtd}
+                  </span>
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="flex flex-wrap gap-3">

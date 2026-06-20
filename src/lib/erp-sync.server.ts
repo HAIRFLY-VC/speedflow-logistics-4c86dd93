@@ -13,6 +13,7 @@ type ErpQueryResponse = {
 
 type ErpOrderRow = {
   PEDIDO: number;
+  COD_AGENDA: number | null;
   COD_CLIENTE: number;
   CLIENTE_RS: string | null;
   CLIENTE_NF: string | null;
@@ -195,6 +196,7 @@ export async function syncErpOrders(opts: {
           customer_id: customerId,
           total_amount: totalAmount,
           weight: row.PESO,
+          cod_agenda: row.COD_AGENDA,
           notes: notes || null,
           dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
           nome_rota: row.NOME_ROTA || null,
@@ -211,6 +213,7 @@ export async function syncErpOrders(opts: {
       customer_id: customerId,
       total_amount: totalAmount,
       weight: row.PESO,
+      cod_agenda: row.COD_AGENDA,
       notes: notes || null,
       dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
       nome_rota: row.NOME_ROTA || null,
