@@ -181,7 +181,7 @@ function RotasPage() {
                       const clientesUnicos = new Set<string>();
                       let totalValor = 0;
                       let totalPeso = 0;
-                      const statusMap = new Map<string, number>();
+                      const statusOrders = new Map<string, Set<string>>();
                       for (const ro of r.route_orders ?? []) {
                         const o = ro.orders;
                         if (!o) continue;
@@ -189,8 +189,16 @@ function RotasPage() {
                         totalValor += Number(o.total_amount ?? 0);
                         totalPeso += Number(o.weight ?? 0);
                         const st = o.erp_status ?? "—";
-                        statusMap.set(st, (statusMap.get(st) ?? 0) + 1);
+                        const pedido = o.order_number ?? "";
+                        if (!statusOrders.has(st)) statusOrders.set(st, new Set());
+                        statusOrders.get(st)!.add(pedido);
                       }
+                      const statusMap = new Map<string, number>(
+                        Array.from(statusOrders.entries()).map(([st, s]) => [st, s.size]),
+                      );
+                      const sortedStatus = Array.from(statusMap.entries()).sort((a, b) =>
+                        a[0].localeCompare(b[0]),
+                      );
                       groupStops += clientesUnicos.size;
                       groupValor += totalValor;
                       groupPeso += totalPeso;
