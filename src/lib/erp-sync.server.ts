@@ -117,8 +117,21 @@ export async function syncErpOrders(opts: {
   let updated = 0;
   let skipped = 0;
   let customers_created = 0;
+  let routes_created = 0;
+  let routes_linked = 0;
   const errors: { pedido: number; message: string }[] = [];
   let fetched = 0;
+
+  function slugify(s: string): string {
+    return s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "rota";
+  }
+
 
   function parseErpDate(val: unknown): string | null {
     if (val == null) return null;
