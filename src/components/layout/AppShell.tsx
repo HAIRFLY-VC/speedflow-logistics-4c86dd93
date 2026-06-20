@@ -108,7 +108,7 @@ function AppSidebar() {
                 const active = pathname === item.url || pathname.startsWith(item.url + "/");
                 return (
                   <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton asChild isActive={active}>
+                    <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
                       <Link to={item.url} className="flex items-center gap-2">
                         <item.icon className="h-4 w-4" />
                         <span>{item.title}</span>
