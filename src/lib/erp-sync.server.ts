@@ -214,6 +214,7 @@ export async function syncErpOrders(opts: {
           dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
           nome_rota: row.NOME_ROTA || null,
           nome_motorista: row.NOME_MOTORISTA || null,
+          erp_status: row.STATUS || null,
         })
         .eq("id", existingOrder.id);
       if (error) throw error;
