@@ -240,6 +240,9 @@ function PedidosPage() {
         <div className="border rounded-lg overflow-hidden bg-card">
           <Table>
             <TableHeader>
+              <TableHead>Prev. Exp.</TableHead>
+              <TableHead>Rota</TableHead>
+              <TableHead>Motorista</TableHead>
               <TableRow>
                 <TableHead>Pedido</TableHead>
                 <TableHead>Cliente</TableHead>
@@ -253,14 +256,14 @@ function PedidosPage() {
               {ordersQ.isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={6}>
+                    <TableCell colSpan={9}>
                       <Skeleton className="h-6 w-full" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-10">
                     Nenhum pedido encontrado.
                   </TableCell>
                 </TableRow>
