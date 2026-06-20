@@ -135,6 +135,34 @@ function PedidosPage() {
     });
   }, [ordersQ.data, search, statusFilter]);
 
+  const agendaTotals = useMemo(() => {
+    const init = () => ({ valor: 0, peso: 0, qtd: 0 });
+    const acc = { a417: init(), a427: init() };
+    for (const o of ordersQ.data ?? []) {
+      if (o.cod_agenda === 417) {
+        acc.a417.valor += Number(o.total_amount ?? 0);
+        acc.a417.peso += Number(o.weight ?? 0);
+        acc.a417.qtd += 1;
+      } else if (o.cod_agenda === 427) {
+        acc.a427.valor += Number(o.total_amount ?? 0);
+        acc.a427.peso += Number(o.weight ?? 0);
+        acc.a427.qtd += 1;
+      }
+    }
+    return {
+      pedidos: acc.a417,
+      bonificacao: acc.a427,
+      total: {
+        valor: acc.a417.valor + acc.a427.valor,
+        peso: acc.a417.peso + acc.a427.peso,
+        qtd: acc.a417.qtd + acc.a427.qtd,
+      },
+    };
+  }, [ordersQ.data]);
+
+  const formatWeight = (kg: number) =>
+    `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(kg)} kg`;
+
   function exportCsv() {
     const rows = filtered;
     const header = [
