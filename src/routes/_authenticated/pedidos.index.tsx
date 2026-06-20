@@ -96,8 +96,11 @@ function PedidosPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id,order_number,status,total_amount,freight_amount,created_at,status_since,sla_deliver_by,customers(trade_name,legal_name)",
+          "id,order_number,status,total_amount,freight_amount,created_at,status_since,sla_deliver_by,dt_prev_exp,nome_rota,nome_motorista,customers(trade_name,legal_name)",
         )
+        .order("dt_prev_exp", { ascending: true })
+        .order("nome_rota", { ascending: true })
+        .order("nome_motorista", { ascending: true })
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
