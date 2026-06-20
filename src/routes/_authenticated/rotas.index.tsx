@@ -171,6 +171,7 @@ function RotasPage() {
                     let groupStops = 0;
                     let groupValor = 0;
                     let groupPeso = 0;
+                    const groupStatusMap = new Map<string, number>();
                     for (const r of group) {
                       const motorista =
                         r.driver_name ?? r.freight_carriers?.full_name ?? null;
@@ -180,16 +181,22 @@ function RotasPage() {
                       const clientesUnicos = new Set<string>();
                       let totalValor = 0;
                       let totalPeso = 0;
+                      const statusMap = new Map<string, number>();
                       for (const ro of r.route_orders ?? []) {
                         const o = ro.orders;
                         if (!o) continue;
                         if (o.customer_id) clientesUnicos.add(o.customer_id);
                         totalValor += Number(o.total_amount ?? 0);
                         totalPeso += Number(o.weight ?? 0);
+                        const st = o.erp_status ?? "—";
+                        statusMap.set(st, (statusMap.get(st) ?? 0) + 1);
                       }
                       groupStops += clientesUnicos.size;
                       groupValor += totalValor;
                       groupPeso += totalPeso;
+                      for (const [st, count] of statusMap) {
+                        groupStatusMap.set(st, (groupStatusMap.get(st) ?? 0) + count);
+                      }
                       rows.push(
                         <TableRow key={r.id}>
                           <TableCell>
@@ -217,6 +224,19 @@ function RotasPage() {
                             {weightFmt.format(totalPeso)}
                           </TableCell>
                           <TableCell>
+                            <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs">
+                              {Array.from(statusMap.entries()).map(([st, count]) => (
+                                <span key={st} className="inline-flex items-center gap-1">
+                                  <span className="font-medium">{st}:</span>
+                                  <span className="tabular-nums">{count}</span>
+                                </span>
+                              ))}
+                              {statusMap.size === 0 && (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
                             <span
                               className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${ROUTE_STATUS_TONE[r.status]}`}
                             >
@@ -240,6 +260,16 @@ function RotasPage() {
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {weightFmt.format(groupPeso)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs">
+                            {Array.from(groupStatusMap.entries()).map(([st, count]) => (
+                              <span key={st} className="inline-flex items-center gap-1">
+                                <span className="font-medium">{st}:</span>
+                                <span className="tabular-nums">{count}</span>
+                              </span>
+                            ))}
+                          </div>
                         </TableCell>
                         <TableCell />
                       </TableRow>
