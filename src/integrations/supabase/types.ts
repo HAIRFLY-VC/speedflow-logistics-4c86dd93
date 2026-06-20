@@ -498,6 +498,7 @@ export type Database = {
           customer_id: string
           dt_prev_exp: string | null
           erp_id: string | null
+          erp_status: string | null
           freight_amount: number
           id: string
           nome_motorista: string | null
@@ -518,6 +519,7 @@ export type Database = {
           customer_id: string
           dt_prev_exp?: string | null
           erp_id?: string | null
+          erp_status?: string | null
           freight_amount?: number
           id?: string
           nome_motorista?: string | null
@@ -538,6 +540,7 @@ export type Database = {
           customer_id?: string
           dt_prev_exp?: string | null
           erp_id?: string | null
+          erp_status?: string | null
           freight_amount?: number
           id?: string
           nome_motorista?: string | null
