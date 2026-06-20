@@ -61,6 +61,9 @@ type OrderRow = {
   created_at: string;
   status_since: string | null;
   sla_deliver_by: string | null;
+  dt_prev_exp: string | null;
+  nome_rota: string | null;
+  nome_motorista: string | null;
   customers: { trade_name: string | null; legal_name: string } | null;
 };
 
