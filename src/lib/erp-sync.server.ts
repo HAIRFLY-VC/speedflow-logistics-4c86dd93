@@ -48,7 +48,9 @@ async function fetchPendingOrdersFromErp(): Promise<ErpOrderRow[]> {
   if (!baseUrl || !apiKey) {
     throw new Error("ERP_API_BASE_URL ou ERP_API_KEY não configurados");
   }
-  const url = `${baseUrl.replace(/\/$/, "")}/v1/query`;
+  // Aceita base URL com ou sem /v1/query no final
+  const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
+  const url = `${cleanBase}/v1/query`;
   const res = await fetch(url, {
     method: "POST",
     headers: {
