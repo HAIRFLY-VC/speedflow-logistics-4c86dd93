@@ -60,7 +60,7 @@ type RouteRow = {
   notes: string | null;
   freight_carriers: { full_name: string; vehicle_plate: string | null } | null;
   route_orders: {
-    orders: { customer_id: string | null; total_amount: number | null; weight: number | null; erp_status: string | null } | null;
+    orders: { customer_id: string | null; order_number: string | null; total_amount: number | null; weight: number | null; erp_status: string | null } | null;
   }[];
 };
 
@@ -96,7 +96,7 @@ function RotasPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,route_date,status,total_freight,driver_name,notes,freight_carriers(full_name,vehicle_plate),route_orders(orders(customer_id,total_amount,weight,erp_status))",
+          "id,code,route_date,status,total_freight,driver_name,notes,freight_carriers(full_name,vehicle_plate),route_orders(orders(customer_id,order_number,total_amount,weight,erp_status))",
         )
         .order("route_date", { ascending: true });
       if (error) throw error;
@@ -181,7 +181,7 @@ function RotasPage() {
                       const clientesUnicos = new Set<string>();
                       let totalValor = 0;
                       let totalPeso = 0;
-                      const statusMap = new Map<string, number>();
+                      const statusOrders = new Map<string, Set<string>>();
                       for (const ro of r.route_orders ?? []) {
                         const o = ro.orders;
                         if (!o) continue;
@@ -189,8 +189,16 @@ function RotasPage() {
                         totalValor += Number(o.total_amount ?? 0);
                         totalPeso += Number(o.weight ?? 0);
                         const st = o.erp_status ?? "—";
-                        statusMap.set(st, (statusMap.get(st) ?? 0) + 1);
+                        const pedido = o.order_number ?? "";
+                        if (!statusOrders.has(st)) statusOrders.set(st, new Set());
+                        statusOrders.get(st)!.add(pedido);
                       }
+                      const statusMap = new Map<string, number>(
+                        Array.from(statusOrders.entries()).map(([st, s]) => [st, s.size]),
+                      );
+                      const sortedStatus = Array.from(statusMap.entries()).sort((a, b) =>
+                        a[0].localeCompare(b[0]),
+                      );
                       groupStops += clientesUnicos.size;
                       groupValor += totalValor;
                       groupPeso += totalPeso;
@@ -223,15 +231,15 @@ function RotasPage() {
                           <TableCell className="text-right tabular-nums">
                             {weightFmt.format(totalPeso)}
                           </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs">
-                              {Array.from(statusMap.entries()).map(([st, count]) => (
-                                <span key={st} className="inline-flex items-center gap-1">
-                                  <span className="font-medium">{st}:</span>
-                                  <span className="tabular-nums">{count}</span>
-                                </span>
+                          <TableCell className="align-top">
+                            <div className="flex flex-col gap-0.5 text-xs">
+                              {sortedStatus.map(([st, count]) => (
+                                <div key={st} className="flex items-center justify-between gap-3">
+                                  <span className="font-medium">{st}</span>
+                                  <span className="tabular-nums text-muted-foreground">{count}</span>
+                                </div>
                               ))}
-                              {statusMap.size === 0 && (
+                              {sortedStatus.length === 0 && (
                                 <span className="text-muted-foreground">—</span>
                               )}
                             </div>
@@ -261,14 +269,16 @@ function RotasPage() {
                         <TableCell className="text-right tabular-nums">
                           {weightFmt.format(groupPeso)}
                         </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs">
-                            {Array.from(groupStatusMap.entries()).map(([st, count]) => (
-                              <span key={st} className="inline-flex items-center gap-1">
-                                <span className="font-medium">{st}:</span>
-                                <span className="tabular-nums">{count}</span>
-                              </span>
-                            ))}
+                        <TableCell className="align-top">
+                          <div className="flex flex-col gap-0.5 text-xs">
+                            {Array.from(groupStatusMap.entries())
+                              .sort((a, b) => a[0].localeCompare(b[0]))
+                              .map(([st, count]) => (
+                                <div key={st} className="flex items-center justify-between gap-3">
+                                  <span className="font-medium">{st}</span>
+                                  <span className="tabular-nums text-muted-foreground">{count}</span>
+                                </div>
+                              ))}
                           </div>
                         </TableCell>
                         <TableCell />
