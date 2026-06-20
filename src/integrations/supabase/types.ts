@@ -509,6 +509,7 @@ export type Database = {
           status_since: string
           total_amount: number
           updated_at: string
+          weight: number | null
         }
         Insert: {
           created_at?: string
@@ -527,6 +528,7 @@ export type Database = {
           status_since?: string
           total_amount?: number
           updated_at?: string
+          weight?: number | null
         }
         Update: {
           created_at?: string
@@ -545,6 +547,7 @@ export type Database = {
           status_since?: string
           total_amount?: number
           updated_at?: string
+          weight?: number | null
         }
         Relationships: [
           {
