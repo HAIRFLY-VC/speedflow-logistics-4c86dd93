@@ -495,9 +495,12 @@ export type Database = {
         Row: {
           created_at: string
           customer_id: string
+          dt_prev_exp: string | null
           erp_id: string | null
           freight_amount: number
           id: string
+          nome_motorista: string | null
+          nome_rota: string | null
           notes: string | null
           order_number: string
           salesperson_id: string | null
@@ -510,9 +513,12 @@ export type Database = {
         Insert: {
           created_at?: string
           customer_id: string
+          dt_prev_exp?: string | null
           erp_id?: string | null
           freight_amount?: number
           id?: string
+          nome_motorista?: string | null
+          nome_rota?: string | null
           notes?: string | null
           order_number: string
           salesperson_id?: string | null
@@ -525,9 +531,12 @@ export type Database = {
         Update: {
           created_at?: string
           customer_id?: string
+          dt_prev_exp?: string | null
           erp_id?: string | null
           freight_amount?: number
           id?: string
+          nome_motorista?: string | null
+          nome_rota?: string | null
           notes?: string | null
           order_number?: string
           salesperson_id?: string | null
