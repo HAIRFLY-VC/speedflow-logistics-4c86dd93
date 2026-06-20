@@ -240,10 +240,10 @@ function PedidosPage() {
         <div className="border rounded-lg overflow-hidden bg-card">
           <Table>
             <TableHeader>
-              <TableHead>Prev. Exp.</TableHead>
-              <TableHead>Rota</TableHead>
-              <TableHead>Motorista</TableHead>
               <TableRow>
+                <TableHead>Prev. Exp.</TableHead>
+                <TableHead>Rota</TableHead>
+                <TableHead>Motorista</TableHead>
                 <TableHead>Pedido</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Status</TableHead>
