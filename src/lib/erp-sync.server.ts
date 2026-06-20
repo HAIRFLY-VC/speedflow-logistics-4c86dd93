@@ -385,5 +385,6 @@ export async function syncErpOrders(opts: {
     })
     .eq("id", run.id);
 
+  console.log(`[erp-sync] rotas: ${routes_created} criadas, ${routes_linked} pedidos vinculados`);
   return { runId: run.id, fetched, created, updated, skipped, customers_created, errors, status };
 }
