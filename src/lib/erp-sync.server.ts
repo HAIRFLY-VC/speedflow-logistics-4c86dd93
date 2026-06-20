@@ -269,6 +269,83 @@ export async function syncErpOrders(opts: {
       }
     }
 
+    // Auto-cadastro de rotas a partir de NOME_ROTA + DT_PREV_EXP + NOME_MOTORISTA
+    type RouteGroup = { nome: string; date: string; driver: string | null; pedidos: string[] };
+    const groups = new Map<string, RouteGroup>();
+    for (const row of rows) {
+      const nome = (row.NOME_ROTA ?? "").trim();
+      if (!nome) continue;
+      const dt = parseErpDate(row.DT_PREV_EXP);
+      if (!dt) continue;
+      const dateOnly = dt.slice(0, 10);
+      if (dateOnly === "3000-01-01" || dateOnly === "4000-01-01") continue;
+      const driver = row.NOME_MOTORISTA?.trim() || null;
+      const key = `${nome}|${dateOnly}|${driver ?? ""}`;
+      let g = groups.get(key);
+      if (!g) {
+        g = { nome, date: dateOnly, driver, pedidos: [] };
+        groups.set(key, g);
+      }
+      g.pedidos.push(String(row.PEDIDO));
+    }
+
+    for (const g of groups.values()) {
+      try {
+        const code = `${slugify(g.nome)}-${g.date.replace(/-/g, "")}`;
+        const { data: existing } = await supabaseAdmin
+          .from("routes")
+          .select("id")
+          .eq("code", code)
+          .maybeSingle();
+
+        let routeId: string;
+        if (existing) {
+          routeId = existing.id;
+          await supabaseAdmin
+            .from("routes")
+            .update({ driver_name: g.driver, route_date: g.date })
+            .eq("id", routeId);
+        } else {
+          const { data: ins, error } = await supabaseAdmin
+            .from("routes")
+            .insert({
+              code,
+              route_date: g.date,
+              driver_name: g.driver,
+              notes: `Rota ${g.nome}`,
+            })
+            .select("id")
+            .single();
+          if (error || !ins) throw error ?? new Error("insert route falhou");
+          routeId = ins.id;
+          routes_created++;
+        }
+
+        const { data: orderRows } = await supabaseAdmin
+          .from("orders")
+          .select("id,erp_id")
+          .in("erp_id", g.pedidos);
+
+        if (orderRows && orderRows.length > 0) {
+          const links = orderRows.map((o, idx) => ({
+            route_id: routeId,
+            order_id: o.id,
+            stop_order: idx + 1,
+          }));
+          const { error: linkErr, count } = await supabaseAdmin
+            .from("route_orders")
+            .upsert(links, { onConflict: "route_id,order_id", ignoreDuplicates: true, count: "exact" });
+          if (linkErr) throw linkErr;
+          routes_linked += count ?? 0;
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        errors.push({ pedido: 0, message: `Rota ${g.nome} (${g.date}): ${msg}` });
+      }
+    }
+
+
+
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     await supabaseAdmin
