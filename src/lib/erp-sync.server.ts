@@ -19,6 +19,7 @@ type ErpOrderRow = {
   BAIRRO: string | null;
   CIDADE: string | null;
   UF: string | null;
+  CEP: string | null;
   COD_VENDEDOR: number | null;
   VENDEDOR: string | null;
   VALOR_PEDIDO: number | null;
@@ -46,7 +47,7 @@ const PENDING_ORDERS_SQL = `
               CASE WHEN R.NOME_ROTA IS NULL THEN TO_DATE('40000101','yyyyMMdd')
                    ELSE TO_DATE('30000101','yyyyMMdd') END
               ELSE R.DT_PREV_EXP END DT_PREV_EXP,
-         R.NOME_ROTA, R.NOME_MOTORISTA
+         R.NOME_ROTA, R.NOME_MOTORISTA, E.CEP
   FROM ERP_PEDIDOS_EXPEDICAO_PENDENTE E,
        A_GER_ROTAS_PEDIDOS P,
        A_GER_ROTAS R
@@ -134,6 +135,7 @@ export async function syncErpOrders(opts: {
           city: row.CIDADE,
           state: row.UF,
           address_line: row.BAIRRO,
+          zip_code: row.CEP,
         };
 
         const { data: existingCustomer } = await supabaseAdmin
@@ -153,6 +155,7 @@ export async function syncErpOrders(opts: {
               city: customerPayload.city,
               state: customerPayload.state,
               address_line: customerPayload.address_line,
+              zip_code: customerPayload.zip_code,
             })
             .eq("id", customerId);
           if (error) throw error;
