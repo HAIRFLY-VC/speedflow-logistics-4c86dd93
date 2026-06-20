@@ -96,21 +96,34 @@ function KanbanPage() {
           <div className="flex gap-3 min-w-max">
             {KANBAN_COLUMNS.map((status) => {
               const items = grouped[status];
+              const totalValue = items.reduce((s, o) => s + Number(o.total_amount ?? 0), 0);
+              const totalWeight = items.reduce((s, o) => s + Number(o.weight ?? 0), 0);
               return (
                 <div
                   key={status}
                   className="w-72 shrink-0 rounded-lg border bg-card/40 flex flex-col max-h-[calc(100vh-220px)]"
                 >
-                  <div className="p-3 border-b flex items-center justify-between sticky top-0 bg-card/80 backdrop-blur rounded-t-lg">
-                    <span
-                      className={`inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium ${STATUS_TONE[status]}`}
-                    >
-                      {ORDER_STATUS_LABEL[status]}
-                    </span>
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {items.length}
-                    </span>
+                  <div className="p-3 border-b sticky top-0 bg-card/80 backdrop-blur rounded-t-lg space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={`inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium ${STATUS_TONE[status]}`}
+                      >
+                        {ORDER_STATUS_LABEL[status]}
+                      </span>
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {items.length}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs tabular-nums">
+                      <span className="text-muted-foreground">
+                        {formatWeight(totalWeight)}
+                      </span>
+                      <span className="font-medium">
+                        {formatCurrency(totalValue)}
+                      </span>
+                    </div>
                   </div>
+
                   <div className="p-2 space-y-2 overflow-y-auto">
                     {isLoading ? (
                       <>
