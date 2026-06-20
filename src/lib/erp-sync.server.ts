@@ -119,125 +119,139 @@ export async function syncErpOrders(opts: {
   const errors: { pedido: number; message: string }[] = [];
   let fetched = 0;
 
+  function parseErpDate(val: unknown): string | null {
+    if (val == null) return null;
+    const d = new Date(String(val));
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  }
+
+  async function processRow(row: ErpOrderRow) {
+    const codCliente = String(row.COD_CLIENTE);
+    const legalName = row.CLIENTE_RS ?? row.CLIENTE_NF ?? `Cliente ${codCliente}`;
+    const customerPayload = {
+      erp_id: codCliente,
+      legal_name: legalName,
+      trade_name: row.CLIENTE_NF,
+      city: row.CIDADE,
+      state: row.UF,
+      address_line: row.BAIRRO,
+      zip_code: row.CEP,
+    };
+
+    const { data: existingCustomer } = await supabaseAdmin
+      .from("customers")
+      .select("id")
+      .eq("erp_id", codCliente)
+      .maybeSingle();
+
+    let customerId: string;
+    let customerCreated = false;
+    if (existingCustomer) {
+      customerId = existingCustomer.id;
+      const { error } = await supabaseAdmin
+        .from("customers")
+        .update({
+          legal_name: customerPayload.legal_name,
+          trade_name: customerPayload.trade_name,
+          city: customerPayload.city,
+          state: customerPayload.state,
+          address_line: customerPayload.address_line,
+          zip_code: customerPayload.zip_code,
+        })
+        .eq("id", customerId);
+      if (error) throw error;
+    } else {
+      const { data: ins, error } = await supabaseAdmin
+        .from("customers")
+        .insert(customerPayload)
+        .select("id")
+        .single();
+      if (error || !ins) throw error ?? new Error("insert customer falhou");
+      customerId = ins.id;
+      customerCreated = true;
+    }
+
+    const pedidoStr = String(row.PEDIDO);
+    const totalAmount = Number(row.VALOR_PEDIDO ?? row.VALOR ?? 0);
+    const notes = [
+      row.OBS ? `OBS: ${row.OBS.trim()}` : null,
+      row.STATUS ? `Status ERP: ${row.STATUS}` : null,
+      row.VENDEDOR ? `Vendedor: ${row.VENDEDOR}` : null,
+      row.PESO ? `Peso: ${row.PESO} kg` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const { data: existingOrder } = await supabaseAdmin
+      .from("orders")
+      .select("id")
+      .eq("erp_id", pedidoStr)
+      .maybeSingle();
+
+    if (existingOrder) {
+      const { error } = await supabaseAdmin
+        .from("orders")
+        .update({
+          customer_id: customerId,
+          total_amount: totalAmount,
+          weight: row.PESO,
+          notes: notes || null,
+          dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
+          nome_rota: row.NOME_ROTA || null,
+          nome_motorista: row.NOME_MOTORISTA || null,
+        })
+        .eq("id", existingOrder.id);
+      if (error) throw error;
+      return { customerCreated, outcome: "updated" as const };
+    }
+
+    const { error } = await supabaseAdmin.from("orders").insert({
+      order_number: pedidoStr,
+      erp_id: pedidoStr,
+      customer_id: customerId,
+      total_amount: totalAmount,
+      weight: row.PESO,
+      notes: notes || null,
+      dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
+      nome_rota: row.NOME_ROTA || null,
+      nome_motorista: row.NOME_MOTORISTA || null,
+    });
+    if (error) {
+      if (error.code === "23505") return { customerCreated, outcome: "skipped" as const };
+      throw error;
+    }
+    return { customerCreated, outcome: "created" as const };
+  }
+
   try {
     const rows = await fetchPendingOrdersFromErp();
     fetched = rows.length;
 
-    for (const row of rows) {
-      try {
-        // 2a) Upsert customer por erp_id
-        const codCliente = String(row.COD_CLIENTE);
-        const legalName = row.CLIENTE_RS ?? row.CLIENTE_NF ?? `Cliente ${codCliente}`;
-        const customerPayload = {
-          erp_id: codCliente,
-          legal_name: legalName,
-          trade_name: row.CLIENTE_NF,
-          city: row.CIDADE,
-          state: row.UF,
-          address_line: row.BAIRRO,
-          zip_code: row.CEP,
-        };
-
-        const { data: existingCustomer } = await supabaseAdmin
-          .from("customers")
-          .select("id")
-          .eq("erp_id", codCliente)
-          .maybeSingle();
-
-        let customerId: string;
-        if (existingCustomer) {
-          customerId = existingCustomer.id;
-          const { error } = await supabaseAdmin
-            .from("customers")
-            .update({
-              legal_name: customerPayload.legal_name,
-              trade_name: customerPayload.trade_name,
-              city: customerPayload.city,
-              state: customerPayload.state,
-              address_line: customerPayload.address_line,
-              zip_code: customerPayload.zip_code,
-            })
-            .eq("id", customerId);
-          if (error) throw error;
-        } else {
-          const { data: ins, error } = await supabaseAdmin
-            .from("customers")
-            .insert(customerPayload)
-            .select("id")
-            .single();
-          if (error || !ins) throw error ?? new Error("insert customer falhou");
-          customerId = ins.id;
-          customers_created++;
-        }
-
-        // 2b) Upsert order por erp_id
-        const pedidoStr = String(row.PEDIDO);
-        const totalAmount = Number(row.VALOR_PEDIDO ?? row.VALOR ?? 0);
-        const notes = [
-          row.OBS ? `OBS: ${row.OBS.trim()}` : null,
-          row.STATUS ? `Status ERP: ${row.STATUS}` : null,
-          row.VENDEDOR ? `Vendedor: ${row.VENDEDOR}` : null,
-          row.PESO ? `Peso: ${row.PESO} kg` : null,
-        ]
-          .filter(Boolean)
-          .join("\n");
-
-        const { data: existingOrder } = await supabaseAdmin
-          .from("orders")
-          .select("id, status")
-          .eq("erp_id", pedidoStr)
-          .maybeSingle();
-
-        function parseErpDate(val: unknown): string | null {
-          if (val == null) return null;
-          const d = new Date(String(val));
-          return isNaN(d.getTime()) ? null : d.toISOString();
-        }
-
-        if (existingOrder) {
-          // Atualiza só campos cadastrais. NUNCA muda status (preserva fluxo operacional).
-          const { error } = await supabaseAdmin
-            .from("orders")
-            .update({
-              customer_id: customerId,
-              total_amount: totalAmount,
-              weight: row.PESO,
-              notes: notes || null,
-              dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
-              nome_rota: row.NOME_ROTA || null,
-              nome_motorista: row.NOME_MOTORISTA || null,
-            })
-            .eq("id", existingOrder.id);
-          if (error) throw error;
-          updated++;
-        } else {
-          // Cria novo pedido com status default (aguardando_aprovacao_comercial)
-          const { error } = await supabaseAdmin.from("orders").insert({
-            order_number: pedidoStr,
-            erp_id: pedidoStr,
-            customer_id: customerId,
-            total_amount: totalAmount,
-            weight: row.PESO,
-            notes: notes || null,
-            dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
-            nome_rota: row.NOME_ROTA || null,
-            nome_motorista: row.NOME_MOTORISTA || null,
-          });
-
-          if (error) {
-            // Se já existe pelo order_number (conflito), pula
-            if (error.code === "23505") {
-              skipped++;
-              continue;
-            }
-            throw error;
+    const CONCURRENCY = 15;
+    for (let i = 0; i < rows.length; i += CONCURRENCY) {
+      const batch = rows.slice(i, i + CONCURRENCY);
+      const results = await Promise.all(
+        batch.map(async (row) => {
+          try {
+            const r = await processRow(row);
+            return { ok: true as const, row, ...r };
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            return { ok: false as const, row, message: msg };
           }
-          created++;
+        }),
+      );
+      for (const r of results) {
+        if (!r.ok) {
+          errors.push({ pedido: r.row.PEDIDO, message: r.message });
+          continue;
         }
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        errors.push({ pedido: row.PEDIDO, message: msg });
+        if (r.customerCreated) customers_created++;
+        if (r.outcome === "created") created++;
+        else if (r.outcome === "updated") updated++;
+        else skipped++;
       }
+    }
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
