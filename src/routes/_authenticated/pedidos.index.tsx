@@ -70,6 +70,21 @@ function PedidosPage() {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  const erpSyncFn = useServerFn(triggerErpSync);
+  const erpSync = useMutation({
+    mutationFn: () => erpSyncFn(),
+    onSuccess: (r) => {
+      toast.success(
+        `ERP: ${r.created} criado(s), ${r.updated} atualizado(s), ${r.skipped} ignorado(s)` +
+          (r.errors.length ? ` — ${r.errors.length} erro(s)` : ""),
+      );
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["kanban"] });
+    },
+    onError: (e: Error) => toast.error(`Falha ao importar: ${e.message}`),
+  });
+
   const ordersQ = useQuery({
     queryKey: ["orders", "list"],
     queryFn: async () => {
