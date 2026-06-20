@@ -130,11 +130,12 @@ function RotasPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Código</TableHead>
                 <TableHead>Data planejada</TableHead>
                 <TableHead>Nome da rota</TableHead>
                 <TableHead>Motorista</TableHead>
                 <TableHead className="text-right">Paradas</TableHead>
+                <TableHead className="text-right">Valor total</TableHead>
+                <TableHead className="text-right">Peso total (kg)</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -142,14 +143,14 @@ function RotasPage() {
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={6}>
+                    <TableCell colSpan={7}>
                       <Skeleton className="h-6 w-full" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : (data ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
                     Nenhuma rota criada.
                   </TableCell>
                 </TableRow>
@@ -160,19 +161,26 @@ function RotasPage() {
                   const nomeRota = r.notes?.startsWith("Rota ")
                     ? r.notes.slice(5)
                     : r.code;
+                  const clientesUnicos = new Set<string>();
+                  let totalValor = 0;
+                  let totalPeso = 0;
+                  for (const ro of r.route_orders ?? []) {
+                    const o = ro.orders;
+                    if (!o) continue;
+                    if (o.customer_id) clientesUnicos.add(o.customer_id);
+                    totalValor += Number(o.total_amount ?? 0);
+                    totalPeso += Number(o.weight ?? 0);
+                  }
                   return (
                     <TableRow key={r.id}>
-                      <TableCell className="font-mono text-xs">
+                      <TableCell>
                         <Link
                           to="/rotas/$routeId"
                           params={{ routeId: r.id }}
                           className="text-primary hover:underline"
                         >
-                          {r.code}
+                          {format(new Date(r.route_date), "dd/MM/yyyy", { locale: ptBR })}
                         </Link>
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(r.route_date), "dd/MM/yyyy", { locale: ptBR })}
                       </TableCell>
                       <TableCell>{nomeRota}</TableCell>
                       <TableCell>
@@ -181,7 +189,13 @@ function RotasPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {r.route_orders?.[0]?.count ?? 0}
+                        {clientesUnicos.size}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {currencyFmt.format(totalValor)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {weightFmt.format(totalPeso)}
                       </TableCell>
                       <TableCell>
                         <span
@@ -195,6 +209,7 @@ function RotasPage() {
                 })
               )}
             </TableBody>
+
           </Table>
         </div>
       </div>
