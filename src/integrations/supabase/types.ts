@@ -280,6 +280,51 @@ export type Database = {
           },
         ]
       }
+      erp_sync_runs: {
+        Row: {
+          customers_created: number
+          errors: Json
+          finished_at: string | null
+          id: string
+          orders_created: number
+          orders_fetched: number
+          orders_skipped: number
+          orders_updated: number
+          started_at: string
+          status: string
+          trigger: string
+          triggered_by: string | null
+        }
+        Insert: {
+          customers_created?: number
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          orders_created?: number
+          orders_fetched?: number
+          orders_skipped?: number
+          orders_updated?: number
+          started_at?: string
+          status?: string
+          trigger: string
+          triggered_by?: string | null
+        }
+        Update: {
+          customers_created?: number
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          orders_created?: number
+          orders_fetched?: number
+          orders_skipped?: number
+          orders_updated?: number
+          started_at?: string
+          status?: string
+          trigger?: string
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
       freight_carriers: {
         Row: {
           created_at: string
@@ -547,6 +592,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          erp_id: string | null
           id: string
           is_active: boolean
           name: string
@@ -559,6 +605,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          erp_id?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -571,6 +618,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          erp_id?: string | null
           id?: string
           is_active?: boolean
           name?: string
