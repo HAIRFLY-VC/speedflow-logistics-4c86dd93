@@ -66,11 +66,24 @@ function SugestaoRotasPage() {
     },
   });
 
+  const customersMissingCoords = useQuery({
+    queryKey: ["customers-missing-coords"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("customers")
+        .select("*", { count: "exact", head: true })
+        .or("latitude.is.null,longitude.is.null");
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
   const geocode = useMutation({
     mutationFn: (force: boolean = false) => geocodeFn({ data: { force } }),
     onSuccess: (r) => {
       toast.success(`Geocodificados: ${r.geocoded} | Falhas: ${r.failed}`);
       qc.invalidateQueries({ queryKey: ["unrouted-orders"] });
+      qc.invalidateQueries({ queryKey: ["customers-missing-coords"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -175,6 +188,7 @@ function SugestaoRotasPage() {
                 <MapPin className="h-4 w-4 mr-2" />
               )}
               Forçar geocodificação
+              {customersMissingCoords.data != null ? ` (${customersMissingCoords.data})` : ""}
             </Button>
             <Button onClick={() => suggest.mutate()} disabled={suggest.isPending || pendingRows.length === 0}>
               {suggest.isPending ? (
