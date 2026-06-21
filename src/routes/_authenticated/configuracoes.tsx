@@ -31,6 +31,10 @@ type Form = {
   sla_credit_approval_hours: string;
   sla_fulfillment_hours: string;
   sla_delivery_hours: string;
+  depot_address: string;
+  max_route_weight_kg: string;
+  max_route_value_brl: string;
+  route_cluster_radius_km: string;
 };
 
 const empty: Form = {
@@ -46,6 +50,10 @@ const empty: Form = {
   sla_credit_approval_hours: "8",
   sla_fulfillment_hours: "24",
   sla_delivery_hours: "48",
+  depot_address: "",
+  max_route_weight_kg: "5000",
+  max_route_value_brl: "0",
+  route_cluster_radius_km: "30",
 };
 
 function ConfiguracoesPage() {
