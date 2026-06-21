@@ -665,7 +665,7 @@ function ExistingRouteDetailDialog({
       const { data, error } = await supabase
         .from("route_orders")
         .select(
-          "stop_order, orders(id, order_number, total_amount, weight, customer_id, customers(trade_name, legal_name, city, state))",
+          "stop_order, orders(id, order_number, total_amount, weight, customer_id, customers(trade_name, legal_name, erp_id, city, state))",
         )
         .eq("route_id", route!.id)
         .order("stop_order");
