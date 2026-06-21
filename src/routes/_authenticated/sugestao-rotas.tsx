@@ -731,66 +731,68 @@ function ExistingRouteDetailDialog({
 
   return (
     <Dialog open={!!route} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0 flex flex-col">
-        <DialogHeader className="p-6 pb-2 shrink-0">
-          <DialogTitle>Pedidos da rota — {route?.label}</DialogTitle>
-        </DialogHeader>
-        <div className="overflow-y-auto px-6 pb-3 flex-1 min-h-0">
-          {detail.isLoading ? (
-            <div className="space-y-2 py-2">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </div>
-          ) : groups.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">Nenhum pedido nesta rota.</p>
-          ) : (
-            <>
-              <div className="text-xs text-muted-foreground mb-2">
-                {groups.length} entrega(s) · {totalOrders} pedido(s) ·{" "}
-                {weightFmt.format(totalWeight)} kg · {currencyFmt.format(totalAmount)}
+      <DialogContent className="max-w-2xl p-0 overflow-hidden">
+        <div className="flex flex-col max-h-[90vh]">
+          <DialogHeader className="p-6 pb-2 shrink-0">
+            <DialogTitle>Pedidos da rota — {route?.label}</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 min-h-0 px-6 pb-3">
+            {detail.isLoading ? (
+              <div className="space-y-2 py-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
               </div>
-              <ul className="space-y-2">
-                {groups.map((g) => (
-                  <li key={g.customerId} className="rounded-md border p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="font-medium text-sm">{g.customerName}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {g.city ?? "?"}/{g.state ?? "?"} · {g.orders.length} pedido(s)
+            ) : groups.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">Nenhum pedido nesta rota.</p>
+            ) : (
+              <>
+                <div className="text-xs text-muted-foreground mb-2">
+                  {groups.length} entrega(s) · {totalOrders} pedido(s) ·{" "}
+                  {weightFmt.format(totalWeight)} kg · {currencyFmt.format(totalAmount)}
+                </div>
+                <ul className="space-y-2">
+                  {groups.map((g) => (
+                    <li key={g.customerId} className="rounded-md border p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-medium text-sm">{g.customerName}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {g.city ?? "?"}/{g.state ?? "?"} · {g.orders.length} pedido(s)
+                          </div>
+                        </div>
+                        <div className="text-xs text-right tabular-nums text-muted-foreground">
+                          {weightFmt.format(g.totalWeight)} kg
+                          <br />
+                          {currencyFmt.format(g.totalAmount)}
                         </div>
                       </div>
-                      <div className="text-xs text-right tabular-nums text-muted-foreground">
-                        {weightFmt.format(g.totalWeight)} kg
-                        <br />
-                        {currencyFmt.format(g.totalAmount)}
-                      </div>
-                    </div>
-                    <ul className="mt-2 text-xs divide-y border-t">
-                      {g.orders.map((o) => (
-                        <li
-                          key={o.id}
-                          className="flex items-center justify-between gap-2 py-1"
-                        >
-                          <span className="font-medium">{o.order_number}</span>
-                          <span className="text-muted-foreground tabular-nums">
-                            {weightFmt.format(o.weight)} kg ·{" "}
-                            {currencyFmt.format(o.amount)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
+                      <ul className="mt-2 text-xs divide-y border-t">
+                        {g.orders.map((o) => (
+                          <li
+                            key={o.id}
+                            className="flex items-center justify-between gap-2 py-1"
+                          >
+                            <span className="font-medium">{o.order_number}</span>
+                            <span className="text-muted-foreground tabular-nums">
+                              {weightFmt.format(o.weight)} kg ·{" "}
+                              {currencyFmt.format(o.amount)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+          <DialogFooter className="p-6 pt-0 shrink-0">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
         </div>
-        <DialogFooter className="p-6 pt-0 shrink-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Fechar
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
