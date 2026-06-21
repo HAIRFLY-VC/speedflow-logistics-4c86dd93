@@ -114,6 +114,10 @@ function ConfiguracoesPage() {
         sla_credit_approval_hours: Number(form.sla_credit_approval_hours) || 0,
         sla_fulfillment_hours: Number(form.sla_fulfillment_hours) || 0,
         sla_delivery_hours: Number(form.sla_delivery_hours) || 0,
+        depot_address: form.depot_address.trim() || null,
+        max_route_weight_kg: Number(form.max_route_weight_kg) || 0,
+        max_route_value_brl: Number(form.max_route_value_brl) || 0,
+        route_cluster_radius_km: Number(form.route_cluster_radius_km) || 0,
       };
       const { error } = await supabase
         .from("company_settings")
