@@ -731,11 +731,11 @@ function ExistingRouteDetailDialog({
 
   return (
     <Dialog open={!!route} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0 flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0 grid-rows-[auto_minmax(0,1fr)_auto]">
         <DialogHeader className="p-6 pb-2 shrink-0">
           <DialogTitle>Pedidos da rota — {route?.label}</DialogTitle>
         </DialogHeader>
-        <div className="overflow-y-auto px-6 pb-3 flex-1 min-h-0">
+        <div className="overflow-y-auto px-6 pb-3 min-h-0">
           {detail.isLoading ? (
             <div className="space-y-2 py-2">
               <Skeleton className="h-12 w-full" />
