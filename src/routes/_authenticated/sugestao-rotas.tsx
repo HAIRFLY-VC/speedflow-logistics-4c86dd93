@@ -166,15 +166,15 @@ function SugestaoRotasPage() {
             <Button
               variant="secondary"
               onClick={() => geocode.mutate(true)}
-              disabled={geocode.isPending || pendingRows.length === 0}
-              title="Re-geocodifica TODOS os clientes com pedidos sem roteirização, mesmo os que já têm lat/lng"
+              disabled={geocode.isPending}
+              title="Geocodifica todos os clientes da base que não têm latitude/longitude cadastrada"
             >
               {geocode.isPending ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <MapPin className="h-4 w-4 mr-2" />
               )}
-              Forçar geocodificação ({pendingRows.length})
+              Forçar geocodificação
             </Button>
             <Button onClick={() => suggest.mutate()} disabled={suggest.isPending || pendingRows.length === 0}>
               {suggest.isPending ? (
