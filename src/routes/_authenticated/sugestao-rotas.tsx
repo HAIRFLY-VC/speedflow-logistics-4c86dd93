@@ -628,6 +628,39 @@ function EditSuggestionDialog({
   );
 }
 
+function RouteSummaryBlock({ draft }: { draft: RouteSuggestion }) {
+  const newDeliveries = new Set(draft.stops.map((st) => st.customerId)).size;
+  const deliveries = draft.type === "append_existing"
+    ? draft.existingDeliveries + newDeliveries
+    : newDeliveries;
+  const totalWeight = draft.type === "append_existing"
+    ? draft.existingWeight + draft.totalWeight
+    : draft.totalWeight;
+  const totalValue = draft.type === "append_existing"
+    ? draft.existingValue + draft.totalAmount
+    : draft.totalAmount;
+
+  return (
+    <div className="rounded-md bg-blue-500/5 border border-blue-500/15 px-3 py-3 space-y-2">
+      <Label className="text-xs font-semibold">Dados consolidados da rota</Label>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="rounded-md border bg-background px-3 py-2">
+          <div className="text-xs text-muted-foreground">Entregas</div>
+          <div className="text-lg font-semibold">{deliveries}</div>
+        </div>
+        <div className="rounded-md border bg-background px-3 py-2">
+          <div className="text-xs text-muted-foreground">Peso total</div>
+          <div className="text-lg font-semibold">{weightFmt.format(totalWeight)} kg</div>
+        </div>
+        <div className="rounded-md border bg-background px-3 py-2">
+          <div className="text-xs text-muted-foreground">Valor total</div>
+          <div className="text-lg font-semibold">{currencyFmt.format(totalValue)}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ExistingRouteDetailDialog({
   route,
   onOpenChange,
