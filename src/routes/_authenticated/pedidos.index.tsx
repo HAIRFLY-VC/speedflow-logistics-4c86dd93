@@ -65,7 +65,7 @@ type OrderRow = {
   cod_agenda: number | null;
   erp_status: string | null;
   qtd_dias: number | null;
-  customers: { trade_name: string | null; legal_name: string } | null;
+  customers: { trade_name: string | null; legal_name: string; erp_id: string | null } | null;
 };
 
 const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
@@ -104,7 +104,7 @@ function PedidosPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id,order_number,customer_id,salesperson_id,status,status_since,total_amount,freight_amount,sla_deliver_by,erp_id,notes,created_at,updated_at,dt_prev_exp,nome_rota,nome_motorista,weight,cod_agenda,erp_status,qtd_dias,customers(trade_name,legal_name)",
+          "id,order_number,customer_id,salesperson_id,status,status_since,total_amount,freight_amount,sla_deliver_by,erp_id,notes,created_at,updated_at,dt_prev_exp,nome_rota,nome_motorista,weight,cod_agenda,erp_status,qtd_dias,customers(trade_name,legal_name,erp_id)",
         )
         .order("dt_prev_exp", { ascending: true })
         .order("nome_rota", { ascending: true })
@@ -183,6 +183,13 @@ function PedidosPage() {
         id: "customer",
         header: "Cliente",
         accessor: (o) => customerName(o),
+      },
+      {
+        id: "customer_erp_id",
+        header: "Cód. Cliente ERP",
+        accessor: (o) => o.customers?.erp_id ?? "",
+        defaultVisible: false,
+        className: "text-xs font-mono text-muted-foreground",
       },
       {
         id: "erp_status",
