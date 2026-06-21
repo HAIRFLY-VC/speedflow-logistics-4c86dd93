@@ -455,6 +455,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
           return {
             orderId: p.o.id,
             orderNumber: p.o.order_number,
+            customerId: p.o.customer_id,
             customerName: c.trade_name || c.legal_name || "Cliente",
             city: c.city,
             state: c.state,
