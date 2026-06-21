@@ -31,6 +31,10 @@ type Form = {
   sla_credit_approval_hours: string;
   sla_fulfillment_hours: string;
   sla_delivery_hours: string;
+  depot_address: string;
+  max_route_weight_kg: string;
+  max_route_value_brl: string;
+  route_cluster_radius_km: string;
 };
 
 const empty: Form = {
@@ -46,6 +50,10 @@ const empty: Form = {
   sla_credit_approval_hours: "8",
   sla_fulfillment_hours: "24",
   sla_delivery_hours: "48",
+  depot_address: "",
+  max_route_weight_kg: "5000",
+  max_route_value_brl: "0",
+  route_cluster_radius_km: "30",
 };
 
 function ConfiguracoesPage() {
@@ -82,6 +90,10 @@ function ConfiguracoesPage() {
         sla_credit_approval_hours: String(q.data.sla_credit_approval_hours ?? 8),
         sla_fulfillment_hours: String(q.data.sla_fulfillment_hours ?? 24),
         sla_delivery_hours: String(q.data.sla_delivery_hours ?? 48),
+        depot_address: (q.data as { depot_address?: string | null }).depot_address ?? "",
+        max_route_weight_kg: String((q.data as { max_route_weight_kg?: number }).max_route_weight_kg ?? 5000),
+        max_route_value_brl: String((q.data as { max_route_value_brl?: number }).max_route_value_brl ?? 0),
+        route_cluster_radius_km: String((q.data as { route_cluster_radius_km?: number }).route_cluster_radius_km ?? 30),
       });
     }
   }, [q.data]);
@@ -102,6 +114,10 @@ function ConfiguracoesPage() {
         sla_credit_approval_hours: Number(form.sla_credit_approval_hours) || 0,
         sla_fulfillment_hours: Number(form.sla_fulfillment_hours) || 0,
         sla_delivery_hours: Number(form.sla_delivery_hours) || 0,
+        depot_address: form.depot_address.trim() || null,
+        max_route_weight_kg: Number(form.max_route_weight_kg) || 0,
+        max_route_value_brl: Number(form.max_route_value_brl) || 0,
+        route_cluster_radius_km: Number(form.route_cluster_radius_km) || 0,
       };
       const { error } = await supabase
         .from("company_settings")
@@ -195,6 +211,29 @@ function ConfiguracoesPage() {
                 <Field label="Aprovação de crédito" type="number" value={form.sla_credit_approval_hours} onChange={set("sla_credit_approval_hours")} disabled={!canEdit} />
                 <Field label="Faturamento" type="number" value={form.sla_fulfillment_hours} onChange={set("sla_fulfillment_hours")} disabled={!canEdit} />
                 <Field label="Entrega" type="number" value={form.sla_delivery_hours} onChange={set("sla_delivery_hours")} disabled={!canEdit} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Roteirização</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Parâmetros usados na tela “Sugestão de rotas” para agrupar pedidos.
+                </p>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="md:col-span-2">
+                  <Label>Endereço do depósito (origem das rotas)</Label>
+                  <Input
+                    value={form.depot_address}
+                    onChange={(e) => set("depot_address")(e.target.value)}
+                    disabled={!canEdit}
+                    placeholder="Ex: Rua X, 123 - Bairro, Cidade/UF"
+                  />
+                </div>
+                <Field label="Peso máx. por rota (kg)" type="number" value={form.max_route_weight_kg} onChange={set("max_route_weight_kg")} disabled={!canEdit} />
+                <Field label="Valor máx. por rota (R$, 0 = sem limite)" type="number" value={form.max_route_value_brl} onChange={set("max_route_value_brl")} disabled={!canEdit} />
+                <Field label="Raio de agrupamento (km)" type="number" value={form.route_cluster_radius_km} onChange={set("route_cluster_radius_km")} disabled={!canEdit} />
               </CardContent>
             </Card>
 
