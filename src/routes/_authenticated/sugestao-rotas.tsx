@@ -586,33 +586,61 @@ function EditSuggestionDialog({
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="md:col-span-2">
-                  <Label className="text-xs">Nome da rota</Label>
-                  <Input
-                    value={draft.routeLabel}
-                    onChange={(e) => setDraft({ ...draft, routeLabel: e.target.value })}
-                    disabled={draft.type === "append_existing"}
-                  />
+              {draft.type === "append_existing" ? (
+                <div className="rounded-md bg-blue-500/5 border border-blue-500/15 px-3 py-2 text-sm space-y-1">
+                  {(() => {
+                    const newCustomers = new Set(draft.stops.map((st) => st.customerId));
+                    const newDeliveries = newCustomers.size;
+                    const totalDeliveries = draft.existingDeliveries + newDeliveries;
+                    const totalWeight = draft.existingWeight + draft.totalWeight;
+                    const totalValue = draft.existingValue + draft.totalAmount;
+                    return (
+                      <>
+                        <div>
+                          <span className="font-medium text-blue-700">Rota existente:</span>{" "}
+                          {draft.existingDeliveries} entrega(s) · {weightFmt.format(draft.existingWeight)} kg ·{" "}
+                          {currencyFmt.format(draft.existingValue)}
+                        </div>
+                        <div>
+                          <span className="font-medium text-emerald-700">Pedidos a inserir:</span>{" "}
+                          {draft.stops.length} pedido(s) · {newDeliveries} entrega(s) ·{" "}
+                          {weightFmt.format(draft.totalWeight)} kg · {currencyFmt.format(draft.totalAmount)}
+                        </div>
+                        <div className="pt-1 border-t border-blue-500/15">
+                          <span className="font-medium">Total após encaixe:</span>{" "}
+                          {totalDeliveries} entrega(s) · {weightFmt.format(totalWeight)} kg ·{" "}
+                          {currencyFmt.format(totalValue)}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
-                <div>
-                  <Label className="text-xs">Data planejada</Label>
-                  <Input
-                    type="date"
-                    value={draft.routeDate}
-                    onChange={(e) => setDraft({ ...draft, routeDate: e.target.value })}
-                    disabled={draft.type === "append_existing"}
-                  />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="md:col-span-2">
+                    <Label className="text-xs">Nome da rota</Label>
+                    <Input
+                      value={draft.routeLabel}
+                      onChange={(e) => setDraft({ ...draft, routeLabel: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Data planejada</Label>
+                    <Input
+                      type="date"
+                      value={draft.routeDate}
+                      onChange={(e) => setDraft({ ...draft, routeDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="md:col-span-3">
+                    <Label className="text-xs">Motorista</Label>
+                    <Input
+                      value={draft.driverName ?? ""}
+                      onChange={(e) => setDraft({ ...draft, driverName: e.target.value || null })}
+                    />
+                  </div>
                 </div>
-                <div className="md:col-span-3">
-                  <Label className="text-xs">Motorista</Label>
-                  <Input
-                    value={draft.driverName ?? ""}
-                    onChange={(e) => setDraft({ ...draft, driverName: e.target.value || null })}
-                    disabled={draft.type === "append_existing"}
-                  />
-                </div>
-              </div>
+              )}
 
               <div>
                 <Label className="text-xs">Paradas ({draft.stops.length})</Label>
