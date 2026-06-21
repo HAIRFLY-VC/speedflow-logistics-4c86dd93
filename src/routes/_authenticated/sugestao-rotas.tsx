@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Wand2, MapPin, CheckCircle2, X, Pencil, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -436,22 +437,26 @@ function EditSuggestionDialog({
 
   return (
     <Dialog open={!!suggestion} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0">
+        <DialogHeader className="p-6 pb-0 shrink-0">
           <DialogTitle>Editar sugestão</DialogTitle>
         </DialogHeader>
-        {draft && (
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="overflow-y-auto px-6 py-3">
+          {draft && (
+            <div className="space-y-3">
               <div>
-                <Label className="text-xs">Tipo</Label>
-                <select
-                  className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-                  value={draft.type}
-                  onChange={(e) => {
-                    const newType = e.target.value as RouteSuggestion["type"];
-                    if (newType === draft.type) return;
-                    if (newType === "new_route") {
+                <Label className="text-xs font-semibold">Tipo de rota</Label>
+                <div className="mt-1 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    className={cn(
+                      "rounded-md border px-3 py-2 text-sm text-center transition-colors",
+                      draft.type === "new_route"
+                        ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 font-medium"
+                        : "border-border bg-background hover:bg-muted"
+                    )}
+                    onClick={() => {
+                      if (draft.type === "new_route") return;
                       setDraft({
                         ...draft,
                         type: "new_route",
@@ -461,7 +466,22 @@ function EditSuggestionDialog({
                           : `Nova rota — ${draft.routeLabel}`,
                         existingWeight: 0,
                       });
-                    } else {
+                    }}
+                  >
+                    Criar nova rota
+                  </button>
+                  <button
+                    type="button"
+                    disabled={existingRoutes.length === 0}
+                    className={cn(
+                      "rounded-md border px-3 py-2 text-sm text-center transition-colors",
+                      existingRoutes.length === 0 && "opacity-50 cursor-not-allowed",
+                      draft.type === "append_existing"
+                        ? "border-blue-500 bg-blue-500/10 text-blue-700 font-medium"
+                        : "border-border bg-background hover:bg-muted"
+                    )}
+                    onClick={() => {
+                      if (draft.type === "append_existing") return;
                       const first = existingRoutes[0];
                       if (!first) return;
                       setDraft({
@@ -474,16 +494,16 @@ function EditSuggestionDialog({
                         existingWeight: first.existingWeight,
                         capacityWeight: first.capacityWeight,
                       });
-                    }
-                  }}
-                >
-                  <option value="new_route">Criar nova rota</option>
-                  <option value="append_existing" disabled={existingRoutes.length === 0}>
-                    Encaixar em rota existente
-                    {existingRoutes.length === 0 ? " (nenhuma disponível)" : ""}
-                  </option>
-                </select>
+                    }}
+                  >
+                    Encaixar existente
+                  </button>
+                </div>
+                {existingRoutes.length === 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">Nenhuma rota existente disponível.</p>
+                )}
               </div>
+
               {draft.type === "append_existing" && (
                 <div>
                   <Label className="text-xs">Rota existente</Label>
@@ -513,57 +533,57 @@ function EditSuggestionDialog({
                   </select>
                 </div>
               )}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="md:col-span-2">
-                <Label className="text-xs">Nome da rota</Label>
-                <Input
-                  value={draft.routeLabel}
-                  onChange={(e) => setDraft({ ...draft, routeLabel: e.target.value })}
-                  disabled={draft.type === "append_existing"}
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="md:col-span-2">
+                  <Label className="text-xs">Nome da rota</Label>
+                  <Input
+                    value={draft.routeLabel}
+                    onChange={(e) => setDraft({ ...draft, routeLabel: e.target.value })}
+                    disabled={draft.type === "append_existing"}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Data planejada</Label>
+                  <Input
+                    type="date"
+                    value={draft.routeDate}
+                    onChange={(e) => setDraft({ ...draft, routeDate: e.target.value })}
+                    disabled={draft.type === "append_existing"}
+                  />
+                </div>
+                <div className="md:col-span-3">
+                  <Label className="text-xs">Motorista</Label>
+                  <Input
+                    value={draft.driverName ?? ""}
+                    onChange={(e) => setDraft({ ...draft, driverName: e.target.value || null })}
+                    disabled={draft.type === "append_existing"}
+                  />
+                </div>
               </div>
+
               <div>
-                <Label className="text-xs">Data planejada</Label>
-                <Input
-                  type="date"
-                  value={draft.routeDate}
-                  onChange={(e) => setDraft({ ...draft, routeDate: e.target.value })}
-                  disabled={draft.type === "append_existing"}
-                />
-              </div>
-              <div className="md:col-span-3">
-                <Label className="text-xs">Motorista</Label>
-                <Input
-                  value={draft.driverName ?? ""}
-                  onChange={(e) => setDraft({ ...draft, driverName: e.target.value || null })}
-                  disabled={draft.type === "append_existing"}
-                />
+                <Label className="text-xs">Paradas ({draft.stops.length})</Label>
+                <ul className="text-sm divide-y rounded-md border mt-1 max-h-72 overflow-auto">
+                  {draft.stops.map((s) => (
+                    <li key={s.orderId} className="flex items-center justify-between gap-2 px-2 py-1.5">
+                      <div>
+                        <span className="font-medium">{s.orderNumber}</span>{" "}
+                        <span className="text-muted-foreground text-xs">
+                          — {s.customerName} · {s.city ?? "?"}/{s.state ?? "?"}
+                        </span>
+                      </div>
+                      <Button size="sm" variant="ghost" onClick={() => removeStop(s.orderId)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
-
-
-            <div>
-              <Label className="text-xs">Paradas ({draft.stops.length})</Label>
-              <ul className="text-sm divide-y rounded-md border mt-1 max-h-72 overflow-auto">
-                {draft.stops.map((s) => (
-                  <li key={s.orderId} className="flex items-center justify-between gap-2 px-2 py-1.5">
-                    <div>
-                      <span className="font-medium">{s.orderNumber}</span>{" "}
-                      <span className="text-muted-foreground text-xs">
-                        — {s.customerName} · {s.city ?? "?"}/{s.state ?? "?"}
-                      </span>
-                    </div>
-                    <Button size="sm" variant="ghost" onClick={() => removeStop(s.orderId)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-        <DialogFooter>
+          )}
+        </div>
+        <DialogFooter className="p-6 pt-0 shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
