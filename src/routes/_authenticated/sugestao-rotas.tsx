@@ -287,6 +287,9 @@ function SugestaoRotasPage() {
                 onConfirm={() => confirm.mutate(s)}
                 onEdit={() => setEditing(s)}
                 onDismiss={() => dismiss(s)}
+                onShowExistingDetail={() =>
+                  s.routeId && setDetailRoute({ id: s.routeId, label: s.routeLabel })
+                }
                 isConfirming={confirm.isPending}
               />
             ))}
