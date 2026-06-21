@@ -150,6 +150,7 @@ function PedidosPage() {
         header: "Prev. Exp.",
         accessor: (o) => o.dt_prev_exp ?? "",
         filterType: "date",
+        sortable: false,
         render: (o) => formatDateBR(o.dt_prev_exp),
         className: "text-xs text-muted-foreground",
       },
@@ -157,18 +158,21 @@ function PedidosPage() {
         id: "nome_rota",
         header: "Rota",
         accessor: (o) => o.nome_rota ?? "",
+        sortable: false,
         className: "text-xs",
       },
       {
         id: "nome_motorista",
         header: "Motorista",
         accessor: (o) => o.nome_motorista ?? "",
+        sortable: false,
         className: "text-xs",
       },
       {
         id: "order_number",
         header: "Pedido",
         accessor: (o) => o.order_number,
+        sortable: false,
         render: (o) => (
           <Link
             to="/pedidos/$orderId"
@@ -183,18 +187,21 @@ function PedidosPage() {
         id: "customer",
         header: "Cliente",
         accessor: (o) => customerName(o),
+        sortable: false,
       },
       {
         id: "customer_erp_id",
         header: "Cód. Cliente ERP",
         accessor: (o) => o.customers?.erp_id ?? "",
         defaultVisible: false,
+        sortable: false,
         className: "text-xs font-mono text-muted-foreground",
       },
       {
         id: "erp_status",
         header: "Status",
         accessor: (o) => o.erp_status ?? "",
+        sortable: false,
         className: "text-xs",
       },
       {
@@ -202,6 +209,7 @@ function PedidosPage() {
         header: "Peso",
         align: "right",
         filterType: "number",
+        sortable: false,
         accessor: (o) => Number(o.weight ?? 0),
         render: (o) =>
           o.weight ? `${weightFmt.format(Number(o.weight))} kg` : "—",
@@ -212,6 +220,7 @@ function PedidosPage() {
         header: "Total",
         align: "right",
         filterType: "number",
+        sortable: false,
         accessor: (o) => Number(o.total_amount ?? 0),
         render: (o) => formatCurrency(Number(o.total_amount ?? 0)),
         className: "tabular-nums",
@@ -221,6 +230,7 @@ function PedidosPage() {
         header: "Criado",
         accessor: (o) => o.created_at,
         filterType: "date",
+        sortable: false,
         filterLabel: (o) => formatDateTimeBR(o.created_at),
         render: (o) =>
           formatDistanceToNow(new Date(o.created_at), {
@@ -234,6 +244,7 @@ function PedidosPage() {
         header: "ID",
         accessor: (o) => o.id,
         defaultVisible: false,
+        sortable: false,
         className: "text-xs font-mono text-muted-foreground",
       },
       {
@@ -241,6 +252,7 @@ function PedidosPage() {
         header: "ID Cliente",
         accessor: (o) => o.customer_id,
         defaultVisible: false,
+        sortable: false,
         className: "text-xs font-mono text-muted-foreground",
       },
       {
@@ -248,6 +260,7 @@ function PedidosPage() {
         header: "ID Vendedor",
         accessor: (o) => o.salesperson_id ?? "",
         defaultVisible: false,
+        sortable: false,
         className: "text-xs font-mono text-muted-foreground",
       },
       {
@@ -255,6 +268,7 @@ function PedidosPage() {
         header: "Status (sistema)",
         accessor: (o) => o.status ?? "",
         defaultVisible: false,
+        sortable: false,
         className: "text-xs",
       },
       {
@@ -262,6 +276,7 @@ function PedidosPage() {
         header: "Status desde",
         accessor: (o) => o.status_since,
         filterType: "date",
+        sortable: false,
         filterLabel: (o) => formatDateTimeBR(o.status_since),
         render: (o) => formatDateTimeBR(o.status_since),
         defaultVisible: false,
@@ -272,6 +287,7 @@ function PedidosPage() {
         header: "Frete",
         align: "right",
         filterType: "number",
+        sortable: false,
         accessor: (o) => Number(o.freight_amount ?? 0),
         render: (o) => formatCurrency(Number(o.freight_amount ?? 0)),
         defaultVisible: false,
@@ -282,6 +298,7 @@ function PedidosPage() {
         header: "SLA Entrega",
         accessor: (o) => o.sla_deliver_by ?? "",
         filterType: "date",
+        sortable: false,
         filterLabel: (o) => formatDateTimeBR(o.sla_deliver_by),
         render: (o) => formatDateTimeBR(o.sla_deliver_by),
         defaultVisible: false,
@@ -292,6 +309,7 @@ function PedidosPage() {
         header: "ERP ID",
         accessor: (o) => o.erp_id ?? "",
         defaultVisible: false,
+        sortable: false,
         className: "text-xs font-mono text-muted-foreground",
       },
       {
@@ -299,6 +317,7 @@ function PedidosPage() {
         header: "Cód. Agenda",
         align: "right",
         filterType: "number",
+        sortable: false,
         accessor: (o) => o.cod_agenda ?? 0,
         render: (o) => o.cod_agenda ?? "—",
         defaultVisible: false,
@@ -309,6 +328,7 @@ function PedidosPage() {
         header: "Observações",
         accessor: (o) => o.notes ?? "",
         defaultVisible: false,
+        sortable: false,
         className: "text-xs text-muted-foreground",
       },
       {
@@ -316,6 +336,7 @@ function PedidosPage() {
         header: "Atualizado",
         accessor: (o) => o.updated_at,
         filterType: "date",
+        sortable: false,
         filterLabel: (o) => formatDateTimeBR(o.updated_at),
         render: (o) => formatDateTimeBR(o.updated_at),
         defaultVisible: false,
@@ -326,6 +347,7 @@ function PedidosPage() {
         header: "Tempo (d)",
         align: "right",
         filterType: "number",
+        sortable: false,
         accessor: (o) => o.qtd_dias ?? "",
         render: (o) => formatTempoDias(o.qtd_dias),
         className: "tabular-nums text-xs",
@@ -420,7 +442,7 @@ function PedidosPage() {
           isLoading={ordersQ.isLoading}
           rowKey={(o) => o.id}
           emptyMessage="Nenhum pedido encontrado."
-          defaultSort={{ id: "dt_prev_exp", dir: "asc" }}
+          
           toolbarRight={
             <Button
               variant="outline"
