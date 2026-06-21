@@ -3,10 +3,14 @@ import type { ReactNode } from "react";
 export type ColumnDef<T> = {
   id: string;
   header: string;
-  /** Returns the raw value used for sorting and filtering (case-insensitive contains). */
+  /** Returns the raw value used for sorting and as the canonical filter key. */
   accessor: (row: T) => unknown;
   /** Custom cell renderer. Falls back to String(accessor(row)). */
   render?: (row: T) => ReactNode;
+  /** Optional human-readable label used in the filter list. Defaults to formatting the accessor. */
+  filterLabel?: (row: T) => string;
+  /** Optional content type hint for ordering distinct filter values. */
+  filterType?: "text" | "number" | "date";
   /** Aggregation cell used inside the group footer when groupBy is set. */
   aggregate?: (rows: T[]) => ReactNode;
   defaultVisible?: boolean;

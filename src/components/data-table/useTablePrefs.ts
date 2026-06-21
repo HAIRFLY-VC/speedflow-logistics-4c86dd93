@@ -19,7 +19,7 @@ export type ResolvedColumnState = {
 export type TableState = {
   columns: ResolvedColumnState[];
   sort: SortState;
-  filters: Record<string, string>;
+  filters: Record<string, string[]>;
 };
 
 function buildDefaults<T>(columns: ColumnDef<T>[], defaultSort: SortState): TableState {
@@ -32,6 +32,22 @@ function buildDefaults<T>(columns: ColumnDef<T>[], defaultSort: SortState): Tabl
     sort: defaultSort ?? null,
     filters: {},
   };
+}
+
+function normaliseFilters(
+  raw: TablePreferences["filters"] | Record<string, string> | undefined,
+): Record<string, string[]> {
+  if (!raw) return {};
+  const out: Record<string, string[]> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (Array.isArray(v)) {
+      if (v.length) out[k] = v.map(String);
+    } else if (typeof v === "string" && v.trim()) {
+      // Legacy text filter — keep as a single selected value for back-compat.
+      out[k] = [v];
+    }
+  }
+  return out;
 }
 
 function mergePrefs<T>(
@@ -56,14 +72,13 @@ function mergePrefs<T>(
       byId.delete(p.id);
     }
   }
-  // Any new columns not yet in saved prefs go at the end.
   for (const remaining of byId.values()) {
     merged.push({ ...remaining, order: nextOrder++ });
   }
   return {
     columns: merged,
     sort: prefs.sort === null ? null : prefs.sort ?? defaultSort ?? null,
-    filters: prefs.filters ?? {},
+    filters: normaliseFilters(prefs.filters as never),
   };
 }
 
@@ -150,11 +165,11 @@ export function useTablePrefs<T>(
   return {
     state,
     setSort: (sort: SortState) => update((p) => ({ ...p, sort })),
-    setFilter: (id: string, value: string) =>
+    setFilter: (id: string, values: string[]) =>
       update((p) => {
         const filters = { ...p.filters };
-        if (!value) delete filters[id];
-        else filters[id] = value;
+        if (!values || values.length === 0) delete filters[id];
+        else filters[id] = values;
         return { ...p, filters };
       }),
     clearFilters: () => update((p) => ({ ...p, filters: {} })),
