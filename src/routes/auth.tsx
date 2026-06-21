@@ -9,6 +9,19 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { lovable } from "@/integrations/lovable";
+
+async function handleGoogleSignIn() {
+  const result = await lovable.auth.signInWithOAuth("google", {
+    redirect_uri: window.location.origin,
+  });
+  if (result.error) {
+    toast.error("Não foi possível iniciar o login com Google");
+    return;
+  }
+  if (result.redirected) return;
+  window.location.href = "/dashboard";
+}
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
