@@ -178,6 +178,7 @@ export type RouteSuggestion = {
   stops: {
     orderId: string;
     orderNumber: string;
+    customerId: string;
     customerName: string;
     city: string | null;
     state: string | null;
