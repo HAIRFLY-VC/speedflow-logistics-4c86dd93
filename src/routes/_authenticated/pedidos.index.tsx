@@ -313,14 +313,8 @@ function PedidosPage() {
         header: "Tempo (d)",
         align: "right",
         filterType: "number",
-        accessor: (o) => {
-          const ms = Date.now() - new Date(o.created_at).getTime();
-          return Math.max(0, Math.floor(ms / 86400000));
-        },
-        render: (o) => {
-          const ms = Date.now() - new Date(o.created_at).getTime();
-          return Math.max(0, Math.floor(ms / 86400000));
-        },
+        accessor: (o) => o.qtd_dias ?? 0,
+        render: (o) => (o.qtd_dias == null ? "—" : o.qtd_dias),
         className: "tabular-nums text-xs",
       },
     ],
