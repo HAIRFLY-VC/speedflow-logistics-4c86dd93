@@ -90,6 +90,10 @@ function ConfiguracoesPage() {
         sla_credit_approval_hours: String(q.data.sla_credit_approval_hours ?? 8),
         sla_fulfillment_hours: String(q.data.sla_fulfillment_hours ?? 24),
         sla_delivery_hours: String(q.data.sla_delivery_hours ?? 48),
+        depot_address: (q.data as { depot_address?: string | null }).depot_address ?? "",
+        max_route_weight_kg: String((q.data as { max_route_weight_kg?: number }).max_route_weight_kg ?? 5000),
+        max_route_value_brl: String((q.data as { max_route_value_brl?: number }).max_route_value_brl ?? 0),
+        route_cluster_radius_km: String((q.data as { route_cluster_radius_km?: number }).route_cluster_radius_km ?? 30),
       });
     }
   }, [q.data]);
