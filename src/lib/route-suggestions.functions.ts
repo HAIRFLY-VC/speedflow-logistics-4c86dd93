@@ -66,11 +66,13 @@ function buildAddressQuery(c: {
 
 export const geocodePendingCustomers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((data: { force?: boolean } | undefined) => data ?? {})
+  .handler(async ({ data, context }) => {
     await ensureStaff(context);
     const { supabase } = context;
+    const force = !!data?.force;
 
-    // Clientes envolvidos em pedidos sem rota e sem lat/lng
+    // Clientes envolvidos em pedidos sem rota
     const { data: orders, error: oErr } = await supabase
       .from("orders")
       .select("customer_id, customers(id, address_line, city, state, zip_code, latitude, longitude)")
@@ -92,8 +94,10 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
       if (!c) continue;
       if (seen.has(c.id)) continue;
       seen.add(c.id);
-      if (c.latitude != null && c.longitude != null) continue;
-      targets.push({ id: c.id, query: buildAddressQuery(c) });
+      if (!force && c.latitude != null && c.longitude != null) continue;
+      const query = buildAddressQuery(c);
+      if (!query.trim()) continue;
+      targets.push({ id: c.id, query });
     }
 
     let geocoded = 0;
