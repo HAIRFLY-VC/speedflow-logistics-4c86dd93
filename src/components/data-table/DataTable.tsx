@@ -46,16 +46,23 @@ function filterKey(v: unknown): string {
   return String(v);
 }
 
-function filterDisplay(v: unknown): string {
+function formatDate(d: Date): string {
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function filterDisplay(v: unknown, filterType?: "text" | "number" | "date"): string {
   if (v == null || v === "") return EMPTY_LABEL;
-  if (v instanceof Date)
-    return v.toLocaleString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  if (v instanceof Date) return formatDate(v);
+  if (filterType === "date" && (typeof v === "string" || typeof v === "number")) {
+    const d = new Date(v);
+    if (!isNaN(d.getTime())) return formatDate(d);
+  }
   return String(v);
 }
 
