@@ -301,7 +301,6 @@ function RotasPage() {
           isLoading={isLoading}
           rowKey={(r) => r.id}
           emptyMessage="Nenhuma rota criada."
-          defaultSort={{ id: "route_date", dir: "asc" }}
           groupBy={{
             id: "route_date",
             accessor: (r) => r.route_date,
