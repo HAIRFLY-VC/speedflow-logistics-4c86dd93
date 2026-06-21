@@ -406,11 +406,16 @@ function SuggestionCard({
           const totalValue = s.existingValue + s.totalAmount;
           return (
             <div className="rounded-md bg-blue-500/5 border border-blue-500/15 px-3 py-2 text-sm space-y-1">
-              <div>
+              <button
+                type="button"
+                onClick={onShowExistingDetail}
+                className="text-left w-full hover:underline"
+                title="Ver pedidos da rota existente"
+              >
                 <span className="font-medium text-blue-700">Rota existente:</span>{" "}
                 {s.existingDeliveries} entrega(s) · {weightFmt.format(s.existingWeight)} kg ·{" "}
                 {currencyFmt.format(s.existingValue)}
-              </div>
+              </button>
               <div>
                 <span className="font-medium text-emerald-700">Pedidos a inserir:</span>{" "}
                 {s.stops.length} pedido(s) · {newDeliveries} entrega(s) ·{" "}
