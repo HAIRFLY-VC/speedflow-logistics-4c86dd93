@@ -125,22 +125,22 @@ export function DataTable<T>(props: DataTableProps<T>) {
     const rows = data ?? [];
     for (const c of columns) {
       if (c.filterable === false) continue;
-      const seen = new Map<string, string>();
+      const seen = new Map<string, { label: string; raw: unknown }>();
       for (const r of rows) {
         const v = c.accessor(r);
         const key = filterKey(v);
         if (seen.has(key)) continue;
         const label = columnFilterLabel(c, r);
-        seen.set(key, label);
+        seen.set(key, { label, raw: v });
       }
-      const arr = Array.from(seen, ([key, label]) => ({ key, label }));
-      const isNumber = c.filterType === "number";
-      const isDate = c.filterType === "date";
+      const arr = Array.from(seen, ([key, { label, raw }]) => ({ key, label, raw }));
       arr.sort((a, b) => {
         if (a.key === EMPTY_KEY) return 1;
         if (b.key === EMPTY_KEY) return -1;
-        if (isNumber) return Number(a.key) - Number(b.key);
-        if (isDate) return a.key.localeCompare(b.key);
+        const av = toComparable(a.raw);
+        const bv = toComparable(b.raw);
+        if (av < bv) return -1;
+        if (av > bv) return 1;
         return a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: "base" });
       });
       map.set(c.id, arr);
