@@ -14,6 +14,7 @@ import {
   Settings,
   LogOut,
   Menu,
+  Wand2,
 } from "lucide-react";
 import {
   Sidebar,

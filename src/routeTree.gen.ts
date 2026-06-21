@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
+import { Route as AuthenticatedSugestaoRotasRouteImport } from './routes/_authenticated/sugestao-rotas'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedMinhasRotasRouteImport } from './routes/_authenticated/minhas-rotas'
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
@@ -46,6 +47,12 @@ const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   path: '/usuarios',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSugestaoRotasRoute =
+  AuthenticatedSugestaoRotasRouteImport.update({
+    id: '/sugestao-rotas',
+    path: '/sugestao-rotas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
   id: '/produtos',
   path: '/produtos',
@@ -128,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/kanban': typeof AuthenticatedKanbanRoute
   '/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/produtos': typeof AuthenticatedProdutosRoute
+  '/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
@@ -146,6 +154,7 @@ export interface FileRoutesByTo {
   '/kanban': typeof AuthenticatedKanbanRoute
   '/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/produtos': typeof AuthenticatedProdutosRoute
+  '/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
@@ -166,6 +175,7 @@ export interface FileRoutesById {
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
   '/_authenticated/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
+  '/_authenticated/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/_authenticated/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
@@ -186,6 +196,7 @@ export interface FileRouteTypes {
     | '/kanban'
     | '/minhas-rotas'
     | '/produtos'
+    | '/sugestao-rotas'
     | '/usuarios'
     | '/pedidos/$orderId'
     | '/rotas/$routeId'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/kanban'
     | '/minhas-rotas'
     | '/produtos'
+    | '/sugestao-rotas'
     | '/usuarios'
     | '/pedidos/$orderId'
     | '/rotas/$routeId'
@@ -223,6 +235,7 @@ export interface FileRouteTypes {
     | '/_authenticated/kanban'
     | '/_authenticated/minhas-rotas'
     | '/_authenticated/produtos'
+    | '/_authenticated/sugestao-rotas'
     | '/_authenticated/usuarios'
     | '/_authenticated/pedidos/$orderId'
     | '/_authenticated/rotas/$routeId'
@@ -266,6 +279,13 @@ declare module '@tanstack/react-router' {
       path: '/usuarios'
       fullPath: '/usuarios'
       preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sugestao-rotas': {
+      id: '/_authenticated/sugestao-rotas'
+      path: '/sugestao-rotas'
+      fullPath: '/sugestao-rotas'
+      preLoaderRoute: typeof AuthenticatedSugestaoRotasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/produtos': {
@@ -371,6 +391,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
   AuthenticatedMinhasRotasRoute: typeof AuthenticatedMinhasRotasRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
+  AuthenticatedSugestaoRotasRoute: typeof AuthenticatedSugestaoRotasRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedPedidosOrderIdRoute: typeof AuthenticatedPedidosOrderIdRoute
   AuthenticatedRotasRouteIdRoute: typeof AuthenticatedRotasRouteIdRoute
@@ -387,6 +408,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
   AuthenticatedMinhasRotasRoute: AuthenticatedMinhasRotasRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
+  AuthenticatedSugestaoRotasRoute: AuthenticatedSugestaoRotasRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedPedidosOrderIdRoute: AuthenticatedPedidosOrderIdRoute,
   AuthenticatedRotasRouteIdRoute: AuthenticatedRotasRouteIdRoute,
