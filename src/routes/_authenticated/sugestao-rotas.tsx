@@ -677,6 +677,7 @@ function ExistingRouteDetailDialog({
   type Grouped = {
     customerId: string;
     customerName: string;
+    erpId: string | null;
     city: string | null;
     state: string | null;
     orders: { id: string; order_number: string; weight: number; amount: number }[];
@@ -697,6 +698,7 @@ function ExistingRouteDetailDialog({
         customers: {
           trade_name: string | null;
           legal_name: string | null;
+          erp_id: string | null;
           city: string | null;
           state: string | null;
         } | null;
