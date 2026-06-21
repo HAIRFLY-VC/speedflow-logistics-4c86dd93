@@ -293,7 +293,7 @@ function SugestaoRotasPage() {
                     ))}
                   </ul>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Use “Geocodificar pendentes” e gere as sugestões novamente.
+                    Use “Geocodificar” e gere as sugestões novamente.
                   </p>
                 </CardContent>
               </Card>
