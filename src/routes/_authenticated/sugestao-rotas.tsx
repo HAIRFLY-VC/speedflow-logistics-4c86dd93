@@ -63,6 +63,7 @@ function SugestaoRotasPage() {
 
   const [state, setState] = useState<SuggestState>(null);
   const [editing, setEditing] = useState<RouteSuggestion | null>(null);
+  const [detailRoute, setDetailRoute] = useState<{ id: string; label: string } | null>(null);
 
   const pending = useQuery({
     queryKey: ["unrouted-orders"],
