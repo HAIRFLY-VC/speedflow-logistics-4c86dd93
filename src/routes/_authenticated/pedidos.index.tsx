@@ -65,7 +65,7 @@ type OrderRow = {
   cod_agenda: number | null;
   erp_status: string | null;
   qtd_dias: number | null;
-  customers: { trade_name: string | null; legal_name: string } | null;
+  customers: { trade_name: string | null; legal_name: string; erp_id: string | null } | null;
 };
 
 const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
