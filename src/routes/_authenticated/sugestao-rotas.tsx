@@ -665,7 +665,7 @@ function ExistingRouteDetailDialog({
       const { data, error } = await supabase
         .from("route_orders")
         .select(
-          "stop_order, orders(id, order_number, total_amount, weight, customer_id, customers(trade_name, legal_name, city, state))",
+          "stop_order, orders(id, order_number, total_amount, weight, customer_id, customers(trade_name, legal_name, erp_id, city, state))",
         )
         .eq("route_id", route!.id)
         .order("stop_order");
@@ -677,6 +677,7 @@ function ExistingRouteDetailDialog({
   type Grouped = {
     customerId: string;
     customerName: string;
+    erpId: string | null;
     city: string | null;
     state: string | null;
     orders: { id: string; order_number: string; weight: number; amount: number }[];
@@ -697,6 +698,7 @@ function ExistingRouteDetailDialog({
         customers: {
           trade_name: string | null;
           legal_name: string | null;
+          erp_id: string | null;
           city: string | null;
           state: string | null;
         } | null;
@@ -708,6 +710,7 @@ function ExistingRouteDetailDialog({
         g = {
           customerId: key,
           customerName: o.customers?.trade_name || o.customers?.legal_name || "Cliente",
+          erpId: o.customers?.erp_id ?? null,
           city: o.customers?.city ?? null,
           state: o.customers?.state ?? null,
           orders: [],
@@ -756,7 +759,7 @@ function ExistingRouteDetailDialog({
                     <li key={g.customerId} className="rounded-md border p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <div className="font-medium text-sm">{g.customerName}</div>
+                          <div className="font-medium text-sm">{g.customerName}{g.erpId ? ` (${g.erpId})` : ""}</div>
                           <div className="text-xs text-muted-foreground">
                             {g.city ?? "?"}/{g.state ?? "?"} · {g.orders.length} pedido(s)
                           </div>
