@@ -63,6 +63,10 @@ export function ErpSyncButton() {
     ? "Sincronizar pedidos do ERP"
     : `Configuração incompleta: ${missing.join(", ")}`;
 
+  const lastSyncText = lastSyncQ.data?.finished_at
+    ? `Última sinc.: ${formatDistanceToNow(new Date(lastSyncQ.data.finished_at), { addSuffix: true, locale: ptBR })}`
+    : "Nenhuma sincronização";
+
   const btn = (
     <Button
       variant="outline"
@@ -83,7 +87,12 @@ export function ErpSyncButton() {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span>{btn}</span>
+          <div className="flex flex-col items-center gap-0.5">
+            <span>{btn}</span>
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+              {lastSyncText}
+            </span>
+          </div>
         </TooltipTrigger>
         <TooltipContent>{tooltip}</TooltipContent>
       </Tooltip>
