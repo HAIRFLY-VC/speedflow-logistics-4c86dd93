@@ -340,6 +340,7 @@ function SuggestionCard({
   onConfirm,
   onEdit,
   onDismiss,
+  onShowExistingDetail,
   isConfirming,
 }: {
   suggestion: RouteSuggestion;
@@ -347,6 +348,7 @@ function SuggestionCard({
   onConfirm: () => void;
   onEdit: () => void;
   onDismiss: () => void;
+  onShowExistingDetail: () => void;
   isConfirming: boolean;
 }) {
   const pctWeight = s.capacityWeight
