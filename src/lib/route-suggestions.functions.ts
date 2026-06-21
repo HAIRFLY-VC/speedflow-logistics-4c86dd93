@@ -475,6 +475,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         driverName: r.driverName,
         existingWeight: r.existingWeight,
         existingValue: r.existingValue,
+        existingDeliveries: r.existingDeliveries,
         capacityWeight: maxWeight,
       })),
     };
