@@ -437,8 +437,8 @@ function EditSuggestionDialog({
 
   return (
     <Dialog open={!!suggestion} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0">
+        <DialogHeader className="p-6 pb-0 shrink-0">
           <DialogTitle>Editar sugestão</DialogTitle>
         </DialogHeader>
         {draft && (
