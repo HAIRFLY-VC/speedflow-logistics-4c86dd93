@@ -21,6 +21,22 @@ export function ErpSyncButton() {
     staleTime: 60_000,
   });
 
+  const lastSyncQ = useQuery({
+    queryKey: ["erp", "last-sync"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("erp_sync_runs")
+        .select("started_at, finished_at, status")
+        .eq("status", "success")
+        .order("finished_at", { ascending: false })
+        .limit(1)
+        .single();
+      if (error) throw error;
+      return data as { started_at: string; finished_at: string; status: string } | null;
+    },
+    staleTime: 30_000,
+  });
+
   const sync = useMutation({
     mutationFn: () => syncFn(),
     onSuccess: async (r) => {
