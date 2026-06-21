@@ -74,7 +74,7 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
     const { data: orders, error: oErr } = await supabase
       .from("orders")
       .select("customer_id, customers(id, address_line, city, state, zip_code, latitude, longitude)")
-      .eq("dt_prev_exp", UNROUTED_DATE);
+      .gte("dt_prev_exp", "3999-01-01");
     if (oErr) throw oErr;
 
     const seen = new Set<string>();
@@ -223,7 +223,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
       .select(
         "id, order_number, total_amount, weight, customer_id, customers(id, trade_name, legal_name, city, state, latitude, longitude)",
       )
-      .eq("dt_prev_exp", UNROUTED_DATE);
+      .gte("dt_prev_exp", "3999-01-01");
     if (oErr) throw oErr;
 
     type Pending = NonNullable<typeof orders>[number];

@@ -59,7 +59,7 @@ function SugestaoRotasPage() {
         .select(
           "id, order_number, total_amount, weight, customers(trade_name, legal_name, city, state, latitude, longitude)",
         )
-        .eq("dt_prev_exp", "4000-01-01")
+        .gte("dt_prev_exp", "3999-01-01")
         .order("order_number");
       if (error) throw error;
       return data ?? [];
