@@ -214,6 +214,29 @@ function ConfiguracoesPage() {
               </CardContent>
             </Card>
 
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Roteirização</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Parâmetros usados na tela “Sugestão de rotas” para agrupar pedidos.
+                </p>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="md:col-span-2">
+                  <Label>Endereço do depósito (origem das rotas)</Label>
+                  <Input
+                    value={form.depot_address}
+                    onChange={(e) => set("depot_address")(e.target.value)}
+                    disabled={!canEdit}
+                    placeholder="Ex: Rua X, 123 - Bairro, Cidade/UF"
+                  />
+                </div>
+                <Field label="Peso máx. por rota (kg)" type="number" value={form.max_route_weight_kg} onChange={set("max_route_weight_kg")} disabled={!canEdit} />
+                <Field label="Valor máx. por rota (R$, 0 = sem limite)" type="number" value={form.max_route_value_brl} onChange={set("max_route_value_brl")} disabled={!canEdit} />
+                <Field label="Raio de agrupamento (km)" type="number" value={form.route_cluster_radius_km} onChange={set("route_cluster_radius_km")} disabled={!canEdit} />
+              </CardContent>
+            </Card>
+
             {canEdit ? (
               <div className="flex justify-end">
                 <Button onClick={() => save.mutate()} disabled={save.isPending}>
