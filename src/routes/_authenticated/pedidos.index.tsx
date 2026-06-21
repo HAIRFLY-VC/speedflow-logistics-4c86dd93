@@ -47,16 +47,23 @@ export const Route = createFileRoute("/_authenticated/pedidos/")({
 type OrderRow = {
   id: string;
   order_number: string;
+  customer_id: string;
+  salesperson_id: string | null;
   status: OrderStatus;
+  status_since: string;
   total_amount: number;
   freight_amount: number;
-  weight: number | null;
-  cod_agenda: number | null;
+  sla_deliver_by: string | null;
+  erp_id: string | null;
+  notes: string | null;
   created_at: string;
-  erp_status: string | null;
+  updated_at: string;
   dt_prev_exp: string | null;
   nome_rota: string | null;
   nome_motorista: string | null;
+  weight: number | null;
+  cod_agenda: number | null;
+  erp_status: string | null;
   customers: { trade_name: string | null; legal_name: string } | null;
 };
 
@@ -64,6 +71,20 @@ const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
 
 function customerName(o: OrderRow) {
   return o.customers?.trade_name || o.customers?.legal_name || "";
+}
+
+function formatDateBR(v: string | null | undefined) {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (isNaN(d.getTime()) || d.getFullYear() >= 3000) return "—";
+  return d.toLocaleDateString("pt-BR");
+}
+
+function formatDateTimeBR(v: string | null | undefined) {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (isNaN(d.getTime()) || d.getFullYear() >= 3000) return "—";
+  return d.toLocaleString("pt-BR");
 }
 
 function PedidosPage() {
@@ -76,7 +97,7 @@ function PedidosPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id,order_number,status,total_amount,freight_amount,weight,cod_agenda,created_at,erp_status,dt_prev_exp,nome_rota,nome_motorista,customers(trade_name,legal_name)",
+          "id,order_number,customer_id,salesperson_id,status,status_since,total_amount,freight_amount,sla_deliver_by,erp_id,notes,created_at,updated_at,dt_prev_exp,nome_rota,nome_motorista,weight,cod_agenda,erp_status,customers(trade_name,legal_name)",
         )
         .order("dt_prev_exp", { ascending: true })
         .order("nome_rota", { ascending: true })
