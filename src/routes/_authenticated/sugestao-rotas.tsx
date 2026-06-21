@@ -325,6 +325,11 @@ function SugestaoRotasPage() {
         onOpenChange={(o) => !o && setEditing(null)}
         onSave={onSaveEdit}
       />
+
+      <ExistingRouteDetailDialog
+        route={detailRoute}
+        onOpenChange={(o) => !o && setDetailRoute(null)}
+      />
     </AppShell>
   );
 }
