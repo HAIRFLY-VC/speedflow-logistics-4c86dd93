@@ -442,7 +442,7 @@ function PedidosPage() {
           isLoading={ordersQ.isLoading}
           rowKey={(o) => o.id}
           emptyMessage="Nenhum pedido encontrado."
-          defaultSort={{ id: "dt_prev_exp", dir: "asc" }}
+          
           toolbarRight={
             <Button
               variant="outline"
