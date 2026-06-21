@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export type TablePreferences = {
   columns?: Array<{ id: string; visible: boolean; order: number }>;
   sort?: { id: string; dir: "asc" | "desc" } | null;
-  filters?: Record<string, string>;
+  filters?: Record<string, string[]>;
 };
 
 export const getTablePrefs = createServerFn({ method: "GET" })
