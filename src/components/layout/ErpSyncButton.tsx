@@ -5,7 +5,10 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
 import { checkErpConfig, triggerErpSync } from "@/lib/erp.functions";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export function ErpSyncButton() {
   const qc = useQueryClient();
@@ -16,6 +19,22 @@ export function ErpSyncButton() {
     queryKey: ["erp", "config"],
     queryFn: () => checkFn(),
     staleTime: 60_000,
+  });
+
+  const lastSyncQ = useQuery({
+    queryKey: ["erp", "last-sync"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("erp_sync_runs")
+        .select("started_at, finished_at, status")
+        .eq("status", "success")
+        .order("finished_at", { ascending: false })
+        .limit(1)
+        .single();
+      if (error) throw error;
+      return data as { started_at: string; finished_at: string; status: string } | null;
+    },
+    staleTime: 30_000,
   });
 
   const sync = useMutation({
@@ -44,6 +63,10 @@ export function ErpSyncButton() {
     ? "Sincronizar pedidos do ERP"
     : `Configuração incompleta: ${missing.join(", ")}`;
 
+  const lastSyncText = lastSyncQ.data?.finished_at
+    ? `Última sinc.: ${formatDistanceToNow(new Date(lastSyncQ.data.finished_at), { addSuffix: true, locale: ptBR })}`
+    : "Nenhuma sincronização";
+
   const btn = (
     <Button
       variant="outline"
@@ -64,7 +87,12 @@ export function ErpSyncButton() {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span>{btn}</span>
+          <div className="flex flex-col items-center gap-0.5">
+            <span>{btn}</span>
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+              {lastSyncText}
+            </span>
+          </div>
         </TooltipTrigger>
         <TooltipContent>{tooltip}</TooltipContent>
       </Tooltip>
