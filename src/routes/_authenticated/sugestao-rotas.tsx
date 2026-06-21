@@ -11,7 +11,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -544,6 +543,8 @@ function EditSuggestionDialog({
                         routeDate: route.date,
                         driverName: route.driverName,
                         existingWeight: route.existingWeight,
+                        existingValue: route.existingValue,
+                        existingDeliveries: route.existingDeliveries,
                         capacityWeight: route.capacityWeight,
                       });
                     }}
@@ -572,6 +573,8 @@ function EditSuggestionDialog({
                         routeDate: r.date,
                         driverName: r.driverName,
                         existingWeight: r.existingWeight,
+                        existingValue: r.existingValue,
+                        existingDeliveries: r.existingDeliveries,
                         capacityWeight: r.capacityWeight,
                       });
                     }}
