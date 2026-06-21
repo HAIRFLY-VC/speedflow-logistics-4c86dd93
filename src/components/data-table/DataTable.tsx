@@ -343,7 +343,7 @@ function HeaderCell<T>({
         ? "text-center"
         : "";
   return (
-    <TableHead className={`${alignClass} ${column.headerClassName ?? ""}`}>
+    <TableHead className={`${alignClass} ${column.headerClassName ?? ""} sticky top-0 z-10 bg-card`}>
       <div
         className={`flex items-center gap-1 ${
           column.align === "right"
