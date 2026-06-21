@@ -288,7 +288,7 @@ export async function syncErpOrders(opts: {
             const r = await processRow(row);
             return { ok: true as const, row, ...r };
           } catch (e) {
-            const msg = e instanceof Error ? e.message : String(e);
+            const msg = describeError(e);
             return { ok: false as const, row, message: msg };
           }
         }),
@@ -375,7 +375,7 @@ export async function syncErpOrders(opts: {
           routes_linked += count ?? 0;
         }
       } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
+        const msg = describeError(e);
         errors.push({ pedido: 0, message: `Rota ${g.nome} (${g.date}): ${msg}` });
       }
     }
@@ -383,7 +383,7 @@ export async function syncErpOrders(opts: {
 
 
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
+    const msg = describeError(e);
     await supabaseAdmin
       .from("erp_sync_runs")
       .update({
