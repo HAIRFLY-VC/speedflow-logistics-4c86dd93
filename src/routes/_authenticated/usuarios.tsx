@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import {
   Dialog,
   DialogContent,
