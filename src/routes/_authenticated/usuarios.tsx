@@ -257,92 +257,126 @@ function UsuariosPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {profilesQ.isLoading ? (
-              <Skeleton className="h-32 w-full" />
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Papéis</TableHead>
-                    <TableHead className="w-[320px]">Atribuir</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(profilesQ.data ?? []).map((p) => {
-                    const userRoles = rolesByUser.get(p.id) ?? [];
-                    return (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-medium">
-                          {p.full_name || "—"}
-                        </TableCell>
-                        <TableCell>{p.phone || "—"}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {userRoles.length === 0 ? (
-                              <span className="text-xs text-muted-foreground">
-                                Sem papéis
-                              </span>
-                            ) : (
-                              userRoles.map((r) => (
-                                <Badge
-                                  key={r}
-                                  variant="secondary"
-                                  className="text-xs"
-                                >
-                                  {ROLE_LABEL[r]}
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      toggleRole.mutate({
-                                        userId: p.id,
-                                        role: r,
-                                        enable: false,
-                                      })
-                                    }
-                                    className="ml-1 hover:text-destructive"
-                                    aria-label={`Remover ${ROLE_LABEL[r]}`}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
-                                </Badge>
-                              ))
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1.5">
-                            {ROLE_OPTIONS.filter(
-                              (o) => !userRoles.includes(o.value),
-                            ).map((opt) => (
-                              <Button
-                                key={opt.value}
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs"
-                                onClick={() =>
-                                  toggleRole.mutate({
-                                    userId: p.id,
-                                    role: opt.value,
-                                    enable: true,
-                                  })
-                                }
-                              >
-                                + {opt.label}
-                              </Button>
-                            ))}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
+            <MembersTable
+              profiles={profilesQ.data ?? []}
+              isLoading={profilesQ.isLoading}
+              rolesByUser={rolesByUser}
+              onAdd={(userId, role) =>
+                toggleRole.mutate({ userId, role, enable: true })
+              }
+              onRemove={(userId, role) =>
+                toggleRole.mutate({ userId, role, enable: false })
+              }
+            />
           </CardContent>
         </Card>
       </div>
     </AppShell>
+  );
+}
+
+type ProfileRow = {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  created_at: string;
+};
+
+function MembersTable({
+  profiles,
+  isLoading,
+  rolesByUser,
+  onAdd,
+  onRemove,
+}: {
+  profiles: ProfileRow[];
+  isLoading: boolean;
+  rolesByUser: Map<string, AppRole[]>;
+  onAdd: (userId: string, role: AppRole) => void;
+  onRemove: (userId: string, role: AppRole) => void;
+}) {
+  const columns = useMemo<ColumnDef<ProfileRow>[]>(
+    () => [
+      {
+        id: "full_name",
+        header: "Nome",
+        accessor: (p) => p.full_name ?? "",
+        className: "font-medium",
+      },
+      {
+        id: "phone",
+        header: "Telefone",
+        accessor: (p) => p.phone ?? "",
+      },
+      {
+        id: "roles",
+        header: "Papéis",
+        sortable: false,
+        accessor: (p) =>
+          (rolesByUser.get(p.id) ?? []).map((r) => ROLE_LABEL[r]).join(", "),
+        render: (p) => {
+          const userRoles = rolesByUser.get(p.id) ?? [];
+          return (
+            <div className="flex flex-wrap gap-1">
+              {userRoles.length === 0 ? (
+                <span className="text-xs text-muted-foreground">Sem papéis</span>
+              ) : (
+                userRoles.map((r) => (
+                  <Badge key={r} variant="secondary" className="text-xs">
+                    {ROLE_LABEL[r]}
+                    <button
+                      type="button"
+                      onClick={() => onRemove(p.id, r)}
+                      className="ml-1 hover:text-destructive"
+                      aria-label={`Remover ${ROLE_LABEL[r]}`}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        id: "assign",
+        header: "Atribuir",
+        sortable: false,
+        filterable: false,
+        accessor: () => "",
+        render: (p) => {
+          const userRoles = rolesByUser.get(p.id) ?? [];
+          return (
+            <div className="flex flex-wrap gap-1.5">
+              {ROLE_OPTIONS.filter((o) => !userRoles.includes(o.value)).map((opt) => (
+                <Button
+                  key={opt.value}
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => onAdd(p.id, opt.value)}
+                >
+                  + {opt.label}
+                </Button>
+              ))}
+            </div>
+          );
+        },
+      },
+    ],
+    [rolesByUser, onAdd, onRemove],
+  );
+
+  return (
+    <DataTable
+      tableKey="usuarios"
+      columns={columns}
+      data={profiles}
+      isLoading={isLoading}
+      rowKey={(p) => p.id}
+      emptyMessage="Nenhum usuário."
+      defaultSort={{ id: "full_name", dir: "asc" }}
+    />
   );
 }
