@@ -11,7 +11,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -485,11 +484,11 @@ function EditSuggestionDialog({
 
   return (
     <Dialog open={!!suggestion} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0">
-        <DialogHeader className="p-6 pb-0 shrink-0">
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain p-0 [touch-action:pan-y] [-webkit-overflow-scrolling:touch] sm:max-h-[90vh]">
+        <DialogHeader className="p-6 pb-0">
           <DialogTitle>Editar sugestão</DialogTitle>
         </DialogHeader>
-        <div className="overflow-y-auto px-6 py-3">
+        <div className="px-6 py-3">
           {draft && (
             <div className="space-y-3">
               <div>
@@ -544,6 +543,8 @@ function EditSuggestionDialog({
                         routeDate: route.date,
                         driverName: route.driverName,
                         existingWeight: route.existingWeight,
+                        existingValue: route.existingValue,
+                        existingDeliveries: route.existingDeliveries,
                         capacityWeight: route.capacityWeight,
                       });
                     }}
@@ -572,6 +573,8 @@ function EditSuggestionDialog({
                         routeDate: r.date,
                         driverName: r.driverName,
                         existingWeight: r.existingWeight,
+                        existingValue: r.existingValue,
+                        existingDeliveries: r.existingDeliveries,
                         capacityWeight: r.capacityWeight,
                       });
                     }}
@@ -586,65 +589,11 @@ function EditSuggestionDialog({
                 </div>
               )}
 
-              {draft.type === "append_existing" ? (
-                <div className="rounded-md bg-blue-500/5 border border-blue-500/15 px-3 py-2 text-sm space-y-1">
-                  {(() => {
-                    const newCustomers = new Set(draft.stops.map((st) => st.customerId));
-                    const newDeliveries = newCustomers.size;
-                    const totalDeliveries = draft.existingDeliveries + newDeliveries;
-                    const totalWeight = draft.existingWeight + draft.totalWeight;
-                    const totalValue = draft.existingValue + draft.totalAmount;
-                    return (
-                      <>
-                        <div>
-                          <span className="font-medium text-blue-700">Rota existente:</span>{" "}
-                          {draft.existingDeliveries} entrega(s) · {weightFmt.format(draft.existingWeight)} kg ·{" "}
-                          {currencyFmt.format(draft.existingValue)}
-                        </div>
-                        <div>
-                          <span className="font-medium text-emerald-700">Pedidos a inserir:</span>{" "}
-                          {draft.stops.length} pedido(s) · {newDeliveries} entrega(s) ·{" "}
-                          {weightFmt.format(draft.totalWeight)} kg · {currencyFmt.format(draft.totalAmount)}
-                        </div>
-                        <div className="pt-1 border-t border-blue-500/15">
-                          <span className="font-medium">Total após encaixe:</span>{" "}
-                          {totalDeliveries} entrega(s) · {weightFmt.format(totalWeight)} kg ·{" "}
-                          {currencyFmt.format(totalValue)}
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="md:col-span-2">
-                    <Label className="text-xs">Nome da rota</Label>
-                    <Input
-                      value={draft.routeLabel}
-                      onChange={(e) => setDraft({ ...draft, routeLabel: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Data planejada</Label>
-                    <Input
-                      type="date"
-                      value={draft.routeDate}
-                      onChange={(e) => setDraft({ ...draft, routeDate: e.target.value })}
-                    />
-                  </div>
-                  <div className="md:col-span-3">
-                    <Label className="text-xs">Motorista</Label>
-                    <Input
-                      value={draft.driverName ?? ""}
-                      onChange={(e) => setDraft({ ...draft, driverName: e.target.value || null })}
-                    />
-                  </div>
-                </div>
-              )}
+              <RouteSummaryBlock draft={draft} />
 
               <div>
-                <Label className="text-xs">Paradas ({draft.stops.length})</Label>
-                <ul className="text-sm divide-y rounded-md border mt-1 max-h-72 overflow-auto">
+                  <Label className="text-xs">Paradas ({draft.stops.length})</Label>
+                  <ul className="text-sm divide-y rounded-md border mt-1">
                   {draft.stops.map((s) => (
                     <li key={s.orderId} className="flex items-center justify-between gap-2 px-2 py-1.5">
                       <div>
@@ -663,7 +612,7 @@ function EditSuggestionDialog({
             </div>
           )}
         </div>
-        <DialogFooter className="p-6 pt-0 shrink-0">
+        <DialogFooter className="p-6 pt-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
@@ -676,6 +625,39 @@ function EditSuggestionDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function RouteSummaryBlock({ draft }: { draft: RouteSuggestion }) {
+  const newDeliveries = new Set(draft.stops.map((st) => st.customerId)).size;
+  const deliveries = draft.type === "append_existing"
+    ? draft.existingDeliveries + newDeliveries
+    : newDeliveries;
+  const totalWeight = draft.type === "append_existing"
+    ? draft.existingWeight + draft.totalWeight
+    : draft.totalWeight;
+  const totalValue = draft.type === "append_existing"
+    ? draft.existingValue + draft.totalAmount
+    : draft.totalAmount;
+
+  return (
+    <div className="rounded-md bg-blue-500/5 border border-blue-500/15 px-3 py-3 space-y-2">
+      <Label className="text-xs font-semibold">Dados consolidados da rota</Label>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="rounded-md border bg-background px-3 py-2">
+          <div className="text-xs text-muted-foreground">Entregas</div>
+          <div className="text-lg font-semibold">{deliveries}</div>
+        </div>
+        <div className="rounded-md border bg-background px-3 py-2">
+          <div className="text-xs text-muted-foreground">Peso total</div>
+          <div className="text-lg font-semibold">{weightFmt.format(totalWeight)} kg</div>
+        </div>
+        <div className="rounded-md border bg-background px-3 py-2">
+          <div className="text-xs text-muted-foreground">Valor total</div>
+          <div className="text-lg font-semibold">{currencyFmt.format(totalValue)}</div>
+        </div>
+      </div>
+    </div>
   );
 }
 
