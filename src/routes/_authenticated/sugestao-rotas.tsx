@@ -43,6 +43,7 @@ type ExistingRouteInfo = {
   driverName: string | null;
   existingWeight: number;
   existingValue: number;
+  existingDeliveries: number;
   capacityWeight: number;
 };
 
