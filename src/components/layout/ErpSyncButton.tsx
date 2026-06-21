@@ -48,6 +48,7 @@ export function ErpSyncButton() {
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["kanban"] });
       qc.invalidateQueries({ queryKey: ["routes"] });
+      qc.invalidateQueries({ queryKey: ["erp", "last-sync"] });
     },
     onError: (e: Error) => toast.error(`Falha ao importar: ${e.message}`),
   });
