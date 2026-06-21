@@ -731,12 +731,12 @@ function ExistingRouteDetailDialog({
 
   return (
     <Dialog open={!!route} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden">
-        <div className="flex flex-col max-h-[90vh]">
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] p-0 overflow-hidden sm:h-[90vh] sm:max-h-[90vh]">
+        <div className="flex h-full min-h-0 flex-col">
           <DialogHeader className="p-6 pb-2 shrink-0">
             <DialogTitle>Pedidos da rota — {route?.label}</DialogTitle>
           </DialogHeader>
-          <div className="overflow-y-auto flex-1 min-h-0 px-6 pb-3">
+          <div className="flex-1 min-h-0 overflow-y-scroll overscroll-contain px-6 pb-4 [touch-action:pan-y] [-webkit-overflow-scrolling:touch]">
             {detail.isLoading ? (
               <div className="space-y-2 py-2">
                 <Skeleton className="h-12 w-full" />
@@ -787,7 +787,7 @@ function ExistingRouteDetailDialog({
               </>
             )}
           </div>
-          <DialogFooter className="p-6 pt-0 shrink-0">
+          <DialogFooter className="shrink-0 border-t bg-background p-4 sm:p-6 sm:pt-4">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Fechar
             </Button>
