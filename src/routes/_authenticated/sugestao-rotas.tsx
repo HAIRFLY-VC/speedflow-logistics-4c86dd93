@@ -650,3 +650,148 @@ function EditSuggestionDialog({
     </Dialog>
   );
 }
+
+function ExistingRouteDetailDialog({
+  route,
+  onOpenChange,
+}: {
+  route: { id: string; label: string } | null;
+  onOpenChange: (o: boolean) => void;
+}) {
+  const detail = useQuery({
+    queryKey: ["route-detail", route?.id],
+    enabled: !!route?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("route_orders")
+        .select(
+          "stop_order, orders(id, order_number, total_amount, weight, customer_id, customers(trade_name, legal_name, city, state))",
+        )
+        .eq("route_id", route!.id)
+        .order("stop_order");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  type Grouped = {
+    customerId: string;
+    customerName: string;
+    city: string | null;
+    state: string | null;
+    orders: { id: string; order_number: string; weight: number; amount: number }[];
+    totalWeight: number;
+    totalAmount: number;
+  };
+
+  const groups: Grouped[] = (() => {
+    const rows = detail.data ?? [];
+    const map = new Map<string, Grouped>();
+    for (const ro of rows) {
+      const o = (ro as { orders: unknown }).orders as {
+        id: string;
+        order_number: string;
+        total_amount: number | null;
+        weight: number | null;
+        customer_id: string | null;
+        customers: {
+          trade_name: string | null;
+          legal_name: string | null;
+          city: string | null;
+          state: string | null;
+        } | null;
+      } | null;
+      if (!o) continue;
+      const key = o.customer_id ?? o.id;
+      let g = map.get(key);
+      if (!g) {
+        g = {
+          customerId: key,
+          customerName: o.customers?.trade_name || o.customers?.legal_name || "Cliente",
+          city: o.customers?.city ?? null,
+          state: o.customers?.state ?? null,
+          orders: [],
+          totalWeight: 0,
+          totalAmount: 0,
+        };
+        map.set(key, g);
+      }
+      const weight = Number(o.weight ?? 0);
+      const amount = Number(o.total_amount ?? 0);
+      g.orders.push({ id: o.id, order_number: o.order_number, weight, amount });
+      g.totalWeight += weight;
+      g.totalAmount += amount;
+    }
+    return Array.from(map.values());
+  })();
+
+  const totalWeight = groups.reduce((a, g) => a + g.totalWeight, 0);
+  const totalAmount = groups.reduce((a, g) => a + g.totalAmount, 0);
+  const totalOrders = groups.reduce((a, g) => a + g.orders.length, 0);
+
+  return (
+    <Dialog open={!!route} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0">
+        <DialogHeader className="p-6 pb-2 shrink-0">
+          <DialogTitle>Pedidos da rota — {route?.label}</DialogTitle>
+        </DialogHeader>
+        <div className="overflow-y-auto px-6 pb-3">
+          {detail.isLoading ? (
+            <div className="space-y-2 py-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : groups.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4">Nenhum pedido nesta rota.</p>
+          ) : (
+            <>
+              <div className="text-xs text-muted-foreground mb-2">
+                {groups.length} entrega(s) · {totalOrders} pedido(s) ·{" "}
+                {weightFmt.format(totalWeight)} kg · {currencyFmt.format(totalAmount)}
+              </div>
+              <ul className="space-y-2">
+                {groups.map((g) => (
+                  <li key={g.customerId} className="rounded-md border p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-medium text-sm">{g.customerName}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {g.city ?? "?"}/{g.state ?? "?"} · {g.orders.length} pedido(s)
+                        </div>
+                      </div>
+                      <div className="text-xs text-right tabular-nums text-muted-foreground">
+                        {weightFmt.format(g.totalWeight)} kg
+                        <br />
+                        {currencyFmt.format(g.totalAmount)}
+                      </div>
+                    </div>
+                    <ul className="mt-2 text-xs divide-y border-t">
+                      {g.orders.map((o) => (
+                        <li
+                          key={o.id}
+                          className="flex items-center justify-between gap-2 py-1"
+                        >
+                          <span className="font-medium">{o.order_number}</span>
+                          <span className="text-muted-foreground tabular-nums">
+                            {weightFmt.format(o.weight)} kg ·{" "}
+                            {currencyFmt.format(o.amount)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+        <DialogFooter className="p-6 pt-0 shrink-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
