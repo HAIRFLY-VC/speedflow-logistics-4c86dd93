@@ -710,6 +710,7 @@ function ExistingRouteDetailDialog({
         g = {
           customerId: key,
           customerName: o.customers?.trade_name || o.customers?.legal_name || "Cliente",
+          erpId: o.customers?.erp_id ?? null,
           city: o.customers?.city ?? null,
           state: o.customers?.state ?? null,
           orders: [],
