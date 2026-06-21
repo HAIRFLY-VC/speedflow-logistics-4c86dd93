@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Loader2 } from "lucide-react";
@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -21,14 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import type { Database } from "@/integrations/supabase/types";
 
 type RouteStatus = Database["public"]["Enums"]["route_status"];
@@ -60,7 +52,13 @@ type RouteRow = {
   notes: string | null;
   freight_carriers: { full_name: string; vehicle_plate: string | null } | null;
   route_orders: {
-    orders: { customer_id: string | null; order_number: string | null; total_amount: number | null; weight: number | null; erp_status: string | null } | null;
+    orders: {
+      customer_id: string | null;
+      order_number: string | null;
+      total_amount: number | null;
+      weight: number | null;
+      erp_status: string | null;
+    } | null;
   }[];
 };
 
@@ -73,6 +71,40 @@ const weightFmt = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 2,
 });
 
+function nomeRotaOf(r: RouteRow) {
+  return r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code;
+}
+function motoristaOf(r: RouteRow) {
+  return r.driver_name ?? r.freight_carriers?.full_name ?? "";
+}
+function paradasOf(r: RouteRow) {
+  const set = new Set<string>();
+  for (const ro of r.route_orders ?? []) {
+    if (ro.orders?.customer_id) set.add(ro.orders.customer_id);
+  }
+  return set.size;
+}
+function valorOf(r: RouteRow) {
+  let total = 0;
+  for (const ro of r.route_orders ?? []) total += Number(ro.orders?.total_amount ?? 0);
+  return total;
+}
+function pesoOf(r: RouteRow) {
+  let total = 0;
+  for (const ro of r.route_orders ?? []) total += Number(ro.orders?.weight ?? 0);
+  return total;
+}
+function statusMapOf(r: RouteRow) {
+  const m = new Map<string, Set<string>>();
+  for (const ro of r.route_orders ?? []) {
+    const o = ro.orders;
+    if (!o) continue;
+    const st = o.erp_status ?? "—";
+    if (!m.has(st)) m.set(st, new Set());
+    m.get(st)!.add(o.order_number ?? "");
+  }
+  return new Map(Array.from(m.entries()).map(([k, v]) => [k, v.size]));
+}
 
 function slugify(s: string): string {
   return (
@@ -83,6 +115,21 @@ function slugify(s: string): string {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "")
       .slice(0, 40) || "rota"
+  );
+}
+
+function StatusList({ map }: { map: Map<string, number> }) {
+  const sorted = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  if (sorted.length === 0) return <span className="text-muted-foreground text-xs">—</span>;
+  return (
+    <div className="flex flex-col gap-0.5 text-xs">
+      {sorted.map(([st, count]) => (
+        <div key={st} className="flex items-center justify-between gap-3">
+          <span className="font-medium">{st}</span>
+          <span className="tabular-nums text-muted-foreground">{count}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -100,16 +147,108 @@ function RotasPage() {
         )
         .order("route_date", { ascending: true });
       if (error) throw error;
-      const rows = (data ?? []) as unknown as RouteRow[];
-      const nameOf = (r: RouteRow) =>
-        (r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code).toLowerCase();
-      return rows.sort((a, b) => {
-        if (a.route_date !== b.route_date) return a.route_date < b.route_date ? -1 : 1;
-        return nameOf(a).localeCompare(nameOf(b));
-      });
+      return (data ?? []) as unknown as RouteRow[];
     },
   });
 
+  const columns = useMemo<ColumnDef<RouteRow>[]>(
+    () => [
+      {
+        id: "route_date",
+        header: "Data planejada",
+        accessor: (r) => r.route_date,
+        render: (r) => (
+          <Link
+            to="/rotas/$routeId"
+            params={{ routeId: r.id }}
+            className="text-primary hover:underline"
+          >
+            {format(new Date(r.route_date), "dd/MM/yyyy", { locale: ptBR })}
+          </Link>
+        ),
+      },
+      {
+        id: "nome_rota",
+        header: "Nome da rota",
+        accessor: (r) => nomeRotaOf(r),
+      },
+      {
+        id: "motorista",
+        header: "Motorista",
+        accessor: (r) => motoristaOf(r),
+        render: (r) => motoristaOf(r) || <span className="text-muted-foreground">—</span>,
+      },
+      {
+        id: "paradas",
+        header: "Paradas",
+        align: "right",
+        accessor: (r) => paradasOf(r),
+        className: "tabular-nums",
+        aggregate: (rows) => (
+          <span className="tabular-nums">
+            {rows.reduce((s, r) => s + paradasOf(r), 0)}
+          </span>
+        ),
+      },
+      {
+        id: "valor_total",
+        header: "Valor total",
+        align: "right",
+        accessor: (r) => valorOf(r),
+        render: (r) => currencyFmt.format(valorOf(r)),
+        className: "tabular-nums",
+        aggregate: (rows) => (
+          <span className="tabular-nums">
+            {currencyFmt.format(rows.reduce((s, r) => s + valorOf(r), 0))}
+          </span>
+        ),
+      },
+      {
+        id: "peso_total",
+        header: "Peso total (kg)",
+        align: "right",
+        accessor: (r) => pesoOf(r),
+        render: (r) => weightFmt.format(pesoOf(r)),
+        className: "tabular-nums",
+        aggregate: (rows) => (
+          <span className="tabular-nums">
+            {weightFmt.format(rows.reduce((s, r) => s + pesoOf(r), 0))}
+          </span>
+        ),
+      },
+      {
+        id: "pedidos_status",
+        header: "Pedidos por status",
+        sortable: false,
+        filterable: false,
+        accessor: (r) =>
+          Array.from(statusMapOf(r).keys()).join(", "),
+        render: (r) => <StatusList map={statusMapOf(r)} />,
+        aggregate: (rows) => {
+          const agg = new Map<string, number>();
+          for (const r of rows) {
+            for (const [st, c] of statusMapOf(r)) {
+              agg.set(st, (agg.get(st) ?? 0) + c);
+            }
+          }
+          return <StatusList map={agg} />;
+        },
+      },
+      {
+        id: "status",
+        header: "Status",
+        accessor: (r) => ROUTE_STATUS_LABEL[r.status],
+        render: (r) => (
+          <span
+            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${ROUTE_STATUS_TONE[r.status]}`}
+          >
+            {ROUTE_STATUS_LABEL[r.status]}
+          </span>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
     <AppShell>
@@ -126,172 +265,21 @@ function RotasPage() {
           </Button>
         </div>
 
-        <div className="border rounded-lg overflow-hidden bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data planejada</TableHead>
-                <TableHead>Nome da rota</TableHead>
-                <TableHead>Motorista</TableHead>
-                <TableHead className="text-right">Paradas</TableHead>
-                <TableHead className="text-right">Valor total</TableHead>
-                <TableHead className="text-right">Peso total (kg)</TableHead>
-                <TableHead>Pedidos por status</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell colSpan={8}>
-                      <Skeleton className="h-6 w-full" />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (data ?? []).length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
-                    Nenhuma rota criada.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                (() => {
-                  // agrupa por data planejada
-                  const groups = new Map<string, RouteRow[]>();
-                  for (const r of data!) {
-                    const arr = groups.get(r.route_date) ?? [];
-                    arr.push(r);
-                    groups.set(r.route_date, arr);
-                  }
-                  const dates = Array.from(groups.keys()).sort();
-                  const rows: React.ReactNode[] = [];
-                  for (const date of dates) {
-                    const group = groups.get(date)!;
-                    let groupStops = 0;
-                    let groupValor = 0;
-                    let groupPeso = 0;
-                    const groupStatusMap = new Map<string, number>();
-                    for (const r of group) {
-                      const motorista =
-                        r.driver_name ?? r.freight_carriers?.full_name ?? null;
-                      const nomeRota = r.notes?.startsWith("Rota ")
-                        ? r.notes.slice(5)
-                        : r.code;
-                      const clientesUnicos = new Set<string>();
-                      let totalValor = 0;
-                      let totalPeso = 0;
-                      const statusOrders = new Map<string, Set<string>>();
-                      for (const ro of r.route_orders ?? []) {
-                        const o = ro.orders;
-                        if (!o) continue;
-                        if (o.customer_id) clientesUnicos.add(o.customer_id);
-                        totalValor += Number(o.total_amount ?? 0);
-                        totalPeso += Number(o.weight ?? 0);
-                        const st = o.erp_status ?? "—";
-                        const pedido = o.order_number ?? "";
-                        if (!statusOrders.has(st)) statusOrders.set(st, new Set());
-                        statusOrders.get(st)!.add(pedido);
-                      }
-                      const statusMap = new Map<string, number>(
-                        Array.from(statusOrders.entries()).map(([st, s]) => [st, s.size]),
-                      );
-                      const sortedStatus = Array.from(statusMap.entries()).sort((a, b) =>
-                        a[0].localeCompare(b[0]),
-                      );
-                      groupStops += clientesUnicos.size;
-                      groupValor += totalValor;
-                      groupPeso += totalPeso;
-                      for (const [st, count] of statusMap) {
-                        groupStatusMap.set(st, (groupStatusMap.get(st) ?? 0) + count);
-                      }
-                      rows.push(
-                        <TableRow key={r.id}>
-                          <TableCell>
-                            <Link
-                              to="/rotas/$routeId"
-                              params={{ routeId: r.id }}
-                              className="text-primary hover:underline"
-                            >
-                              {format(new Date(r.route_date), "dd/MM/yyyy", { locale: ptBR })}
-                            </Link>
-                          </TableCell>
-                          <TableCell>{nomeRota}</TableCell>
-                          <TableCell>
-                            {motorista ?? (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {clientesUnicos.size}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {currencyFmt.format(totalValor)}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {weightFmt.format(totalPeso)}
-                          </TableCell>
-                          <TableCell className="align-top">
-                            <div className="flex flex-col gap-0.5 text-xs">
-                              {sortedStatus.map(([st, count]) => (
-                                <div key={st} className="flex items-center justify-between gap-3">
-                                  <span className="font-medium">{st}</span>
-                                  <span className="tabular-nums text-muted-foreground">{count}</span>
-                                </div>
-                              ))}
-                              {sortedStatus.length === 0 && (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span
-                              className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${ROUTE_STATUS_TONE[r.status]}`}
-                            >
-                              {ROUTE_STATUS_LABEL[r.status]}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    }
-                    // linha de total do grupo
-                    rows.push(
-                      <TableRow key={`total-${date}`} className="bg-muted/50 font-semibold">
-                        <TableCell colSpan={3} className="text-muted-foreground text-xs uppercase tracking-wider">
-                          Total {format(new Date(date), "dd/MM/yyyy", { locale: ptBR })}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {groupStops}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {currencyFmt.format(groupValor)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {weightFmt.format(groupPeso)}
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <div className="flex flex-col gap-0.5 text-xs">
-                            {Array.from(groupStatusMap.entries())
-                              .sort((a, b) => a[0].localeCompare(b[0]))
-                              .map(([st, count]) => (
-                                <div key={st} className="flex items-center justify-between gap-3">
-                                  <span className="font-medium">{st}</span>
-                                  <span className="tabular-nums text-muted-foreground">{count}</span>
-                                </div>
-                              ))}
-                          </div>
-                        </TableCell>
-                        <TableCell />
-                      </TableRow>
-                    );
-                  }
-                  return rows;
-                })()
-              )}
-            </TableBody>
-
-          </Table>
-        </div>
+        <DataTable
+          tableKey="rotas"
+          columns={columns}
+          data={data}
+          isLoading={isLoading}
+          rowKey={(r) => r.id}
+          emptyMessage="Nenhuma rota criada."
+          defaultSort={{ id: "route_date", dir: "asc" }}
+          groupBy={{
+            id: "route_date",
+            accessor: (r) => r.route_date,
+            label: (key) =>
+              `Total ${format(new Date(key), "dd/MM/yyyy", { locale: ptBR })}`,
+          }}
+        />
       </div>
 
       <NewRouteDialog

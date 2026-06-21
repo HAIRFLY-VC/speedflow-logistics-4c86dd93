@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Search, Pencil, Loader2 } from "lucide-react";
+import { Plus, Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -23,14 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import { formatCurrency } from "@/lib/orderStatus";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -55,7 +47,6 @@ type ProductInput = z.infer<typeof productSchema>;
 
 function ProdutosPage() {
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Product | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -67,14 +58,6 @@ function ProdutosPage() {
       return data as Product[];
     },
   });
-
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return data ?? [];
-    return (data ?? []).filter((p) =>
-      [p.name, p.sku, p.description].filter(Boolean).some((v) => v!.toLowerCase().includes(term)),
-    );
-  }, [data, search]);
 
   const upsertMutation = useMutation({
     mutationFn: async (input: ProductInput) => {
@@ -112,6 +95,85 @@ function ProdutosPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const columns = useMemo<ColumnDef<Product>[]>(
+    () => [
+      {
+        id: "sku",
+        header: "SKU",
+        accessor: (p) => p.sku,
+        className: "font-mono text-xs",
+      },
+      {
+        id: "name",
+        header: "Produto",
+        accessor: (p) => p.name,
+        render: (p) => (
+          <div>
+            <div className="font-medium">{p.name}</div>
+            {p.description ? (
+              <div className="text-xs text-muted-foreground line-clamp-1">
+                {p.description}
+              </div>
+            ) : null}
+          </div>
+        ),
+      },
+      {
+        id: "unit_price",
+        header: "Preço",
+        align: "right",
+        accessor: (p) => Number(p.unit_price ?? 0),
+        render: (p) => formatCurrency(Number(p.unit_price ?? 0)),
+        className: "tabular-nums",
+      },
+      {
+        id: "weight_kg",
+        header: "Peso (kg)",
+        align: "right",
+        accessor: (p) => Number(p.weight_kg ?? 0),
+        render: (p) => (p.weight_kg ? Number(p.weight_kg).toFixed(2) : "—"),
+        className: "tabular-nums",
+      },
+      {
+        id: "stock_qty",
+        header: "Estoque",
+        align: "right",
+        accessor: (p) => Number(p.stock_qty ?? 0),
+        className: "tabular-nums",
+      },
+      {
+        id: "active",
+        header: "Ativo",
+        align: "center",
+        accessor: (p) => (p.is_active ? "sim" : "não"),
+        render: (p) => (
+          <Switch checked={p.is_active} onCheckedChange={() => toggleActive.mutate(p)} />
+        ),
+      },
+      {
+        id: "actions",
+        header: "",
+        sortable: false,
+        filterable: false,
+        accessor: () => "",
+        render: (p) => (
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => {
+              setEditing(p);
+              setDialogOpen(true);
+            }}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   return (
     <AppShell>
       <div className="space-y-4">
@@ -133,89 +195,15 @@ function ProdutosPage() {
           </Button>
         </div>
 
-        <div className="relative max-w-md">
-          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome ou SKU..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-
-        <div className="border rounded-lg overflow-hidden bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>SKU</TableHead>
-                <TableHead>Produto</TableHead>
-                <TableHead className="text-right">Preço</TableHead>
-                <TableHead className="text-right">Peso (kg)</TableHead>
-                <TableHead className="text-right">Estoque</TableHead>
-                <TableHead className="text-center">Ativo</TableHead>
-                <TableHead className="w-16"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell colSpan={7}>
-                      <Skeleton className="h-6 w-full" />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
-                    Nenhum produto encontrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-mono text-xs">{p.sku}</TableCell>
-                    <TableCell>
-                      <div className="font-medium">{p.name}</div>
-                      {p.description ? (
-                        <div className="text-xs text-muted-foreground line-clamp-1">
-                          {p.description}
-                        </div>
-                      ) : null}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatCurrency(Number(p.unit_price ?? 0))}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {p.weight_kg ? Number(p.weight_kg).toFixed(2) : "—"}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {Number(p.stock_qty ?? 0)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Switch
-                        checked={p.is_active}
-                        onCheckedChange={() => toggleActive.mutate(p)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => {
-                          setEditing(p);
-                          setDialogOpen(true);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTable
+          tableKey="produtos"
+          columns={columns}
+          data={data}
+          isLoading={isLoading}
+          rowKey={(p) => p.id}
+          emptyMessage="Nenhum produto encontrado."
+          defaultSort={{ id: "name", dir: "asc" }}
+        />
       </div>
 
       <ProductDialog

@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Search, Pencil, Loader2 } from "lucide-react";
+import { Plus, Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -22,14 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/fretistas")({
@@ -50,7 +42,6 @@ type Input = z.infer<typeof schema>;
 
 function FretistasPage() {
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Carrier | null>(null);
   const [open, setOpen] = useState(false);
 
@@ -65,16 +56,6 @@ function FretistasPage() {
       return data as Carrier[];
     },
   });
-
-  const filtered = useMemo(() => {
-    const t = search.trim().toLowerCase();
-    if (!t) return data ?? [];
-    return (data ?? []).filter((c) =>
-      [c.full_name, c.document, c.vehicle_plate]
-        .filter(Boolean)
-        .some((v) => v!.toLowerCase().includes(t)),
-    );
-  }, [data, search]);
 
   const upsert = useMutation({
     mutationFn: async (input: Input) => {
@@ -116,6 +97,74 @@ function FretistasPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["carriers"] }),
   });
 
+  const columns = useMemo<ColumnDef<Carrier>[]>(
+    () => [
+      {
+        id: "full_name",
+        header: "Nome",
+        accessor: (c) => c.full_name,
+        className: "font-medium",
+      },
+      {
+        id: "document",
+        header: "Documento",
+        accessor: (c) => c.document ?? "",
+        className: "font-mono text-xs",
+      },
+      {
+        id: "vehicle",
+        header: "Veículo",
+        accessor: (c) => `${c.vehicle_plate ?? ""} ${c.vehicle_type ?? ""}`.trim(),
+        render: (c) =>
+          c.vehicle_plate ? (
+            <>
+              <span className="font-mono">{c.vehicle_plate}</span>
+              {c.vehicle_type ? (
+                <span className="text-xs text-muted-foreground"> · {c.vehicle_type}</span>
+              ) : null}
+            </>
+          ) : (
+            "—"
+          ),
+      },
+      {
+        id: "phone",
+        header: "Telefone",
+        accessor: (c) => c.phone ?? "",
+      },
+      {
+        id: "active",
+        header: "Ativo",
+        align: "center",
+        accessor: (c) => (c.is_active ? "sim" : "não"),
+        render: (c) => (
+          <Switch checked={c.is_active} onCheckedChange={() => toggle.mutate(c)} />
+        ),
+      },
+      {
+        id: "actions",
+        header: "",
+        sortable: false,
+        filterable: false,
+        accessor: () => "",
+        render: (c) => (
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => {
+              setEditing(c);
+              setOpen(true);
+            }}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   return (
     <AppShell>
       <div className="space-y-4">
@@ -136,82 +185,15 @@ function FretistasPage() {
           </Button>
         </div>
 
-        <div className="relative max-w-md">
-          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, documento ou placa..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-
-        <div className="border rounded-lg overflow-hidden bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Documento</TableHead>
-                <TableHead>Veículo</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead className="text-center">Ativo</TableHead>
-                <TableHead className="w-16"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell colSpan={6}>
-                      <Skeleton className="h-6 w-full" />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
-                    Nenhum fretista cadastrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.full_name}</TableCell>
-                    <TableCell className="font-mono text-xs">{c.document || "—"}</TableCell>
-                    <TableCell>
-                      {c.vehicle_plate ? (
-                        <>
-                          <span className="font-mono">{c.vehicle_plate}</span>
-                          {c.vehicle_type ? (
-                            <span className="text-xs text-muted-foreground"> · {c.vehicle_type}</span>
-                          ) : null}
-                        </>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                    <TableCell>{c.phone || "—"}</TableCell>
-                    <TableCell className="text-center">
-                      <Switch checked={c.is_active} onCheckedChange={() => toggle.mutate(c)} />
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => {
-                          setEditing(c);
-                          setOpen(true);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTable
+          tableKey="fretistas"
+          columns={columns}
+          data={data}
+          isLoading={isLoading}
+          rowKey={(c) => c.id}
+          emptyMessage="Nenhum fretista cadastrado."
+          defaultSort={{ id: "full_name", dir: "asc" }}
+        />
       </div>
 
       <CarrierDialog

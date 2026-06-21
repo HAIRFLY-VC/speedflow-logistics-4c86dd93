@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Search, Pencil, Loader2 } from "lucide-react";
+import { Plus, Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -23,14 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
@@ -58,7 +50,6 @@ type CustomerInput = z.infer<typeof customerSchema>;
 
 function ClientesPage() {
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Customer | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -73,16 +64,6 @@ function ClientesPage() {
       return data as Customer[];
     },
   });
-
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return data ?? [];
-    return (data ?? []).filter((c) =>
-      [c.legal_name, c.trade_name, c.cnpj, c.city, c.email]
-        .filter(Boolean)
-        .some((v) => v!.toLowerCase().includes(term)),
-    );
-  }, [data, search]);
 
   const upsertMutation = useMutation({
     mutationFn: async (input: CustomerInput) => {
@@ -116,14 +97,77 @@ function ClientesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  function openNew() {
-    setEditing(null);
-    setDialogOpen(true);
-  }
   function openEdit(c: Customer) {
     setEditing(c);
     setDialogOpen(true);
   }
+
+  const columns = useMemo<ColumnDef<Customer>[]>(
+    () => [
+      {
+        id: "name",
+        header: "Cliente",
+        accessor: (c) => c.trade_name || c.legal_name,
+        render: (c) => (
+          <div>
+            <div className="font-medium">{c.trade_name || c.legal_name}</div>
+            {c.trade_name ? (
+              <div className="text-xs text-muted-foreground">{c.legal_name}</div>
+            ) : null}
+          </div>
+        ),
+      },
+      {
+        id: "cnpj",
+        header: "CNPJ",
+        accessor: (c) => c.cnpj ?? "",
+        className: "font-mono text-xs",
+      },
+      {
+        id: "city",
+        header: "Cidade/UF",
+        accessor: (c) => (c.city ? `${c.city}${c.state ? "/" + c.state : ""}` : ""),
+      },
+      {
+        id: "contact",
+        header: "Contato",
+        accessor: (c) => `${c.contact_name ?? ""} ${c.phone ?? ""} ${c.email ?? ""}`,
+        render: (c) => (
+          <div>
+            <div className="text-sm">{c.contact_name || "—"}</div>
+            <div className="text-xs text-muted-foreground">{c.phone || c.email}</div>
+          </div>
+        ),
+      },
+      {
+        id: "active",
+        header: "Ativo",
+        align: "center",
+        accessor: (c) => (c.is_active ? "sim" : "não"),
+        render: (c) => (
+          <Switch
+            checked={c.is_active}
+            onCheckedChange={() => toggleActive.mutate(c)}
+            aria-label="Ativo"
+          />
+        ),
+      },
+      {
+        id: "actions",
+        header: "",
+        sortable: false,
+        filterable: false,
+        accessor: () => "",
+        render: (c) => (
+          <Button size="icon" variant="ghost" onClick={() => openEdit(c)}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   return (
     <AppShell>
@@ -135,84 +179,26 @@ function ClientesPage() {
               Cadastro dos clientes que recebem pedidos.
             </p>
           </div>
-          <Button onClick={openNew}>
+          <Button
+            onClick={() => {
+              setEditing(null);
+              setDialogOpen(true);
+            }}
+          >
             <Plus className="h-4 w-4 mr-1" />
             Novo cliente
           </Button>
         </div>
 
-        <div className="relative max-w-md">
-          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, CNPJ, cidade..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-
-        <div className="border rounded-lg overflow-hidden bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>CNPJ</TableHead>
-                <TableHead>Cidade/UF</TableHead>
-                <TableHead>Contato</TableHead>
-                <TableHead className="text-center">Ativo</TableHead>
-                <TableHead className="w-16"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell colSpan={6}>
-                      <Skeleton className="h-6 w-full" />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
-                    Nenhum cliente encontrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>
-                      <div className="font-medium">{c.trade_name || c.legal_name}</div>
-                      {c.trade_name ? (
-                        <div className="text-xs text-muted-foreground">{c.legal_name}</div>
-                      ) : null}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{c.cnpj || "—"}</TableCell>
-                    <TableCell>
-                      {c.city ? `${c.city}${c.state ? "/" + c.state : ""}` : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{c.contact_name || "—"}</div>
-                      <div className="text-xs text-muted-foreground">{c.phone || c.email}</div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Switch
-                        checked={c.is_active}
-                        onCheckedChange={() => toggleActive.mutate(c)}
-                        aria-label="Ativo"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(c)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTable
+          tableKey="clientes"
+          columns={columns}
+          data={data}
+          isLoading={isLoading}
+          rowKey={(c) => c.id}
+          emptyMessage="Nenhum cliente encontrado."
+          defaultSort={{ id: "name", dir: "asc" }}
+        />
       </div>
 
       <CustomerDialog
