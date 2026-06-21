@@ -47,16 +47,23 @@ export const Route = createFileRoute("/_authenticated/pedidos/")({
 type OrderRow = {
   id: string;
   order_number: string;
+  customer_id: string;
+  salesperson_id: string | null;
   status: OrderStatus;
+  status_since: string;
   total_amount: number;
   freight_amount: number;
-  weight: number | null;
-  cod_agenda: number | null;
+  sla_deliver_by: string | null;
+  erp_id: string | null;
+  notes: string | null;
   created_at: string;
-  erp_status: string | null;
+  updated_at: string;
   dt_prev_exp: string | null;
   nome_rota: string | null;
   nome_motorista: string | null;
+  weight: number | null;
+  cod_agenda: number | null;
+  erp_status: string | null;
   customers: { trade_name: string | null; legal_name: string } | null;
 };
 
@@ -64,6 +71,20 @@ const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
 
 function customerName(o: OrderRow) {
   return o.customers?.trade_name || o.customers?.legal_name || "";
+}
+
+function formatDateBR(v: string | null | undefined) {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (isNaN(d.getTime()) || d.getFullYear() >= 3000) return "—";
+  return d.toLocaleDateString("pt-BR");
+}
+
+function formatDateTimeBR(v: string | null | undefined) {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (isNaN(d.getTime()) || d.getFullYear() >= 3000) return "—";
+  return d.toLocaleString("pt-BR");
 }
 
 function PedidosPage() {
@@ -76,7 +97,7 @@ function PedidosPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id,order_number,status,total_amount,freight_amount,weight,cod_agenda,created_at,erp_status,dt_prev_exp,nome_rota,nome_motorista,customers(trade_name,legal_name)",
+          "id,order_number,customer_id,salesperson_id,status,status_since,total_amount,freight_amount,sla_deliver_by,erp_id,notes,created_at,updated_at,dt_prev_exp,nome_rota,nome_motorista,weight,cod_agenda,erp_status,customers(trade_name,legal_name)",
         )
         .order("dt_prev_exp", { ascending: true })
         .order("nome_rota", { ascending: true })
@@ -121,12 +142,8 @@ function PedidosPage() {
         id: "dt_prev_exp",
         header: "Prev. Exp.",
         accessor: (o) => o.dt_prev_exp ?? "",
-        render: (o) => {
-          if (!o.dt_prev_exp) return "—";
-          const d = new Date(o.dt_prev_exp);
-          if (isNaN(d.getTime()) || d.getFullYear() >= 3000) return "—";
-          return d.toLocaleDateString("pt-BR");
-        },
+        filterType: "date",
+        render: (o) => formatDateBR(o.dt_prev_exp),
         className: "text-xs text-muted-foreground",
       },
       {
@@ -170,6 +187,7 @@ function PedidosPage() {
         id: "weight",
         header: "Peso",
         align: "right",
+        filterType: "number",
         accessor: (o) => Number(o.weight ?? 0),
         render: (o) =>
           o.weight ? `${weightFmt.format(Number(o.weight))} kg` : "—",
@@ -179,6 +197,7 @@ function PedidosPage() {
         id: "total_amount",
         header: "Total",
         align: "right",
+        filterType: "number",
         accessor: (o) => Number(o.total_amount ?? 0),
         render: (o) => formatCurrency(Number(o.total_amount ?? 0)),
         className: "tabular-nums",
@@ -187,11 +206,105 @@ function PedidosPage() {
         id: "created_at",
         header: "Criado",
         accessor: (o) => o.created_at,
+        filterType: "date",
+        filterLabel: (o) => formatDateTimeBR(o.created_at),
         render: (o) =>
           formatDistanceToNow(new Date(o.created_at), {
             addSuffix: true,
             locale: ptBR,
           }),
+        className: "text-xs text-muted-foreground",
+      },
+      {
+        id: "id",
+        header: "ID",
+        accessor: (o) => o.id,
+        defaultVisible: false,
+        className: "text-xs font-mono text-muted-foreground",
+      },
+      {
+        id: "customer_id",
+        header: "ID Cliente",
+        accessor: (o) => o.customer_id,
+        defaultVisible: false,
+        className: "text-xs font-mono text-muted-foreground",
+      },
+      {
+        id: "salesperson_id",
+        header: "ID Vendedor",
+        accessor: (o) => o.salesperson_id ?? "",
+        defaultVisible: false,
+        className: "text-xs font-mono text-muted-foreground",
+      },
+      {
+        id: "status",
+        header: "Status (sistema)",
+        accessor: (o) => o.status ?? "",
+        defaultVisible: false,
+        className: "text-xs",
+      },
+      {
+        id: "status_since",
+        header: "Status desde",
+        accessor: (o) => o.status_since,
+        filterType: "date",
+        filterLabel: (o) => formatDateTimeBR(o.status_since),
+        render: (o) => formatDateTimeBR(o.status_since),
+        defaultVisible: false,
+        className: "text-xs text-muted-foreground",
+      },
+      {
+        id: "freight_amount",
+        header: "Frete",
+        align: "right",
+        filterType: "number",
+        accessor: (o) => Number(o.freight_amount ?? 0),
+        render: (o) => formatCurrency(Number(o.freight_amount ?? 0)),
+        defaultVisible: false,
+        className: "tabular-nums",
+      },
+      {
+        id: "sla_deliver_by",
+        header: "SLA Entrega",
+        accessor: (o) => o.sla_deliver_by ?? "",
+        filterType: "date",
+        filterLabel: (o) => formatDateTimeBR(o.sla_deliver_by),
+        render: (o) => formatDateTimeBR(o.sla_deliver_by),
+        defaultVisible: false,
+        className: "text-xs text-muted-foreground",
+      },
+      {
+        id: "erp_id",
+        header: "ERP ID",
+        accessor: (o) => o.erp_id ?? "",
+        defaultVisible: false,
+        className: "text-xs font-mono text-muted-foreground",
+      },
+      {
+        id: "cod_agenda",
+        header: "Cód. Agenda",
+        align: "right",
+        filterType: "number",
+        accessor: (o) => o.cod_agenda ?? 0,
+        render: (o) => o.cod_agenda ?? "—",
+        defaultVisible: false,
+        className: "tabular-nums text-xs",
+      },
+      {
+        id: "notes",
+        header: "Observações",
+        accessor: (o) => o.notes ?? "",
+        defaultVisible: false,
+        className: "text-xs text-muted-foreground",
+      },
+      {
+        id: "updated_at",
+        header: "Atualizado",
+        accessor: (o) => o.updated_at,
+        filterType: "date",
+        filterLabel: (o) => formatDateTimeBR(o.updated_at),
+        render: (o) => formatDateTimeBR(o.updated_at),
+        defaultVisible: false,
         className: "text-xs text-muted-foreground",
       },
     ],
