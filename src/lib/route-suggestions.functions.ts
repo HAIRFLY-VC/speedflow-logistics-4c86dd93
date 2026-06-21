@@ -457,6 +457,8 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         totalAmount: groupValue,
         capacityWeight: maxWeight,
         existingWeight: 0,
+        existingValue: 0,
+        existingDeliveries: 0,
         centroid,
       });
     }
