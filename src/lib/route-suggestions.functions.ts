@@ -72,6 +72,27 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
     const { supabase } = context;
     const force = !!data?.force;
 
+    const seen = new Set<string>();
+    const targets: { id: string; query: string }[] = [];
+
+    function addTarget(c: {
+      id: string;
+      address_line: string | null;
+      city: string | null;
+      state: string | null;
+      zip_code: string | null;
+      latitude: number | null;
+      longitude: number | null;
+    } | null) {
+      if (!c) return;
+      if (seen.has(c.id)) return;
+      seen.add(c.id);
+      if (!force && c.latitude != null && c.longitude != null) return;
+      const query = buildAddressQuery(c);
+      if (!query.trim()) return;
+      targets.push({ id: c.id, query });
+    }
+
     // Clientes envolvidos em pedidos sem rota
     const { data: orders, error: oErr } = await supabase
       .from("orders")
@@ -79,8 +100,6 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
       .gte("dt_prev_exp", "3999-01-01");
     if (oErr) throw oErr;
 
-    const seen = new Set<string>();
-    const targets: { id: string; query: string }[] = [];
     for (const o of orders ?? []) {
       const c = (o as { customers: unknown }).customers as {
         id: string;
@@ -91,13 +110,19 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
         latitude: number | null;
         longitude: number | null;
       } | null;
-      if (!c) continue;
-      if (seen.has(c.id)) continue;
-      seen.add(c.id);
-      if (!force && c.latitude != null && c.longitude != null) continue;
-      const query = buildAddressQuery(c);
-      if (!query.trim()) continue;
-      targets.push({ id: c.id, query });
+      addTarget(c);
+    }
+
+    // Quando force=true, busca também todos os clientes da base sem lat/lng
+    if (force) {
+      const { data: allCustomers, error: cErr } = await supabase
+        .from("customers")
+        .select("id, address_line, city, state, zip_code, latitude, longitude")
+        .or("latitude.is.null,longitude.is.null");
+      if (cErr) throw cErr;
+      for (const c of allCustomers ?? []) {
+        addTarget(c);
+      }
     }
 
     let geocoded = 0;
