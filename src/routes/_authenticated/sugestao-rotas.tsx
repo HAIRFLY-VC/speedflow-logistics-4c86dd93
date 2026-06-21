@@ -35,11 +35,22 @@ export const Route = createFileRoute("/_authenticated/sugestao-rotas")({
 const currencyFmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
 
+type ExistingRouteInfo = {
+  id: string;
+  label: string;
+  date: string;
+  driverName: string | null;
+  existingWeight: number;
+  existingValue: number;
+  capacityWeight: number;
+};
+
 type SuggestState = {
   suggestions: RouteSuggestion[];
   missingGeocode: { id: string; order_number: string; customer: string; city: string | null }[];
   depot: { lat: number; lng: number } | null;
   config: { maxWeight: number; maxValue: number; radiusKm: number };
+  existingRoutes: ExistingRouteInfo[];
 } | null;
 
 function SugestaoRotasPage() {
@@ -304,6 +315,7 @@ function SugestaoRotasPage() {
 
       <EditSuggestionDialog
         suggestion={editing}
+        existingRoutes={state?.existingRoutes ?? []}
         onOpenChange={(o) => !o && setEditing(null)}
         onSave={onSaveEdit}
       />
@@ -393,10 +405,12 @@ function SuggestionCard({
 
 function EditSuggestionDialog({
   suggestion,
+  existingRoutes,
   onOpenChange,
   onSave,
 }: {
   suggestion: RouteSuggestion | null;
+  existingRoutes: ExistingRouteInfo[];
   onOpenChange: (o: boolean) => void;
   onSave: (next: RouteSuggestion) => void;
 }) {
@@ -428,6 +442,78 @@ function EditSuggestionDialog({
         </DialogHeader>
         {draft && (
           <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Tipo</Label>
+                <select
+                  className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                  value={draft.type}
+                  onChange={(e) => {
+                    const newType = e.target.value as RouteSuggestion["type"];
+                    if (newType === draft.type) return;
+                    if (newType === "new_route") {
+                      setDraft({
+                        ...draft,
+                        type: "new_route",
+                        routeId: null,
+                        routeLabel: draft.routeLabel.startsWith("Sugestão")
+                          ? draft.routeLabel
+                          : `Nova rota — ${draft.routeLabel}`,
+                        existingWeight: 0,
+                      });
+                    } else {
+                      const first = existingRoutes[0];
+                      if (!first) return;
+                      setDraft({
+                        ...draft,
+                        type: "append_existing",
+                        routeId: first.id,
+                        routeLabel: first.label,
+                        routeDate: first.date,
+                        driverName: first.driverName,
+                        existingWeight: first.existingWeight,
+                        capacityWeight: first.capacityWeight,
+                      });
+                    }
+                  }}
+                >
+                  <option value="new_route">Criar nova rota</option>
+                  <option value="append_existing" disabled={existingRoutes.length === 0}>
+                    Encaixar em rota existente
+                    {existingRoutes.length === 0 ? " (nenhuma disponível)" : ""}
+                  </option>
+                </select>
+              </div>
+              {draft.type === "append_existing" && (
+                <div>
+                  <Label className="text-xs">Rota existente</Label>
+                  <select
+                    className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                    value={draft.routeId ?? ""}
+                    onChange={(e) => {
+                      const r = existingRoutes.find((x) => x.id === e.target.value);
+                      if (!r) return;
+                      setDraft({
+                        ...draft,
+                        routeId: r.id,
+                        routeLabel: r.label,
+                        routeDate: r.date,
+                        driverName: r.driverName,
+                        existingWeight: r.existingWeight,
+                        capacityWeight: r.capacityWeight,
+                      });
+                    }}
+                  >
+                    {existingRoutes.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.label} · {r.date.split("-").reverse().join("/")} ·{" "}
+                        {weightFmt.format(r.existingWeight)} kg
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="md:col-span-2">
                 <Label className="text-xs">Nome da rota</Label>
@@ -455,6 +541,7 @@ function EditSuggestionDialog({
                 />
               </div>
             </div>
+
 
             <div>
               <Label className="text-xs">Paradas ({draft.stops.length})</Label>

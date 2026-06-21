@@ -459,6 +459,15 @@ export const suggestRoutes = createServerFn({ method: "POST" })
       missingGeocode: missing,
       depot,
       config: { maxWeight, maxValue, radiusKm },
+      existingRoutes: existing.map((r) => ({
+        id: r.id,
+        label: r.label,
+        date: r.date,
+        driverName: r.driverName,
+        existingWeight: r.existingWeight,
+        existingValue: r.existingValue,
+        capacityWeight: maxWeight,
+      })),
     };
   });
 
