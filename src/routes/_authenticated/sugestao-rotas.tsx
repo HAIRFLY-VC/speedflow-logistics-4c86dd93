@@ -486,17 +486,21 @@ function EditSuggestionDialog({
                     )}
                     onClick={() => {
                       if (draft.type === "append_existing") return;
-                      const first = existingRoutes[0];
-                      if (!first) return;
+                      const target =
+                        original?.type === "append_existing" && original.routeId
+                          ? existingRoutes.find((r) => r.id === original.routeId)
+                          : existingRoutes[0];
+                      const route = target ?? existingRoutes[0];
+                      if (!route) return;
                       setDraft({
                         ...draft,
                         type: "append_existing",
-                        routeId: first.id,
-                        routeLabel: first.label,
-                        routeDate: first.date,
-                        driverName: first.driverName,
-                        existingWeight: first.existingWeight,
-                        capacityWeight: first.capacityWeight,
+                        routeId: route.id,
+                        routeLabel: route.label,
+                        routeDate: route.date,
+                        driverName: route.driverName,
+                        existingWeight: route.existingWeight,
+                        capacityWeight: route.capacityWeight,
                       });
                     }}
                   >
