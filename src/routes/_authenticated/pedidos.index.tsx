@@ -89,20 +89,6 @@ function PedidosPage() {
     },
   });
 
-  const slaQ = useQuery({
-    queryKey: ["company_settings", "sla"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("company_settings")
-        .select(
-          "sla_commercial_approval_hours,sla_credit_approval_hours,sla_fulfillment_hours,sla_delivery_hours",
-        )
-        .eq("id", 1)
-        .maybeSingle();
-      if (error) throw error;
-      return (data ?? null) as SlaSettings | null;
-    },
-  });
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -150,28 +136,24 @@ function PedidosPage() {
       "status",
       "total",
       "frete",
+      "peso",
       "criado_em",
-      "sla_entrega",
-      "etapa_atrasada",
     ];
-    const sla = slaQ.data;
     const escape = (v: unknown) => {
       const s = v === null || v === undefined ? "" : String(v);
       return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
     const lines = [header.join(";")];
     for (const o of rows) {
-      const late = isStageLate(o.status, o.status_since, sla);
       lines.push(
         [
           o.order_number,
           o.customers?.trade_name || o.customers?.legal_name || "",
-          ORDER_STATUS_LABEL[o.status],
+          o.erp_status || "",
           Number(o.total_amount ?? 0).toFixed(2),
           Number(o.freight_amount ?? 0).toFixed(2),
+          Number(o.weight ?? 0).toFixed(2),
           new Date(o.created_at).toLocaleString("pt-BR"),
-          o.sla_deliver_by ? new Date(o.sla_deliver_by).toLocaleString("pt-BR") : "",
-          late ? "sim" : "nao",
         ]
           .map(escape)
           .join(";"),
@@ -274,9 +256,9 @@ function PedidosPage() {
                 <TableHead>Pedido</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-right">Peso</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead>Criado</TableHead>
-                <TableHead>SLA</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -295,70 +277,44 @@ function PedidosPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((o) => {
-                  const slaLate =
-                    o.sla_deliver_by &&
-                    new Date(o.sla_deliver_by).getTime() < Date.now() &&
-                    o.status !== "entregue" &&
-                    o.status !== "cancelado";
-                  const stageLate = isStageLate(o.status, o.status_since, slaQ.data);
-                  return (
-                    <TableRow key={o.id} className="cursor-pointer hover:bg-muted/40">
-                      <TableCell className="text-xs text-muted-foreground">
-                        {(() => {
-                          if (!o.dt_prev_exp) return "—";
-                          const d = new Date(o.dt_prev_exp);
-                          if (isNaN(d.getTime()) || d.getFullYear() >= 3000) return "—";
-                          return d.toLocaleDateString("pt-BR");
-                        })()}
-                      </TableCell>
-                      <TableCell className="text-xs">{o.nome_rota || "—"}</TableCell>
-                      <TableCell className="text-xs">{o.nome_motorista || "—"}</TableCell>
-                      <TableCell className="font-mono text-xs">
-                        <Link
-                          to="/pedidos/$orderId"
-                          params={{ orderId: o.id }}
-                          className="text-primary hover:underline"
-                        >
-                          #{o.order_number}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        {o.customers?.trade_name || o.customers?.legal_name || "—"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span
-                            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${STATUS_TONE[o.status]}`}
-                          >
-                            {ORDER_STATUS_LABEL[o.status]}
-                          </span>
-                          {stageLate ? (
-                            <span className="inline-flex items-center gap-1 rounded-md border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-medium text-destructive">
-                              <AlertTriangle className="h-3 w-3" />
-                              Etapa atrasada
-                            </span>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatCurrency(Number(o.total_amount ?? 0))}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(o.created_at), { addSuffix: true, locale: ptBR })}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {o.sla_deliver_by ? (
-                          <span className={slaLate ? "text-destructive font-medium" : ""}>
-                            {new Date(o.sla_deliver_by).toLocaleDateString("pt-BR")}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                filtered.map((o) => (
+                  <TableRow key={o.id} className="cursor-pointer hover:bg-muted/40">
+                    <TableCell className="text-xs text-muted-foreground">
+                      {(() => {
+                        if (!o.dt_prev_exp) return "—";
+                        const d = new Date(o.dt_prev_exp);
+                        if (isNaN(d.getTime()) || d.getFullYear() >= 3000) return "—";
+                        return d.toLocaleDateString("pt-BR");
+                      })()}
+                    </TableCell>
+                    <TableCell className="text-xs">{o.nome_rota || "—"}</TableCell>
+                    <TableCell className="text-xs">{o.nome_motorista || "—"}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      <Link
+                        to="/pedidos/$orderId"
+                        params={{ orderId: o.id }}
+                        className="text-primary hover:underline"
+                      >
+                        #{o.order_number}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      {o.customers?.trade_name || o.customers?.legal_name || "—"}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {o.erp_status || "—"}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-xs">
+                      {o.weight ? `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(o.weight)} kg` : "—"}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatCurrency(Number(o.total_amount ?? 0))}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(o.created_at), { addSuffix: true, locale: ptBR })}
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
