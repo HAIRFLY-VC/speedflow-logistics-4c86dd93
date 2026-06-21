@@ -19,10 +19,7 @@ function haversineKm(a: Coord, b: Coord): number {
   return 2 * R * Math.asin(Math.sqrt(x));
 }
 
-async function ensureStaff(context: {
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: boolean | null }> };
-  userId: string;
-}) {
+async function ensureStaff(context: { supabase: any; userId: string }) {
   const roles = ["adm", "gestor", "operador"] as const;
   for (const r of roles) {
     const { data } = await context.supabase.rpc("has_role", {
