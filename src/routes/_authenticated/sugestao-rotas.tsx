@@ -350,9 +350,6 @@ function SuggestionCard({
   onShowExistingDetail: () => void;
   isConfirming: boolean;
 }) {
-  const pctWeight = s.capacityWeight
-    ? Math.round(((s.existingWeight + s.totalWeight) / s.capacityWeight) * 100)
-    : 0;
   return (
     <Card>
       <CardHeader className="pb-2">
