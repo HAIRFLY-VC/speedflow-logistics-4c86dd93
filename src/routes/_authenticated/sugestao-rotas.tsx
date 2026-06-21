@@ -759,7 +759,7 @@ function ExistingRouteDetailDialog({
                     <li key={g.customerId} className="rounded-md border p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <div className="font-medium text-sm">{g.customerName}</div>
+                          <div className="font-medium text-sm">{g.customerName}{g.erpId ? ` (${g.erpId})` : ""}</div>
                           <div className="text-xs text-muted-foreground">
                             {g.city ?? "?"}/{g.state ?? "?"} · {g.orders.length} pedido(s)
                           </div>
