@@ -152,7 +152,7 @@ function SugestaoRotasPage() {
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
-              onClick={() => geocode.mutate()}
+              onClick={() => geocode.mutate(false)}
               disabled={geocode.isPending || missingCoords === 0}
               title="Preencher latitude/longitude dos clientes faltantes"
             >
@@ -162,6 +162,19 @@ function SugestaoRotasPage() {
                 <MapPin className="h-4 w-4 mr-2" />
               )}
               Geocodificar pendentes{missingCoords ? ` (${missingCoords})` : ""}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => geocode.mutate(true)}
+              disabled={geocode.isPending || pendingRows.length === 0}
+              title="Re-geocodifica TODOS os clientes com pedidos sem roteirização, mesmo os que já têm lat/lng"
+            >
+              {geocode.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <MapPin className="h-4 w-4 mr-2" />
+              )}
+              Forçar geocodificação ({pendingRows.length})
             </Button>
             <Button onClick={() => suggest.mutate()} disabled={suggest.isPending || pendingRows.length === 0}>
               {suggest.isPending ? (
