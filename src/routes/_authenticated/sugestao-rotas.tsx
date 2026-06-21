@@ -201,53 +201,55 @@ function SugestaoRotasPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4">
+        <div className={cn("grid gap-4", state ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-[380px_1fr]")}>
           {/* Pedidos sem rota */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center justify-between">
-                <span>Pedidos sem rota</span>
-                <Badge variant="secondary">{pendingRows.length}</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0 max-h-[70vh] overflow-auto">
-              {pending.isLoading ? (
-                <div className="p-3 space-y-2">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-              ) : pendingRows.length === 0 ? (
-                <p className="text-sm text-muted-foreground p-4">Nenhum pedido pendente. 🎉</p>
-              ) : (
-                <ul className="text-sm divide-y">
-                  {pendingRows.map((r) => {
-                    const c = r.customers;
-                    const noCoord = !c || c.latitude == null || c.longitude == null;
-                    return (
-                      <li key={r.id} className="px-3 py-2 flex flex-col gap-0.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-medium">{r.order_number}</span>
-                          {noCoord && (
-                            <Badge variant="outline" className="text-amber-600 border-amber-500/40">
-                              <AlertTriangle className="h-3 w-3 mr-1" /> sem lat/lng
-                            </Badge>
-                          )}
-                        </div>
-                        <span className="text-muted-foreground text-xs">
-                          {c?.trade_name || c?.legal_name || "—"} · {c?.city ?? "?"}/{c?.state ?? "?"}
-                        </span>
-                        <span className="text-muted-foreground text-xs tabular-nums">
-                          {currencyFmt.format(Number(r.total_amount ?? 0))} ·{" "}
-                          {weightFmt.format(Number(r.weight ?? 0))} kg
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
+          {!state && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <span>Pedidos sem rota</span>
+                  <Badge variant="secondary">{pendingRows.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 max-h-[70vh] overflow-auto">
+                {pending.isLoading ? (
+                  <div className="p-3 space-y-2">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                ) : pendingRows.length === 0 ? (
+                  <p className="text-sm text-muted-foreground p-4">Nenhum pedido pendente. 🎉</p>
+                ) : (
+                  <ul className="text-sm divide-y">
+                    {pendingRows.map((r) => {
+                      const c = r.customers;
+                      const noCoord = !c || c.latitude == null || c.longitude == null;
+                      return (
+                        <li key={r.id} className="px-3 py-2 flex flex-col gap-0.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium">{r.order_number}</span>
+                            {noCoord && (
+                              <Badge variant="outline" className="text-amber-600 border-amber-500/40">
+                                <AlertTriangle className="h-3 w-3 mr-1" /> sem lat/lng
+                              </Badge>
+                            )}
+                          </div>
+                          <span className="text-muted-foreground text-xs">
+                            {c?.trade_name || c?.legal_name || "—"} · {c?.city ?? "?"}/{c?.state ?? "?"}
+                          </span>
+                          <span className="text-muted-foreground text-xs tabular-nums">
+                            {currencyFmt.format(Number(r.total_amount ?? 0))} ·{" "}
+                            {weightFmt.format(Number(r.weight ?? 0))} kg
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Sugestões */}
           <div className="space-y-3">
