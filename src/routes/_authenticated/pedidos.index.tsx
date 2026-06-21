@@ -219,18 +219,6 @@ function PedidosPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => erpSync.mutate()}
-              disabled={erpSync.isPending}
-            >
-              {erpSync.isPending ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-1" />
-              )}
-              Importar do ERP
-            </Button>
             <Button variant="outline" onClick={exportCsv} disabled={!ordersQ.data?.length}>
               <Download className="h-4 w-4 mr-1" />
               Exportar CSV
