@@ -505,6 +505,7 @@ export type Database = {
           nome_rota: string | null
           notes: string | null
           order_number: string
+          qtd_dias: number | null
           salesperson_id: string | null
           sla_deliver_by: string | null
           status: Database["public"]["Enums"]["order_status"]
@@ -526,6 +527,7 @@ export type Database = {
           nome_rota?: string | null
           notes?: string | null
           order_number: string
+          qtd_dias?: number | null
           salesperson_id?: string | null
           sla_deliver_by?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -547,6 +549,7 @@ export type Database = {
           nome_rota?: string | null
           notes?: string | null
           order_number?: string
+          qtd_dias?: number | null
           salesperson_id?: string | null
           sla_deliver_by?: string | null
           status?: Database["public"]["Enums"]["order_status"]

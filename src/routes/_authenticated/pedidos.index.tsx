@@ -64,6 +64,7 @@ type OrderRow = {
   weight: number | null;
   cod_agenda: number | null;
   erp_status: string | null;
+  qtd_dias: number | null;
   customers: { trade_name: string | null; legal_name: string } | null;
 };
 
@@ -97,7 +98,7 @@ function PedidosPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id,order_number,customer_id,salesperson_id,status,status_since,total_amount,freight_amount,sla_deliver_by,erp_id,notes,created_at,updated_at,dt_prev_exp,nome_rota,nome_motorista,weight,cod_agenda,erp_status,customers(trade_name,legal_name)",
+          "id,order_number,customer_id,salesperson_id,status,status_since,total_amount,freight_amount,sla_deliver_by,erp_id,notes,created_at,updated_at,dt_prev_exp,nome_rota,nome_motorista,weight,cod_agenda,erp_status,qtd_dias,customers(trade_name,legal_name)",
         )
         .order("dt_prev_exp", { ascending: true })
         .order("nome_rota", { ascending: true })
@@ -312,14 +313,8 @@ function PedidosPage() {
         header: "Tempo (d)",
         align: "right",
         filterType: "number",
-        accessor: (o) => {
-          const ms = Date.now() - new Date(o.created_at).getTime();
-          return Math.max(0, Math.floor(ms / 86400000));
-        },
-        render: (o) => {
-          const ms = Date.now() - new Date(o.created_at).getTime();
-          return Math.max(0, Math.floor(ms / 86400000));
-        },
+        accessor: (o) => o.qtd_dias ?? 0,
+        render: (o) => (o.qtd_dias == null ? "—" : o.qtd_dias),
         className: "tabular-nums text-xs",
       },
     ],

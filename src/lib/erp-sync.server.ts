@@ -33,6 +33,7 @@ type ErpOrderRow = {
   DT_PREV_EXP: string | null;
   NOME_ROTA: string | null;
   NOME_MOTORISTA: string | null;
+  QTD_DIAS: number | null;
 };
 
 const PENDING_ORDERS_SQL = `
@@ -215,6 +216,7 @@ export async function syncErpOrders(opts: {
           nome_rota: row.NOME_ROTA || null,
           nome_motorista: row.NOME_MOTORISTA || null,
           erp_status: row.STATUS || null,
+          qtd_dias: row.QTD_DIAS == null ? null : Number(row.QTD_DIAS),
         })
         .eq("id", existingOrder.id);
       if (error) throw error;
@@ -233,6 +235,7 @@ export async function syncErpOrders(opts: {
       nome_rota: row.NOME_ROTA || null,
       nome_motorista: row.NOME_MOTORISTA || null,
       erp_status: row.STATUS || null,
+      qtd_dias: row.QTD_DIAS == null ? null : Number(row.QTD_DIAS),
     });
     if (error) {
       if (error.code === "23505") return { customerCreated, outcome: "skipped" as const };
