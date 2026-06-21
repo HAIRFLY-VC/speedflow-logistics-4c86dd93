@@ -394,7 +394,7 @@ function SuggestionCard({
           return (
             <div className="rounded-md bg-emerald-500/5 border border-emerald-500/15 px-3 py-2 text-sm space-y-1">
               <div>
-                <span className="font-medium text-emerald-700">Nova rota:</span>{" "}
+                <span className="font-medium text-emerald-700">Pedidos a inserir:</span>{" "}
                 {s.stops.length} pedido(s) · {newDeliveries} entrega(s) ·{" "}
                 {weightFmt.format(s.totalWeight)} kg · {currencyFmt.format(s.totalAmount)}
               </div>
