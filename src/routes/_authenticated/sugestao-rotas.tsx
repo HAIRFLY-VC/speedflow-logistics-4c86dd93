@@ -405,10 +405,12 @@ function SuggestionCard({
 
 function EditSuggestionDialog({
   suggestion,
+  existingRoutes,
   onOpenChange,
   onSave,
 }: {
   suggestion: RouteSuggestion | null;
+  existingRoutes: ExistingRouteInfo[];
   onOpenChange: (o: boolean) => void;
   onSave: (next: RouteSuggestion) => void;
 }) {
