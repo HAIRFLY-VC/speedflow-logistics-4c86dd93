@@ -104,7 +104,7 @@ function PedidosPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id,order_number,customer_id,salesperson_id,status,status_since,total_amount,freight_amount,sla_deliver_by,erp_id,notes,created_at,updated_at,dt_prev_exp,nome_rota,nome_motorista,weight,cod_agenda,erp_status,qtd_dias,customers(trade_name,legal_name)",
+          "id,order_number,customer_id,salesperson_id,status,status_since,total_amount,freight_amount,sla_deliver_by,erp_id,notes,created_at,updated_at,dt_prev_exp,nome_rota,nome_motorista,weight,cod_agenda,erp_status,qtd_dias,customers(trade_name,legal_name,erp_id)",
         )
         .order("dt_prev_exp", { ascending: true })
         .order("nome_rota", { ascending: true })
