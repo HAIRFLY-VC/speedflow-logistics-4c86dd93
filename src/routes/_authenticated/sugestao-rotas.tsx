@@ -66,6 +66,18 @@ function SugestaoRotasPage() {
     },
   });
 
+  const customersMissingCoords = useQuery({
+    queryKey: ["customers-missing-coords"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("customers")
+        .select("*", { count: "exact", head: true })
+        .or("latitude.is.null,longitude.is.null");
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
   const geocode = useMutation({
     mutationFn: (force: boolean = false) => geocodeFn({ data: { force } }),
     onSuccess: (r) => {
