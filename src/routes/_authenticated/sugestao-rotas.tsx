@@ -416,10 +416,14 @@ function EditSuggestionDialog({
   onSave: (next: RouteSuggestion) => void;
 }) {
   const [draft, setDraft] = useState<RouteSuggestion | null>(null);
+  const [original, setOriginal] = useState<RouteSuggestion | null>(null);
 
-  if (suggestion && (!draft || draft.id !== suggestion.id)) {
-    setDraft(suggestion);
-  }
+  useEffect(() => {
+    if (suggestion) {
+      setDraft(suggestion);
+      setOriginal(suggestion);
+    }
+  }, [suggestion?.id]);
 
   const removeStop = (orderId: string) => {
     if (!draft) return;
