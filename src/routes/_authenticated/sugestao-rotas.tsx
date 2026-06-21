@@ -350,9 +350,6 @@ function SuggestionCard({
   onShowExistingDetail: () => void;
   isConfirming: boolean;
 }) {
-  const pctWeight = s.capacityWeight
-    ? Math.round(((s.existingWeight + s.totalWeight) / s.capacityWeight) * 100)
-    : 0;
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -370,13 +367,6 @@ function SuggestionCard({
               )}
               {s.routeLabel}
             </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              Data {s.routeDate.split("-").reverse().join("/")} ·{" "}
-              {new Set(s.stops.map((st) => st.customerId)).size} entrega(s) ·{" "}
-              {weightFmt.format(s.totalWeight)} kg ·{" "}
-              {currencyFmt.format(s.totalAmount)} ·{" "}
-              <span className={pctWeight > 100 ? "text-destructive" : ""}>{pctWeight}% cap.</span>
-            </p>
           </div>
           <div className="flex gap-1">
             <Button size="sm" variant="ghost" onClick={onEdit}>
