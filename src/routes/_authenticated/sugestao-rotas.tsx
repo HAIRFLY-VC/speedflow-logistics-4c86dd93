@@ -315,6 +315,7 @@ function SugestaoRotasPage() {
 
       <EditSuggestionDialog
         suggestion={editing}
+        existingRoutes={state?.existingRoutes ?? []}
         onOpenChange={(o) => !o && setEditing(null)}
         onSave={onSaveEdit}
       />
