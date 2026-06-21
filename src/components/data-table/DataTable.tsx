@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { isValidElement, useMemo, useState, type ReactNode } from "react";
 import { ArrowDown, ArrowUp, ChevronsUpDown, Filter, X } from "lucide-react";
 
 import {
@@ -66,6 +66,28 @@ function filterDisplay(v: unknown, filterType?: "text" | "number" | "date"): str
   return String(v);
 }
 
+function nodeToText(node: ReactNode): string | null {
+  if (node == null || typeof node === "boolean") return null;
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) {
+    const text = node.map(nodeToText).filter(Boolean).join("");
+    return text || null;
+  }
+  if (isValidElement<{ children?: ReactNode }>(node)) {
+    return nodeToText(node.props.children);
+  }
+  return null;
+}
+
+function columnFilterLabel<T>(col: ColumnDef<T>, row: T): string {
+  if (col.filterLabel) return col.filterLabel(row);
+  if (col.render) {
+    const rendered = nodeToText(col.render(row))?.trim();
+    if (rendered) return rendered;
+  }
+  return filterDisplay(col.accessor(row), col.filterType);
+}
+
 export function DataTable<T>(props: DataTableProps<T>) {
   const {
     tableKey,
@@ -108,7 +130,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
         const v = c.accessor(r);
         const key = filterKey(v);
         if (seen.has(key)) continue;
-        const label = c.filterLabel ? c.filterLabel(r) : filterDisplay(v, c.filterType);
+        const label = columnFilterLabel(c, r);
         seen.set(key, label);
       }
       const arr = Array.from(seen, ([key, label]) => ({ key, label }));
