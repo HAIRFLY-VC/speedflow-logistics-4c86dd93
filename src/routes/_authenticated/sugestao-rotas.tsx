@@ -352,6 +352,8 @@ function SuggestionCard({
   onShowExistingDetail: () => void;
   isConfirming: boolean;
 }) {
+  const suggestedDeliveries = new Set(s.stops.map((st) => st.customerId)).size;
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -389,18 +391,6 @@ function SuggestionCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {s.type === "new_route" && (() => {
-          const newDeliveries = new Set(s.stops.map((st) => st.customerId)).size;
-          return (
-            <div className="rounded-md bg-emerald-500/5 border border-emerald-500/15 px-3 py-2 text-sm space-y-1">
-              <div>
-                <span className="font-medium text-emerald-700">Pedidos a inserir:</span>{" "}
-                {s.stops.length} pedido(s) · {newDeliveries} entrega(s) ·{" "}
-                {weightFmt.format(s.totalWeight)} kg · {currencyFmt.format(s.totalAmount)}
-              </div>
-            </div>
-          );
-        })()}
         {s.type === "append_existing" && (() => {
           const newCustomers = new Set(s.stops.map((st) => st.customerId));
           const newDeliveries = newCustomers.size;
@@ -433,6 +423,18 @@ function SuggestionCard({
           );
         })()}
         <SuggestionMap stops={s.stops} depot={depot} />
+        {s.type === "new_route" && (
+          <div className="rounded-md bg-emerald-500/5 border border-emerald-500/15 px-3 py-2 text-sm space-y-1">
+            <div>
+              <span className="font-medium text-emerald-700">Resumo da rota sugerida:</span>{" "}
+              {suggestedDeliveries} entrega(s) · {weightFmt.format(s.totalWeight)} kg ·{" "}
+              {currencyFmt.format(s.totalAmount)}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Considerando {s.stops.length} pedido(s) sugerido(s) para esta nova rota.
+            </div>
+          </div>
+        )}
         <div className="text-sm">
           <ol className="list-decimal list-inside space-y-0.5">
             {s.stops.map((st, i) => (
