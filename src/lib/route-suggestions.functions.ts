@@ -129,7 +129,7 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
       .select("depot_address, depot_latitude, depot_longitude")
       .eq("id", 1)
       .maybeSingle();
-    if (cfg?.depot_address && (cfg.depot_latitude == null || cfg.depot_longitude == null)) {
+    if (cfg?.depot_address && (force || cfg.depot_latitude == null || cfg.depot_longitude == null)) {
       try {
         const coord = await geocodeAddress(cfg.depot_address);
         if (coord) {
