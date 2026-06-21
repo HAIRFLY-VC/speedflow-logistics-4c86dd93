@@ -1,11 +1,10 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { Plus, Search, Trash2, Loader2, Download, AlertTriangle, RefreshCw } from "lucide-react";
+import { Plus, Search, Trash2, Loader2, Download, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
-import { triggerErpSync } from "@/lib/erp.functions";
+
 import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -75,22 +74,6 @@ function PedidosPage() {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const erpSyncFn = useServerFn(triggerErpSync);
-  const erpSync = useMutation({
-    mutationFn: () => erpSyncFn(),
-    onSuccess: async (r) => {
-      toast.success(
-        `ERP: ${r.created} criado(s), ${r.updated} atualizado(s), ${r.skipped} ignorado(s)` +
-          (r.errors.length ? ` — ${r.errors.length} erro(s)` : ""),
-      );
-      setSearch("");
-      setStatusFilter("all");
-      await qc.invalidateQueries({ queryKey: ["orders"] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
-      qc.invalidateQueries({ queryKey: ["kanban"] });
-    },
-    onError: (e: Error) => toast.error(`Falha ao importar: ${e.message}`),
-  });
 
   const ordersQ = useQuery({
     queryKey: ["orders", "list"],
@@ -219,18 +202,6 @@ function PedidosPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => erpSync.mutate()}
-              disabled={erpSync.isPending}
-            >
-              {erpSync.isPending ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-1" />
-              )}
-              Importar do ERP
-            </Button>
             <Button variant="outline" onClick={exportCsv} disabled={!ordersQ.data?.length}>
               <Download className="h-4 w-4 mr-1" />
               Exportar CSV

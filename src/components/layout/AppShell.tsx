@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth, type AppRole } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { NotificationsBell } from "./NotificationsBell";
+import { ErpSyncButton } from "./ErpSyncButton";
 
 type NavItem = {
   title: string;
@@ -67,7 +68,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Truck className="h-5 w-5 text-primary" />
               <span className="font-semibold tracking-tight">Speed Logística</span>
             </div>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              <ErpSyncButton />
               <NotificationsBell />
             </div>
           </header>
