@@ -386,6 +386,13 @@ function SuggestionCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
+        {s.type === "append_existing" && (
+          <div className="rounded-md bg-blue-500/5 border border-blue-500/15 px-3 py-2 text-sm">
+            <span className="font-medium text-blue-700">Rota existente:</span>{" "}
+            {s.existingDeliveries} entrega(s) · {weightFmt.format(s.existingWeight)} kg ·{" "}
+            {currencyFmt.format(s.existingValue)}
+          </div>
+        )}
         <SuggestionMap stops={s.stops} depot={depot} />
         <div className="text-sm">
           <ol className="list-decimal list-inside space-y-0.5">
