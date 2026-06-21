@@ -423,11 +423,27 @@ function SuggestionCard({
           );
         })()}
         {s.type === "new_route" && (
-          <div className="rounded-md bg-emerald-500/5 border border-emerald-500/15 px-3 py-2 text-sm space-y-1">
-            <div>
-              <span className="font-medium text-emerald-700">Resumo da rota sugerida:</span>{" "}
-              {s.stops.length} pedido(s) · {suggestedDeliveries} entrega(s) ·{" "}
-              {weightFmt.format(s.totalWeight)} kg · {currencyFmt.format(s.totalAmount)}
+          <div className="rounded-md border border-emerald-500/20 bg-emerald-500/5">
+            <div className="border-b border-emerald-500/15 px-3 py-2 text-sm font-medium text-emerald-700">
+              Resumo
+            </div>
+            <div className="space-y-1 px-3 py-2 text-sm">
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">Pedidos</span>
+                <span className="tabular-nums">{s.stops.length}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">Paradas</span>
+                <span className="tabular-nums">{suggestedDeliveries}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">Peso total</span>
+                <span className="tabular-nums">{weightFmt.format(s.totalWeight)} kg</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">Valor total</span>
+                <span className="tabular-nums">{currencyFmt.format(s.totalAmount)}</span>
+              </div>
             </div>
           </div>
         )}
