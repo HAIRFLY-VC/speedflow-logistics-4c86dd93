@@ -283,7 +283,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
     const { data: routes, error: rErr } = await supabase
       .from("routes")
       .select(
-        "id, code, route_date, status, driver_name, notes, route_orders(orders(id, weight, total_amount, customers(latitude, longitude)))",
+        "id, code, route_date, status, driver_name, notes, route_orders(orders(id, weight, total_amount, customer_id, customers(latitude, longitude)))",
       )
       .eq("status", "planejada")
       .gte("route_date", today);
@@ -298,6 +298,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
       existingWeight: number;
       existingValue: number;
       existingDeliveries: number;
+      customerIds: Set<string>;
     };
     const existing: ExistingRoute[] = [];
     for (const r of routes ?? []) {
@@ -316,7 +317,10 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         : null;
       const existingWeight = stops.reduce((s, o) => s + Number(o.weight ?? 0), 0);
       const existingValue = stops.reduce((s, o) => s + Number(o.total_amount ?? 0), 0);
-      const existingDeliveries = stops.length;
+      const customerIds = new Set<string>(
+        stops.map((o) => o.customer_id).filter((id): id is string => !!id),
+      );
+      const existingDeliveries = customerIds.size;
       const label = r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code;
       existing.push({
         id: r.id,
@@ -327,8 +331,10 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         existingWeight,
         existingValue,
         existingDeliveries,
+        customerIds,
       });
     }
+
 
     const suggestions: RouteSuggestion[] = [];
     const usedOrderIds = new Set<string>();
