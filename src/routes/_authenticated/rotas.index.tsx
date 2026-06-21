@@ -71,6 +71,21 @@ const weightFmt = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 2,
 });
 
+function formatRouteDate(value: string | null | undefined): string {
+  if (!value) return "";
+  const iso = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+  const dmy = String(value).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if (dmy) {
+    const d = dmy[1].padStart(2, "0");
+    const m = dmy[2].padStart(2, "0");
+    let y = dmy[3];
+    if (y.length === 2) y = `20${y}`;
+    return `${d}/${m}/${y}`;
+  }
+  return String(value);
+}
+
 function nomeRotaOf(r: RouteRow) {
   return r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code;
 }
@@ -163,7 +178,7 @@ function RotasPage() {
             params={{ routeId: r.id }}
             className="text-primary hover:underline"
           >
-            {format(new Date(r.route_date), "dd/MM/yyyy", { locale: ptBR })}
+            {formatRouteDate(r.route_date)}
           </Link>
         ),
       },
@@ -277,7 +292,7 @@ function RotasPage() {
             id: "route_date",
             accessor: (r) => r.route_date,
             label: (key) =>
-              `Total ${format(new Date(key), "dd/MM/yyyy", { locale: ptBR })}`,
+              `Total ${formatRouteDate(key)}`,
           }}
         />
       </div>
