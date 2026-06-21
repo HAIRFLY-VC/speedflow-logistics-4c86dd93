@@ -163,7 +163,7 @@ function RotasPage() {
             params={{ routeId: r.id }}
             className="text-primary hover:underline"
           >
-            {format(new Date(r.route_date), "dd/MM/yyyy", { locale: ptBR })}
+            {formatRouteDate(r.route_date)}
           </Link>
         ),
       },
