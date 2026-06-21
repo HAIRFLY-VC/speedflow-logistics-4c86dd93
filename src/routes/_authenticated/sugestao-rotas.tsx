@@ -35,11 +35,22 @@ export const Route = createFileRoute("/_authenticated/sugestao-rotas")({
 const currencyFmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
 
+type ExistingRouteInfo = {
+  id: string;
+  label: string;
+  date: string;
+  driverName: string | null;
+  existingWeight: number;
+  existingValue: number;
+  capacityWeight: number;
+};
+
 type SuggestState = {
   suggestions: RouteSuggestion[];
   missingGeocode: { id: string; order_number: string; customer: string; city: string | null }[];
   depot: { lat: number; lng: number } | null;
   config: { maxWeight: number; maxValue: number; radiusKm: number };
+  existingRoutes: ExistingRouteInfo[];
 } | null;
 
 function SugestaoRotasPage() {
