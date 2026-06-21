@@ -151,7 +151,7 @@ function PedidosPage() {
             params={{ orderId: o.id }}
             className="text-primary hover:underline font-mono text-xs"
           >
-            #{o.order_number}
+            {o.order_number}
           </Link>
         ),
       },
