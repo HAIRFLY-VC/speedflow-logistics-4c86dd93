@@ -583,7 +583,7 @@ function EditSuggestionDialog({
             </div>
           )}
         </div>
-        <DialogFooter>
+        <DialogFooter className="p-6 pt-0 shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
