@@ -67,7 +67,7 @@ function SugestaoRotasPage() {
   });
 
   const geocode = useMutation({
-    mutationFn: () => geocodeFn({}),
+    mutationFn: (force: boolean = false) => geocodeFn({ data: { force } }),
     onSuccess: (r) => {
       toast.success(`Geocodificados: ${r.geocoded} | Falhas: ${r.failed}`);
       qc.invalidateQueries({ queryKey: ["unrouted-orders"] });
