@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -416,10 +416,14 @@ function EditSuggestionDialog({
   onSave: (next: RouteSuggestion) => void;
 }) {
   const [draft, setDraft] = useState<RouteSuggestion | null>(null);
+  const [original, setOriginal] = useState<RouteSuggestion | null>(null);
 
-  if (suggestion && (!draft || draft.id !== suggestion.id)) {
-    setDraft(suggestion);
-  }
+  useEffect(() => {
+    if (suggestion) {
+      setDraft(suggestion);
+      setOriginal(suggestion);
+    }
+  }, [suggestion?.id]);
 
   const removeStop = (orderId: string) => {
     if (!draft) return;
@@ -482,17 +486,21 @@ function EditSuggestionDialog({
                     )}
                     onClick={() => {
                       if (draft.type === "append_existing") return;
-                      const first = existingRoutes[0];
-                      if (!first) return;
+                      const target =
+                        original?.type === "append_existing" && original.routeId
+                          ? existingRoutes.find((r) => r.id === original.routeId)
+                          : existingRoutes[0];
+                      const route = target ?? existingRoutes[0];
+                      if (!route) return;
                       setDraft({
                         ...draft,
                         type: "append_existing",
-                        routeId: first.id,
-                        routeLabel: first.label,
-                        routeDate: first.date,
-                        driverName: first.driverName,
-                        existingWeight: first.existingWeight,
-                        capacityWeight: first.capacityWeight,
+                        routeId: route.id,
+                        routeLabel: route.label,
+                        routeDate: route.date,
+                        driverName: route.driverName,
+                        existingWeight: route.existingWeight,
+                        capacityWeight: route.capacityWeight,
                       });
                     }}
                   >
