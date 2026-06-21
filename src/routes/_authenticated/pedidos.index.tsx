@@ -108,8 +108,7 @@ function PedidosPage() {
         )
         .order("dt_prev_exp", { ascending: true })
         .order("nome_rota", { ascending: true })
-        .order("nome_motorista", { ascending: true })
-        .order("created_at", { ascending: false })
+        .order("erp_id", { foreignTable: "customers", ascending: true })
         .limit(500);
       if (error) throw error;
       return (data ?? []) as unknown as OrderRow[];
