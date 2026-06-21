@@ -165,7 +165,7 @@ function OrderCard({ order, sla }: { order: KanbanOrder; sla: SlaSettings | null
     >
       <CardContent className="p-3 space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-mono text-muted-foreground">#{order.order_number}</span>
+          <span className="text-xs font-mono text-muted-foreground">{order.order_number}</span>
           <span className="text-xs font-medium tabular-nums">
             {formatCurrency(Number(order.total_amount ?? 0))}
           </span>

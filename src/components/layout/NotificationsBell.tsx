@@ -91,7 +91,7 @@ export function NotificationsBell() {
             save(next);
             return next;
           });
-          toast(`Pedido #${notif.order_number}`, {
+          toast(`Pedido ${notif.order_number}`, {
             description: `Status: ${ORDER_STATUS_LABEL[notif.to_status]}`,
           });
         },
@@ -163,7 +163,7 @@ export function NotificationsBell() {
                 className="block px-3 py-2 border-b last:border-0 hover:bg-muted/50"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-mono text-xs">#{n.order_number}</span>
+                  <span className="font-mono text-xs">{n.order_number}</span>
                   <span className="text-[10px] text-muted-foreground">
                     {formatDistanceToNow(new Date(n.changed_at), {
                       addSuffix: true,

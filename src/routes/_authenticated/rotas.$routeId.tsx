@@ -496,7 +496,7 @@ function RouteDetailPage() {
                     ) : (
                       (availableQ.data ?? []).map((o) => (
                         <SelectItem key={o.id} value={o.id}>
-                          #{o.order_number} —{" "}
+                          {o.order_number} —{" "}
                           {o.customers?.trade_name || o.customers?.legal_name}
                           {o.customers?.city ? ` · ${o.customers.city}` : ""}
                         </SelectItem>
@@ -539,7 +539,7 @@ function RouteDetailPage() {
                             params={{ orderId: s.orders.id }}
                             className="text-primary hover:underline"
                           >
-                            #{s.orders.order_number}
+                            {s.orders.order_number}
                           </Link>
                         ) : (
                           "—"
