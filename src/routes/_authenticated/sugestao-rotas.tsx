@@ -362,7 +362,8 @@ function SuggestionCard({
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
               Data {s.routeDate.split("-").reverse().join("/")} ·{" "}
-              {s.stops.length} parada(s) · {weightFmt.format(s.totalWeight)} kg ·{" "}
+              {new Set(s.stops.map((st) => st.customerId)).size} entrega(s) ·{" "}
+              {weightFmt.format(s.totalWeight)} kg ·{" "}
               {currencyFmt.format(s.totalAmount)} ·{" "}
               <span className={pctWeight > 100 ? "text-destructive" : ""}>{pctWeight}% cap.</span>
             </p>
