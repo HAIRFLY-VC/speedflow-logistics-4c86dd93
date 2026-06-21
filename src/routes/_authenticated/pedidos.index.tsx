@@ -309,7 +309,7 @@ function PedidosPage() {
       },
       {
         id: "qtd_dias",
-        header: "QTD_DIAS",
+        header: "Tempo (d)",
         align: "right",
         filterType: "number",
         accessor: (o) => {
