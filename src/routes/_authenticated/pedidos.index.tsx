@@ -57,8 +57,7 @@ type OrderRow = {
   weight: number | null;
   cod_agenda: number | null;
   created_at: string;
-  status_since: string | null;
-  sla_deliver_by: string | null;
+  erp_status: string | null;
   dt_prev_exp: string | null;
   nome_rota: string | null;
   nome_motorista: string | null;
