@@ -61,9 +61,15 @@ export type Database = {
           company_name: string
           created_at: string
           credit_approval_threshold: number
+          depot_address: string | null
+          depot_latitude: number | null
+          depot_longitude: number | null
           email: string | null
           id: number
+          max_route_value_brl: number
+          max_route_weight_kg: number
           phone: string | null
+          route_cluster_radius_km: number
           sla_commercial_approval_hours: number
           sla_credit_approval_hours: number
           sla_delivery_hours: number
@@ -78,9 +84,15 @@ export type Database = {
           company_name?: string
           created_at?: string
           credit_approval_threshold?: number
+          depot_address?: string | null
+          depot_latitude?: number | null
+          depot_longitude?: number | null
           email?: string | null
           id?: number
+          max_route_value_brl?: number
+          max_route_weight_kg?: number
           phone?: string | null
+          route_cluster_radius_km?: number
           sla_commercial_approval_hours?: number
           sla_credit_approval_hours?: number
           sla_delivery_hours?: number
@@ -95,9 +107,15 @@ export type Database = {
           company_name?: string
           created_at?: string
           credit_approval_threshold?: number
+          depot_address?: string | null
+          depot_latitude?: number | null
+          depot_longitude?: number | null
           email?: string | null
           id?: number
+          max_route_value_brl?: number
+          max_route_weight_kg?: number
           phone?: string | null
+          route_cluster_radius_km?: number
           sla_commercial_approval_hours?: number
           sla_credit_approval_hours?: number
           sla_delivery_hours?: number
