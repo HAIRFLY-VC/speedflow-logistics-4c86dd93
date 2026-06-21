@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth, type AppRole } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { NotificationsBell } from "./NotificationsBell";
+import { ErpSyncButton } from "./ErpSyncButton";
 
 type NavItem = {
   title: string;
