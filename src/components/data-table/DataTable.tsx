@@ -248,7 +248,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
         </div>
       )}
 
-      <div className="border rounded-lg overflow-hidden bg-card">
+      <div className="border rounded-lg overflow-clip bg-card">
         <Table>
           <TableHeader>
             <TableRow>
