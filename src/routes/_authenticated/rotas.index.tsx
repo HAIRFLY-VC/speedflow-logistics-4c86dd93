@@ -159,10 +159,17 @@ function RotasPage() {
         .from("routes")
         .select(
           "id,code,route_date,status,total_freight,driver_name,notes,freight_carriers(full_name,vehicle_plate),route_orders(orders(customer_id,order_number,total_amount,weight,erp_status))",
-        )
-        .order("route_date", { ascending: true });
+        );
       if (error) throw error;
-      return (data ?? []) as unknown as RouteRow[];
+      const rows = (data ?? []) as unknown as RouteRow[];
+      rows.sort((a, b) => {
+        const d = String(a.route_date).localeCompare(String(b.route_date));
+        if (d !== 0) return d;
+        return nomeRotaOf(a).localeCompare(nomeRotaOf(b), undefined, {
+          sensitivity: "base",
+        });
+      });
+      return rows;
     },
   });
 
