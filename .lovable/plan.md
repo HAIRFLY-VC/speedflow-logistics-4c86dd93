@@ -1,32 +1,60 @@
-## Objetivo
-Cadastrar rotas automaticamente a partir dos pedidos importados do ERP, usando `DT_PREV_EXP` (data planejada de saída), `NOME_ROTA` (nome) e `NOME_MOTORISTA` (motorista, texto livre).
+# Listas customizáveis com layout persistido por usuário
 
-## Mudanças
+Objetivo: dar ao usuário controle total sobre as listas (Pedidos, Rotas, Clientes, Produtos, Fretistas, Usuários, Borderôs, Minhas Rotas) — mostrar/ocultar colunas, reordenar, definir ordenação padrão e filtrar por conteúdo de cada coluna. O layout escolhido é salvo no banco por usuário e por tela, e é restaurado automaticamente em qualquer dispositivo.
 
-### 1. Banco de dados (migração)
-- `routes`: adicionar coluna `driver_name text` (substitui o uso do `carrier_id` para rotas vindas do ERP). Manter `carrier_id` opcional (não removo agora para não quebrar rotas/borderôs existentes).
-- Tornar `routes.code` único por `(route_date, code)` continua igual; o código será derivado do nome da rota.
-- Sem alterações em `route_orders`.
+## O que o usuário verá
 
-### 2. Sincronização ERP (`src/lib/erp-sync.server.ts`)
-Após processar cada pedido, e antes de fechar a execução:
-- Agrupar pedidos por chave `NOME_ROTA + DT_PREV_EXP + NOME_MOTORISTA` (ignorando registros com `NOME_ROTA` vazio ou com as datas sentinela `3000-01-01` / `4000-01-01`).
-- Para cada grupo:
-  - `upsert` em `routes` usando `code = slug(NOME_ROTA)-YYYYMMDD` como chave natural: se existir, atualiza `driver_name` e `route_date`; senão cria com `status='planejada'`, `total_freight=0`.
-  - Inserir em `route_orders` os pedidos do grupo que ainda não estejam vinculados (sem mover pedidos já em outra rota).
-- Contabilizar no resultado: `routes_created`, `routes_updated`, `route_orders_linked` (campos adicionais em `erp_sync_runs` — opcional, posso só logar).
+Em cada tela de lista:
+- Um botão **"Colunas"** abre um painel onde ele:
+  - marca/desmarca colunas para exibir
+  - arrasta para reordenar
+  - define qual coluna ordena por padrão (ASC/DESC)
+  - pode **Restaurar padrão** a qualquer momento
+- Um ícone de **filtro** no cabeçalho de cada coluna abre um campo de busca tipo "contém". Filtros ativos aparecem como chips acima da tabela.
+- Clique no cabeçalho continua alternando a ordenação rapidamente.
+- Tudo é salvo automaticamente ao mudar; ao reabrir o app (mesmo em outro navegador), o layout volta igualzinho.
 
-### 3. Tela de Rotas (`src/routes/_authenticated/rotas.index.tsx`)
-- Tabela passa a exibir: **Código**, **Data planejada (DT_PREV_EXP)**, **Nome da rota**, **Motorista**, **Paradas**, **Status**.
-- Coluna "Fretista" é substituída por "Motorista" (texto `driver_name`, com fallback para `freight_carriers.full_name` quando existir).
-- Diálogo "Nova rota": substituir campo *Fretista (select)* por *Nome da rota* (texto) e *Motorista* (texto). Data continua sendo `route_date` (renomeada para "Data planejada de saída"). Frete e observações permanecem.
-- O `code` da rota manual passa a ser derivado de `slug(nome_rota)-YYYYMMDD`.
-
-### 4. Types (`src/integrations/supabase/types.ts`)
-Adicionar `driver_name: string | null` em `routes.Row/Insert/Update` (regenerado após a migração).
+## Telas contempladas
+Pedidos, Rotas, Clientes, Produtos, Fretistas, Usuários, Borderôs, Minhas Rotas. Cada uma tem um `tableKey` único (`pedidos`, `rotas`, etc.).
 
 ## Detalhes técnicos
-- Slug helper local: minúsculas, remove acentos, troca não-alfanum por `-`.
-- Datas sentinela do ERP (`3000-01-01`, `4000-01-01`) significam "sem rota definida" → não geram rota.
-- Vínculo `route_orders` usa `ON CONFLICT DO NOTHING` (chave única `(route_id, order_id)`); se um pedido já estiver em outra rota, ele é ignorado e gravado em `errors` para visibilidade.
-- Concorrência: a criação de rotas roda sequencial após o loop de pedidos para evitar corrida no upsert.
+
+### Banco (Lovable Cloud)
+Nova tabela `user_table_preferences`:
+- `user_id` (uuid, FK auth.users)
+- `table_key` (text) — ex.: "pedidos"
+- `preferences` (jsonb) — `{ columns: [{id, visible, order}], sort: {id, dir}, filters: {colId: "texto"} }`
+- `updated_at`
+- PK composta `(user_id, table_key)`
+- RLS: usuário só lê/escreve as próprias preferências
+- GRANTs para `authenticated` e `service_role`
+
+### Server functions (`src/lib/table-prefs.functions.ts`)
+- `getTablePrefs({ tableKey })` — retorna preferências do usuário atual
+- `saveTablePrefs({ tableKey, preferences })` — upsert
+Ambas com `requireSupabaseAuth`.
+
+### Componente `DataTable` reutilizável
+`src/components/data-table/DataTable.tsx`:
+- Props: `tableKey`, `columns` (definição: id, header, accessor, sortable, filterable, defaultVisible, defaultOrder, render), `data`, `defaultSort`
+- Carrega prefs via TanStack Query; mescla com defaults
+- Aplica filtro (contains, case-insensitive) e ordenação client-side
+- Cabeçalho com ícone de filtro (Popover + Input) e seta de ordenação
+- Botão "Colunas" com Popover contendo lista drag-and-drop (`@dnd-kit/sortable`) + switches de visibilidade + selector de ordenação padrão
+- Debounce 400ms ao salvar (mutation com invalidate)
+- `Restaurar padrão` = deleta a linha de prefs e recarrega
+- Mantém capacidade de "linhas extras" (totalizadores de grupo da tela Rotas) via prop `renderGroupFooter`
+
+### Migração das telas
+Cada tela passa a declarar suas colunas em um array e renderiza `<DataTable .../>`. Lógica específica (agrupamentos da tela Rotas, badges de status, links de detalhe) vira `render` de coluna ou prop. As funcionalidades atuais (totalizadores por Data Planejada, status por linha, etc.) são preservadas.
+
+### Dependências
+`@dnd-kit/core` + `@dnd-kit/sortable` (drag-and-drop acessível, leve).
+
+## Ordem de entrega
+1. Migração + server functions de preferências
+2. Componente `DataTable` + Popover de colunas + filtros + persistência
+3. Aplicar em **Pedidos** e **Rotas** (validação visual com você)
+4. Aplicar nas demais (Clientes, Produtos, Fretistas, Usuários, Borderôs, Minhas Rotas)
+
+Confirma para eu começar pela migração?
