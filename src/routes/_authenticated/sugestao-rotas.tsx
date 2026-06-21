@@ -387,13 +387,32 @@ function SuggestionCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {s.type === "append_existing" && (
-          <div className="rounded-md bg-blue-500/5 border border-blue-500/15 px-3 py-2 text-sm">
-            <span className="font-medium text-blue-700">Rota existente:</span>{" "}
-            {s.existingDeliveries} entrega(s) · {weightFmt.format(s.existingWeight)} kg ·{" "}
-            {currencyFmt.format(s.existingValue)}
-          </div>
-        )}
+        {s.type === "append_existing" && (() => {
+          const newCustomers = new Set(s.stops.map((st) => st.customerId));
+          const newDeliveries = newCustomers.size;
+          const totalDeliveries = s.existingDeliveries + newDeliveries;
+          const totalWeight = s.existingWeight + s.totalWeight;
+          const totalValue = s.existingValue + s.totalAmount;
+          return (
+            <div className="rounded-md bg-blue-500/5 border border-blue-500/15 px-3 py-2 text-sm space-y-1">
+              <div>
+                <span className="font-medium text-blue-700">Rota existente:</span>{" "}
+                {s.existingDeliveries} entrega(s) · {weightFmt.format(s.existingWeight)} kg ·{" "}
+                {currencyFmt.format(s.existingValue)}
+              </div>
+              <div>
+                <span className="font-medium text-emerald-700">Pedidos a inserir:</span>{" "}
+                {s.stops.length} pedido(s) · {newDeliveries} entrega(s) ·{" "}
+                {weightFmt.format(s.totalWeight)} kg · {currencyFmt.format(s.totalAmount)}
+              </div>
+              <div className="pt-1 border-t border-blue-500/15">
+                <span className="font-medium">Total após encaixe:</span>{" "}
+                {totalDeliveries} entrega(s) · {weightFmt.format(totalWeight)} kg ·{" "}
+                {currencyFmt.format(totalValue)}
+              </div>
+            </div>
+          );
+        })()}
         <SuggestionMap stops={s.stops} depot={depot} />
         <div className="text-sm">
           <ol className="list-decimal list-inside space-y-0.5">
