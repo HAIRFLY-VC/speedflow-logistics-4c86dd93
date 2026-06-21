@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Trash2, Loader2, Download } from "lucide-react";
+import { Plus, Trash2, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
 
 
@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -35,11 +34,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  ORDER_STATUS_LABEL,
-  formatCurrency,
-  type OrderStatus,
-} from "@/lib/orderStatus";
+import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
+import { formatCurrency, type OrderStatus } from "@/lib/orderStatus";
 import type { Tables } from "@/integrations/supabase/types";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -64,12 +60,15 @@ type OrderRow = {
   customers: { trade_name: string | null; legal_name: string } | null;
 };
 
+const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
+
+function customerName(o: OrderRow) {
+  return o.customers?.trade_name || o.customers?.legal_name || "";
+}
+
 function PedidosPage() {
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
-
 
   const ordersQ = useQuery({
     queryKey: ["orders", "list"],
@@ -88,17 +87,6 @@ function PedidosPage() {
       return (data ?? []) as unknown as OrderRow[];
     },
   });
-
-
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return (ordersQ.data ?? []).filter((o) => {
-      if (statusFilter !== "all" && o.status !== statusFilter) return false;
-      if (!term) return true;
-      const name = o.customers?.trade_name || o.customers?.legal_name || "";
-      return o.order_number.toLowerCase().includes(term) || name.toLowerCase().includes(term);
-    });
-  }, [ordersQ.data, search, statusFilter]);
 
   const agendaTotals = useMemo(() => {
     const init = () => ({ valor: 0, peso: 0, qtd: 0 });
@@ -125,20 +113,94 @@ function PedidosPage() {
     };
   }, [ordersQ.data]);
 
-  const formatWeight = (kg: number) =>
-    `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(kg)} kg`;
+  const formatWeight = (kg: number) => `${weightFmt.format(kg)} kg`;
+
+  const columns = useMemo<ColumnDef<OrderRow>[]>(
+    () => [
+      {
+        id: "dt_prev_exp",
+        header: "Prev. Exp.",
+        accessor: (o) => o.dt_prev_exp ?? "",
+        render: (o) => {
+          if (!o.dt_prev_exp) return "—";
+          const d = new Date(o.dt_prev_exp);
+          if (isNaN(d.getTime()) || d.getFullYear() >= 3000) return "—";
+          return d.toLocaleDateString("pt-BR");
+        },
+        className: "text-xs text-muted-foreground",
+      },
+      {
+        id: "nome_rota",
+        header: "Rota",
+        accessor: (o) => o.nome_rota ?? "",
+        className: "text-xs",
+      },
+      {
+        id: "nome_motorista",
+        header: "Motorista",
+        accessor: (o) => o.nome_motorista ?? "",
+        className: "text-xs",
+      },
+      {
+        id: "order_number",
+        header: "Pedido",
+        accessor: (o) => o.order_number,
+        render: (o) => (
+          <Link
+            to="/pedidos/$orderId"
+            params={{ orderId: o.id }}
+            className="text-primary hover:underline font-mono text-xs"
+          >
+            #{o.order_number}
+          </Link>
+        ),
+      },
+      {
+        id: "customer",
+        header: "Cliente",
+        accessor: (o) => customerName(o),
+      },
+      {
+        id: "erp_status",
+        header: "Status",
+        accessor: (o) => o.erp_status ?? "",
+        className: "text-xs",
+      },
+      {
+        id: "weight",
+        header: "Peso",
+        align: "right",
+        accessor: (o) => Number(o.weight ?? 0),
+        render: (o) =>
+          o.weight ? `${weightFmt.format(Number(o.weight))} kg` : "—",
+        className: "tabular-nums text-xs",
+      },
+      {
+        id: "total_amount",
+        header: "Total",
+        align: "right",
+        accessor: (o) => Number(o.total_amount ?? 0),
+        render: (o) => formatCurrency(Number(o.total_amount ?? 0)),
+        className: "tabular-nums",
+      },
+      {
+        id: "created_at",
+        header: "Criado",
+        accessor: (o) => o.created_at,
+        render: (o) =>
+          formatDistanceToNow(new Date(o.created_at), {
+            addSuffix: true,
+            locale: ptBR,
+          }),
+        className: "text-xs text-muted-foreground",
+      },
+    ],
+    [],
+  );
 
   function exportCsv() {
-    const rows = filtered;
-    const header = [
-      "numero",
-      "cliente",
-      "status",
-      "total",
-      "frete",
-      "peso",
-      "criado_em",
-    ];
+    const rows = ordersQ.data ?? [];
+    const header = ["numero", "cliente", "status", "total", "frete", "peso", "criado_em"];
     const escape = (v: unknown) => {
       const s = v === null || v === undefined ? "" : String(v);
       return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -148,7 +210,7 @@ function PedidosPage() {
       lines.push(
         [
           o.order_number,
-          o.customers?.trade_name || o.customers?.legal_name || "",
+          customerName(o),
           o.erp_status || "",
           Number(o.total_amount ?? 0).toFixed(2),
           Number(o.freight_amount ?? 0).toFixed(2),
@@ -159,7 +221,9 @@ function PedidosPage() {
           .join(";"),
       );
     }
-    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["\ufeff" + lines.join("\n")], {
+      type: "text/csv;charset=utf-8",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -172,19 +236,11 @@ function PedidosPage() {
   return (
     <AppShell>
       <div className="space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Pedidos</h1>
-            <p className="text-muted-foreground text-sm">
-              Pedidos de venda da indústria até a entrega.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={exportCsv} disabled={!ordersQ.data?.length}>
-              <Download className="h-4 w-4 mr-1" />
-              Exportar CSV
-            </Button>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Pedidos</h1>
+          <p className="text-muted-foreground text-sm">
+            Pedidos de venda da indústria até a entrega.
+          </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -221,104 +277,26 @@ function PedidosPage() {
           ))}
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[240px] max-w-md">
-            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nº do pedido ou cliente..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-            <SelectTrigger className="w-[240px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              {(Object.keys(ORDER_STATUS_LABEL) as OrderStatus[]).map((s) => (
-                <SelectItem key={s} value={s}>
-                  {ORDER_STATUS_LABEL[s]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="border rounded-lg overflow-hidden bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Prev. Exp.</TableHead>
-                <TableHead>Rota</TableHead>
-                <TableHead>Motorista</TableHead>
-                <TableHead>Pedido</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Peso</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Criado</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {ordersQ.isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell colSpan={9}>
-                      <Skeleton className="h-6 w-full" />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-10">
-                    Nenhum pedido encontrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((o) => (
-                  <TableRow key={o.id} className="cursor-pointer hover:bg-muted/40">
-                    <TableCell className="text-xs text-muted-foreground">
-                      {(() => {
-                        if (!o.dt_prev_exp) return "—";
-                        const d = new Date(o.dt_prev_exp);
-                        if (isNaN(d.getTime()) || d.getFullYear() >= 3000) return "—";
-                        return d.toLocaleDateString("pt-BR");
-                      })()}
-                    </TableCell>
-                    <TableCell className="text-xs">{o.nome_rota || "—"}</TableCell>
-                    <TableCell className="text-xs">{o.nome_motorista || "—"}</TableCell>
-                    <TableCell className="font-mono text-xs">
-                      <Link
-                        to="/pedidos/$orderId"
-                        params={{ orderId: o.id }}
-                        className="text-primary hover:underline"
-                      >
-                        #{o.order_number}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      {o.customers?.trade_name || o.customers?.legal_name || "—"}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {o.erp_status || "—"}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums text-xs">
-                      {o.weight ? `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(o.weight)} kg` : "—"}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatCurrency(Number(o.total_amount ?? 0))}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(o.created_at), { addSuffix: true, locale: ptBR })}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTable
+          tableKey="pedidos"
+          columns={columns}
+          data={ordersQ.data}
+          isLoading={ordersQ.isLoading}
+          rowKey={(o) => o.id}
+          emptyMessage="Nenhum pedido encontrado."
+          defaultSort={{ id: "dt_prev_exp", dir: "asc" }}
+          toolbarRight={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportCsv}
+              disabled={!ordersQ.data?.length}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Exportar CSV
+            </Button>
+          }
+        />
       </div>
 
 
