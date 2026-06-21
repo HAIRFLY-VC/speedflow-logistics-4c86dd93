@@ -292,7 +292,7 @@ function RotasPage() {
             id: "route_date",
             accessor: (r) => r.route_date,
             label: (key) =>
-              `Total ${format(new Date(key), "dd/MM/yyyy", { locale: ptBR })}`,
+              `Total ${formatRouteDate(key)}`,
           }}
         />
       </div>
