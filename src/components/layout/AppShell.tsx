@@ -1,5 +1,7 @@
-import { type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { getSidebarPref, saveSidebarPref } from "@/lib/ui-prefs.functions";
 import {
   LayoutDashboard,
   Kanban,
@@ -55,8 +57,35 @@ const NAV: NavItem[] = [
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const loadPref = useServerFn(getSidebarPref);
+  const savePref = useServerFn(saveSidebarPref);
+  const [open, setOpen] = useState(true);
+  const loadedRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadPref({})
+      .then((res) => {
+        if (cancelled) return;
+        setOpen(res.open);
+        loadedRef.current = true;
+      })
+      .catch(() => {
+        loadedRef.current = true;
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadPref]);
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (!loadedRef.current) return;
+    savePref({ data: { open: next } }).catch(() => {});
+  }
+
   return (
-    <SidebarProvider>
+    <SidebarProvider open={open} onOpenChange={handleOpenChange}>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
