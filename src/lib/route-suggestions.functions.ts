@@ -394,9 +394,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         s.totalAmount += o._amount;
         bestRoute.existingWeight += o._weight;
         bestRoute.existingValue += o._amount;
-        if (o.customer_id) bestRoute.customerIds.add(o.customer_id);
-        bestRoute.existingDeliveries = bestRoute.customerIds.size;
-        s.existingDeliveries = bestRoute.existingDeliveries;
+        // existingDeliveries reflects the route's current state (before append)
         usedOrderIds.add(o.id);
       }
     }
