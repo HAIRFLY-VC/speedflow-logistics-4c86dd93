@@ -381,6 +381,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         s.stops.push({
           orderId: o.id,
           orderNumber: o.order_number,
+          customerId: o.customer_id,
           customerName: c.trade_name || c.legal_name || "Cliente",
           city: c.city,
           state: c.state,
@@ -393,6 +394,9 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         s.totalAmount += o._amount;
         bestRoute.existingWeight += o._weight;
         bestRoute.existingValue += o._amount;
+        if (o.customer_id) bestRoute.customerIds.add(o.customer_id);
+        bestRoute.existingDeliveries = bestRoute.customerIds.size;
+        s.existingDeliveries = bestRoute.existingDeliveries;
         usedOrderIds.add(o.id);
       }
     }
