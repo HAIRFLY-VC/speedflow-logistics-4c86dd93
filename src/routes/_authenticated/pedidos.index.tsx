@@ -88,6 +88,12 @@ function formatDateTimeBR(v: string | null | undefined) {
   return d.toLocaleString("pt-BR");
 }
 
+function formatTempoDias(v: number | string | null | undefined) {
+  if (v == null || v === "") return "—";
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.trunc(n) : "—";
+}
+
 function PedidosPage() {
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -313,8 +319,8 @@ function PedidosPage() {
         header: "Tempo (d)",
         align: "right",
         filterType: "number",
-        accessor: (o) => o.qtd_dias ?? 0,
-        render: (o) => (o.qtd_dias == null ? "—" : o.qtd_dias),
+        accessor: (o) => o.qtd_dias ?? "",
+        render: (o) => formatTempoDias(o.qtd_dias),
         className: "tabular-nums text-xs",
       },
     ],
