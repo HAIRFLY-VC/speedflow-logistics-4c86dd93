@@ -1,11 +1,10 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { Plus, Search, Trash2, Loader2, Download, AlertTriangle, RefreshCw } from "lucide-react";
+import { Plus, Search, Trash2, Loader2, Download, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
-import { triggerErpSync } from "@/lib/erp.functions";
+
 import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
