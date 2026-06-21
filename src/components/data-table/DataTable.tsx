@@ -108,7 +108,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
         const v = c.accessor(r);
         const key = filterKey(v);
         if (seen.has(key)) continue;
-        const label = c.filterLabel ? c.filterLabel(r) : filterDisplay(v);
+        const label = c.filterLabel ? c.filterLabel(r) : filterDisplay(v, c.filterType);
         seen.set(key, label);
       }
       const arr = Array.from(seen, ([key, label]) => ({ key, label }));
