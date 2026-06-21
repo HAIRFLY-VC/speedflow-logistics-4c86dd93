@@ -190,6 +190,8 @@ export type RouteSuggestion = {
   totalAmount: number;
   capacityWeight: number;
   existingWeight: number;
+  existingValue: number;
+  existingDeliveries: number;
   centroid: Coord;
 };
 
@@ -294,6 +296,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
       centroid: Coord | null;
       existingWeight: number;
       existingValue: number;
+      existingDeliveries: number;
     };
     const existing: ExistingRoute[] = [];
     for (const r of routes ?? []) {
@@ -312,6 +315,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         : null;
       const existingWeight = stops.reduce((s, o) => s + Number(o.weight ?? 0), 0);
       const existingValue = stops.reduce((s, o) => s + Number(o.total_amount ?? 0), 0);
+      const existingDeliveries = stops.length;
       const label = r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code;
       existing.push({
         id: r.id,
@@ -321,6 +325,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         centroid,
         existingWeight,
         existingValue,
+        existingDeliveries,
       });
     }
 
@@ -358,6 +363,8 @@ export const suggestRoutes = createServerFn({ method: "POST" })
             totalAmount: 0,
             capacityWeight: maxWeight,
             existingWeight: bestRoute.existingWeight,
+            existingValue: bestRoute.existingValue,
+            existingDeliveries: bestRoute.existingDeliveries,
             centroid: bestRoute.centroid!,
           };
           suggestions.push(s);
@@ -450,6 +457,8 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         totalAmount: groupValue,
         capacityWeight: maxWeight,
         existingWeight: 0,
+        existingValue: 0,
+        existingDeliveries: 0,
         centroid,
       });
     }
@@ -466,6 +475,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         driverName: r.driverName,
         existingWeight: r.existingWeight,
         existingValue: r.existingValue,
+        existingDeliveries: r.existingDeliveries,
         capacityWeight: maxWeight,
       })),
     };
