@@ -106,12 +106,23 @@ function PedidosPage() {
         .select(
           "id,order_number,customer_id,salesperson_id,status,status_since,total_amount,freight_amount,sla_deliver_by,erp_id,notes,created_at,updated_at,dt_prev_exp,nome_rota,nome_motorista,weight,cod_agenda,erp_status,qtd_dias,customers(trade_name,legal_name,erp_id)",
         )
-        .order("dt_prev_exp", { ascending: true })
-        .order("nome_rota", { ascending: true })
-        .order("erp_id", { foreignTable: "customers", ascending: true })
         .limit(500);
       if (error) throw error;
-      return (data ?? []) as unknown as OrderRow[];
+      const rows = (data ?? []) as unknown as OrderRow[];
+      const cmp = (a: string | null | undefined, b: string | null | undefined) => {
+        const av = a ?? "";
+        const bv = b ?? "";
+        if (av === bv) return 0;
+        if (av === "") return 1;
+        if (bv === "") return -1;
+        return av < bv ? -1 : 1;
+      };
+      rows.sort((a, b) =>
+        cmp(a.dt_prev_exp, b.dt_prev_exp) ||
+        cmp(a.nome_rota, b.nome_rota) ||
+        cmp(a.customers?.erp_id, b.customers?.erp_id)
+      );
+      return rows;
     },
   });
 
