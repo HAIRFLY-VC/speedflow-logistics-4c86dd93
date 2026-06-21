@@ -165,11 +165,11 @@ export function useTablePrefs<T>(
   return {
     state,
     setSort: (sort: SortState) => update((p) => ({ ...p, sort })),
-    setFilter: (id: string, value: string) =>
+    setFilter: (id: string, values: string[]) =>
       update((p) => {
         const filters = { ...p.filters };
-        if (!value) delete filters[id];
-        else filters[id] = value;
+        if (!values || values.length === 0) delete filters[id];
+        else filters[id] = values;
         return { ...p, filters };
       }),
     clearFilters: () => update((p) => ({ ...p, filters: {} })),
