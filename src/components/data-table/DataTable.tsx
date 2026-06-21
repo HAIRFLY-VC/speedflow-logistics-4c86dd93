@@ -48,7 +48,14 @@ function filterKey(v: unknown): string {
 
 function filterDisplay(v: unknown): string {
   if (v == null || v === "") return EMPTY_LABEL;
-  if (v instanceof Date) return v.toLocaleString();
+  if (v instanceof Date)
+    return v.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   return String(v);
 }
 
