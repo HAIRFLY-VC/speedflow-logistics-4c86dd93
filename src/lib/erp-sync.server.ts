@@ -216,6 +216,7 @@ export async function syncErpOrders(opts: {
           nome_rota: row.NOME_ROTA || null,
           nome_motorista: row.NOME_MOTORISTA || null,
           erp_status: row.STATUS || null,
+          qtd_dias: row.QTD_DIAS == null ? null : Number(row.QTD_DIAS),
         })
         .eq("id", existingOrder.id);
       if (error) throw error;
