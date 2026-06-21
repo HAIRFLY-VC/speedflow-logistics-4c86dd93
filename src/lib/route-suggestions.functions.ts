@@ -296,6 +296,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
       centroid: Coord | null;
       existingWeight: number;
       existingValue: number;
+      existingDeliveries: number;
     };
     const existing: ExistingRoute[] = [];
     for (const r of routes ?? []) {
@@ -314,6 +315,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         : null;
       const existingWeight = stops.reduce((s, o) => s + Number(o.weight ?? 0), 0);
       const existingValue = stops.reduce((s, o) => s + Number(o.total_amount ?? 0), 0);
+      const existingDeliveries = stops.length;
       const label = r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code;
       existing.push({
         id: r.id,
@@ -323,6 +325,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         centroid,
         existingWeight,
         existingValue,
+        existingDeliveries,
       });
     }
 
