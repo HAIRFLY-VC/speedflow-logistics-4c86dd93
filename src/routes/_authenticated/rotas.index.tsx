@@ -178,6 +178,7 @@ function RotasPage() {
       {
         id: "route_date",
         header: "Data planejada",
+        sortable: false,
         accessor: (r) => r.route_date,
         render: (r) => (
           <Link
@@ -192,17 +193,20 @@ function RotasPage() {
       {
         id: "nome_rota",
         header: "Nome da rota",
+        sortable: false,
         accessor: (r) => nomeRotaOf(r),
       },
       {
         id: "motorista",
         header: "Motorista",
+        sortable: false,
         accessor: (r) => motoristaOf(r),
         render: (r) => motoristaOf(r) || <span className="text-muted-foreground">—</span>,
       },
       {
         id: "paradas",
         header: "Paradas",
+        sortable: false,
         align: "right",
         accessor: (r) => paradasOf(r),
         className: "tabular-nums",
@@ -215,6 +219,7 @@ function RotasPage() {
       {
         id: "valor_total",
         header: "Valor total",
+        sortable: false,
         align: "right",
         accessor: (r) => valorOf(r),
         render: (r) => currencyFmt.format(valorOf(r)),
@@ -228,6 +233,7 @@ function RotasPage() {
       {
         id: "peso_total",
         header: "Peso total (kg)",
+        sortable: false,
         align: "right",
         accessor: (r) => pesoOf(r),
         render: (r) => weightFmt.format(pesoOf(r)),
@@ -259,6 +265,7 @@ function RotasPage() {
       {
         id: "status",
         header: "Status",
+        sortable: false,
         accessor: (r) => ROUTE_STATUS_LABEL[r.status],
         render: (r) => (
           <span
