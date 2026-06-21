@@ -190,6 +190,8 @@ export type RouteSuggestion = {
   totalAmount: number;
   capacityWeight: number;
   existingWeight: number;
+  existingValue: number;
+  existingDeliveries: number;
   centroid: Coord;
 };
 
