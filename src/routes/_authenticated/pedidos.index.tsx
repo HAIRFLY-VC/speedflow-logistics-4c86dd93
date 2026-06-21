@@ -64,6 +64,7 @@ type OrderRow = {
   weight: number | null;
   cod_agenda: number | null;
   erp_status: string | null;
+  qtd_dias: number | null;
   customers: { trade_name: string | null; legal_name: string } | null;
 };
 
