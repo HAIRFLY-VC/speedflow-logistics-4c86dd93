@@ -185,6 +185,13 @@ function PedidosPage() {
         accessor: (o) => customerName(o),
       },
       {
+        id: "customer_erp_id",
+        header: "Cód. Cliente ERP",
+        accessor: (o) => o.customers?.erp_id ?? "",
+        defaultVisible: false,
+        className: "text-xs font-mono text-muted-foreground",
+      },
+      {
         id: "erp_status",
         header: "Status",
         accessor: (o) => o.erp_status ?? "",
