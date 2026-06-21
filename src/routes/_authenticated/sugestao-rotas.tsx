@@ -188,6 +188,7 @@ function SugestaoRotasPage() {
                 <MapPin className="h-4 w-4 mr-2" />
               )}
               Forçar geocodificação
+              {customersMissingCoords.data != null ? ` (${customersMissingCoords.data})` : ""}
             </Button>
             <Button onClick={() => suggest.mutate()} disabled={suggest.isPending || pendingRows.length === 0}>
               {suggest.isPending ? (
