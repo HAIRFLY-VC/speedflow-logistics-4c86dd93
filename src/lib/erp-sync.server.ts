@@ -43,7 +43,7 @@ const PENDING_ORDERS_SQL = `
          E.PEDIDO, E.VALOR_PEDIDO, E.DT_PEDIDO, E.DT_EMISSAO,
          E.BORDERO, E.DT_BORDERO, E.STATUS_BORDERO,
          E.COD_MOTORISTA, E.PLACA, E.MOTORISTA,
-         E.STATUS, E.OBS, E.QTD_DIAS, E.OBS_LOGIST, E.DIF_ENT,
+         E.STATUS, E.OBS, E.QTD_DIAS AS QTD_DIAS, E.OBS_LOGIST, E.DIF_ENT,
          E.GNRE, E.TP_PGTO, E.INF_CMP, E.QTD_EMB,
          CASE WHEN R.DT_PREV_EXP IS NULL THEN
               CASE WHEN R.NOME_ROTA IS NULL THEN TO_DATE('40000101','yyyyMMdd')
@@ -140,6 +140,35 @@ export async function syncErpOrders(opts: {
     return isNaN(d.getTime()) ? null : d.toISOString();
   }
 
+  function describeError(e: unknown): string {
+    if (e instanceof Error) return e.message;
+    if (typeof e === "object" && e !== null) {
+      try {
+        return JSON.stringify(e);
+      } catch {
+        return String(e);
+      }
+    }
+    return String(e);
+  }
+
+  function getErpField(row: Record<string, unknown>, field: string): unknown {
+    if (field in row) return row[field];
+    const found = Object.entries(row).find(([key]) => key.toUpperCase() === field);
+    return found?.[1];
+  }
+
+  function parseErpInteger(val: unknown): number | null {
+    if (val == null || val === "") return null;
+    if (typeof val === "object") {
+      const nested = getErpField(val as Record<string, unknown>, "VALUE") ?? Object.values(val)[0];
+      return parseErpInteger(nested);
+    }
+    const normalized = typeof val === "string" ? val.replace(",", ".") : val;
+    const n = Number(normalized);
+    return Number.isFinite(n) ? Math.trunc(n) : null;
+  }
+
   async function processRow(row: ErpOrderRow) {
     const codCliente = String(row.COD_CLIENTE);
     const legalName = row.CLIENTE_RS ?? row.CLIENTE_NF ?? `Cliente ${codCliente}`;
@@ -197,6 +226,8 @@ export async function syncErpOrders(opts: {
       .filter(Boolean)
       .join("\n");
 
+    const qtdDias = parseErpInteger(getErpField(row as unknown as Record<string, unknown>, "QTD_DIAS"));
+
     const { data: existingOrder } = await supabaseAdmin
       .from("orders")
       .select("id")
@@ -216,7 +247,7 @@ export async function syncErpOrders(opts: {
           nome_rota: row.NOME_ROTA || null,
           nome_motorista: row.NOME_MOTORISTA || null,
           erp_status: row.STATUS || null,
-          qtd_dias: row.QTD_DIAS == null ? null : Number(row.QTD_DIAS),
+          qtd_dias: qtdDias,
         })
         .eq("id", existingOrder.id);
       if (error) throw error;
@@ -235,7 +266,7 @@ export async function syncErpOrders(opts: {
       nome_rota: row.NOME_ROTA || null,
       nome_motorista: row.NOME_MOTORISTA || null,
       erp_status: row.STATUS || null,
-      qtd_dias: row.QTD_DIAS == null ? null : Number(row.QTD_DIAS),
+      qtd_dias: qtdDias,
     });
     if (error) {
       if (error.code === "23505") return { customerCreated, outcome: "skipped" as const };
@@ -257,7 +288,7 @@ export async function syncErpOrders(opts: {
             const r = await processRow(row);
             return { ok: true as const, row, ...r };
           } catch (e) {
-            const msg = e instanceof Error ? e.message : String(e);
+            const msg = describeError(e);
             return { ok: false as const, row, message: msg };
           }
         }),
@@ -344,7 +375,7 @@ export async function syncErpOrders(opts: {
           routes_linked += count ?? 0;
         }
       } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
+        const msg = describeError(e);
         errors.push({ pedido: 0, message: `Rota ${g.nome} (${g.date}): ${msg}` });
       }
     }
@@ -352,7 +383,7 @@ export async function syncErpOrders(opts: {
 
 
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
+    const msg = describeError(e);
     await supabaseAdmin
       .from("erp_sync_runs")
       .update({
