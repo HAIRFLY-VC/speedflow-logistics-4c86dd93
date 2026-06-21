@@ -66,11 +66,9 @@ function buildAddressQuery(c: {
 
 export const geocodePendingCustomers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { force?: boolean } | undefined) => data ?? {})
-  .handler(async ({ data, context }) => {
+  .handler(async ({ context }) => {
     await ensureStaff(context);
     const { supabase } = context;
-    const force = !!data?.force;
 
     const seen = new Set<string>();
     const targets: { id: string; query: string }[] = [];
@@ -87,7 +85,7 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
       if (!c) return;
       if (seen.has(c.id)) return;
       seen.add(c.id);
-      if (!force && c.latitude != null && c.longitude != null) return;
+      if (c.latitude != null && c.longitude != null) return;
       const query = buildAddressQuery(c);
       if (!query.trim()) return;
       targets.push({ id: c.id, query });
@@ -113,16 +111,14 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
       addTarget(c);
     }
 
-    // Quando force=true, busca também todos os clientes da base sem lat/lng
-    if (force) {
-      const { data: allCustomers, error: cErr } = await supabase
-        .from("customers")
-        .select("id, address_line, city, state, zip_code, latitude, longitude")
-        .or("latitude.is.null,longitude.is.null");
-      if (cErr) throw cErr;
-      for (const c of allCustomers ?? []) {
-        addTarget(c);
-      }
+    // Todos os clientes da base sem lat/lng
+    const { data: allCustomers, error: cErr } = await supabase
+      .from("customers")
+      .select("id, address_line, city, state, zip_code, latitude, longitude")
+      .or("latitude.is.null,longitude.is.null");
+    if (cErr) throw cErr;
+    for (const c of allCustomers ?? []) {
+      addTarget(c);
     }
 
     let geocoded = 0;
@@ -154,7 +150,7 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
       .select("depot_address, depot_latitude, depot_longitude")
       .eq("id", 1)
       .maybeSingle();
-    if (cfg?.depot_address && (force || cfg.depot_latitude == null || cfg.depot_longitude == null)) {
+    if (cfg?.depot_address && (cfg.depot_latitude == null || cfg.depot_longitude == null)) {
       try {
         const coord = await geocodeAddress(cfg.depot_address);
         if (coord) {

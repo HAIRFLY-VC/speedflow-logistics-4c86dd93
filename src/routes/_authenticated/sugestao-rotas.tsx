@@ -79,7 +79,7 @@ function SugestaoRotasPage() {
   });
 
   const geocode = useMutation({
-    mutationFn: (force: boolean = false) => geocodeFn({ data: { force } }),
+    mutationFn: () => geocodeFn({}),
     onSuccess: (r) => {
       toast.success(`Geocodificados: ${r.geocoded} | Falhas: ${r.failed}`);
       qc.invalidateQueries({ queryKey: ["unrouted-orders"] });
@@ -165,21 +165,8 @@ function SugestaoRotasPage() {
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
-              onClick={() => geocode.mutate(false)}
-              disabled={geocode.isPending || missingCoords === 0}
-              title="Preencher latitude/longitude dos clientes faltantes"
-            >
-              {geocode.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <MapPin className="h-4 w-4 mr-2" />
-              )}
-              Geocodificar pendentes{missingCoords ? ` (${missingCoords})` : ""}
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => geocode.mutate(true)}
-              disabled={geocode.isPending}
+              onClick={() => geocode.mutate()}
+              disabled={geocode.isPending || (customersMissingCoords.data ?? 0) === 0}
               title="Geocodifica todos os clientes da base que não têm latitude/longitude cadastrada"
             >
               {geocode.isPending ? (
@@ -187,7 +174,7 @@ function SugestaoRotasPage() {
               ) : (
                 <MapPin className="h-4 w-4 mr-2" />
               )}
-              Forçar geocodificação
+              Geocodificar
               {customersMissingCoords.data != null ? ` (${customersMissingCoords.data})` : ""}
             </Button>
             <Button onClick={() => suggest.mutate()} disabled={suggest.isPending || pendingRows.length === 0}>
