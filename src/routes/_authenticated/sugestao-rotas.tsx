@@ -83,6 +83,7 @@ function SugestaoRotasPage() {
     onSuccess: (r) => {
       toast.success(`Geocodificados: ${r.geocoded} | Falhas: ${r.failed}`);
       qc.invalidateQueries({ queryKey: ["unrouted-orders"] });
+      qc.invalidateQueries({ queryKey: ["customers-missing-coords"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
