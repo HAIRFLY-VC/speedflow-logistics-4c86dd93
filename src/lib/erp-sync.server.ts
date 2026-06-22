@@ -307,6 +307,32 @@ export async function syncErpOrders(opts: {
       }
     }
 
+    // Pedidos que não retornaram na consulta do ERP são considerados expedidos.
+    try {
+      const fetchedErpIds = Array.from(
+        new Set(rows.map((r) => String(r.PEDIDO)).filter((s) => s && s !== "null")),
+      );
+      const EXPEDIDO = "11-EXPEDIDO";
+      let query = supabaseAdmin
+        .from("orders")
+        .update({ erp_status: EXPEDIDO })
+        .neq("erp_status", EXPEDIDO)
+        .not("erp_id", "is", null);
+      if (fetchedErpIds.length > 0) {
+        // Postgrest .not('erp_id','in',...) — exclui os pedidos retornados
+        const list = `(${fetchedErpIds.map((v) => `"${v}"`).join(",")})`;
+        query = query.not("erp_id", "in", list);
+      }
+      const { error: expErr } = await query;
+      if (expErr) {
+        errors.push({ pedido: 0, message: `Marcar expedidos: ${expErr.message}` });
+      }
+    } catch (e) {
+      errors.push({ pedido: 0, message: `Marcar expedidos: ${describeError(e)}` });
+    }
+
+
+
     // Auto-cadastro de rotas a partir de ID_ROTA (ERP) + NOME_ROTA + DT_PREV_EXP + NOME_MOTORISTA
     type RouteGroup = { erpRouteId: string | null; nome: string; date: string; driver: string | null; pedidos: string[] };
     const groups = new Map<string, RouteGroup>();
