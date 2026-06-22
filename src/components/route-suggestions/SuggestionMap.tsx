@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { computeRoutePolyline } from "@/lib/route-directions.functions";
 
@@ -23,6 +23,7 @@ const BROWSER_KEY = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_K
 
 const COLOR_EXISTING = "#2563eb"; // azul
 const COLOR_NEW = "#16a34a"; // verde
+const EMPTY_STOPS: MapStop[] = [];
 
 function loadMaps(): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();
@@ -102,7 +103,7 @@ export function sequenceStops(
 
 export function SuggestionMap({
   stops,
-  existingStops = [],
+  existingStops = EMPTY_STOPS,
   depot,
   height = 260,
 }: {
@@ -112,9 +113,22 @@ export function SuggestionMap({
   height?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const computeRoute = useServerFn(computeRoutePolyline);
+  const computeRouteFn = useServerFn(computeRoutePolyline);
+  const computeRouteRef = useRef(computeRouteFn);
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [computing, setComputing] = useState(false);
+  useEffect(() => {
+    computeRouteRef.current = computeRouteFn;
+  }, [computeRouteFn]);
+  const routeKey = useMemo(
+    () =>
+      JSON.stringify({
+        depot,
+        stops: (stops as MapStop[]).map((s) => [s.lat, s.lng, s.orderNumber, s.customerName]),
+        existingStops: existingStops.map((s) => [s.lat, s.lng, s.orderNumber, s.customerName]),
+      }),
+    [stops, existingStops, depot],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -212,7 +226,7 @@ export function SuggestionMap({
           const origin = segment[0];
           const destination = segment[segment.length - 1];
           const waypoints = segment.slice(1, -1);
-          const result = await computeRoute({
+          const result = await computeRouteRef.current({
             data: { origin, destination, waypoints },
           });
           if (cancelled) return;
@@ -234,15 +248,16 @@ export function SuggestionMap({
           drawFallback(segment);
         }
       }
-      if (!cancelled) {
-        setDistanceKm(totalMeters > 0 ? totalMeters / 1000 : null);
-        setComputing(false);
-      }
+      if (!cancelled) setDistanceKm(totalMeters > 0 ? totalMeters / 1000 : null);
+    }).catch((err) => {
+      console.warn("[SuggestionMap] Falha ao carregar o mapa:", err);
+    }).finally(() => {
+      if (!cancelled) setComputing(false);
     });
     return () => {
       cancelled = true;
     };
-  }, [stops, existingStops, depot, computeRoute]);
+  }, [routeKey]);
 
   return (
     <div className="relative">
