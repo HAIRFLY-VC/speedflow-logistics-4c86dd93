@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { normalizeRouteName } from "@/lib/utils";
 
 const UNROUTED_DATE = "4000-01-01";
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_maps";
