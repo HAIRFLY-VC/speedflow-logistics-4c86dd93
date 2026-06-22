@@ -198,6 +198,7 @@ export type RouteSuggestion = {
   existingValue: number;
   existingDeliveries: number;
   centroid: Coord;
+  freightCost?: number | null;
 };
 
 function nextBusinessDay(): string {
