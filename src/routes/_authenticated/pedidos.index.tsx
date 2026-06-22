@@ -97,6 +97,8 @@ function formatTempoDias(v: number | string | null | undefined) {
 function PedidosPage() {
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [visibleRows, setVisibleRows] = useState<OrderRow[]>([]);
+
 
   const ordersQ = useQuery({
     queryKey: ["orders", "list"],
@@ -129,7 +131,7 @@ function PedidosPage() {
   const agendaTotals = useMemo(() => {
     const init = () => ({ valor: 0, peso: 0, qtd: 0 });
     const acc = { a417: init(), a427: init() };
-    for (const o of ordersQ.data ?? []) {
+    for (const o of visibleRows) {
       if (o.cod_agenda === 417) {
         acc.a417.valor += Number(o.total_amount ?? 0);
         acc.a417.peso += Number(o.weight ?? 0);
@@ -149,7 +151,8 @@ function PedidosPage() {
         qtd: acc.a417.qtd + acc.a427.qtd,
       },
     };
-  }, [ordersQ.data]);
+  }, [visibleRows]);
+
 
   const formatWeight = (kg: number) => `${weightFmt.format(kg)} kg`;
 
@@ -452,6 +455,8 @@ function PedidosPage() {
           isLoading={ordersQ.isLoading}
           rowKey={(o) => o.id}
           emptyMessage="Nenhum pedido encontrado."
+          onFilteredChange={setVisibleRows}
+
           
           toolbarRight={
             <Button

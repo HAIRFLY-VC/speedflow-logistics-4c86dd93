@@ -1,4 +1,4 @@
-import { isValidElement, useMemo, useState, type ReactNode } from "react";
+import { isValidElement, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ArrowDown, ArrowUp, ChevronsUpDown, Filter, X } from "lucide-react";
 
 import {
@@ -101,8 +101,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
     rowClassName,
     toolbarLeft,
     toolbarRight,
+    onFilteredChange,
     groupBy,
   } = props;
+
 
   const {
     state,
@@ -180,6 +182,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
     }
     return out;
   }, [data, columns, state.filters, state.sort]);
+
+  useEffect(() => {
+    onFilteredChange?.(filteredSorted);
+  }, [filteredSorted, onFilteredChange]);
+
 
   const grouped = useMemo(() => {
     if (!groupBy) return null;
