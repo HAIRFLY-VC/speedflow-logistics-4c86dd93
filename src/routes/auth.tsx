@@ -26,8 +26,8 @@ async function handleGoogleSignIn() {
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Entrar — Speed Logística" },
-      { name: "description", content: "Acesse o sistema Speed Logística da Hairfly Cosméticos." },
+      { title: "Entrar — SpeedFlow Logistics" },
+      { name: "description", content: "Acesse o sistema SpeedFlow Logistics da Hairfly Cosméticos." },
     ],
   }),
   component: AuthPage,
@@ -105,7 +105,7 @@ function AuthPage() {
             <Truck className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Speed Logística</h1>
+            <h1 className="text-2xl font-bold tracking-tight">SpeedFlow Logistics</h1>
             <p className="text-xs text-muted-foreground">Hairfly Cosméticos</p>
           </div>
         </div>

@@ -97,7 +97,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </SidebarTrigger>
             <div className="flex items-center gap-2">
               <Truck className="h-5 w-5 text-primary" />
-              <span className="font-semibold tracking-tight">Speed Logística</span>
+              <span className="font-semibold tracking-tight">SpeedFlow Logistics</span>
             </div>
             <div className="ml-auto flex items-center gap-2">
               <ErpSyncButton />
