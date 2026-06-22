@@ -406,8 +406,10 @@ export async function syncErpOrders(opts: {
               driver_name: g.driver,
               route_date: g.date,
               erp_route_id: g.erpRouteId,
+              code: g.erpRouteId ? `erp-${g.erpRouteId}` : undefined,
             })
             .eq("id", routeId);
+
         } else {
           const { data: ins, error } = await supabaseAdmin
             .from("routes")
