@@ -552,19 +552,27 @@ function RouteMapSection({
   const mapStops = stops
     .map((s) => {
       const o = s.orders;
-      const c = o?.customers;
-      if (!o || !c || c.latitude == null || c.longitude == null) return null;
+      if (!o) return null;
+      const coord = getOrderCoord({
+        delivery_latitude: o.delivery_latitude,
+        delivery_longitude: o.delivery_longitude,
+        customers: o.customers,
+      });
+      if (!coord) return null;
+      const c = o.customers;
       return {
-        lat: Number(c.latitude),
-        lng: Number(c.longitude),
+        lat: coord.lat,
+        lng: coord.lng,
         orderNumber: o.order_number,
-        customerName: c.trade_name || c.legal_name || "—",
-        city: c.city,
-        state: c.state,
+        customerName: c?.trade_name || c?.legal_name || "—",
+        city: c?.city ?? null,
+        state: c?.state ?? null,
         weight: Number(o.weight ?? 0),
         amount: Number(o.total_amount ?? 0),
         orderId: o.id,
         kind: "new" as const,
+        coordSource: coord.source,
+        deliveryAddress: o.delivery_address,
       };
     })
     .filter((x): x is NonNullable<typeof x> => !!x);
