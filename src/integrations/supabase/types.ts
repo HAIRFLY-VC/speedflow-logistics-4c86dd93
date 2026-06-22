@@ -731,7 +731,7 @@ export type Database = {
           {
             foreignKeyName: "route_orders_order_id_fkey"
             columns: ["order_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },

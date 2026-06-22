@@ -487,6 +487,15 @@ export async function syncErpOrders(opts: {
           .in("erp_id", g.pedidos);
 
         if (orderRows && orderRows.length > 0) {
+          const orderIds = orderRows.map((o) => o.id);
+          // Remove vínculos antigos em outras rotas (pedido só pode estar em 1 rota)
+          const { error: delErr } = await supabaseAdmin
+            .from("route_orders")
+            .delete()
+            .in("order_id", orderIds)
+            .neq("route_id", routeId);
+          if (delErr) throw delErr;
+
           const links = orderRows.map((o, idx) => ({
             route_id: routeId,
             order_id: o.id,
@@ -494,7 +503,7 @@ export async function syncErpOrders(opts: {
           }));
           const { error: linkErr, count } = await supabaseAdmin
             .from("route_orders")
-            .upsert(links, { onConflict: "route_id,order_id", ignoreDuplicates: true, count: "exact" });
+            .upsert(links, { onConflict: "order_id", ignoreDuplicates: true, count: "exact" });
           if (linkErr) throw linkErr;
           routes_linked += count ?? 0;
         }
