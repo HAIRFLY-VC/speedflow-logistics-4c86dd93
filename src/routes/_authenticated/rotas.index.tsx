@@ -413,6 +413,23 @@ function RotasPage() {
         ),
       },
       {
+        id: "total_distance_km",
+        header: "Distância (km)",
+        sortable: false,
+        align: "right",
+        filterable: false,
+        accessor: (r) => Number(r.total_distance_km ?? 0),
+        render: (r) => <DistanceCell route={r} depot={depot} />,
+        className: "tabular-nums text-xs",
+        aggregate: (rows) => (
+          <span className="tabular-nums">
+            {rows
+              .reduce((s, r) => s + Number(r.total_distance_km ?? 0), 0)
+              .toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+          </span>
+        ),
+      },
+      {
         id: "total_freight",
         header: "Frete (R$)",
         sortable: false,
