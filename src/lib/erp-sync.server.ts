@@ -306,8 +306,8 @@ export async function syncErpOrders(opts: {
       }
     }
 
-    // Auto-cadastro de rotas a partir de NOME_ROTA + DT_PREV_EXP + NOME_MOTORISTA
-    type RouteGroup = { nome: string; date: string; driver: string | null; pedidos: string[] };
+    // Auto-cadastro de rotas a partir de ID_ROTA (ERP) + NOME_ROTA + DT_PREV_EXP + NOME_MOTORISTA
+    type RouteGroup = { erpRouteId: string | null; nome: string; date: string; driver: string | null; pedidos: string[] };
     const groups = new Map<string, RouteGroup>();
     for (const row of rows) {
       const nome = (row.NOME_ROTA ?? "").trim();
@@ -317,10 +317,16 @@ export async function syncErpOrders(opts: {
       const dateOnly = dt.slice(0, 10);
       if (dateOnly === "3000-01-01" || dateOnly === "4000-01-01") continue;
       const driver = row.NOME_MOTORISTA?.trim() || null;
-      const key = `${nome}|${dateOnly}|${driver ?? ""}`;
+      const erpRouteId =
+        row.ID_ROTA != null && String(row.ID_ROTA).trim() !== ""
+          ? String(row.ID_ROTA).trim()
+          : null;
+      const key = erpRouteId
+        ? `erp:${erpRouteId}`
+        : `${nome}|${dateOnly}|${driver ?? ""}`;
       let g = groups.get(key);
       if (!g) {
-        g = { nome, date: dateOnly, driver, pedidos: [] };
+        g = { erpRouteId, nome, date: dateOnly, driver, pedidos: [] };
         groups.set(key, g);
       }
       g.pedidos.push(String(row.PEDIDO));
@@ -328,19 +334,38 @@ export async function syncErpOrders(opts: {
 
     for (const g of groups.values()) {
       try {
-        const code = `${slugify(g.nome)}-${g.date.replace(/-/g, "")}`;
-        const { data: existing } = await supabaseAdmin
-          .from("routes")
-          .select("id")
-          .eq("code", code)
-          .maybeSingle();
+        const code = g.erpRouteId
+          ? `erp-${g.erpRouteId}`
+          : `${slugify(g.nome)}-${g.date.replace(/-/g, "")}`;
+
+        let existing: { id: string } | null = null;
+        if (g.erpRouteId) {
+          const { data } = await supabaseAdmin
+            .from("routes")
+            .select("id")
+            .eq("erp_route_id", g.erpRouteId)
+            .maybeSingle();
+          existing = data ?? null;
+        }
+        if (!existing) {
+          const { data } = await supabaseAdmin
+            .from("routes")
+            .select("id")
+            .eq("code", code)
+            .maybeSingle();
+          existing = data ?? null;
+        }
 
         let routeId: string;
         if (existing) {
           routeId = existing.id;
           await supabaseAdmin
             .from("routes")
-            .update({ driver_name: g.driver, route_date: g.date })
+            .update({
+              driver_name: g.driver,
+              route_date: g.date,
+              erp_route_id: g.erpRouteId,
+            })
             .eq("id", routeId);
         } else {
           const { data: ins, error } = await supabaseAdmin
@@ -350,6 +375,7 @@ export async function syncErpOrders(opts: {
               route_date: g.date,
               driver_name: g.driver,
               notes: `Rota ${g.nome}`,
+              erp_route_id: g.erpRouteId,
             })
             .select("id")
             .single();
