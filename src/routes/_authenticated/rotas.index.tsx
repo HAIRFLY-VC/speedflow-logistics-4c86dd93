@@ -121,6 +121,13 @@ function statusMapOf(r: RouteRow) {
   }
   return new Map(Array.from(m.entries()).map(([k, v]) => [k, v.size]));
 }
+function expedicaoStatusOf(r: RouteRow): "E" | "P" {
+  const ros = r.route_orders ?? [];
+  if (ros.length === 0) return "P";
+  const allExpedidos = ros.every((ro) => (ro.orders?.erp_status ?? "") === "11-EXPEDIDO");
+  return allExpedidos ? "E" : "P";
+}
+
 
 function slugify(s: string): string {
   return (
