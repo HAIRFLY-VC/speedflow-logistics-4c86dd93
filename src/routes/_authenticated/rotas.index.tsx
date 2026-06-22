@@ -219,9 +219,12 @@ function DistanceCell({
   const compute = useServerFn(computeRoutePolyline);
   const qc = useQueryClient();
   const attempted = useRef(false);
-  const [value, setValue] = useState<number | null>(
-    route.total_distance_km != null ? Number(route.total_distance_km) : null,
-  );
+  const [value, setValue] = useState<number | null>(() => {
+    const v = route.total_distance_km;
+    if (v == null) return null;
+    const n = Number(v);
+    return n > 0 ? n : null;
+  });
   const [computing, setComputing] = useState(false);
 
   const stops = useMemo(() => {
