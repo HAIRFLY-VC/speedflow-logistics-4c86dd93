@@ -77,6 +77,9 @@ type Stop = {
     total_amount: number;
     weight: number | null;
     customer_id: string | null;
+    delivery_address: string | null;
+    delivery_latitude: number | null;
+    delivery_longitude: number | null;
     customers: {
       trade_name: string | null;
       legal_name: string;
