@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { normalizeRouteName } from "@/lib/utils";
+
 
 const UNROUTED_DATE = "4000-01-01";
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_maps";
@@ -343,8 +343,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         stops.map((o) => o.customer_id).filter((id): id is string => !!id),
       );
       const existingDeliveries = customerIds.size;
-      const rawLabel = r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code;
-      const label = normalizeRouteName(rawLabel);
+      const label = r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code;
       existing.push({
         id: r.id,
         label,

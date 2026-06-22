@@ -2,7 +2,7 @@
 // API: POST {ERP_API_BASE_URL}/v1/query com { sql, binds, limit } e header X-API-Key.
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { normalizeRouteName } from "@/lib/utils";
+
 
 type ErpColumn = { name: string; type: string };
 type ErpQueryResponse = {
@@ -246,7 +246,7 @@ export async function syncErpOrders(opts: {
           cod_agenda: row.COD_AGENDA,
           notes: notes || null,
           dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
-          nome_rota: row.NOME_ROTA ? normalizeRouteName(row.NOME_ROTA) : null,
+          nome_rota: row.NOME_ROTA || null,
           nome_motorista: row.NOME_MOTORISTA || null,
           erp_status: row.STATUS || null,
           qtd_dias: qtdDias,
@@ -265,7 +265,7 @@ export async function syncErpOrders(opts: {
       cod_agenda: row.COD_AGENDA,
       notes: notes || null,
       dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
-      nome_rota: row.NOME_ROTA ? normalizeRouteName(row.NOME_ROTA) : null,
+      nome_rota: row.NOME_ROTA || null,
       nome_motorista: row.NOME_MOTORISTA || null,
       erp_status: row.STATUS || null,
       qtd_dias: qtdDias,
@@ -311,7 +311,7 @@ export async function syncErpOrders(opts: {
     type RouteGroup = { erpRouteId: string | null; nome: string; date: string; driver: string | null; pedidos: string[] };
     const groups = new Map<string, RouteGroup>();
     for (const row of rows) {
-      const nome = normalizeRouteName((row.NOME_ROTA ?? "").trim());
+      const nome = (row.NOME_ROTA ?? "").trim();
       if (!nome) continue;
       const dt = parseErpDate(row.DT_PREV_EXP);
       if (!dt) continue;
