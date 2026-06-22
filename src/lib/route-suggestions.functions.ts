@@ -462,7 +462,9 @@ export const suggestRoutes = createServerFn({ method: "POST" })
       );
 
       const cityOfSeed = (seed as { customers: { city: string | null } | null }).customers?.city ?? "";
-      const label = `Sugestão ${groupIdx}${cityOfSeed ? " — " + cityOfSeed : ""}`;
+      const label = cityOfSeed
+        ? `M-${cityOfSeed.toUpperCase()}`
+        : `M-SUGESTAO ${groupIdx}`;
 
       suggestions.push({
         id: `new-${groupIdx}`,
