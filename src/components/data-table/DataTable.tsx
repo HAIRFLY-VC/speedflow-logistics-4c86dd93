@@ -183,6 +183,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
     return out;
   }, [data, columns, state.filters, state.sort]);
 
+  useEffect(() => {
+    onFilteredChange?.(filteredSorted);
+  }, [filteredSorted, onFilteredChange]);
+
+
   const grouped = useMemo(() => {
     if (!groupBy) return null;
     const map = new Map<string, T[]>();
