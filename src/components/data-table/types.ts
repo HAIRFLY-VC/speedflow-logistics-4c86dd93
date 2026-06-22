@@ -36,6 +36,8 @@ export type DataTableProps<T> = {
   rowClassName?: (row: T) => string | undefined;
   toolbarLeft?: ReactNode;
   toolbarRight?: ReactNode;
+  onFilteredChange?: (rows: T[]) => void;
+
   groupBy?: {
     id: string;
     accessor: (row: T) => string;
