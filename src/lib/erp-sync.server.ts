@@ -474,6 +474,53 @@ export async function syncErpOrders(opts: {
     };
   }
 
+  // Geocodifica clientes sem latitude/longitude
+  let geocoded_customers = 0;
+  try {
+    const lovableKey = process.env.LOVABLE_API_KEY;
+    const gmKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (lovableKey && gmKey) {
+      const { data: pending } = await supabaseAdmin
+        .from("customers")
+        .select("id, address_line, city, state, zip_code")
+        .or("latitude.is.null,longitude.is.null")
+        .limit(200);
+      for (const c of pending ?? []) {
+        const q = [c.address_line, c.city, c.state, c.zip_code, "Brasil"]
+          .filter((p) => p && String(p).trim())
+          .join(", ");
+        if (!q) continue;
+        try {
+          const url = `https://connector-gateway.lovable.dev/google_maps/maps/api/geocode/json?address=${encodeURIComponent(q)}&region=br&language=pt-BR`;
+          const res = await fetch(url, {
+            headers: { Authorization: `Bearer ${lovableKey}`, "X-Connection-Api-Key": gmKey },
+          });
+          if (!res.ok) continue;
+          const json = (await res.json()) as {
+            status: string;
+            results?: { geometry?: { location?: { lat: number; lng: number } } }[];
+          };
+          if (json.status !== "OK" || !json.results?.length) continue;
+          const loc = json.results[0].geometry?.location;
+          if (!loc) continue;
+          const { error: upErr } = await supabaseAdmin
+            .from("customers")
+            .update({ latitude: loc.lat, longitude: loc.lng })
+            .eq("id", c.id);
+          if (!upErr) geocoded_customers++;
+        } catch (err) {
+          console.warn("[erp-sync] geocode falhou para cliente", c.id, err);
+        }
+      }
+      if (geocoded_customers > 0) {
+        console.log(`[erp-sync] geocodificados ${geocoded_customers} clientes`);
+      }
+    }
+  } catch (err) {
+    console.warn("[erp-sync] etapa de geocodificação falhou:", err);
+  }
+
+
   const status: SyncResult["status"] =
     errors.length === 0 ? "success" : errors.length === fetched ? "failed" : "partial";
 
