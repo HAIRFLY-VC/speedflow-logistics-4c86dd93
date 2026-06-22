@@ -75,6 +75,24 @@ const PENDING_ORDERS_SQL = `
     AND R.ID(+) = P.ID
 `;
 
+// Erros típicos de indisponibilidade do servidor de origem (Cloudflare entre nós e o ERP).
+const TRANSIENT_HTTP_STATUSES = new Set([502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 527, 530]);
+
+function friendlyErpError(status: number, bodyText: string): string {
+  if (TRANSIENT_HTTP_STATUSES.has(status)) {
+    return `ERP fora do ar (HTTP ${status}). Tente novamente em alguns minutos.`;
+  }
+  if (status === 401 || status === 403) {
+    return `ERP recusou a autenticação (HTTP ${status}). Verifique a API Key.`;
+  }
+  if (status === 429) {
+    return `ERP retornou limite de requisições (HTTP 429). Tente novamente em instantes.`;
+  }
+  // fallback: usa o corpo curto, apenas se parecer texto útil
+  const snippet = bodyText.replace(/\s+/g, " ").trim().slice(0, 200);
+  return `ERP API ${status}${snippet ? `: ${snippet}` : ""}`;
+}
+
 async function fetchPendingOrdersFromErp(): Promise<ErpOrderRow[]> {
   const baseUrl = process.env.ERP_API_BASE_URL;
   const apiKey = process.env.ERP_API_KEY;
@@ -84,20 +102,33 @@ async function fetchPendingOrdersFromErp(): Promise<ErpOrderRow[]> {
   // Aceita base URL com ou sem /v1/query no final
   const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
   const url = `${cleanBase}/v1/query`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-Key": apiKey,
-    },
-    body: JSON.stringify({ sql: PENDING_ORDERS_SQL, binds: {}, limit: 5000 }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`ERP API ${res.status}: ${text.slice(0, 300)}`);
+
+  const maxAttempts = 3;
+  let lastErr: Error | null = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+        body: JSON.stringify({ sql: PENDING_ORDERS_SQL, binds: {}, limit: 5000 }),
+      });
+      if (res.ok) {
+        const json = (await res.json()) as ErpQueryResponse;
+        return (json.rows ?? []) as unknown as ErpOrderRow[];
+      }
+      const text = await res.text();
+      const msg = friendlyErpError(res.status, text);
+      lastErr = new Error(msg);
+      if (!TRANSIENT_HTTP_STATUSES.has(res.status) && res.status !== 429) break;
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e));
+    }
+    if (attempt < maxAttempts) {
+      const backoffMs = 1000 * Math.pow(2, attempt - 1); // 1s, 2s
+      await new Promise((r) => setTimeout(r, backoffMs));
+    }
   }
-  const json = (await res.json()) as ErpQueryResponse;
-  return (json.rows ?? []) as unknown as ErpOrderRow[];
+  throw lastErr ?? new Error("Falha desconhecida ao consultar o ERP");
 }
 
 type SyncResult = {
