@@ -1,58 +1,20 @@
-## Objetivo
+## Problema
 
-Quando o ERP enviar, no campo `OBS_LOGIST` de um pedido, um texto no formato:
+A tabela `route_orders` tem UNIQUE em `(route_id, order_id)`, mas não em `order_id` sozinho. Quando o ERP move um pedido de uma rota para outra (ex.: ERP-133 → ERP-153), o sync insere o novo vínculo mas **não remove o antigo**, deixando o pedido em duas rotas. Hoje há 6 pedidos duplicados (4130658, 4130659, 4130661, 4130662, 4130665, 4130702).
 
-```
-ENDERECO DE ENTREGA: <endereço alternativo>
-```
+## Correção
 
-o app deve usar o `<endereço alternativo>` (após os `:`) como ponto de entrega daquele pedido para fins de roteirização e exibição no mapa, **substituindo** a latitude/longitude do cliente apenas para esse pedido. O endereço do cliente original permanece intocado (outros pedidos do mesmo cliente continuam usando o endereço de cadastro).
+### 1. Migração de banco
+- Deduplicar `route_orders`: para cada `order_id` com mais de um vínculo, manter apenas o de maior `routes.route_date` (em empate, o mais recente por `route_orders.created_at`) e apagar os demais.
+- Adicionar `UNIQUE (order_id)` em `route_orders` para impedir o problema no futuro.
 
-Caso o ERP envie um pedido para Fernando de Noronha (cliente `131687 — NORONHAO`) com `OBS_LOGIST = "ENDERECO DE ENTREGA: Rua X, Recife/PE"`, a parada passa a ser geocodificada em Recife e a rota terrestre volta a ser calculada.
+### 2. Ajuste no sync do ERP (`src/lib/erp-sync.server.ts`)
+No passo "Auto-cadastro de rotas", antes do `upsert` em `route_orders`:
+- Para cada pedido do grupo, deletar quaisquer linhas em `route_orders` cujo `order_id` esteja na lista e `route_id` seja diferente do `routeId` atual.
+- Manter o `upsert` existente para criar/atualizar o vínculo correto.
 
-## Mudanças
+Isso garante que, quando o ERP reatribui um pedido a outra rota, o vínculo antigo é removido na próxima sincronização — e a constraint do banco passa a impedir o estado inválido mesmo em caminhos manuais.
 
-### 1. Banco (`orders`)
-Adicionar 3 colunas opcionais (migração):
-- `delivery_address text` — endereço extraído do OBS_LOGIST
-- `delivery_latitude numeric`
-- `delivery_longitude numeric`
-
-Sem alteração de RLS/GRANTs (já cobertos pela política existente da tabela).
-
-### 2. Sincronização ERP (`src/lib/erp-sync.server.ts`)
-- Criar helper `parseDeliveryOverride(obsLogist)` com regex `^\s*ENDERECO\s+DE\s+ENTREGA\s*:\s*(.+)$` (case-insensitive, multiline). Retorna o texto após `:` ou `null`.
-- No `processRow`, ao montar o payload de `orders`:
-  - Calcular `deliveryAddress = parseDeliveryOverride(row.OBS_LOGIST)`.
-  - No `INSERT`: gravar `delivery_address` (lat/lng ficam `null`, serão geocodificados a seguir).
-  - No `UPDATE`: se `deliveryAddress` mudou em relação ao registro atual, gravar o novo endereço e **zerar** `delivery_latitude`/`delivery_longitude` para forçar re-geocodificação. Se ficou `null`, limpar também as coordenadas.
-- Após o loop principal, no bloco que hoje geocodifica `customers` sem lat/lng, adicionar um segundo passo análogo: buscar `orders` com `delivery_address IS NOT NULL AND delivery_latitude IS NULL`, geocodificar via gateway Google Maps e gravar `delivery_latitude/longitude` no pedido. Contador `geocoded_orders` retornado no relatório de sync (junto com `geocoded_customers`).
-
-### 3. Helper de coordenadas
-Criar `src/lib/order-coords.ts` (utilitário client-safe):
-
-```ts
-export type CoordSource = { lat: number; lng: number; source: "order" | "customer" };
-export function getOrderCoord(order: {
-  delivery_latitude?: number | string | null;
-  delivery_longitude?: number | string | null;
-  customers?: { latitude?: number | string | null; longitude?: number | string | null } | null;
-}): CoordSource | null { /* prioriza delivery_*, fallback customers.* */ }
-```
-
-### 4. Consumidores das coordenadas
-Atualizar `select(...)` para incluir `delivery_address, delivery_latitude, delivery_longitude` e trocar acessos diretos por `getOrderCoord(o)` em:
-- `src/lib/route-suggestions.functions.ts` (clustering + suggestion + tela de rotas existentes)
-- `src/routes/_authenticated/sugestao-rotas.tsx` (filtro `noCoord`, contagem pendente, geocode-aviso)
-- `src/routes/_authenticated/rotas.index.tsx` (mapa + auto-recalc de distância)
-- `src/routes/_authenticated/rotas.$routeId.tsx` (mapa de detalhamento)
-
-A UI das paradas pode opcionalmente mostrar um badge "endereço alternativo" quando `source === "order"" — incluído apenas na tela de detalhe da rota, com tooltip exibindo o `delivery_address`.
-
-### 5. Recalculo
-Como `delivery_latitude/longitude` entram nas mesmas funções de cálculo, o auto-recalc de distância (já existente) cobre o caso. Pedidos que ainda não foram geocodificados após o sync ficam com a fallback do cliente — sem regressão.
-
-## Não escopo
-- Sem mudanças no fluxo de aprovação, faturamento ou status do pedido.
-- O endereço do cadastro do cliente (Noronha) permanece como está; apenas a parada do pedido específico muda.
-- Sem nova tela de edição manual do endereço alternativo (ele vem sempre do ERP).
+### 3. Verificação
+- Após a migração, rodar `SELECT order_id, COUNT(*) FROM route_orders GROUP BY 1 HAVING COUNT(*)>1` — deve retornar zero linhas.
+- Sincronizar novamente com o ERP e confirmar que não surgem novos duplicados.
