@@ -125,7 +125,7 @@ function RouteDetailPage() {
       const { data, error } = await supabase
         .from("route_orders")
         .select(
-          "id,stop_order,orders(id,order_number,status,total_amount,weight,customer_id,customers(trade_name,legal_name,city,state,latitude,longitude))",
+          "id,stop_order,orders(id,order_number,status,total_amount,weight,customer_id,delivery_address,delivery_latitude,delivery_longitude,customers(trade_name,legal_name,city,state,latitude,longitude))",
         )
         .eq("route_id", routeId)
         .order("stop_order");
