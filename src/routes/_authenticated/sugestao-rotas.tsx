@@ -61,9 +61,27 @@ function SugestaoRotasPage() {
   const suggestFn = useServerFn(suggestRoutes);
   const confirmFn = useServerFn(confirmRouteSuggestion);
 
-  const [state, setState] = useState<SuggestState>(null);
+  const [state, setState] = useState<SuggestState>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = sessionStorage.getItem("sugestao-rotas:state");
+      return raw ? (JSON.parse(raw) as SuggestState) : null;
+    } catch {
+      return null;
+    }
+  });
   const [editing, setEditing] = useState<RouteSuggestion | null>(null);
   const [detailRoute, setDetailRoute] = useState<{ id: string; label: string } | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (state) sessionStorage.setItem("sugestao-rotas:state", JSON.stringify(state));
+      else sessionStorage.removeItem("sugestao-rotas:state");
+    } catch {
+      /* ignore quota errors */
+    }
+  }, [state]);
 
   const pending = useQuery({
     queryKey: ["unrouted-orders"],
