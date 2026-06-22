@@ -34,7 +34,7 @@ export const computeRoutePolyline = createServerFn({ method: "POST" })
         Authorization: `Bearer ${lovableKey}`,
         "X-Connection-Api-Key": gmKey,
         "Content-Type": "application/json",
-        "X-Goog-FieldMask": "routes.polyline.encodedPolyline",
+        "X-Goog-FieldMask": "routes.polyline.encodedPolyline,routes.distanceMeters",
       },
       body: JSON.stringify(body),
     });
@@ -44,8 +44,11 @@ export const computeRoutePolyline = createServerFn({ method: "POST" })
       throw new Error(`Routes API ${res.status}: ${text.slice(0, 200)}`);
     }
     const json = (await res.json()) as {
-      routes?: { polyline?: { encodedPolyline?: string } }[];
+      routes?: { polyline?: { encodedPolyline?: string }; distanceMeters?: number }[];
     };
-    const encoded = json.routes?.[0]?.polyline?.encodedPolyline ?? null;
-    return { encodedPolyline: encoded };
+    const route = json.routes?.[0];
+    return {
+      encodedPolyline: route?.polyline?.encodedPolyline ?? null,
+      distanceMeters: route?.distanceMeters ?? 0,
+    };
   });
