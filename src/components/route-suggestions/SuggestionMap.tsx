@@ -26,10 +26,28 @@ const COLOR_NEW = "#16a34a"; // verde
 
 function loadMaps(): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();
-  if (window.google?.maps) return Promise.resolve();
   if (window.__sugMapReady) return window.__sugMapReady;
-  window.__sugMapReady = new Promise<void>((resolve) => {
-    window.__sugMapInit = () => resolve();
+  window.__sugMapReady = new Promise<void>((resolve, reject) => {
+    const ensureLibs = async () => {
+      try {
+        // Com loading=async, classes como LatLngBounds/Map/Marker só ficam
+        // disponíveis depois de importLibrary — não basta esperar o callback.
+        await Promise.all([
+          window.google.maps.importLibrary("maps"),
+          window.google.maps.importLibrary("marker"),
+          window.google.maps.importLibrary("core"),
+          window.google.maps.importLibrary("geometry"),
+        ]);
+        resolve();
+      } catch (e) {
+        reject(e);
+      }
+    };
+    if (window.google?.maps?.importLibrary) {
+      ensureLibs();
+      return;
+    }
+    window.__sugMapInit = () => ensureLibs();
     const script = document.createElement("script");
     const params = new URLSearchParams({
       key: BROWSER_KEY ?? "",
