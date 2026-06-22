@@ -413,6 +413,8 @@ function SuggestionCard({
         {s.type === "append_existing" && (() => {
           const newCustomers = new Set(s.stops.map((st) => st.customerId));
           const newDeliveries = newCustomers.size;
+          const existingOrders = s.existingStops.length;
+          const totalOrders = existingOrders + s.stops.length;
           const totalDeliveries = s.existingDeliveries + newDeliveries;
           const totalWeight = s.existingWeight + s.totalWeight;
           const totalValue = s.existingValue + s.totalAmount;
@@ -425,7 +427,8 @@ function SuggestionCard({
                 title="Ver pedidos da rota existente"
               >
                 <span className="font-medium text-blue-700">Rota existente:</span>{" "}
-                {s.existingDeliveries} entrega(s) · {weightFmt.format(s.existingWeight)} kg ·{" "}
+                {existingOrders} pedido(s) · {s.existingDeliveries} entrega(s) ·{" "}
+                {weightFmt.format(s.existingWeight)} kg ·{" "}
                 {currencyFmt.format(s.existingValue)}
               </button>
               <div>
@@ -435,7 +438,8 @@ function SuggestionCard({
               </div>
               <div className="pt-1 border-t border-blue-500/15">
                 <span className="font-medium">Total após encaixe:</span>{" "}
-                {totalDeliveries} entrega(s) · {weightFmt.format(totalWeight)} kg ·{" "}
+                {totalOrders} pedido(s) · {totalDeliveries} entrega(s) ·{" "}
+                {weightFmt.format(totalWeight)} kg ·{" "}
                 {currencyFmt.format(totalValue)}
               </div>
             </div>
