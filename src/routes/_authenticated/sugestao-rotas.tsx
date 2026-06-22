@@ -89,7 +89,7 @@ function SugestaoRotasPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, order_number, total_amount, weight, customers(trade_name, legal_name, city, state, latitude, longitude)",
+          "id, order_number, total_amount, weight, delivery_address, delivery_latitude, delivery_longitude, customers(trade_name, legal_name, city, state, latitude, longitude)",
         )
         .gte("dt_prev_exp", "3999-01-01")
         .order("order_number");
