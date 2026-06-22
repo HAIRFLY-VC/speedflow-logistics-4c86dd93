@@ -658,7 +658,9 @@ function EditSuggestionDialog({
               <RouteSummaryBlock draft={draft} />
 
               <div>
-                  <Label className="text-xs">Paradas ({draft.stops.length})</Label>
+                  <Label className="text-xs">
+                    Pedidos ({draft.stops.length}) · Paradas ({new Set(draft.stops.map((s) => s.customerId).filter((id) => !!id)).size})
+                  </Label>
                   <ul className="text-sm divide-y rounded-md border mt-1">
                   {draft.stops.map((s) => (
                     <li key={s.orderId} className="flex items-center justify-between gap-2 px-2 py-1.5">
