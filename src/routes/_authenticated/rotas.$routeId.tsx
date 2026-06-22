@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SuggestionMap, sequenceStops } from "@/components/route-suggestions/SuggestionMap";
+import { getOrderCoord } from "@/lib/order-coords";
 import { formatCurrency, type OrderStatus } from "@/lib/orderStatus";
 import type { Database } from "@/integrations/supabase/types";
 
