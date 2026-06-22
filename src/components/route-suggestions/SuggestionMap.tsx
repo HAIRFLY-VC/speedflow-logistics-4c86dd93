@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { computeRoutePolyline } from "@/lib/route-directions.functions";
 
 export type MapStop = {
   lat: number;
@@ -33,6 +35,7 @@ function loadMaps(): Promise<void> {
       key: BROWSER_KEY ?? "",
       loading: "async",
       callback: "__sugMapInit",
+      libraries: "geometry",
     });
     if (TRACKING_ID) params.set("channel", String(TRACKING_ID));
     script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
@@ -91,10 +94,11 @@ export function SuggestionMap({
   height?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const computeRoute = useServerFn(computeRoutePolyline);
 
   useEffect(() => {
     let cancelled = false;
-    loadMaps().then(() => {
+    loadMaps().then(async () => {
       if (cancelled || !ref.current || !window.google?.maps) return;
       const g = window.google.maps;
 
@@ -160,92 +164,57 @@ export function SuggestionMap({
         ? [depot, ...ordered.map((s) => ({ lat: s.lat, lng: s.lng }))]
         : ordered.map((s) => ({ lat: s.lat, lng: s.lng }));
 
-      if (pathPoints.length > 1) {
-        const directionsService = new g.DirectionsService();
-        const renderer = new g.DirectionsRenderer({
-          map,
-          suppressMarkers: true,
-          suppressInfoWindows: true,
-          preserveViewport: true,
-          polylineOptions: {
-            strokeColor: "#2563eb",
-            strokeOpacity: 0.85,
-            strokeWeight: 4,
-          },
-        });
+      if (pathPoints.length < 2) return;
 
-        // Directions API: máx 25 pontos por requisição (origin + destination + 23 waypoints).
-        // Para rotas maiores, fragmenta em vários trechos.
-        const drawSegment = (segment: { lat: number; lng: number }[]) => {
-          if (segment.length < 2) return Promise.resolve();
+      // Routes API permite até 25 pontos por request (1 origin + 1 destination + 23 intermediates)
+      const MAX = 25;
+      const segments: { lat: number; lng: number }[][] = [];
+      for (let i = 0; i < pathPoints.length - 1; i += MAX - 1) {
+        segments.push(pathPoints.slice(i, i + MAX));
+      }
+
+      const drawFallback = (segment: { lat: number; lng: number }[]) => {
+        new g.Polyline({
+          path: segment,
+          map,
+          strokeColor: "#2563eb",
+          strokeOpacity: 0.6,
+          strokeWeight: 3,
+        });
+      };
+
+      for (const segment of segments) {
+        if (cancelled) return;
+        try {
           const origin = segment[0];
           const destination = segment[segment.length - 1];
-          const waypoints = segment
-            .slice(1, -1)
-            .map((p) => ({ location: p, stopover: true }));
-          return new Promise<void>((resolve) => {
-            directionsService.route(
-              {
-                origin,
-                destination,
-                waypoints,
-                travelMode: g.TravelMode.DRIVING,
-                optimizeWaypoints: false,
-              },
-              (result: any, status: string) => {
-                if (status === "OK" && result) {
-                  const r = new g.DirectionsRenderer({
-                    map,
-                    suppressMarkers: true,
-                    suppressInfoWindows: true,
-                    preserveViewport: true,
-                    polylineOptions: {
-                      strokeColor: "#2563eb",
-                      strokeOpacity: 0.85,
-                      strokeWeight: 4,
-                    },
-                  });
-                  r.setDirections(result);
-                } else {
-                  // fallback: linha reta se a Directions falhar
-                  new g.Polyline({
-                    path: segment,
-                    map,
-                    strokeColor: "#2563eb",
-                    strokeOpacity: 0.6,
-                    strokeWeight: 3,
-                    icons: [
-                      {
-                        icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3 },
-                        offset: "0",
-                        repeat: "12px",
-                      },
-                    ],
-                  });
-                }
-                resolve();
-              },
-            );
+          const waypoints = segment.slice(1, -1);
+          const result = await computeRoute({
+            data: { origin, destination, waypoints },
           });
-        };
-
-        // remove o renderer "placeholder" criado acima — usamos um por segmento
-        renderer.setMap(null);
-
-        const MAX = 25;
-        (async () => {
-          for (let i = 0; i < pathPoints.length - 1; i += MAX - 1) {
-            const segment = pathPoints.slice(i, i + MAX);
-            await drawSegment(segment);
-            if (cancelled) return;
+          if (cancelled) return;
+          if (result.encodedPolyline && g.geometry?.encoding) {
+            const path = g.geometry.encoding.decodePath(result.encodedPolyline);
+            new g.Polyline({
+              path,
+              map,
+              strokeColor: "#2563eb",
+              strokeOpacity: 0.85,
+              strokeWeight: 4,
+            });
+          } else {
+            drawFallback(segment);
           }
-        })();
+        } catch (err) {
+          console.warn("[SuggestionMap] Routes API falhou — usando linha reta:", err);
+          drawFallback(segment);
+        }
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [stops, existingStops, depot]);
+  }, [stops, existingStops, depot, computeRoute]);
 
   return <div ref={ref} style={{ width: "100%", height }} className="rounded-md border" />;
 }
