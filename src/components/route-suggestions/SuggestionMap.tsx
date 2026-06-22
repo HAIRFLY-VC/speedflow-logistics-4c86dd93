@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { computeRoutePolyline } from "@/lib/route-directions.functions";
 
@@ -116,6 +116,15 @@ export function SuggestionMap({
   const computeRoute = useServerFn(computeRoutePolyline);
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [computing, setComputing] = useState(false);
+  const routeKey = useMemo(
+    () =>
+      JSON.stringify({
+        depot,
+        stops: (stops as MapStop[]).map((s) => [s.lat, s.lng, s.orderNumber, s.customerName]),
+        existingStops: existingStops.map((s) => [s.lat, s.lng, s.orderNumber, s.customerName]),
+      }),
+    [stops, existingStops, depot],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -244,7 +253,7 @@ export function SuggestionMap({
     return () => {
       cancelled = true;
     };
-  }, [stops, existingStops, depot, computeRoute]);
+  }, [routeKey]);
 
   return (
     <div className="relative">
