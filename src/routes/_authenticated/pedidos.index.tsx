@@ -455,6 +455,8 @@ function PedidosPage() {
           isLoading={ordersQ.isLoading}
           rowKey={(o) => o.id}
           emptyMessage="Nenhum pedido encontrado."
+          onFilteredChange={setVisibleRows}
+
           
           toolbarRight={
             <Button
