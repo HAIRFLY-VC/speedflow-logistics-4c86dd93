@@ -311,7 +311,7 @@ export async function syncErpOrders(opts: {
     type RouteGroup = { erpRouteId: string | null; nome: string; date: string; driver: string | null; pedidos: string[] };
     const groups = new Map<string, RouteGroup>();
     for (const row of rows) {
-      const nome = (row.NOME_ROTA ?? "").trim();
+      const nome = normalizeRouteName((row.NOME_ROTA ?? "").trim());
       if (!nome) continue;
       const dt = parseErpDate(row.DT_PREV_EXP);
       if (!dt) continue;
