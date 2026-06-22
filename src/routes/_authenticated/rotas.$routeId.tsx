@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Plus,
-  Trash2,
   Play,
   CheckCircle2,
   XCircle,
@@ -22,14 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -37,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SuggestionMap, sequenceStops } from "@/components/route-suggestions/SuggestionMap";
-import { formatCurrency, ORDER_STATUS_LABEL, STATUS_TONE, type OrderStatus } from "@/lib/orderStatus";
+import { formatCurrency, type OrderStatus } from "@/lib/orderStatus";
 import type { Database } from "@/integrations/supabase/types";
 
 const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
@@ -509,12 +500,12 @@ function RouteDetailPage() {
         <RouteMapSection stops={stops} depot={depot} />
 
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Paradas</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {editable && canOperate ? (
+        {editable && canOperate ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Adicionar pedido à rota</CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="flex gap-2">
                 <Select value={pickOrder} onValueChange={setPickOrder}>
                   <SelectTrigger className="flex-1">
@@ -540,84 +531,9 @@ function RouteDetailPage() {
                   <Plus className="h-4 w-4 mr-1" /> Adicionar
                 </Button>
               </div>
-            ) : null}
-
-            {stopsQ.isLoading ? (
-              <Skeleton className="h-20 w-full" />
-            ) : stops.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">
-                Nenhuma parada nesta rota.
-              </p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">#</TableHead>
-                    <TableHead>Pedido</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    {editable && canOperate ? <TableHead className="w-12"></TableHead> : null}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {stops.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell className="tabular-nums">{s.stop_order}</TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {s.orders ? (
-                          <Link
-                            to="/pedidos/$orderId"
-                            params={{ orderId: s.orders.id }}
-                            className="text-primary hover:underline"
-                          >
-                            {s.orders.order_number}
-                          </Link>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {s.orders?.customers?.trade_name ||
-                          s.orders?.customers?.legal_name ||
-                          "—"}
-                        {s.orders?.customers?.city ? (
-                          <div className="text-xs text-muted-foreground">
-                            {s.orders.customers.city}
-                            {s.orders.customers.state ? `/${s.orders.customers.state}` : ""}
-                          </div>
-                        ) : null}
-                      </TableCell>
-                      <TableCell>
-                        {s.orders ? (
-                          <span
-                            className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] ${STATUS_TONE[s.orders.status]}`}
-                          >
-                            {ORDER_STATUS_LABEL[s.orders.status]}
-                          </span>
-                        ) : null}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatCurrency(Number(s.orders?.total_amount ?? 0))}
-                      </TableCell>
-                      {editable && canOperate ? (
-                        <TableCell>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => removeStop.mutate(s.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </TableCell>
-                      ) : null}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </AppShell>
   );
