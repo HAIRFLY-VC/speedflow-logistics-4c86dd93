@@ -52,16 +52,19 @@ type RouteRow = {
   route_date: string;
   status: RouteStatus;
   total_freight: number;
+  total_distance_km: number | null;
   driver_name: string | null;
   notes: string | null;
   freight_carriers: { full_name: string; vehicle_plate: string | null } | null;
   route_orders: {
+    stop_order: number | null;
     orders: {
       customer_id: string | null;
       order_number: string | null;
       total_amount: number | null;
       weight: number | null;
       erp_status: string | null;
+      customers: { latitude: number | null; longitude: number | null } | null;
     } | null;
   }[];
 };
