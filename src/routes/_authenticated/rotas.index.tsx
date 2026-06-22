@@ -11,6 +11,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { computeRoutePolyline } from "@/lib/route-directions.functions";
 import { sequenceStops } from "@/components/route-suggestions/SuggestionMap";
+import { getOrderCoord } from "@/lib/order-coords";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
