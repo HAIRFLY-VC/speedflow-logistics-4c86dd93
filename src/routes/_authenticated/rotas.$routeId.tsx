@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Plus,
-  Trash2,
   Play,
   CheckCircle2,
   XCircle,
@@ -22,14 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -37,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SuggestionMap, sequenceStops } from "@/components/route-suggestions/SuggestionMap";
-import { formatCurrency, ORDER_STATUS_LABEL, STATUS_TONE, type OrderStatus } from "@/lib/orderStatus";
+import { formatCurrency, type OrderStatus } from "@/lib/orderStatus";
 import type { Database } from "@/integrations/supabase/types";
 
 const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
