@@ -156,6 +156,54 @@ function StatusList({ map }: { map: Map<string, number> }) {
   );
 }
 
+function FreightInput({ route }: { route: RouteRow }) {
+  const qc = useQueryClient();
+  const [value, setValue] = useState<string>(
+    route.total_freight ? String(route.total_freight) : "",
+  );
+  const initial = route.total_freight ?? 0;
+
+  const save = useMutation({
+    mutationFn: async (next: number) => {
+      const { error } = await supabase
+        .from("routes")
+        .update({ total_freight: next })
+        .eq("id", route.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Frete atualizado");
+      qc.invalidateQueries({ queryKey: ["routes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const commit = () => {
+    const n = Number(value.replace(",", "."));
+    const next = Number.isFinite(n) ? n : 0;
+    if (next === initial) return;
+    save.mutate(next);
+  };
+
+  return (
+    <Input
+      type="number"
+      min="0"
+      step="0.01"
+      inputMode="decimal"
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+      }}
+      className="h-7 w-28 text-right tabular-nums text-xs"
+      placeholder="0,00"
+    />
+  );
+}
+
+
 function RotasPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
