@@ -102,7 +102,7 @@ function ConfiguracoesPage() {
     mutationFn: async () => {
       const payload = {
         id: 1,
-        company_name: form.company_name.trim() || "Speed Logística",
+        company_name: form.company_name.trim() || "SpeedFlow Logistics",
         cnpj: form.cnpj.trim() || null,
         email: form.email.trim() || null,
         phone: form.phone.trim() || null,
