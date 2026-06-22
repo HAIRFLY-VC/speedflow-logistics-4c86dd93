@@ -64,6 +64,8 @@ type RouteRow = {
       total_amount: number | null;
       weight: number | null;
       erp_status: string | null;
+      delivery_latitude: number | null;
+      delivery_longitude: number | null;
       customers: { latitude: number | null; longitude: number | null } | null;
     } | null;
   }[];
