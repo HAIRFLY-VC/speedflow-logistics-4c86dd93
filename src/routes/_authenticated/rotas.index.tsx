@@ -156,6 +156,54 @@ function StatusList({ map }: { map: Map<string, number> }) {
   );
 }
 
+function FreightInput({ route }: { route: RouteRow }) {
+  const qc = useQueryClient();
+  const [value, setValue] = useState<string>(
+    route.total_freight ? String(route.total_freight) : "",
+  );
+  const initial = route.total_freight ?? 0;
+
+  const save = useMutation({
+    mutationFn: async (next: number) => {
+      const { error } = await supabase
+        .from("routes")
+        .update({ total_freight: next })
+        .eq("id", route.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Frete atualizado");
+      qc.invalidateQueries({ queryKey: ["routes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const commit = () => {
+    const n = Number(value.replace(",", "."));
+    const next = Number.isFinite(n) ? n : 0;
+    if (next === initial) return;
+    save.mutate(next);
+  };
+
+  return (
+    <Input
+      type="number"
+      min="0"
+      step="0.01"
+      inputMode="decimal"
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+      }}
+      className="h-7 w-28 text-right tabular-nums text-xs"
+      placeholder="0,00"
+    />
+  );
+}
+
+
 function RotasPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -253,6 +301,50 @@ function RotasPage() {
         ),
       },
       {
+        id: "total_freight",
+        header: "Frete (R$)",
+        sortable: false,
+        align: "right",
+        filterable: false,
+        accessor: (r) => Number(r.total_freight ?? 0),
+        render: (r) => <FreightInput route={r} />,
+        className: "tabular-nums",
+        aggregate: (rows) => (
+          <span className="tabular-nums">
+            {currencyFmt.format(rows.reduce((s, r) => s + Number(r.total_freight ?? 0), 0))}
+          </span>
+        ),
+      },
+      {
+        id: "freight_pct",
+        header: "% Frete",
+        sortable: false,
+        align: "right",
+        filterable: false,
+        accessor: (r) => {
+          const v = valorOf(r);
+          return v > 0 ? (Number(r.total_freight ?? 0) / v) * 100 : 0;
+        },
+        render: (r) => {
+          const v = valorOf(r);
+          const f = Number(r.total_freight ?? 0);
+          if (v <= 0 || f <= 0) return <span className="text-muted-foreground">—</span>;
+          return `${((f / v) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
+        },
+        className: "tabular-nums text-xs",
+        aggregate: (rows) => {
+          const v = rows.reduce((s, r) => s + valorOf(r), 0);
+          const f = rows.reduce((s, r) => s + Number(r.total_freight ?? 0), 0);
+          if (v <= 0 || f <= 0) return <span className="text-muted-foreground">—</span>;
+          return (
+            <span className="tabular-nums">
+              {((f / v) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%
+            </span>
+          );
+        },
+      },
+      {
+
         id: "pedidos_status",
         header: "Pedidos por status",
         sortable: false,
