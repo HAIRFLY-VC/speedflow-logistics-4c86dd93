@@ -375,13 +375,27 @@ export async function syncErpOrders(opts: {
           existing = data ?? null;
         }
         if (!existing) {
+          // Tenta achar por código erp-* (caso erp_route_id ainda não esteja preenchido)
+          if (g.erpRouteId) {
+            const { data } = await supabaseAdmin
+              .from("routes")
+              .select("id")
+              .eq("code", `erp-${g.erpRouteId}`)
+              .maybeSingle();
+            existing = data ?? null;
+          }
+        }
+        if (!existing) {
+          // Fallback: rota slug-based pré-existente (criada antes do ERP retornar ID_ROTA)
+          const slugCode = `${slugify(g.nome)}-${g.date.replace(/-/g, "")}`;
           const { data } = await supabaseAdmin
             .from("routes")
             .select("id")
-            .eq("code", code)
+            .eq("code", slugCode)
             .maybeSingle();
           existing = data ?? null;
         }
+
 
         let routeId: string;
         if (existing) {
