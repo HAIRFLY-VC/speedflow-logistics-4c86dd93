@@ -301,6 +301,50 @@ function RotasPage() {
         ),
       },
       {
+        id: "total_freight",
+        header: "Frete (R$)",
+        sortable: false,
+        align: "right",
+        filterable: false,
+        accessor: (r) => Number(r.total_freight ?? 0),
+        render: (r) => <FreightInput route={r} />,
+        className: "tabular-nums",
+        aggregate: (rows) => (
+          <span className="tabular-nums">
+            {currencyFmt.format(rows.reduce((s, r) => s + Number(r.total_freight ?? 0), 0))}
+          </span>
+        ),
+      },
+      {
+        id: "freight_pct",
+        header: "% Frete",
+        sortable: false,
+        align: "right",
+        filterable: false,
+        accessor: (r) => {
+          const v = valorOf(r);
+          return v > 0 ? (Number(r.total_freight ?? 0) / v) * 100 : 0;
+        },
+        render: (r) => {
+          const v = valorOf(r);
+          const f = Number(r.total_freight ?? 0);
+          if (v <= 0 || f <= 0) return <span className="text-muted-foreground">—</span>;
+          return `${((f / v) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
+        },
+        className: "tabular-nums text-xs",
+        aggregate: (rows) => {
+          const v = rows.reduce((s, r) => s + valorOf(r), 0);
+          const f = rows.reduce((s, r) => s + Number(r.total_freight ?? 0), 0);
+          if (v <= 0 || f <= 0) return <span className="text-muted-foreground">—</span>;
+          return (
+            <span className="tabular-nums">
+              {((f / v) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%
+            </span>
+          );
+        },
+      },
+      {
+
         id: "pedidos_status",
         header: "Pedidos por status",
         sortable: false,
