@@ -741,6 +741,7 @@ export type Database = {
           code: string
           created_at: string
           driver_name: string | null
+          erp_route_id: string | null
           id: string
           notes: string | null
           route_date: string
@@ -753,6 +754,7 @@ export type Database = {
           code: string
           created_at?: string
           driver_name?: string | null
+          erp_route_id?: string | null
           id?: string
           notes?: string | null
           route_date: string
@@ -765,6 +767,7 @@ export type Database = {
           code?: string
           created_at?: string
           driver_name?: string | null
+          erp_route_id?: string | null
           id?: string
           notes?: string | null
           route_date?: string
