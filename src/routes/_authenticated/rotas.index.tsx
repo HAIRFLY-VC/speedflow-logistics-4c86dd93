@@ -529,7 +529,7 @@ function RotasPage() {
         ),
       },
     ],
-    [],
+    [depot],
   );
 
 
