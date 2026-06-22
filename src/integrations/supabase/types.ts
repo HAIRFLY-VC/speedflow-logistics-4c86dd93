@@ -746,6 +746,7 @@ export type Database = {
           notes: string | null
           route_date: string
           status: Database["public"]["Enums"]["route_status"]
+          total_distance_km: number | null
           total_freight: number
           updated_at: string
         }
@@ -759,6 +760,7 @@ export type Database = {
           notes?: string | null
           route_date: string
           status?: Database["public"]["Enums"]["route_status"]
+          total_distance_km?: number | null
           total_freight?: number
           updated_at?: string
         }
@@ -772,6 +774,7 @@ export type Database = {
           notes?: string | null
           route_date?: string
           status?: Database["public"]["Enums"]["route_status"]
+          total_distance_km?: number | null
           total_freight?: number
           updated_at?: string
         }
