@@ -301,7 +301,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
     const { data: routes, error: rErr } = await supabase
       .from("routes")
       .select(
-        "id, code, route_date, status, driver_name, notes, route_orders(stop_order, orders(id, order_number, weight, total_amount, customer_id, customers(trade_name, legal_name, city, state, latitude, longitude)))",
+        "id, code, route_date, status, driver_name, notes, route_orders(stop_order, orders(id, order_number, weight, total_amount, customer_id, delivery_latitude, delivery_longitude, customers(trade_name, legal_name, city, state, latitude, longitude)))",
       )
       .eq("status", "planejada")
       .gte("route_date", today);
@@ -329,22 +329,35 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         .map((ro) => ro.orders)
         .filter((o): o is NonNullable<typeof o> => !!o);
       const existingStops: SuggestionStop[] = stops
-        .filter((o) => o.customers && o.customers.latitude != null && o.customers.longitude != null)
         .map((o) => {
-          const c = o.customers!;
+          const oAny = o as typeof o & { delivery_latitude: number | null; delivery_longitude: number | null };
+          const c = o.customers;
+          const dLat = oAny.delivery_latitude;
+          const dLng = oAny.delivery_longitude;
+          let lat: number | null = null;
+          let lng: number | null = null;
+          if (dLat != null && dLng != null) {
+            lat = Number(dLat);
+            lng = Number(dLng);
+          } else if (c && c.latitude != null && c.longitude != null) {
+            lat = Number(c.latitude);
+            lng = Number(c.longitude);
+          }
+          if (lat == null || lng == null) return null;
           return {
             orderId: o.id,
             orderNumber: o.order_number,
             customerId: o.customer_id ?? "",
-            customerName: c.trade_name || c.legal_name || "Cliente",
-            city: c.city,
-            state: c.state,
+            customerName: c?.trade_name || c?.legal_name || "Cliente",
+            city: c?.city ?? null,
+            state: c?.state ?? null,
             weight: Number(o.weight ?? 0),
             amount: Number(o.total_amount ?? 0),
-            lat: Number(c.latitude),
-            lng: Number(c.longitude),
-          };
-        });
+            lat,
+            lng,
+          } satisfies SuggestionStop;
+        })
+        .filter((s): s is SuggestionStop => !!s);
       const centroid = existingStops.length
         ? {
             lat: existingStops.reduce((s, p) => s + p.lat, 0) / existingStops.length,
