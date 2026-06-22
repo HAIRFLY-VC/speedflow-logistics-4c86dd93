@@ -370,7 +370,7 @@ function RotasPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate),route_orders(stop_order,orders(customer_id,order_number,total_amount,weight,erp_status,customers(latitude,longitude)))",
+          "id,code,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate),route_orders(stop_order,orders(customer_id,order_number,total_amount,weight,erp_status,delivery_latitude,delivery_longitude,customers(latitude,longitude)))",
         );
       if (error) throw error;
       const rows = (data ?? []) as unknown as RouteRow[];
