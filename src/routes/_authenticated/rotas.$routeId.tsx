@@ -506,6 +506,9 @@ function RouteDetailPage() {
           </Card>
         ) : null}
 
+        <RouteMapSection stops={stops} depot={depot} />
+
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Paradas</CardTitle>
