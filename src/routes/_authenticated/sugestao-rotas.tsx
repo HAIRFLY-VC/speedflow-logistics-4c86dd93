@@ -179,10 +179,14 @@ function SugestaoRotasPage() {
   };
 
   const pendingRows = pending.data ?? [];
-  const missingCoords = pendingRows.filter(
-    (r) =>
-      !r.customers || r.customers.latitude == null || r.customers.longitude == null,
-  ).length;
+  const hasCoord = (r: typeof pendingRows[number]) => {
+    const dLat = (r as { delivery_latitude?: number | null }).delivery_latitude;
+    const dLng = (r as { delivery_longitude?: number | null }).delivery_longitude;
+    if (dLat != null && dLng != null) return true;
+    const c = r.customers;
+    return !!(c && c.latitude != null && c.longitude != null);
+  };
+  const missingCoords = pendingRows.filter((r) => !hasCoord(r)).length;
 
   return (
     <AppShell>
