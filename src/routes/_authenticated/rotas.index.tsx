@@ -237,19 +237,30 @@ function DistanceCell({
     for (const ro of ros) {
       const ordersRaw = ro.orders as unknown;
       const order = (Array.isArray(ordersRaw) ? ordersRaw[0] : ordersRaw) as
-        | { order_number?: string | null; customers?: unknown }
+        | {
+            order_number?: string | null;
+            customers?: unknown;
+            delivery_latitude?: number | string | null;
+            delivery_longitude?: number | string | null;
+          }
         | null
         | undefined;
-      const customersRaw = order?.customers;
+      if (!order) continue;
+      const customersRaw = order.customers;
       const c = (Array.isArray(customersRaw) ? customersRaw[0] : customersRaw) as
         | { latitude?: number | string | null; longitude?: number | string | null }
         | null
         | undefined;
-      if (!c || c.latitude == null || c.longitude == null) continue;
+      const coord = getOrderCoord({
+        delivery_latitude: order.delivery_latitude,
+        delivery_longitude: order.delivery_longitude,
+        customers: c ?? null,
+      });
+      if (!coord) continue;
       pts.push({
-        lat: Number(c.latitude),
-        lng: Number(c.longitude),
-        orderNumber: order?.order_number ?? "",
+        lat: coord.lat,
+        lng: coord.lng,
+        orderNumber: order.order_number ?? "",
         customerName: "",
         kind: "new",
       });
