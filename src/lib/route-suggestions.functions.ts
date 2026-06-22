@@ -394,6 +394,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
             existingWeight: bestRoute.existingWeight,
             existingValue: bestRoute.existingValue,
             existingDeliveries: bestRoute.existingDeliveries,
+            existingStops: bestRoute.existingStops,
             centroid: bestRoute.centroid!,
           };
           suggestions.push(s);
