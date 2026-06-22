@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -8,6 +9,8 @@ import { ptBR } from "date-fns/locale";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/supabase/client";
+import { computeRoutePolyline } from "@/lib/route-directions.functions";
+import { sequenceStops } from "@/components/route-suggestions/SuggestionMap";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,16 +52,19 @@ type RouteRow = {
   route_date: string;
   status: RouteStatus;
   total_freight: number;
+  total_distance_km: number | null;
   driver_name: string | null;
   notes: string | null;
   freight_carriers: { full_name: string; vehicle_plate: string | null } | null;
   route_orders: {
+    stop_order: number | null;
     orders: {
       customer_id: string | null;
       order_number: string | null;
       total_amount: number | null;
       weight: number | null;
       erp_status: string | null;
+      customers: { latitude: number | null; longitude: number | null } | null;
     } | null;
   }[];
 };
@@ -203,10 +209,116 @@ function FreightInput({ route }: { route: RouteRow }) {
   );
 }
 
+function DistanceCell({
+  route,
+  depot,
+}: {
+  route: RouteRow;
+  depot: { lat: number; lng: number } | null;
+}) {
+  const compute = useServerFn(computeRoutePolyline);
+  const qc = useQueryClient();
+  const attempted = useRef(false);
+  const [value, setValue] = useState<number | null>(
+    route.total_distance_km != null ? Number(route.total_distance_km) : null,
+  );
+  const [computing, setComputing] = useState(false);
+
+  const stops = useMemo(() => {
+    const ros = [...(route.route_orders ?? [])].sort(
+      (a, b) => (a.stop_order ?? 0) - (b.stop_order ?? 0),
+    );
+    const pts: { lat: number; lng: number; orderNumber: string; customerName: string; kind: "new" }[] = [];
+    for (const ro of ros) {
+      const c = ro.orders?.customers;
+      if (!c || c.latitude == null || c.longitude == null) continue;
+      pts.push({
+        lat: Number(c.latitude),
+        lng: Number(c.longitude),
+        orderNumber: ro.orders?.order_number ?? "",
+        customerName: "",
+        kind: "new",
+      });
+    }
+    return pts;
+  }, [route]);
+
+  useEffect(() => {
+    if (value != null) return;
+    if (attempted.current) return;
+    if (stops.length < 1) return;
+    attempted.current = true;
+
+    const ordered = sequenceStops(stops, depot);
+    const pathPoints = depot
+      ? [depot, ...ordered.map((s) => ({ lat: s.lat, lng: s.lng }))]
+      : ordered.map((s) => ({ lat: s.lat, lng: s.lng }));
+    if (pathPoints.length < 2) return;
+
+    let cancelled = false;
+    setComputing(true);
+    (async () => {
+      const MAX = 25;
+      let totalMeters = 0;
+      try {
+        for (let i = 0; i < pathPoints.length - 1; i += MAX - 1) {
+          const segment = pathPoints.slice(i, i + MAX);
+          const origin = segment[0];
+          const destination = segment[segment.length - 1];
+          const waypoints = segment.slice(1, -1);
+          const result = await compute({ data: { origin, destination, waypoints } });
+          totalMeters += result.distanceMeters ?? 0;
+        }
+        if (cancelled) return;
+        const km = totalMeters > 0 ? totalMeters / 1000 : 0;
+        const rounded = Math.round(km * 100) / 100;
+        setValue(rounded);
+        await supabase
+          .from("routes")
+          .update({ total_distance_km: rounded })
+          .eq("id", route.id);
+        qc.invalidateQueries({ queryKey: ["routes"] });
+      } catch (err) {
+        console.warn("[DistanceCell] falhou:", err);
+      } finally {
+        if (!cancelled) setComputing(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [stops, depot, value, compute, qc, route.id]);
+
+  if (value != null) {
+    return <span>{value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</span>;
+  }
+  if (computing) return <Loader2 className="h-3 w-3 animate-spin inline" />;
+  return <span className="text-muted-foreground">—</span>;
+}
+
 
 function RotasPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+
+  const depotQ = useQuery({
+    queryKey: ["company_settings", "depot"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_settings")
+        .select("depot_latitude, depot_longitude")
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      if (data?.depot_latitude != null && data?.depot_longitude != null) {
+        return { lat: Number(data.depot_latitude), lng: Number(data.depot_longitude) };
+      }
+      return null;
+    },
+  });
+  const depot = depotQ.data ?? null;
+
+
 
   const { data, isLoading } = useQuery({
     queryKey: ["routes"],
@@ -214,7 +326,7 @@ function RotasPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,route_date,status,total_freight,driver_name,notes,freight_carriers(full_name,vehicle_plate),route_orders(orders(customer_id,order_number,total_amount,weight,erp_status))",
+          "id,code,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate),route_orders(stop_order,orders(customer_id,order_number,total_amount,weight,erp_status,customers(latitude,longitude)))",
         );
       if (error) throw error;
       const rows = (data ?? []) as unknown as RouteRow[];
@@ -297,6 +409,23 @@ function RotasPage() {
         aggregate: (rows) => (
           <span className="tabular-nums">
             {weightFmt.format(rows.reduce((s, r) => s + pesoOf(r), 0))}
+          </span>
+        ),
+      },
+      {
+        id: "total_distance_km",
+        header: "Distância (km)",
+        sortable: false,
+        align: "right",
+        filterable: false,
+        accessor: (r) => Number(r.total_distance_km ?? 0),
+        render: (r) => <DistanceCell route={r} depot={depot} />,
+        className: "tabular-nums text-xs",
+        aggregate: (rows) => (
+          <span className="tabular-nums">
+            {rows
+              .reduce((s, r) => s + Number(r.total_distance_km ?? 0), 0)
+              .toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
           </span>
         ),
       },
@@ -400,7 +529,7 @@ function RotasPage() {
         ),
       },
     ],
-    [],
+    [depot],
   );
 
 

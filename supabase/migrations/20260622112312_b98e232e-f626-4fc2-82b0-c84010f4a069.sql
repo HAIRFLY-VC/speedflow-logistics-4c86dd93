@@ -1,0 +1,1 @@
+ALTER TABLE public.routes ADD COLUMN IF NOT EXISTS total_distance_km numeric(10,2);
