@@ -25,6 +25,7 @@ import {
   geocodePendingCustomers,
   suggestRoutes,
   confirmRouteSuggestion,
+  nearestNeighborOrder,
   type RouteSuggestion,
 } from "@/lib/route-suggestions.functions";
 
@@ -446,48 +447,45 @@ function SuggestionCard({
           }))}
           depot={depot}
         />
-        <div className="space-y-3 text-sm">
-          {s.type === "append_existing" && s.existingStops && s.existingStops.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="inline-block h-3 w-3 rounded-full bg-blue-600" />
-                <span className="font-medium text-blue-700">Entregas já existentes na rota</span>
-                <span className="text-muted-foreground text-xs">({s.existingStops.length})</span>
+        {(() => {
+          const all = [
+            ...(s.existingStops ?? []).map((st) => ({ ...st, kind: "existing" as const })),
+            ...s.stops.map((st) => ({ ...st, kind: "new" as const })),
+          ];
+          if (all.length === 0) return null;
+          const origin = depot ?? { lat: all[0].lat, lng: all[0].lng };
+          const ordered = nearestNeighborOrder(origin, all);
+          return (
+            <div className="space-y-2 text-sm">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-600" />
+                  <span className="text-blue-700 font-medium">Entrega já existente na rota</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-600" />
+                  <span className="text-emerald-700 font-medium">Nova entrega sugerida</span>
+                </div>
               </div>
-              <ol className="list-decimal list-inside space-y-0.5 marker:text-blue-600">
-                {s.existingStops.map((st) => (
-                  <li key={`ex-${st.orderId}`}>
-                    <span className="font-medium">{st.orderNumber}</span>{" "}
-                    <span className="text-muted-foreground">
-                      — {st.customerName} · {st.city ?? "?"}/{st.state ?? "?"} ·{" "}
-                      {weightFmt.format(st.weight)} kg · {currencyFmt.format(st.amount)}
-                    </span>
-                  </li>
-                ))}
+              <ol className="list-decimal list-inside space-y-0.5">
+                {ordered.map((st) => {
+                  const isExisting = st.kind === "existing";
+                  return (
+                    <li key={`${st.kind}-${st.orderId}`}>
+                      <span className={isExisting ? "text-blue-600 font-medium" : "text-emerald-600 font-medium"}>
+                        {st.orderNumber}
+                      </span>{" "}
+                      <span className={isExisting ? "text-blue-500" : "text-emerald-500"}>
+                        — {st.customerName} · {st.city ?? "?"}/{st.state ?? "?"} ·{" "}
+                        {weightFmt.format(st.weight)} kg · {currencyFmt.format(st.amount)}
+                      </span>
+                    </li>
+                  );
+                })}
               </ol>
             </div>
-          )}
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="inline-block h-3 w-3 rounded-full bg-emerald-600" />
-              <span className="font-medium text-emerald-700">
-                {s.type === "append_existing" ? "Novas entregas sugeridas" : "Entregas da nova rota"}
-              </span>
-              <span className="text-muted-foreground text-xs">({s.stops.length})</span>
-            </div>
-            <ol className="list-decimal list-inside space-y-0.5 marker:text-emerald-600">
-              {s.stops.map((st) => (
-                <li key={st.orderId}>
-                  <span className="font-medium">{st.orderNumber}</span>{" "}
-                  <span className="text-muted-foreground">
-                    — {st.customerName} · {st.city ?? "?"}/{st.state ?? "?"} ·{" "}
-                    {weightFmt.format(st.weight)} kg · {currencyFmt.format(st.amount)}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </div>
+          );
+        })()}
       </CardContent>
     </Card>
   );
