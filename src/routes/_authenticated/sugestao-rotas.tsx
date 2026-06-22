@@ -247,7 +247,7 @@ function SugestaoRotasPage() {
                   <ul className="text-sm divide-y">
                     {pendingRows.map((r) => {
                       const c = r.customers;
-                      const noCoord = !c || c.latitude == null || c.longitude == null;
+                      const noCoord = !hasCoord(r);
                       return (
                         <li key={r.id} className="px-3 py-2 flex flex-col gap-0.5">
                           <div className="flex items-center justify-between gap-2">
