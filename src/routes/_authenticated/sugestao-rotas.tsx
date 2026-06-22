@@ -25,6 +25,7 @@ import {
   geocodePendingCustomers,
   suggestRoutes,
   confirmRouteSuggestion,
+  nearestNeighborOrder,
   type RouteSuggestion,
 } from "@/lib/route-suggestions.functions";
 
