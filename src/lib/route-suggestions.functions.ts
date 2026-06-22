@@ -206,7 +206,7 @@ function nextBusinessDay(): string {
   return d.toISOString().slice(0, 10);
 }
 
-function nearestNeighborOrder<T extends Coord>(origin: Coord, points: T[]): T[] {
+export function nearestNeighborOrder<T extends Coord>(origin: Coord, points: T[]): T[] {
   const remaining = [...points];
   const ordered: T[] = [];
   let current = origin;
