@@ -34,6 +34,7 @@ type ErpOrderRow = {
   NOME_ROTA: string | null;
   NOME_MOTORISTA: string | null;
   QTD_DIAS: number | null;
+  ID_ROTA: number | string | null;
 };
 
 const PENDING_ORDERS_SQL = `
