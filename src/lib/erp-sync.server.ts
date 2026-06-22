@@ -251,7 +251,7 @@ export async function syncErpOrders(opts: {
     if (existingOrder) {
       const prevAddr = (existingOrder as { delivery_address: string | null }).delivery_address ?? null;
       const addrChanged = (deliveryAddress ?? null) !== prevAddr;
-      const updatePayload: Record<string, unknown> = {
+      const updatePayload = {
         customer_id: customerId,
         total_amount: totalAmount,
         weight: row.PESO,
@@ -262,12 +262,14 @@ export async function syncErpOrders(opts: {
         nome_motorista: row.NOME_MOTORISTA || null,
         erp_status: row.STATUS || null,
         qtd_dias: qtdDias,
+        ...(addrChanged
+          ? {
+              delivery_address: deliveryAddress,
+              delivery_latitude: null,
+              delivery_longitude: null,
+            }
+          : {}),
       };
-      if (addrChanged) {
-        updatePayload.delivery_address = deliveryAddress;
-        updatePayload.delivery_latitude = null;
-        updatePayload.delivery_longitude = null;
-      }
       const { error } = await supabaseAdmin
         .from("orders")
         .update(updatePayload)
