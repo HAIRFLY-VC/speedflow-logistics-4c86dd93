@@ -1,100 +1,58 @@
 ## Objetivo
 
-Criar uma funcionalidade que identifica pedidos com `DT_PREV_EXP = 01/01/4000` (pedidos sem roteirização planejada) e sugere automaticamente, com auxílio do Google Maps, como roteirizá-los — seja encaixando em rotas já planejadas, seja propondo rotas novas. O usuário revisa, ajusta e confirma.
+Quando o ERP enviar, no campo `OBS_LOGIST` de um pedido, um texto no formato:
 
-## Pré-requisitos
-
-1. **Conectar o connector Google Maps Platform** (gateway gerenciado pela Lovable). Será solicitado ao iniciar a implementação.
-2. **Geocodificação dos clientes** — hoje `customers.latitude / longitude` estão nulos. Sem isso nada de cluster ou roteamento funciona.
-
-## Nova tela: `/sugestao-rotas`
-
-Acessível pelo menu lateral (`AppShell`). Layout em 3 painéis:
-
-```text
-┌───────────────────────────────────────────────────────────────┐
-│ Topo:  [Gerar sugestões]  [Geocodificar clientes pendentes]   │
-├───────────────────┬───────────────────────────────────────────┤
-│ Pedidos sem rota  │  Sugestões geradas                        │
-│ (lista filtrável) │  ┌─────────────────────────────────────┐  │
-│ - Nº pedido       │  │ Sugestão 1 — Rota NOVA "Zona Norte" │  │
-│ - Cliente         │  │   Data: 24/06   Peso 1.2t / 70%     │  │
-│ - Cidade/UF       │  │   3 pedidos · valor R$ 18.420       │  │
-│ - Peso / Valor    │  │   [Mapa]   [Editar]   [Confirmar]   │  │
-│ - "não geocodif." │  ├─────────────────────────────────────┤  │
-│   badge se faltar │  │ Sugestão 2 — Encaixar em rota       │  │
-│   lat/lng         │  │   "Centro 24/06" (já existente)     │  │
-│                   │  │   +1 pedido · +120 kg               │  │
-│                   │  │   [Mapa]   [Editar]   [Confirmar]   │  │
-│                   │  └─────────────────────────────────────┘  │
-└───────────────────┴───────────────────────────────────────────┘
+```
+ENDERECO DE ENTREGA: <endereço alternativo>
 ```
 
-### Fluxo
+o app deve usar o `<endereço alternativo>` (após os `:`) como ponto de entrega daquele pedido para fins de roteirização e exibição no mapa, **substituindo** a latitude/longitude do cliente apenas para esse pedido. O endereço do cliente original permanece intocado (outros pedidos do mesmo cliente continuam usando o endereço de cadastro).
 
-1. Ao abrir, lista os pedidos com `dt_prev_exp = '4000-01-01'`.
-2. Botão **Geocodificar clientes pendentes** dispara server function que percorre os clientes envolvidos sem lat/lng e chama o Geocoding API (via gateway) usando `address_line, city, state, zip_code`. Resultado salvo em `customers.latitude/longitude`. Mostra progresso.
-3. Botão **Gerar sugestões** chama server function `suggestRoutes` que:
-   - Carrega pedidos sem rota + dados do cliente (lat/lng, peso, valor).
-   - Carrega rotas planejadas futuras (`status = planejada`, data ≥ hoje) com seus pedidos/paradas.
-   - **Tenta encaixe em rota existente**: para cada pedido, calcula desvio em km (Distance Matrix) entre o pedido e as paradas da rota; se < raio configurável (ex: 30 km) e há capacidade (peso/valor) → sugere encaixe.
-   - **Para o restante**, agrupa por proximidade (clustering simples por cidade/UF + raio), respeita capacidade máx por veículo (configurável em `company_settings`) e sugere nova rota com data próximo dia útil.
-   - Para cada cluster final, chama Routes API (`computeRoutes` com `optimizeWaypointOrder=true`) a partir de um depósito configurado para obter ordem ótima das paradas, distância e tempo estimados.
-   - Retorna lista de sugestões com tipo (`new_route` | `append_existing`), pedidos, rota alvo, métricas (peso, valor, distância, tempo, % capacidade) e ordem sugerida das paradas.
-4. Cada card de sugestão mostra:
-   - Tipo, data, métricas, pedidos com cliente/cidade.
-   - **Mapa** (Maps JavaScript API) com marcadores e a polyline da rota.
-   - Ações: **Confirmar** (cria/atualiza rota e vincula `route_orders`, atualiza `orders.dt_prev_exp` para a data da rota), **Editar** (drawer para mudar data, motorista, remover pedidos / mover pedido entre sugestões), **Descartar**.
-5. **Aceitar todas** no topo aplica em lote as sugestões marcadas.
-6. Ao confirmar, pedidos saem da lista de "sem rota" e a sugestão some.
+Caso o ERP envie um pedido para Fernando de Noronha (cliente `131687 — NORONHAO`) com `OBS_LOGIST = "ENDERECO DE ENTREGA: Rua X, Recife/PE"`, a parada passa a ser geocodificada em Recife e a rota terrestre volta a ser calculada.
 
-## Backend
+## Mudanças
 
-### Configurações novas em `company_settings`
+### 1. Banco (`orders`)
+Adicionar 3 colunas opcionais (migração):
+- `delivery_address text` — endereço extraído do OBS_LOGIST
+- `delivery_latitude numeric`
+- `delivery_longitude numeric`
 
-- `depot_address` (text) — endereço do depósito (origem das rotas).
-- `depot_latitude`, `depot_longitude` (numeric) — preenchidos via geocoding.
-- `max_route_weight_kg` (numeric, default 5000).
-- `max_route_value_brl` (numeric, default 0 = sem limite).
-- `route_cluster_radius_km` (numeric, default 30).
+Sem alteração de RLS/GRANTs (já cobertos pela política existente da tabela).
 
-UI para editar na tela **Configurações**.
+### 2. Sincronização ERP (`src/lib/erp-sync.server.ts`)
+- Criar helper `parseDeliveryOverride(obsLogist)` com regex `^\s*ENDERECO\s+DE\s+ENTREGA\s*:\s*(.+)$` (case-insensitive, multiline). Retorna o texto após `:` ou `null`.
+- No `processRow`, ao montar o payload de `orders`:
+  - Calcular `deliveryAddress = parseDeliveryOverride(row.OBS_LOGIST)`.
+  - No `INSERT`: gravar `delivery_address` (lat/lng ficam `null`, serão geocodificados a seguir).
+  - No `UPDATE`: se `deliveryAddress` mudou em relação ao registro atual, gravar o novo endereço e **zerar** `delivery_latitude`/`delivery_longitude` para forçar re-geocodificação. Se ficou `null`, limpar também as coordenadas.
+- Após o loop principal, no bloco que hoje geocodifica `customers` sem lat/lng, adicionar um segundo passo análogo: buscar `orders` com `delivery_address IS NOT NULL AND delivery_latitude IS NULL`, geocodificar via gateway Google Maps e gravar `delivery_latitude/longitude` no pedido. Contador `geocoded_orders` retornado no relatório de sync (junto com `geocoded_customers`).
 
-### Server functions (em `src/lib/route-suggestions.functions.ts`)
+### 3. Helper de coordenadas
+Criar `src/lib/order-coords.ts` (utilitário client-safe):
 
-- `geocodePendingCustomers()` — autenticada; itera clientes sem lat/lng vinculados a pedidos sem rota; chama gateway `/maps/api/geocode/json`; faz `update` em `customers`. Retorna contadores.
-- `suggestRoutes()` — autenticada; executa a lógica de cluster + Distance Matrix + Routes API. Retorna sugestões (não persiste). Cache em memória curta por chamada para reaproveitar Distance Matrix.
-- `confirmRouteSuggestion({ suggestion })` — autenticada; numa transação cria `routes` (quando `new_route`) ou usa rota existente, insere `route_orders` na ordem otimizada, atualiza `orders.dt_prev_exp` (e `route_id` se aplicável).
+```ts
+export type CoordSource = { lat: number; lng: number; source: "order" | "customer" };
+export function getOrderCoord(order: {
+  delivery_latitude?: number | string | null;
+  delivery_longitude?: number | string | null;
+  customers?: { latitude?: number | string | null; longitude?: number | string | null } | null;
+}): CoordSource | null { /* prioriza delivery_*, fallback customers.* */ }
+```
 
-Chamadas ao Google sempre via gateway `https://connector-gateway.lovable.dev/google_maps/...` com `Authorization: Bearer ${LOVABLE_API_KEY}` e `X-Connection-Api-Key: ${GOOGLE_MAPS_API_KEY}`. Browser usa `VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY` somente para o mapa.
+### 4. Consumidores das coordenadas
+Atualizar `select(...)` para incluir `delivery_address, delivery_latitude, delivery_longitude` e trocar acessos diretos por `getOrderCoord(o)` em:
+- `src/lib/route-suggestions.functions.ts` (clustering + suggestion + tela de rotas existentes)
+- `src/routes/_authenticated/sugestao-rotas.tsx` (filtro `noCoord`, contagem pendente, geocode-aviso)
+- `src/routes/_authenticated/rotas.index.tsx` (mapa + auto-recalc de distância)
+- `src/routes/_authenticated/rotas.$routeId.tsx` (mapa de detalhamento)
 
-### Banco
+A UI das paradas pode opcionalmente mostrar um badge "endereço alternativo" quando `source === "order"" — incluído apenas na tela de detalhe da rota, com tooltip exibindo o `delivery_address`.
 
-Migration:
-- Adiciona colunas em `company_settings`.
-- Cria `route_suggestion_runs` (opcional, para auditoria): `id, created_at, created_by, payload jsonb, status`. GRANTs + RLS (`authenticated` ver/inserir seus runs; `service_role` all).
+### 5. Recalculo
+Como `delivery_latitude/longitude` entram nas mesmas funções de cálculo, o auto-recalc de distância (já existente) cobre o caso. Pedidos que ainda não foram geocodificados após o sync ficam com a fallback do cliente — sem regressão.
 
-## Frontend
-
-- Novo arquivo `src/routes/_authenticated/sugestao-rotas.tsx` com a tela.
-- Item no menu (`AppShell`) "Sugestão de rotas".
-- Componentes:
-  - `SuggestionCard` (card de uma sugestão)
-  - `SuggestionMap` (Maps JS API, lazy load, usa browser key + tracking ID, `google.maps.Marker` e `DirectionsRenderer`/polyline)
-  - `EditSuggestionDrawer` (alterar data, motorista, remover/mover pedidos)
-- Estado das sugestões em `useState` na página (não persistir entre sessões na 1ª versão).
-
-## Detalhes técnicos
-
-- Pedidos "sem rota" = `orders.dt_prev_exp = '4000-01-01'`.
-- "Rotas existentes" candidatas = `routes` com `status='planejada'` e `route_date >= today`.
-- Capacidade existente da rota = soma de `weight` e `total_amount` dos pedidos já vinculados via `route_orders`.
-- Distance Matrix em batches de até 25 origens × 25 destinos.
-- Tratamento de pedidos sem lat/lng após geocoding falho: exibidos com aviso e não entram nas sugestões até serem corrigidos manualmente.
-- Sem alteração na lógica/ordenação das telas Pedidos e Rotas existentes.
-
-## O que NÃO está no escopo
-
-- Roteamento multi-veículo otimizado (Route Optimization API) — fica para uma evolução.
-- Persistência das sugestões entre sessões / colaboração multiusuário.
-- Cálculo de custo de frete por sugestão.
+## Não escopo
+- Sem mudanças no fluxo de aprovação, faturamento ou status do pedido.
+- O endereço do cadastro do cliente (Noronha) permanece como está; apenas a parada do pedido específico muda.
+- Sem nova tela de edição manual do endereço alternativo (ele vem sempre do ERP).

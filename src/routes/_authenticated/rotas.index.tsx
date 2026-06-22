@@ -11,6 +11,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { computeRoutePolyline } from "@/lib/route-directions.functions";
 import { sequenceStops } from "@/components/route-suggestions/SuggestionMap";
+import { getOrderCoord } from "@/lib/order-coords";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,6 +65,8 @@ type RouteRow = {
       total_amount: number | null;
       weight: number | null;
       erp_status: string | null;
+      delivery_latitude: number | null;
+      delivery_longitude: number | null;
       customers: { latitude: number | null; longitude: number | null } | null;
     } | null;
   }[];
@@ -235,19 +238,30 @@ function DistanceCell({
     for (const ro of ros) {
       const ordersRaw = ro.orders as unknown;
       const order = (Array.isArray(ordersRaw) ? ordersRaw[0] : ordersRaw) as
-        | { order_number?: string | null; customers?: unknown }
+        | {
+            order_number?: string | null;
+            customers?: unknown;
+            delivery_latitude?: number | string | null;
+            delivery_longitude?: number | string | null;
+          }
         | null
         | undefined;
-      const customersRaw = order?.customers;
+      if (!order) continue;
+      const customersRaw = order.customers;
       const c = (Array.isArray(customersRaw) ? customersRaw[0] : customersRaw) as
         | { latitude?: number | string | null; longitude?: number | string | null }
         | null
         | undefined;
-      if (!c || c.latitude == null || c.longitude == null) continue;
+      const coord = getOrderCoord({
+        delivery_latitude: order.delivery_latitude,
+        delivery_longitude: order.delivery_longitude,
+        customers: c ?? null,
+      });
+      if (!coord) continue;
       pts.push({
-        lat: Number(c.latitude),
-        lng: Number(c.longitude),
-        orderNumber: order?.order_number ?? "",
+        lat: coord.lat,
+        lng: coord.lng,
+        orderNumber: order.order_number ?? "",
         customerName: "",
         kind: "new",
       });
@@ -356,7 +370,7 @@ function RotasPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate),route_orders(stop_order,orders(customer_id,order_number,total_amount,weight,erp_status,customers(latitude,longitude)))",
+          "id,code,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate),route_orders(stop_order,orders(customer_id,order_number,total_amount,weight,erp_status,delivery_latitude,delivery_longitude,customers(latitude,longitude)))",
         );
       if (error) throw error;
       const rows = (data ?? []) as unknown as RouteRow[];

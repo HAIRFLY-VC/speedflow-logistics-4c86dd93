@@ -89,7 +89,7 @@ function SugestaoRotasPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, order_number, total_amount, weight, customers(trade_name, legal_name, city, state, latitude, longitude)",
+          "id, order_number, total_amount, weight, delivery_address, delivery_latitude, delivery_longitude, customers(trade_name, legal_name, city, state, latitude, longitude)",
         )
         .gte("dt_prev_exp", "3999-01-01")
         .order("order_number");
@@ -179,10 +179,14 @@ function SugestaoRotasPage() {
   };
 
   const pendingRows = pending.data ?? [];
-  const missingCoords = pendingRows.filter(
-    (r) =>
-      !r.customers || r.customers.latitude == null || r.customers.longitude == null,
-  ).length;
+  const hasCoord = (r: typeof pendingRows[number]) => {
+    const dLat = (r as { delivery_latitude?: number | null }).delivery_latitude;
+    const dLng = (r as { delivery_longitude?: number | null }).delivery_longitude;
+    if (dLat != null && dLng != null) return true;
+    const c = r.customers;
+    return !!(c && c.latitude != null && c.longitude != null);
+  };
+  const missingCoords = pendingRows.filter((r) => !hasCoord(r)).length;
 
   return (
     <AppShell>
@@ -243,7 +247,7 @@ function SugestaoRotasPage() {
                   <ul className="text-sm divide-y">
                     {pendingRows.map((r) => {
                       const c = r.customers;
-                      const noCoord = !c || c.latitude == null || c.longitude == null;
+                      const noCoord = !hasCoord(r);
                       return (
                         <li key={r.id} className="px-3 py-2 flex flex-col gap-0.5">
                           <div className="flex items-center justify-between gap-2">

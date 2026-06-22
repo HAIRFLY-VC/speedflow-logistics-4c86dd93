@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SuggestionMap, sequenceStops } from "@/components/route-suggestions/SuggestionMap";
+import { getOrderCoord } from "@/lib/order-coords";
 import { formatCurrency, type OrderStatus } from "@/lib/orderStatus";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -77,6 +78,9 @@ type Stop = {
     total_amount: number;
     weight: number | null;
     customer_id: string | null;
+    delivery_address: string | null;
+    delivery_latitude: number | null;
+    delivery_longitude: number | null;
     customers: {
       trade_name: string | null;
       legal_name: string;
@@ -122,7 +126,7 @@ function RouteDetailPage() {
       const { data, error } = await supabase
         .from("route_orders")
         .select(
-          "id,stop_order,orders(id,order_number,status,total_amount,weight,customer_id,customers(trade_name,legal_name,city,state,latitude,longitude))",
+          "id,stop_order,orders(id,order_number,status,total_amount,weight,customer_id,delivery_address,delivery_latitude,delivery_longitude,customers(trade_name,legal_name,city,state,latitude,longitude))",
         )
         .eq("route_id", routeId)
         .order("stop_order");
@@ -549,19 +553,27 @@ function RouteMapSection({
   const mapStops = stops
     .map((s) => {
       const o = s.orders;
-      const c = o?.customers;
-      if (!o || !c || c.latitude == null || c.longitude == null) return null;
+      if (!o) return null;
+      const coord = getOrderCoord({
+        delivery_latitude: o.delivery_latitude,
+        delivery_longitude: o.delivery_longitude,
+        customers: o.customers,
+      });
+      if (!coord) return null;
+      const c = o.customers;
       return {
-        lat: Number(c.latitude),
-        lng: Number(c.longitude),
+        lat: coord.lat,
+        lng: coord.lng,
         orderNumber: o.order_number,
-        customerName: c.trade_name || c.legal_name || "—",
-        city: c.city,
-        state: c.state,
+        customerName: c?.trade_name || c?.legal_name || "—",
+        city: c?.city ?? null,
+        state: c?.state ?? null,
         weight: Number(o.weight ?? 0),
         amount: Number(o.total_amount ?? 0),
         orderId: o.id,
         kind: "new" as const,
+        coordSource: coord.source,
+        deliveryAddress: o.delivery_address,
       };
     })
     .filter((x): x is NonNullable<typeof x> => !!x);
@@ -597,6 +609,14 @@ function RouteMapSection({
                   — {full.customerName} · {full.city ?? "?"}/{full.state ?? "?"} ·{" "}
                   {weightFmt.format(full.weight)} kg · {formatCurrency(full.amount)}
                 </span>
+                {full.coordSource === "order" && full.deliveryAddress ? (
+                  <span
+                    className="ml-2 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800"
+                    title={`Endereço alternativo (OBS_LOGIST): ${full.deliveryAddress}`}
+                  >
+                    endereço alternativo
+                  </span>
+                ) : null}
               </li>
             );
           })}

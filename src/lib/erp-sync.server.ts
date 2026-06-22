@@ -36,7 +36,18 @@ type ErpOrderRow = {
   NOME_MOTORISTA: string | null;
   QTD_DIAS: number | null;
   ID_ROTA: number | string | null;
+  OBS_LOGIST: string | null;
 };
+
+// Extrai o endereço alternativo de entrega presente no OBS_LOGIST.
+// Aceita variações como "ENDERECO DE ENTREGA:", "ENDEREÇO DE ENTREGA:", etc.
+function parseDeliveryOverride(obsLogist: unknown): string | null {
+  if (!obsLogist || typeof obsLogist !== "string") return null;
+  const m = obsLogist.match(/ENDERE[CÇ]O\s+DE\s+ENTREGA\s*:\s*([^\r\n]+)/i);
+  if (!m) return null;
+  const addr = m[1].trim();
+  return addr.length > 0 ? addr : null;
+}
 
 const PENDING_ORDERS_SQL = `
   SELECT E.COD_AGENDA, E.COD_FILIAL, E.NR_DOCUMENTO, E.DT_AGENDA,
@@ -229,28 +240,39 @@ export async function syncErpOrders(opts: {
       .join("\n");
 
     const qtdDias = parseErpInteger(getErpField(row as unknown as Record<string, unknown>, "QTD_DIAS"));
+    const deliveryAddress = parseDeliveryOverride(row.OBS_LOGIST);
 
     const { data: existingOrder } = await supabaseAdmin
       .from("orders")
-      .select("id")
+      .select("id, delivery_address")
       .eq("erp_id", pedidoStr)
       .maybeSingle();
 
     if (existingOrder) {
+      const prevAddr = (existingOrder as { delivery_address: string | null }).delivery_address ?? null;
+      const addrChanged = (deliveryAddress ?? null) !== prevAddr;
+      const updatePayload = {
+        customer_id: customerId,
+        total_amount: totalAmount,
+        weight: row.PESO,
+        cod_agenda: row.COD_AGENDA,
+        notes: notes || null,
+        dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
+        nome_rota: row.NOME_ROTA || null,
+        nome_motorista: row.NOME_MOTORISTA || null,
+        erp_status: row.STATUS || null,
+        qtd_dias: qtdDias,
+        ...(addrChanged
+          ? {
+              delivery_address: deliveryAddress,
+              delivery_latitude: null,
+              delivery_longitude: null,
+            }
+          : {}),
+      };
       const { error } = await supabaseAdmin
         .from("orders")
-        .update({
-          customer_id: customerId,
-          total_amount: totalAmount,
-          weight: row.PESO,
-          cod_agenda: row.COD_AGENDA,
-          notes: notes || null,
-          dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
-          nome_rota: row.NOME_ROTA || null,
-          nome_motorista: row.NOME_MOTORISTA || null,
-          erp_status: row.STATUS || null,
-          qtd_dias: qtdDias,
-        })
+        .update(updatePayload)
         .eq("id", existingOrder.id);
       if (error) throw error;
       return { customerCreated, outcome: "updated" as const };
@@ -269,6 +291,7 @@ export async function syncErpOrders(opts: {
       nome_motorista: row.NOME_MOTORISTA || null,
       erp_status: row.STATUS || null,
       qtd_dias: qtdDias,
+      delivery_address: deliveryAddress,
     });
     if (error) {
       if (error.code === "23505") return { customerCreated, outcome: "skipped" as const };
@@ -519,6 +542,53 @@ export async function syncErpOrders(opts: {
   } catch (err) {
     console.warn("[erp-sync] etapa de geocodificação falhou:", err);
   }
+
+  // Geocodifica pedidos com endereço de entrega alternativo (OBS_LOGIST)
+  let geocoded_orders = 0;
+  try {
+    const lovableKey = process.env.LOVABLE_API_KEY;
+    const gmKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (lovableKey && gmKey) {
+      const { data: pendingOrders } = await supabaseAdmin
+        .from("orders")
+        .select("id, delivery_address")
+        .not("delivery_address", "is", null)
+        .is("delivery_latitude", null)
+        .limit(200);
+      for (const o of pendingOrders ?? []) {
+        const addr = (o as { delivery_address: string | null }).delivery_address;
+        if (!addr || !addr.trim()) continue;
+        const q = `${addr.trim()}, Brasil`;
+        try {
+          const url = `https://connector-gateway.lovable.dev/google_maps/maps/api/geocode/json?address=${encodeURIComponent(q)}&region=br&language=pt-BR`;
+          const res = await fetch(url, {
+            headers: { Authorization: `Bearer ${lovableKey}`, "X-Connection-Api-Key": gmKey },
+          });
+          if (!res.ok) continue;
+          const json = (await res.json()) as {
+            status: string;
+            results?: { geometry?: { location?: { lat: number; lng: number } } }[];
+          };
+          if (json.status !== "OK" || !json.results?.length) continue;
+          const loc = json.results[0].geometry?.location;
+          if (!loc) continue;
+          const { error: upErr } = await supabaseAdmin
+            .from("orders")
+            .update({ delivery_latitude: loc.lat, delivery_longitude: loc.lng })
+            .eq("id", o.id);
+          if (!upErr) geocoded_orders++;
+        } catch (err) {
+          console.warn("[erp-sync] geocode falhou para pedido", o.id, err);
+        }
+      }
+      if (geocoded_orders > 0) {
+        console.log(`[erp-sync] geocodificados ${geocoded_orders} pedidos (endereço alternativo)`);
+      }
+    }
+  } catch (err) {
+    console.warn("[erp-sync] etapa de geocodificação de pedidos falhou:", err);
+  }
+
 
 
   const status: SyncResult["status"] =
