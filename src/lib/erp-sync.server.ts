@@ -240,28 +240,37 @@ export async function syncErpOrders(opts: {
       .join("\n");
 
     const qtdDias = parseErpInteger(getErpField(row as unknown as Record<string, unknown>, "QTD_DIAS"));
+    const deliveryAddress = parseDeliveryOverride(row.OBS_LOGIST);
 
     const { data: existingOrder } = await supabaseAdmin
       .from("orders")
-      .select("id")
+      .select("id, delivery_address")
       .eq("erp_id", pedidoStr)
       .maybeSingle();
 
     if (existingOrder) {
+      const prevAddr = (existingOrder as { delivery_address: string | null }).delivery_address ?? null;
+      const addrChanged = (deliveryAddress ?? null) !== prevAddr;
+      const updatePayload: Record<string, unknown> = {
+        customer_id: customerId,
+        total_amount: totalAmount,
+        weight: row.PESO,
+        cod_agenda: row.COD_AGENDA,
+        notes: notes || null,
+        dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
+        nome_rota: row.NOME_ROTA || null,
+        nome_motorista: row.NOME_MOTORISTA || null,
+        erp_status: row.STATUS || null,
+        qtd_dias: qtdDias,
+      };
+      if (addrChanged) {
+        updatePayload.delivery_address = deliveryAddress;
+        updatePayload.delivery_latitude = null;
+        updatePayload.delivery_longitude = null;
+      }
       const { error } = await supabaseAdmin
         .from("orders")
-        .update({
-          customer_id: customerId,
-          total_amount: totalAmount,
-          weight: row.PESO,
-          cod_agenda: row.COD_AGENDA,
-          notes: notes || null,
-          dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
-          nome_rota: row.NOME_ROTA || null,
-          nome_motorista: row.NOME_MOTORISTA || null,
-          erp_status: row.STATUS || null,
-          qtd_dias: qtdDias,
-        })
+        .update(updatePayload)
         .eq("id", existingOrder.id);
       if (error) throw error;
       return { customerCreated, outcome: "updated" as const };
@@ -280,6 +289,7 @@ export async function syncErpOrders(opts: {
       nome_motorista: row.NOME_MOTORISTA || null,
       erp_status: row.STATUS || null,
       qtd_dias: qtdDias,
+      delivery_address: deliveryAddress,
     });
     if (error) {
       if (error.code === "23505") return { customerCreated, outcome: "skipped" as const };
