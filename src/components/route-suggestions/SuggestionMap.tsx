@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { computeRoutePolyline } from "@/lib/route-directions.functions";
 
@@ -226,7 +226,7 @@ export function SuggestionMap({
           const origin = segment[0];
           const destination = segment[segment.length - 1];
           const waypoints = segment.slice(1, -1);
-          const result = await computeRoute({
+          const result = await computeRouteRef.current({
             data: { origin, destination, waypoints },
           });
           if (cancelled) return;
