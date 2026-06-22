@@ -514,6 +514,9 @@ export type Database = {
           cod_agenda: number | null
           created_at: string
           customer_id: string
+          delivery_address: string | null
+          delivery_latitude: number | null
+          delivery_longitude: number | null
           dt_prev_exp: string | null
           erp_id: string | null
           erp_status: string | null
@@ -536,6 +539,9 @@ export type Database = {
           cod_agenda?: number | null
           created_at?: string
           customer_id: string
+          delivery_address?: string | null
+          delivery_latitude?: number | null
+          delivery_longitude?: number | null
           dt_prev_exp?: string | null
           erp_id?: string | null
           erp_status?: string | null
@@ -558,6 +564,9 @@ export type Database = {
           cod_agenda?: number | null
           created_at?: string
           customer_id?: string
+          delivery_address?: string | null
+          delivery_latitude?: number | null
+          delivery_longitude?: number | null
           dt_prev_exp?: string | null
           erp_id?: string | null
           erp_status?: string | null
