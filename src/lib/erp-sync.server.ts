@@ -2,6 +2,7 @@
 // API: POST {ERP_API_BASE_URL}/v1/query com { sql, binds, limit } e header X-API-Key.
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { normalizeRouteName } from "@/lib/utils";
 
 type ErpColumn = { name: string; type: string };
 type ErpQueryResponse = {
