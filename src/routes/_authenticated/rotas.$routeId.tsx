@@ -36,8 +36,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SuggestionMap, sequenceStops } from "@/components/route-suggestions/SuggestionMap";
 import { formatCurrency, ORDER_STATUS_LABEL, STATUS_TONE, type OrderStatus } from "@/lib/orderStatus";
 import type { Database } from "@/integrations/supabase/types";
+
+const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
 
 type RouteStatus = Database["public"]["Enums"]["route_status"];
 const ROUTE_STATUS_LABEL: Record<RouteStatus, string> = {
@@ -81,7 +84,16 @@ type Stop = {
     order_number: string;
     status: OrderStatus;
     total_amount: number;
-    customers: { trade_name: string | null; legal_name: string; city: string | null; state: string | null } | null;
+    weight: number | null;
+    customer_id: string | null;
+    customers: {
+      trade_name: string | null;
+      legal_name: string;
+      city: string | null;
+      state: string | null;
+      latitude: number | null;
+      longitude: number | null;
+    } | null;
   } | null;
 };
 
@@ -119,7 +131,7 @@ function RouteDetailPage() {
       const { data, error } = await supabase
         .from("route_orders")
         .select(
-          "id,stop_order,orders(id,order_number,status,total_amount,customers(trade_name,legal_name,city,state))",
+          "id,stop_order,orders(id,order_number,status,total_amount,weight,customer_id,customers(trade_name,legal_name,city,state,latitude,longitude))",
         )
         .eq("route_id", routeId)
         .order("stop_order");
@@ -127,6 +139,23 @@ function RouteDetailPage() {
       return (data ?? []) as unknown as Stop[];
     },
   });
+
+  const depotQ = useQuery({
+    queryKey: ["company_settings", "depot"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_settings")
+        .select("depot_latitude, depot_longitude")
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      if (data?.depot_latitude != null && data?.depot_longitude != null) {
+        return { lat: Number(data.depot_latitude), lng: Number(data.depot_longitude) };
+      }
+      return null;
+    },
+  });
+  const depot = depotQ.data ?? null;
 
   const manifestQ = useQuery({
     queryKey: ["routes", routeId, "manifest"],
