@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { computeRoutePolyline } from "@/lib/route-directions.functions";
 
@@ -95,9 +95,12 @@ export function SuggestionMap({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const computeRoute = useServerFn(computeRoutePolyline);
+  const [distanceKm, setDistanceKm] = useState<number | null>(null);
+  const [computing, setComputing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    setDistanceKm(null);
     loadMaps().then(async () => {
       if (cancelled || !ref.current || !window.google?.maps) return;
       const g = window.google.maps;
@@ -183,6 +186,8 @@ export function SuggestionMap({
         });
       };
 
+      setComputing(true);
+      let totalMeters = 0;
       for (const segment of segments) {
         if (cancelled) return;
         try {
@@ -202,6 +207,7 @@ export function SuggestionMap({
               strokeOpacity: 0.85,
               strokeWeight: 4,
             });
+            totalMeters += result.distanceMeters ?? 0;
           } else {
             drawFallback(segment);
           }
@@ -210,11 +216,26 @@ export function SuggestionMap({
           drawFallback(segment);
         }
       }
+      if (!cancelled) {
+        setDistanceKm(totalMeters > 0 ? totalMeters / 1000 : null);
+        setComputing(false);
+      }
     });
     return () => {
       cancelled = true;
     };
   }, [stops, existingStops, depot, computeRoute]);
 
-  return <div ref={ref} style={{ width: "100%", height }} className="rounded-md border" />;
+  return (
+    <div className="relative">
+      <div ref={ref} style={{ width: "100%", height }} className="rounded-md border" />
+      <div className="absolute top-2 left-2 rounded-md bg-white/95 px-2.5 py-1 text-xs font-medium shadow-sm border border-border tabular-nums">
+        {computing && distanceKm == null
+          ? "Calculando rota…"
+          : distanceKm != null
+            ? `${distanceKm.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km`
+            : "—"}
+      </div>
+    </div>
+  );
 }
