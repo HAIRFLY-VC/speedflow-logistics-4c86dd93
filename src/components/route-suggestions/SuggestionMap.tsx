@@ -156,15 +156,90 @@ export function SuggestionMap({
         });
       });
 
-      const path = depot ? [depot, ...ordered.map((s) => ({ lat: s.lat, lng: s.lng }))] : ordered.map((s) => ({ lat: s.lat, lng: s.lng }));
-      if (path.length > 1) {
-        new g.Polyline({
-          path,
+      const pathPoints = depot
+        ? [depot, ...ordered.map((s) => ({ lat: s.lat, lng: s.lng }))]
+        : ordered.map((s) => ({ lat: s.lat, lng: s.lng }));
+
+      if (pathPoints.length > 1) {
+        const directionsService = new g.DirectionsService();
+        const renderer = new g.DirectionsRenderer({
           map,
-          strokeColor: "#2563eb",
-          strokeOpacity: 0.7,
-          strokeWeight: 3,
+          suppressMarkers: true,
+          suppressInfoWindows: true,
+          preserveViewport: true,
+          polylineOptions: {
+            strokeColor: "#2563eb",
+            strokeOpacity: 0.85,
+            strokeWeight: 4,
+          },
         });
+
+        // Directions API: máx 25 pontos por requisição (origin + destination + 23 waypoints).
+        // Para rotas maiores, fragmenta em vários trechos.
+        const drawSegment = (segment: { lat: number; lng: number }[]) => {
+          if (segment.length < 2) return Promise.resolve();
+          const origin = segment[0];
+          const destination = segment[segment.length - 1];
+          const waypoints = segment
+            .slice(1, -1)
+            .map((p) => ({ location: p, stopover: true }));
+          return new Promise<void>((resolve) => {
+            directionsService.route(
+              {
+                origin,
+                destination,
+                waypoints,
+                travelMode: g.TravelMode.DRIVING,
+                optimizeWaypoints: false,
+              },
+              (result: any, status: string) => {
+                if (status === "OK" && result) {
+                  const r = new g.DirectionsRenderer({
+                    map,
+                    suppressMarkers: true,
+                    suppressInfoWindows: true,
+                    preserveViewport: true,
+                    polylineOptions: {
+                      strokeColor: "#2563eb",
+                      strokeOpacity: 0.85,
+                      strokeWeight: 4,
+                    },
+                  });
+                  r.setDirections(result);
+                } else {
+                  // fallback: linha reta se a Directions falhar
+                  new g.Polyline({
+                    path: segment,
+                    map,
+                    strokeColor: "#2563eb",
+                    strokeOpacity: 0.6,
+                    strokeWeight: 3,
+                    icons: [
+                      {
+                        icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3 },
+                        offset: "0",
+                        repeat: "12px",
+                      },
+                    ],
+                  });
+                }
+                resolve();
+              },
+            );
+          });
+        };
+
+        // remove o renderer "placeholder" criado acima — usamos um por segmento
+        renderer.setMap(null);
+
+        const MAX = 25;
+        (async () => {
+          for (let i = 0; i < pathPoints.length - 1; i += MAX - 1) {
+            const segment = pathPoints.slice(i, i + MAX);
+            await drawSegment(segment);
+            if (cancelled) return;
+          }
+        })();
       }
     });
     return () => {
