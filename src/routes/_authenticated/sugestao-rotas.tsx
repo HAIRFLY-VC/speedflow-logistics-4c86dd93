@@ -658,6 +658,49 @@ function EditSuggestionDialog({
               <RouteSummaryBlock draft={draft} />
 
               <div>
+                <Label className="text-xs" htmlFor="freight-cost-input">
+                  Valor do frete (R$)
+                </Label>
+                <div className="mt-1 flex items-center gap-3">
+                  <input
+                    id="freight-cost-input"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    className="border-input bg-background h-9 w-40 rounded-md border px-3 text-sm"
+                    value={draft.freightCost ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setDraft({
+                        ...draft,
+                        freightCost: v === "" ? null : Number(v),
+                      });
+                    }}
+                  />
+                  {(() => {
+                    const cost = Number(draft.freightCost ?? 0);
+                    const isAppend = draft.type === "append_existing";
+                    const totalValue = isAppend
+                      ? draft.existingValue + draft.totalAmount
+                      : draft.totalAmount;
+                    if (!cost || !totalValue) return null;
+                    const pct = (cost / totalValue) * 100;
+                    return (
+                      <span className="text-sm text-muted-foreground">
+                        Custo do frete:{" "}
+                        <span className="font-semibold text-foreground">
+                          {pct.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%
+                        </span>{" "}
+                        do valor dos pedidos
+                      </span>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              <div>
                   <Label className="text-xs">
                     Pedidos ({draft.stops.length}) · Paradas ({new Set(draft.stops.map((s) => s.customerId).filter((id) => !!id)).size}) · {weightFmt.format(draft.stops.reduce((sum, s) => sum + Number(s.weight ?? 0), 0))} kg · {currencyFmt.format(draft.stops.reduce((sum, s) => sum + Number(s.amount ?? 0), 0))}
                   </Label>
