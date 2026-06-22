@@ -622,3 +622,70 @@ function RouteDetailPage() {
     </AppShell>
   );
 }
+
+function RouteMapSection({
+  stops,
+  depot,
+}: {
+  stops: Stop[];
+  depot: { lat: number; lng: number } | null;
+}) {
+  const mapStops = stops
+    .map((s) => {
+      const o = s.orders;
+      const c = o?.customers;
+      if (!o || !c || c.latitude == null || c.longitude == null) return null;
+      return {
+        lat: Number(c.latitude),
+        lng: Number(c.longitude),
+        orderNumber: o.order_number,
+        customerName: c.trade_name || c.legal_name || "—",
+        city: c.city,
+        state: c.state,
+        weight: Number(o.weight ?? 0),
+        amount: Number(o.total_amount ?? 0),
+        orderId: o.id,
+        kind: "new" as const,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => !!x);
+
+  if (mapStops.length === 0) return null;
+
+  const origin = depot ?? { lat: mapStops[0].lat, lng: mapStops[0].lng };
+  const ordered = sequenceStops(mapStops, origin);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Mapa e sequência da rota</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <SuggestionMap stops={mapStops} depot={depot} />
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+          <div className="flex items-center gap-1.5">
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-600" />
+            <span className="text-emerald-700 font-medium">Entrega da rota</span>
+          </div>
+          {depot && (
+            <span className="text-muted-foreground">Origem: depósito configurado</span>
+          )}
+        </div>
+        <ol className="list-decimal list-inside space-y-0.5 text-sm">
+          {ordered.map((st, i) => {
+            const full = mapStops.find((m) => m.orderId === (st as typeof mapStops[number]).orderId)!;
+            return (
+              <li key={`${full.orderId}-${i}`}>
+                <span className="text-emerald-600 font-medium">{full.orderNumber}</span>{" "}
+                <span className="text-emerald-700/80">
+                  — {full.customerName} · {full.city ?? "?"}/{full.state ?? "?"} ·{" "}
+                  {weightFmt.format(full.weight)} kg · {formatCurrency(full.amount)}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </CardContent>
+    </Card>
+  );
+}
