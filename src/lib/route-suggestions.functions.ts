@@ -167,6 +167,19 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
     return { totalPending: targets.length, geocoded, failed };
   });
 
+export type SuggestionStop = {
+  orderId: string;
+  orderNumber: string;
+  customerId: string;
+  customerName: string;
+  city: string | null;
+  state: string | null;
+  weight: number;
+  amount: number;
+  lat: number;
+  lng: number;
+};
+
 export type RouteSuggestion = {
   id: string;
   type: "new_route" | "append_existing";
@@ -175,18 +188,8 @@ export type RouteSuggestion = {
   routeDate: string;
   driverName: string | null;
   orderIds: string[];
-  stops: {
-    orderId: string;
-    orderNumber: string;
-    customerId: string;
-    customerName: string;
-    city: string | null;
-    state: string | null;
-    weight: number;
-    amount: number;
-    lat: number;
-    lng: number;
-  }[];
+  stops: SuggestionStop[];
+  existingStops: SuggestionStop[];
   totalWeight: number;
   totalAmount: number;
   capacityWeight: number;
@@ -283,7 +286,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
     const { data: routes, error: rErr } = await supabase
       .from("routes")
       .select(
-        "id, code, route_date, status, driver_name, notes, route_orders(orders(id, weight, total_amount, customer_id, customers(latitude, longitude)))",
+        "id, code, route_date, status, driver_name, notes, route_orders(stop_order, orders(id, order_number, weight, total_amount, customer_id, customers(trade_name, legal_name, city, state, latitude, longitude)))",
       )
       .eq("status", "planejada")
       .gte("route_date", today);
@@ -299,20 +302,38 @@ export const suggestRoutes = createServerFn({ method: "POST" })
       existingValue: number;
       existingDeliveries: number;
       customerIds: Set<string>;
+      existingStops: SuggestionStop[];
     };
     const existing: ExistingRoute[] = [];
     for (const r of routes ?? []) {
-      const stops = (r.route_orders ?? [])
+      const rows = (r.route_orders ?? []).slice().sort(
+        (a: { stop_order: number | null }, b: { stop_order: number | null }) =>
+          (a.stop_order ?? 0) - (b.stop_order ?? 0),
+      );
+      const stops = rows
         .map((ro) => ro.orders)
         .filter((o): o is NonNullable<typeof o> => !!o);
-      const coords = stops
-        .map((s) => s.customers)
-        .filter((c): c is NonNullable<typeof c> => !!c && c.latitude != null && c.longitude != null)
-        .map((c) => ({ lat: Number(c.latitude), lng: Number(c.longitude) }));
-      const centroid = coords.length
+      const existingStops: SuggestionStop[] = stops
+        .filter((o) => o.customers && o.customers.latitude != null && o.customers.longitude != null)
+        .map((o) => {
+          const c = o.customers!;
+          return {
+            orderId: o.id,
+            orderNumber: o.order_number,
+            customerId: o.customer_id ?? "",
+            customerName: c.trade_name || c.legal_name || "Cliente",
+            city: c.city,
+            state: c.state,
+            weight: Number(o.weight ?? 0),
+            amount: Number(o.total_amount ?? 0),
+            lat: Number(c.latitude),
+            lng: Number(c.longitude),
+          };
+        });
+      const centroid = existingStops.length
         ? {
-            lat: coords.reduce((s, p) => s + p.lat, 0) / coords.length,
-            lng: coords.reduce((s, p) => s + p.lng, 0) / coords.length,
+            lat: existingStops.reduce((s, p) => s + p.lat, 0) / existingStops.length,
+            lng: existingStops.reduce((s, p) => s + p.lng, 0) / existingStops.length,
           }
         : null;
       const existingWeight = stops.reduce((s, o) => s + Number(o.weight ?? 0), 0);
@@ -332,6 +353,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         existingValue,
         existingDeliveries,
         customerIds,
+        existingStops,
       });
     }
 
@@ -372,6 +394,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
             existingWeight: bestRoute.existingWeight,
             existingValue: bestRoute.existingValue,
             existingDeliveries: bestRoute.existingDeliveries,
+            existingStops: bestRoute.existingStops,
             centroid: bestRoute.centroid!,
           };
           suggestions.push(s);
@@ -469,6 +492,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         existingWeight: 0,
         existingValue: 0,
         existingDeliveries: 0,
+        existingStops: [],
         centroid,
       });
     }

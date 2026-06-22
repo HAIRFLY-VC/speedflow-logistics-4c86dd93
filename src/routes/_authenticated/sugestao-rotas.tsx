@@ -429,19 +429,64 @@ function SuggestionCard({
             {weightFmt.format(s.totalWeight)} kg · {currencyFmt.format(s.totalAmount)}
           </div>
         )}
-        <SuggestionMap stops={s.stops} depot={depot} />
-        <div className="text-sm">
-          <ol className="list-decimal list-inside space-y-0.5">
-            {s.stops.map((st, i) => (
-              <li key={st.orderId}>
-                <span className="font-medium">{i + 1}. {st.orderNumber}</span>{" "}
-                <span className="text-muted-foreground">
-                  — {st.customerName} · {st.city ?? "?"}/{st.state ?? "?"} ·{" "}
-                  {weightFmt.format(st.weight)} kg · {currencyFmt.format(st.amount)}
-                </span>
-              </li>
-            ))}
-          </ol>
+        <SuggestionMap
+          stops={s.stops.map((st) => ({
+            lat: st.lat,
+            lng: st.lng,
+            orderNumber: st.orderNumber,
+            customerName: st.customerName,
+            kind: "new" as const,
+          }))}
+          existingStops={(s.existingStops ?? []).map((st) => ({
+            lat: st.lat,
+            lng: st.lng,
+            orderNumber: st.orderNumber,
+            customerName: st.customerName,
+            kind: "existing" as const,
+          }))}
+          depot={depot}
+        />
+        <div className="space-y-3 text-sm">
+          {s.type === "append_existing" && s.existingStops && s.existingStops.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="inline-block h-3 w-3 rounded-full bg-blue-600" />
+                <span className="font-medium text-blue-700">Entregas já existentes na rota</span>
+                <span className="text-muted-foreground text-xs">({s.existingStops.length})</span>
+              </div>
+              <ol className="list-decimal list-inside space-y-0.5 marker:text-blue-600">
+                {s.existingStops.map((st) => (
+                  <li key={`ex-${st.orderId}`}>
+                    <span className="font-medium">{st.orderNumber}</span>{" "}
+                    <span className="text-muted-foreground">
+                      — {st.customerName} · {st.city ?? "?"}/{st.state ?? "?"} ·{" "}
+                      {weightFmt.format(st.weight)} kg · {currencyFmt.format(st.amount)}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="inline-block h-3 w-3 rounded-full bg-emerald-600" />
+              <span className="font-medium text-emerald-700">
+                {s.type === "append_existing" ? "Novas entregas sugeridas" : "Entregas da nova rota"}
+              </span>
+              <span className="text-muted-foreground text-xs">({s.stops.length})</span>
+            </div>
+            <ol className="list-decimal list-inside space-y-0.5 marker:text-emerald-600">
+              {s.stops.map((st) => (
+                <li key={st.orderId}>
+                  <span className="font-medium">{st.orderNumber}</span>{" "}
+                  <span className="text-muted-foreground">
+                    — {st.customerName} · {st.city ?? "?"}/{st.state ?? "?"} ·{" "}
+                    {weightFmt.format(st.weight)} kg · {currencyFmt.format(st.amount)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
         </div>
       </CardContent>
     </Card>
