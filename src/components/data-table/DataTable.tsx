@@ -101,8 +101,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
     rowClassName,
     toolbarLeft,
     toolbarRight,
+    onFilteredChange,
     groupBy,
   } = props;
+
 
   const {
     state,
