@@ -271,9 +271,33 @@ function RotasPage() {
         },
       },
       {
+        id: "exp_status",
+        header: "Exp.",
+        sortable: false,
+        align: "center",
+        accessor: (r) => expedicaoStatusOf(r),
+        render: (r) => {
+          const s = expedicaoStatusOf(r);
+          const tone =
+            s === "E"
+              ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
+              : "bg-blue-500/15 text-blue-600 border-blue-500/30";
+          const title = s === "E" ? "Expedida" : "Planejada";
+          return (
+            <span
+              title={title}
+              className={`inline-flex h-6 w-6 items-center justify-center rounded-md border text-xs font-bold ${tone}`}
+            >
+              {s}
+            </span>
+          );
+        },
+      },
+      {
         id: "status",
         header: "Status",
         sortable: false,
+        defaultVisible: false,
         accessor: (r) => ROUTE_STATUS_LABEL[r.status],
         render: (r) => (
           <span
@@ -286,6 +310,7 @@ function RotasPage() {
     ],
     [],
   );
+
 
   return (
     <AppShell>
