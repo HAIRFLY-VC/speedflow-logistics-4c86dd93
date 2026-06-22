@@ -1,4 +1,4 @@
-import { isValidElement, useMemo, useState, type ReactNode } from "react";
+import { isValidElement, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ArrowDown, ArrowUp, ChevronsUpDown, Filter, X } from "lucide-react";
 
 import {
