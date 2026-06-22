@@ -97,6 +97,8 @@ function formatTempoDias(v: number | string | null | undefined) {
 function PedidosPage() {
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [visibleRows, setVisibleRows] = useState<OrderRow[]>([]);
+
 
   const ordersQ = useQuery({
     queryKey: ["orders", "list"],
