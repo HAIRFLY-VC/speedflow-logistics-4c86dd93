@@ -659,7 +659,7 @@ function EditSuggestionDialog({
 
               <div>
                   <Label className="text-xs">
-                    Pedidos ({draft.stops.length}) · Paradas ({new Set(draft.stops.map((s) => s.customerId).filter((id) => !!id)).size})
+                    Pedidos ({draft.stops.length}) · Paradas ({new Set(draft.stops.map((s) => s.customerId).filter((id) => !!id)).size}) · {weightFmt.format(draft.stops.reduce((sum, s) => sum + Number(s.weight ?? 0), 0))} kg · {currencyFmt.format(draft.stops.reduce((sum, s) => sum + Number(s.amount ?? 0), 0))}
                   </Label>
                   <ul className="text-sm divide-y rounded-md border mt-1">
                   {draft.stops.map((s) => (
