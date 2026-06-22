@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -299,11 +299,31 @@ function DistanceCell({
 
 
 
-  if (value != null) {
-    return <span>{value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</span>;
-  }
-  if (computing) return <Loader2 className="h-3 w-3 animate-spin inline" />;
-  return <span className="text-muted-foreground">—</span>;
+  const triggerRecalc = () => {
+    attempted.current = false;
+    setValue(null);
+  };
+
+  return (
+    <div className="inline-flex items-center gap-1 justify-end">
+      {computing ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : value != null ? (
+        <span>{value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</span>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      )}
+      <button
+        type="button"
+        onClick={triggerRecalc}
+        disabled={computing}
+        title="Recalcular distância"
+        className="text-muted-foreground hover:text-foreground disabled:opacity-40"
+      >
+        <RefreshCw className="h-3 w-3" />
+      </button>
+    </div>
+  );
 }
 
 
