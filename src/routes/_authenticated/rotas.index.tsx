@@ -87,7 +87,8 @@ function formatRouteDate(value: string | null | undefined): string {
 }
 
 function nomeRotaOf(r: RouteRow) {
-  return r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code;
+  const raw = r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code;
+  return normalizeRouteName(raw);
 }
 function motoristaOf(r: RouteRow) {
   return r.driver_name ?? r.freight_carriers?.full_name ?? "";
