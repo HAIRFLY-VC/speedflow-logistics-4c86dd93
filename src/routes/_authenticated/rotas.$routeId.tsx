@@ -609,6 +609,14 @@ function RouteMapSection({
                   — {full.customerName} · {full.city ?? "?"}/{full.state ?? "?"} ·{" "}
                   {weightFmt.format(full.weight)} kg · {formatCurrency(full.amount)}
                 </span>
+                {full.coordSource === "order" && full.deliveryAddress ? (
+                  <span
+                    className="ml-2 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800"
+                    title={`Endereço alternativo (OBS_LOGIST): ${full.deliveryAddress}`}
+                  >
+                    endereço alternativo
+                  </span>
+                ) : null}
               </li>
             );
           })}
