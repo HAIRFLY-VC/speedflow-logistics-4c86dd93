@@ -297,8 +297,28 @@ function DistanceCell({
 }
 
 
+function RotasPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+
+  const depotQ = useQuery({
+    queryKey: ["company_settings", "depot"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_settings")
+        .select("depot_latitude, depot_longitude")
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      if (data?.depot_latitude != null && data?.depot_longitude != null) {
+        return { lat: Number(data.depot_latitude), lng: Number(data.depot_longitude) };
+      }
+      return null;
+    },
+  });
+  const depot = depotQ.data ?? null;
+
+
 
   const { data, isLoading } = useQuery({
     queryKey: ["routes"],
