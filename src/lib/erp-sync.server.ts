@@ -36,7 +36,18 @@ type ErpOrderRow = {
   NOME_MOTORISTA: string | null;
   QTD_DIAS: number | null;
   ID_ROTA: number | string | null;
+  OBS_LOGIST: string | null;
 };
+
+// Extrai o endereço alternativo de entrega presente no OBS_LOGIST.
+// Aceita variações como "ENDERECO DE ENTREGA:", "ENDEREÇO DE ENTREGA:", etc.
+function parseDeliveryOverride(obsLogist: unknown): string | null {
+  if (!obsLogist || typeof obsLogist !== "string") return null;
+  const m = obsLogist.match(/ENDERE[CÇ]O\s+DE\s+ENTREGA\s*:\s*([^\r\n]+)/i);
+  if (!m) return null;
+  const addr = m[1].trim();
+  return addr.length > 0 ? addr : null;
+}
 
 const PENDING_ORDERS_SQL = `
   SELECT E.COD_AGENDA, E.COD_FILIAL, E.NR_DOCUMENTO, E.DT_AGENDA,
