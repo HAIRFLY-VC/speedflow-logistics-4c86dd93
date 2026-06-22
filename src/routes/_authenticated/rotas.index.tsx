@@ -230,12 +230,21 @@ function DistanceCell({
     );
     const pts: { lat: number; lng: number; orderNumber: string; customerName: string; kind: "new" }[] = [];
     for (const ro of ros) {
-      const c = ro.orders?.customers;
+      const ordersRaw = ro.orders as unknown;
+      const order = (Array.isArray(ordersRaw) ? ordersRaw[0] : ordersRaw) as
+        | { order_number?: string | null; customers?: unknown }
+        | null
+        | undefined;
+      const customersRaw = order?.customers;
+      const c = (Array.isArray(customersRaw) ? customersRaw[0] : customersRaw) as
+        | { latitude?: number | string | null; longitude?: number | string | null }
+        | null
+        | undefined;
       if (!c || c.latitude == null || c.longitude == null) continue;
       pts.push({
         lat: Number(c.latitude),
         lng: Number(c.longitude),
-        orderNumber: ro.orders?.order_number ?? "",
+        orderNumber: order?.order_number ?? "",
         customerName: "",
         kind: "new",
       });
@@ -247,7 +256,6 @@ function DistanceCell({
     if (value != null) return;
     if (attempted.current) return;
     if (stops.length < 1) return;
-    attempted.current = true;
 
     const ordered = sequenceStops(stops, depot);
     const pathPoints = depot
@@ -255,7 +263,7 @@ function DistanceCell({
       : ordered.map((s) => ({ lat: s.lat, lng: s.lng }));
     if (pathPoints.length < 2) return;
 
-    let cancelled = false;
+    attempted.current = true;
     setComputing(true);
     (async () => {
       const MAX = 25;
@@ -269,7 +277,6 @@ function DistanceCell({
           const result = await compute({ data: { origin, destination, waypoints } });
           totalMeters += result.distanceMeters ?? 0;
         }
-        if (cancelled) return;
         const km = totalMeters > 0 ? totalMeters / 1000 : 0;
         const rounded = Math.round(km * 100) / 100;
         setValue(rounded);
@@ -280,14 +287,14 @@ function DistanceCell({
         qc.invalidateQueries({ queryKey: ["routes"] });
       } catch (err) {
         console.warn("[DistanceCell] falhou:", err);
+        attempted.current = false;
       } finally {
-        if (!cancelled) setComputing(false);
+        setComputing(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
   }, [stops, depot, value, compute, qc, route.id]);
+
+
 
   if (value != null) {
     return <span>{value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</span>;
