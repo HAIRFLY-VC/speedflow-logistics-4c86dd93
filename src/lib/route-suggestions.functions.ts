@@ -167,6 +167,19 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
     return { totalPending: targets.length, geocoded, failed };
   });
 
+export type SuggestionStop = {
+  orderId: string;
+  orderNumber: string;
+  customerId: string;
+  customerName: string;
+  city: string | null;
+  state: string | null;
+  weight: number;
+  amount: number;
+  lat: number;
+  lng: number;
+};
+
 export type RouteSuggestion = {
   id: string;
   type: "new_route" | "append_existing";
@@ -175,18 +188,8 @@ export type RouteSuggestion = {
   routeDate: string;
   driverName: string | null;
   orderIds: string[];
-  stops: {
-    orderId: string;
-    orderNumber: string;
-    customerId: string;
-    customerName: string;
-    city: string | null;
-    state: string | null;
-    weight: number;
-    amount: number;
-    lat: number;
-    lng: number;
-  }[];
+  stops: SuggestionStop[];
+  existingStops: SuggestionStop[];
   totalWeight: number;
   totalAmount: number;
   capacityWeight: number;
