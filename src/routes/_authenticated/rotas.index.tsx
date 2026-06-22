@@ -8,6 +8,7 @@ import { ptBR } from "date-fns/locale";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeRouteName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,7 +88,8 @@ function formatRouteDate(value: string | null | undefined): string {
 }
 
 function nomeRotaOf(r: RouteRow) {
-  return r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code;
+  const raw = r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code;
+  return normalizeRouteName(raw);
 }
 function motoristaOf(r: RouteRow) {
   return r.driver_name ?? r.freight_carriers?.full_name ?? "";
