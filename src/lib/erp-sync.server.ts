@@ -246,7 +246,7 @@ export async function syncErpOrders(opts: {
           cod_agenda: row.COD_AGENDA,
           notes: notes || null,
           dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
-          nome_rota: row.NOME_ROTA || null,
+          nome_rota: row.NOME_ROTA ? normalizeRouteName(row.NOME_ROTA) : null,
           nome_motorista: row.NOME_MOTORISTA || null,
           erp_status: row.STATUS || null,
           qtd_dias: qtdDias,
