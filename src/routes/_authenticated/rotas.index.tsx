@@ -299,11 +299,31 @@ function DistanceCell({
 
 
 
-  if (value != null) {
-    return <span>{value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</span>;
-  }
-  if (computing) return <Loader2 className="h-3 w-3 animate-spin inline" />;
-  return <span className="text-muted-foreground">—</span>;
+  const triggerRecalc = () => {
+    attempted.current = false;
+    setValue(null);
+  };
+
+  return (
+    <div className="inline-flex items-center gap-1 justify-end">
+      {computing ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : value != null ? (
+        <span>{value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</span>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      )}
+      <button
+        type="button"
+        onClick={triggerRecalc}
+        disabled={computing}
+        title="Recalcular distância"
+        className="text-muted-foreground hover:text-foreground disabled:opacity-40"
+      >
+        <RefreshCw className="h-3 w-3" />
+      </button>
+    </div>
+  );
 }
 
 
