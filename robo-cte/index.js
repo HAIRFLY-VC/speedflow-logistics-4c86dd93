@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import https from "https";
-import { SefazCteClient, filtrarProcCte, extrairXmlProcCte } from "./sefaz.js";
+import { SefazCteClient, SefazNfeClient, filtrarProcCte, extrairXmlProcCte } from "./sefaz.js";
 
 const CONFIG_PATH = process.env.ROBO_CTE_CONFIG || "./config.json";
 const NSU_FILE = "./.ultimo-nsu";
@@ -196,6 +196,124 @@ async function enviarXml(endpoint, segredo, xml, opts = {}) {
 
 
 
+
+// ============ Captura de NF-e solicitada pelo aplicativo ============
+
+function urlHook(endpoint, nome) {
+  const url = new URL(endpoint);
+  url.pathname = url.pathname.replace(/[^/]+$/, nome);
+  return url.toString();
+}
+
+function requestJson(url, metodo, segredo, body, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const payload = body ? Buffer.from(JSON.stringify(body), "utf-8") : null;
+    const req = https.request(
+      {
+        method: metodo,
+        hostname: u.hostname,
+        path: u.pathname + u.search,
+        port: u.port || 443,
+        headers: {
+          "x-ingest-secret": segredo,
+          Accept: "application/json",
+          Connection: "close",
+          ...(payload
+            ? { "Content-Type": "application/json", "Content-Length": payload.length }
+            : {}),
+        },
+        agent: false,
+        timeout: timeoutMs || 60000,
+      },
+      (res) => {
+        const chunks = [];
+        res.on("data", (c) => chunks.push(c));
+        res.on("end", () => {
+          const text = Buffer.concat(chunks).toString("utf-8");
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            try {
+              resolve(JSON.parse(text || "{}"));
+            } catch {
+              resolve({});
+            }
+          } else {
+            reject(new Error(`HTTP ${res.statusCode}: ${text.slice(0, 300)}`));
+          }
+        });
+      }
+    );
+    req.on("error", reject);
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error("Timeout na chamada ao aplicativo"));
+    });
+    if (payload) req.write(payload);
+    req.end();
+  });
+}
+
+async function processarNfesPendentes(cfg, modoTeste) {
+  let pendentes = [];
+  try {
+    const resp = await requestJson(
+      urlHook(cfg.endpoint, "nfe-pendentes"),
+      "GET",
+      cfg.segredoIngest,
+      null,
+      cfg.timeoutMs
+    );
+    pendentes = resp.pendentes || [];
+  } catch (e) {
+    log(`Nao foi possivel consultar NF-e pendentes: ${e.message}`);
+    return;
+  }
+
+  if (!pendentes.length) {
+    log("Nenhuma NF-e pendente solicitada pelo aplicativo.");
+    return;
+  }
+  log(`NF-e pendentes solicitadas pelo aplicativo: ${pendentes.length}`);
+
+  for (const item of pendentes) {
+    const chave = String(item.chave || "").replace(/\D/g, "");
+    if (chave.length !== 44) continue;
+
+    let xml = null;
+    let erro = null;
+    for (let i = 0; i < cfg.empresas.length; i++) {
+      const empresa = cfg.empresas[i];
+      try {
+        const client = new SefazNfeClient(empresa, cfg.ambiente);
+        xml = await client.consultarChave(chave);
+        break;
+      } catch (e) {
+        erro = e.message;
+      }
+      await sleep(300);
+    }
+
+    if (modoTeste) {
+      log(`[TESTE] NF-e ${chave}: ${xml ? "XML obtido" : `falha - ${erro}`}`);
+      continue;
+    }
+
+    try {
+      await requestJson(
+        urlHook(cfg.endpoint, "ingest-nfe"),
+        "POST",
+        cfg.segredoIngest,
+        xml ? { chave, xml } : { chave, erro: erro || "XML nao retornado pela SEFAZ" },
+        cfg.timeoutMs
+      );
+      log(xml ? `NF-e ${chave} enviada ao aplicativo` : `NF-e ${chave} sem XML: ${erro}`);
+    } catch (e) {
+      log(`Erro ao enviar NF-e ${chave}: ${e.message}`);
+    }
+    await sleep(500);
+  }
+}
+
 async function processarEmpresa(cfg, empresaIndex, modoTeste) {
   const empresa = cfg.empresas[empresaIndex];
   log(`Iniciando consulta para ${empresa.nome} (${empresa.cnpj})`);
@@ -291,6 +409,7 @@ async function run() {
         await processarEmpresa(cfg, i, modoTeste);
         await sleep(1000);
       }
+      await processarNfesPendentes(cfg, modoTeste);
     } catch (e) {
       if (e instanceof ConfigError) {
         log(`ERRO DE CONFIGURACAO: ${e.message}`);
