@@ -785,6 +785,72 @@ export type Database = {
           },
         ]
       }
+      nfes: {
+        Row: {
+          chave_acesso: string
+          cnpj_destinatario: string | null
+          cnpj_emitente: string | null
+          created_at: string
+          data_emissao: string | null
+          id: string
+          itens: Json
+          natureza_operacao: string | null
+          nome_destinatario: string | null
+          nome_emitente: string | null
+          numero: string | null
+          peso_bruto: number | null
+          serie: string | null
+          uf_destino: string | null
+          updated_at: string
+          valor_frete: number
+          valor_produtos: number
+          valor_total: number
+          xml_storage_path: string | null
+        }
+        Insert: {
+          chave_acesso: string
+          cnpj_destinatario?: string | null
+          cnpj_emitente?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          id?: string
+          itens?: Json
+          natureza_operacao?: string | null
+          nome_destinatario?: string | null
+          nome_emitente?: string | null
+          numero?: string | null
+          peso_bruto?: number | null
+          serie?: string | null
+          uf_destino?: string | null
+          updated_at?: string
+          valor_frete?: number
+          valor_produtos?: number
+          valor_total?: number
+          xml_storage_path?: string | null
+        }
+        Update: {
+          chave_acesso?: string
+          cnpj_destinatario?: string | null
+          cnpj_emitente?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          id?: string
+          itens?: Json
+          natureza_operacao?: string | null
+          nome_destinatario?: string | null
+          nome_emitente?: string | null
+          numero?: string | null
+          peso_bruto?: number | null
+          serie?: string | null
+          uf_destino?: string | null
+          updated_at?: string
+          valor_frete?: number
+          valor_produtos?: number
+          valor_total?: number
+          xml_storage_path?: string | null
+        }
+        Relationships: []
+      }
       ordens_pagamento_frete: {
         Row: {
           autorizado_em: string | null
