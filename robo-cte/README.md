@@ -102,6 +102,8 @@ No app, vá em **Captura de CT-e** e confira o histórico de recebimentos com or
 |---|---|---|
 | `Unauthorized` no envio | Segredo incorreto | Verifique `segredoIngest` no `config.json` |
 | `UNIQUE constraint` / duplicado | XML já enviado | Normal; o robô pode reenviar sem problemas |
+| `Bad escaped character in JSON` | Caminho do Windows com `\` simples no `config.json` | Use `C:/...` ou `C:\\...` |
+| `ERRO DE CONFIGURACAO: ... incompleta` | Campos obrigatórios em branco | Preencha os campos listados na mensagem |
 | `PENDENTE_IDENTIFICACAO` | CNPJ não cadastrado | Cadastre a transportadora e empresa no app |
 | Erro de certificado | Certificado A1 expirado ou senha incorreta | Renove e atualize o `.pfx` e a senha |
 | Nenhum CT-e retornado | NSU já está atualizado | Aguarde novos CT-e serem autorizados na SEFAZ |
