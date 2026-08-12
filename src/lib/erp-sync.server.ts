@@ -78,10 +78,15 @@ const PENDING_ORDERS_SQL = `
 // Erros típicos de indisponibilidade do servidor de origem (Cloudflare entre nós e o ERP).
 const TRANSIENT_HTTP_STATUSES = new Set([502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 527, 530]);
 
+function nowBr(): string {
+  return new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+}
+
 function friendlyErpError(status: number, bodyText: string): string {
   if (TRANSIENT_HTTP_STATUSES.has(status)) {
-    return `ERP fora do ar (HTTP ${status}). Tente novamente em alguns minutos.`;
+    return `ERP fora do ar (HTTP ${status}) em ${nowBr()}. O servidor do ERP não respondeu; tente novamente em alguns minutos.`;
   }
+
   if (status === 401 || status === 403) {
     return `ERP recusou a autenticação (HTTP ${status}). Verifique a API Key.`;
   }
