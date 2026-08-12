@@ -9,6 +9,7 @@
     {
       "nome": "Empresa Principal",
       "cnpj": "00000000000191",
+      "ufAutor": 35,
       "caminhoCertificado": "./certificado.pfx",
       "senhaCertificado": "SENHA_DO_CERTIFICADO",
       "ultimoNsu": 0
@@ -19,3 +20,4 @@
     "maxLinhasArquivo": 5000
   }
 }
+
