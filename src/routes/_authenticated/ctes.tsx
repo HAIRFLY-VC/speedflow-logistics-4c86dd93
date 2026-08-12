@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import { uploadCteXml, getCteXmlUrl } from "@/lib/cte.functions";
+import { CteDetailDialog } from "@/components/ctes/CteDetailDialog";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/ctes")({
