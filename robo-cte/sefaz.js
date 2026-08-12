@@ -100,8 +100,9 @@ export class SefazCteClient {
   }
 
   async consultar(ultimoNsu) {
-    const envelope = buildEnvelope(this.empresa.cnpj, ultimoNsu);
+    const envelope = buildEnvelope(this.empresa.cnpj, this.empresa.ufAutor, ultimoNsu, this.ambiente);
     const response = await postXml(this.url, envelope, this.agent);
+
 
     const cteDistDFeInteresseResult = extractText(response, "cteDistDFeInteresseResult") || response;
 
