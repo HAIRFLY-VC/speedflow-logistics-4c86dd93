@@ -92,5 +92,21 @@ export async function ingestCteXml(params: {
 
   if (error) throw new Error(error.message);
 
+  // Auditoria automática assim que o CT-e é identificado.
+  if (transportadoraId) {
+    try {
+      const { auditCte } = await import("./cte-audit.server");
+      const outcome = await auditCte(supabaseAdmin, inserted.id);
+      return {
+        ok: true,
+        cte_id: inserted.id,
+        chave_acesso: parsed.chave_acesso,
+        status: outcome.resultado === "OK" ? "APROVADO" : "DIVERGENTE",
+      };
+    } catch {
+      // mantém o CT-e recebido para auditoria manual
+    }
+  }
+
   return { ok: true, cte_id: inserted.id, chave_acesso: parsed.chave_acesso, status };
 }
