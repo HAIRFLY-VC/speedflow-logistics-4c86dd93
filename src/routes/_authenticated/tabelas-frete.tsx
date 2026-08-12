@@ -563,6 +563,7 @@ function TabelaDialog({
               <Input
                 type="file"
                 accept=".pdf,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
+                disabled={lendoArquivo}
                 onChange={(e) => {
                   const f = e.target.files?.[0] ?? null;
                   if (f && f.size > 20 * 1024 * 1024) {
@@ -570,10 +571,21 @@ function TabelaDialog({
                     return;
                   }
                   setArquivo(f);
+                  if (f) void lerArquivo(f);
                 }}
               />
               <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <Upload className="h-3 w-3" /> Até 20 MB por arquivo.
+                {lendoArquivo ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" /> Lendo o arquivo e preenchendo os
+                    campos…
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-3 w-3" /> Até 20 MB. Os campos abaixo são preenchidos
+                    automaticamente a partir do arquivo.
+                  </>
+                )}
               </p>
             </div>
           </div>
