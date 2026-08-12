@@ -61,13 +61,21 @@ Ajuste no arquivo de serviço o caminho da pasta e o usuário que executará o p
 
 ### 5. Instale como serviço (Windows)
 
-Como administrador, execute o PowerShell:
+Como administrador, instale o `node-windows` globalmente e execute o script `.cjs`:
 
 ```powershell
-.\instalar-windows.ps1
+npm install -g node-windows
+cd C:\SpeedFlow\RoboCTe
+node install-service.cjs
 ```
 
-O script usa o NSSM para registrar o serviço. Se necessário, baixe o NSSM em https://nssm.cc/download.
+> O script é `.cjs` (CommonJS) porque o `package.json` deste projeto usa `"type": "module"`. Arquivos `.js` seriam interpretados como ES Modules e falhariam com `require is not defined`.
+
+Para remover o serviço:
+
+```powershell
+node uninstall-service.cjs
+```
 
 ### 6. Acompanhe os recebimentos
 
