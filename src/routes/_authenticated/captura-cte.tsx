@@ -94,6 +94,7 @@ function InstalacaoRobo({ segredoConfigurado }: { segredoConfigurado?: boolean }
     {
       "nome": "Empresa Principal",
       "cnpj": "00000000000191",
+      "ufAutor": 35,
       "caminhoCertificado": "./certificado.pfx",
       "senhaCertificado": "SENHA_DO_CERTIFICADO",
       "ultimoNsu": 0
@@ -104,6 +105,7 @@ function InstalacaoRobo({ segredoConfigurado }: { segredoConfigurado?: boolean }
     "maxLinhasArquivo": 5000
   }
 }`;
+
 
   return (
     <div className="space-y-6">
