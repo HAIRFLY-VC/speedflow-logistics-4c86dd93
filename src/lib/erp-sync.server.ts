@@ -249,15 +249,28 @@ export async function syncErpOrders(opts: {
         .eq("id", customerId);
       if (error) throw error;
     } else {
-      const { data: ins, error } = await supabaseAdmin
+      // upsert idempotente: evita 23505 quando o mesmo cliente aparece em vários
+      // pedidos processados em paralelo na mesma leva.
+      const { data: ups, error } = await supabaseAdmin
         .from("customers")
-        .insert(customerPayload)
+        .upsert(customerPayload, { onConflict: "erp_id" })
         .select("id")
-        .single();
-      if (error || !ins) throw error ?? new Error("insert customer falhou");
-      customerId = ins.id;
-      customerCreated = true;
+        .maybeSingle();
+      if (ups?.id) {
+        customerId = ups.id;
+        customerCreated = true;
+      } else {
+        // corrida: outra linha criou o cliente entre o select e o upsert
+        const { data: again, error: againErr } = await supabaseAdmin
+          .from("customers")
+          .select("id")
+          .eq("erp_id", codCliente)
+          .maybeSingle();
+        if (!again) throw error ?? againErr ?? new Error("insert customer falhou");
+        customerId = again.id;
+      }
     }
+
 
     const pedidoStr = String(row.PEDIDO);
     const totalAmount = Number(row.VALOR ?? row.VALOR_PEDIDO ?? 0);
