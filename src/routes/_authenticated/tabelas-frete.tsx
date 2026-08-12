@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Loader2, Trash2 } from "lucide-react";
+import { Plus, Pencil, Loader2, Trash2, FileText, Upload, Download, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -89,6 +89,25 @@ const num = (v: string) => {
 
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const BUCKET = "tabelas-frete";
+
+async function signedUrl(path: string, download?: string) {
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(path, 300, download ? { download } : undefined);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+async function abrirArquivo(path: string, nome?: string | null, baixar?: boolean) {
+  try {
+    const url = await signedUrl(path, baixar ? (nome ?? "tabela") : undefined);
+    window.open(url, "_blank", "noopener,noreferrer");
+  } catch (e) {
+    toast.error((e as Error).message);
+  }
+}
 
 function emptyForm(): TabelaForm {
   return {
@@ -196,6 +215,36 @@ function TabelasFretePage() {
         align: "right",
         accessor: (t) => Number(t.frete_minimo),
         render: (t) => brl(Number(t.frete_minimo)),
+      },
+      {
+        id: "arquivo",
+        header: "Arquivo",
+        align: "center",
+        sortable: false,
+        accessor: (t) => t.arquivo_nome ?? "",
+        render: (t) =>
+          t.arquivo_path ? (
+            <div className="flex items-center justify-center gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                title={t.arquivo_nome ?? "Ver arquivo"}
+                onClick={() => abrirArquivo(t.arquivo_path!)}
+              >
+                <FileText className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                title="Baixar arquivo"
+                onClick={() => abrirArquivo(t.arquivo_path!, t.arquivo_nome, true)}
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          ),
       },
       {
         id: "ativo",
@@ -316,6 +365,12 @@ function TabelaDialog({
       : { ...emptyForm(), transportadora_id: transportadoras[0]?.id ?? "" },
   );
   const [faixas, setFaixas] = useState<FaixaDraft[]>([]);
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [arquivoAtual, setArquivoAtual] = useState<{ path: string; nome: string } | null>(
+    editing?.arquivo_path
+      ? { path: editing.arquivo_path, nome: editing.arquivo_nome ?? "arquivo" }
+      : null,
+  );
 
   useQuery({
     queryKey: ["tabela-faixas", editing?.id],
@@ -385,6 +440,36 @@ function TabelaDialog({
       }
 
       if (!tabelaId) throw new Error("Falha ao salvar a tabela");
+
+      if (arquivo) {
+        const ext = arquivo.name.split(".").pop()?.toLowerCase() ?? "bin";
+        const path = `${tabelaId}/${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from(BUCKET)
+          .upload(path, arquivo, { contentType: arquivo.type || undefined, upsert: false });
+        if (upErr) throw upErr;
+        const { error: metaErr } = await supabase
+          .from("tabelas_preco_frete")
+          .update({
+            arquivo_path: path,
+            arquivo_nome: arquivo.name,
+            arquivo_tipo: arquivo.type || null,
+          })
+          .eq("id", tabelaId);
+        if (metaErr) throw metaErr;
+        if (arquivoAtual?.path) {
+          await supabase.storage.from(BUCKET).remove([arquivoAtual.path]);
+        }
+      } else if (!arquivoAtual && editing?.arquivo_path) {
+        const { error: metaErr } = await supabase
+          .from("tabelas_preco_frete")
+          .update({ arquivo_path: null, arquivo_nome: null, arquivo_tipo: null })
+          .eq("id", tabelaId);
+        if (metaErr) throw metaErr;
+        await supabase.storage.from(BUCKET).remove([editing.arquivo_path]);
+      }
+
+
 
       const { error: delError } = await supabase
         .from("tabelas_preco_frete_faixas")
@@ -530,7 +615,75 @@ function TabelaDialog({
               onChange={(e) => set("descricao", e.target.value)}
             />
           </div>
+
+          <div className="md:col-span-3 space-y-1.5">
+            <Label className="text-xs">Arquivo da tabela (PDF, Excel, imagem)</Label>
+            <div className="rounded-md border border-dashed p-3 space-y-2">
+              {arquivo ? (
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span className="flex items-center gap-2 truncate">
+                    <FileText className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{arquivo.name}</span>
+                  </span>
+                  <Button size="icon" variant="ghost" onClick={() => setArquivo(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : arquivoAtual ? (
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 truncate text-primary hover:underline"
+                    onClick={() => abrirArquivo(arquivoAtual.path)}
+                  >
+                    <FileText className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{arquivoAtual.nome}</span>
+                  </button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Baixar"
+                      onClick={() => abrirArquivo(arquivoAtual.path, arquivoAtual.nome, true)}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Remover arquivo"
+                      onClick={() => setArquivoAtual(null)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Anexe o arquivo original enviado pela transportadora. Ele ficará guardado no app
+                  para consulta.
+                </p>
+              )}
+
+              <Input
+                type="file"
+                accept=".pdf,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  if (f && f.size > 20 * 1024 * 1024) {
+                    toast.error("Arquivo maior que 20 MB");
+                    return;
+                  }
+                  setArquivo(f);
+                }}
+              />
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <Upload className="h-3 w-3" /> Até 20 MB por arquivo.
+              </p>
+            </div>
+          </div>
         </div>
+
 
         <div className="space-y-2 pt-2">
           <div className="flex items-center justify-between">
