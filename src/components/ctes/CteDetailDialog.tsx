@@ -1,4 +1,4 @@
-import { FileDown, Loader2 } from "lucide-react";
+import { FileCode, FileDown, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,7 @@ export function CteDetailDialog({
   transportadoraNome,
   statusTone,
   onDownloadXml,
+  onReadXml,
   downloading,
 }: {
   cte: Cte | null;
@@ -41,7 +42,8 @@ export function CteDetailDialog({
   onOpenChange: (v: boolean) => void;
   transportadoraNome?: string;
   statusTone?: string;
-  onDownloadXml: (cteId: string) => void;
+  onDownloadXml: (cte: Cte) => void;
+  onReadXml: (cte: Cte) => void;
   downloading: boolean;
 }) {
   const { data: historico, isLoading: loadingHist } = useQuery({
@@ -231,11 +233,19 @@ export function CteDetailDialog({
             )}
           </section>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              disabled={!cte.xml_storage_path}
+              onClick={() => onReadXml(cte)}
+            >
+              <FileCode className="mr-1 h-4 w-4" />
+              Ler XML
+            </Button>
             <Button
               variant="outline"
               disabled={!cte.xml_storage_path || downloading}
-              onClick={() => onDownloadXml(cte.id)}
+              onClick={() => onDownloadXml(cte)}
             >
               {downloading ? (
                 <Loader2 className="mr-1 h-4 w-4 animate-spin" />

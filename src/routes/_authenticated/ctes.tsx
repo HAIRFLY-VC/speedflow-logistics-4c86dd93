@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Upload, Loader2, FileDown } from "lucide-react";
+import { Upload, Loader2, FileDown, FileCode } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import { uploadCteXml, getCteXmlUrl } from "@/lib/cte.functions";
 import { CteDetailDialog } from "@/components/ctes/CteDetailDialog";
+import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/ctes")({
@@ -90,11 +91,47 @@ function CtesPage() {
     return map;
   }, [transportadoras]);
 
+  const [xmlOpen, setXmlOpen] = useState(false);
+  const [xmlContent, setXmlContent] = useState<string | null>(null);
+  const [xmlTitle, setXmlTitle] = useState("XML do CT-e");
+
+  const readXml = useMutation({
+    mutationFn: async (cte: Cte) => {
+      const { url } = await signUrl({ data: { cteId: cte.id } });
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Falha ao carregar o XML");
+      return { xml: await res.text(), cte };
+    },
+    onMutate: (cte: Cte) => {
+      setXmlTitle(`XML do CT-e ${cte.numero ?? ""}`.trim());
+      setXmlContent(null);
+      setXmlOpen(true);
+    },
+    onSuccess: (r) => setXmlContent(r.xml),
+    onError: (e: Error) => {
+      setXmlOpen(false);
+      toast.error(e.message);
+    },
+  });
+
   const openXml = useMutation({
-    mutationFn: async (cteId: string) => signUrl({ data: { cteId } }),
-    onSuccess: (res) => window.open(res.url, "_blank", "noopener"),
+    mutationFn: async (cte: Cte) => {
+      const { url } = await signUrl({ data: { cteId: cte.id } });
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Falha ao baixar o XML");
+      const blob = await res.blob();
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = `cte-${cte.numero ?? cte.id}.xml`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(href);
+    },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   async function handleFiles(files: FileList | null) {
     if (!files?.length) return;
@@ -206,24 +243,39 @@ function CtesPage() {
         filterable: false,
         accessor: () => "",
         render: (c) => (
-          <Button
-            size="icon"
-            variant="ghost"
-            title="Baixar XML"
-            disabled={!c.xml_storage_path || openXml.isPending}
-            onClick={(e) => {
-              e.stopPropagation();
-              openXml.mutate(c.id);
-            }}
-          >
-            <FileDown className="h-4 w-4" />
-          </Button>
+          <div className="flex justify-end gap-1">
+            <Button
+              size="icon"
+              variant="ghost"
+              title="Ler XML"
+              disabled={!c.xml_storage_path || readXml.isPending}
+              onClick={(e) => {
+                e.stopPropagation();
+                readXml.mutate(c);
+              }}
+            >
+              <FileCode className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              title="Baixar XML"
+              disabled={!c.xml_storage_path || openXml.isPending}
+              onClick={(e) => {
+                e.stopPropagation();
+                openXml.mutate(c);
+              }}
+            >
+              <FileDown className="h-4 w-4" />
+            </Button>
+          </div>
         ),
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [nomeTransportadora, openXml.isPending],
+    [nomeTransportadora, openXml.isPending, readXml.isPending],
   );
+
 
   return (
     <AppShell>
@@ -276,8 +328,17 @@ function CtesPage() {
               : undefined
           }
           statusTone={selected ? STATUS_TONE[selected.status] : undefined}
-          onDownloadXml={(id) => openXml.mutate(id)}
+          onDownloadXml={(c) => openXml.mutate(c)}
+          onReadXml={(c) => readXml.mutate(c)}
           downloading={openXml.isPending}
+        />
+
+        <XmlViewerDialog
+          open={xmlOpen}
+          onOpenChange={setXmlOpen}
+          xml={xmlContent}
+          title={xmlTitle}
+          loading={readXml.isPending}
         />
       </div>
     </AppShell>
