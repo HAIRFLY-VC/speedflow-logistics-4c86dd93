@@ -31,6 +31,19 @@ export type ExtractedTabela = {
     valor_por_kg?: number | null;
     valor_fixo_faixa?: number | null;
   }[];
+  rotas?: {
+    origem?: string | null;
+    destino?: string | null;
+    uf_origem?: string | null;
+    uf_destino?: string | null;
+    tarifa_frete_peso?: number | null;
+    frete_valor_percentual?: number | null;
+    taxa_despacho?: number | null;
+    frete_minimo?: number | null;
+    peso_minimo_kg?: number | null;
+    prazo_entrega_min_dias?: number | null;
+    prazo_entrega_max_dias?: number | null;
+  }[];
 };
 
 const SCHEMA = {
