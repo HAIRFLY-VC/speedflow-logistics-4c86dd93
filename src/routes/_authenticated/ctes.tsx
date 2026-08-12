@@ -218,6 +218,20 @@ function CtesPage() {
         ),
       },
       {
+        id: "perc_frete",
+        header: "% Frete",
+        align: "right",
+        filterType: "number",
+        accessor: (c) =>
+          Number(c.valor_mercadoria) > 0
+            ? (Number(c.valor_total_frete) / Number(c.valor_mercadoria)) * 100
+            : 0,
+        render: (c) =>
+          Number(c.valor_mercadoria) > 0
+            ? `${((Number(c.valor_total_frete) / Number(c.valor_mercadoria)) * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+            : "—",
+      },
+      {
         id: "origem",
         header: "Origem",
         accessor: (c) => c.origem_captura,
