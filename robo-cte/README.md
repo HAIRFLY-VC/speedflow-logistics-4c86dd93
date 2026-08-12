@@ -35,6 +35,9 @@ nano config.json
 - Adicione uma entrada em `empresas` para cada CNPJ/certificado.
 - Mantenha `ambiente: "homologacao"` para testar. Depois, mude para `"producao"`.
 
+> ⚠️ **Windows:** em `caminhoCertificado`, use barra normal (`"C:/certs/certificado.pfx"`) ou barra invertida dupla (`"C:\\certs\\certificado.pfx"`). Uma barra invertida simples quebra o JSON e o robô aborta com `Bad escaped character in JSON`.
+
+
 
 ### 3. Teste manualmente
 
