@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Upload, Loader2, FileDown, FileCode } from "lucide-react";
+import { Upload, Loader2, FileDown, FileCode, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -133,6 +133,47 @@ function CtesPage() {
   });
 
 
+  const cadastrarTransportadora = useMutation({
+    mutationFn: async (cte: Cte) => {
+      const cnpj = (cte.cnpj_emitente ?? "").replace(/\D/g, "");
+      if (!cnpj) throw new Error("CT-e sem CNPJ do emitente");
+      const razao = cte.nome_emitente?.trim() || `Transportadora ${cnpj}`;
+
+      const { data: existente } = await supabase
+        .from("transportadoras")
+        .select("id")
+        .eq("cnpj", cnpj)
+        .maybeSingle();
+
+      let id = existente?.id;
+      if (!id) {
+        const { data: nova, error } = await supabase
+          .from("transportadoras")
+          .insert({ cnpj, razao_social: razao, ativo: true })
+          .select("id")
+          .single();
+        if (error) throw error;
+        id = nova.id;
+      }
+
+      const { error: linkErr } = await supabase
+        .from("ctes")
+        .update({ transportadora_id: id })
+        .eq("cnpj_emitente", cte.cnpj_emitente!)
+        .is("transportadora_id", null);
+      if (linkErr) throw linkErr;
+      return razao;
+    },
+    onSuccess: async (razao) => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["transportadoras"] }),
+        qc.invalidateQueries({ queryKey: ["ctes"] }),
+      ]);
+      toast.success(`Transportadora "${razao}" cadastrada`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   async function handleFiles(files: FileList | null) {
     if (!files?.length) return;
     setUploading(true);
@@ -185,17 +226,41 @@ function CtesPage() {
             ? (nomeTransportadora.get(c.transportadora_id) ?? null)
             : null;
           const nome = cadastrada ?? c.nome_emitente ?? "Não cadastrada";
+          const pendente = !cadastrada && !!c.cnpj_emitente;
           return (
             <div>
               <div className="font-mono text-xs">{c.cnpj_emitente ?? "—"}</div>
-              <div
-                className={
-                  cadastrada
-                    ? "text-xs font-medium text-emerald-600"
-                    : "text-xs font-medium text-destructive"
-                }
-              >
-                {nome}
+              <div className="flex items-center gap-1">
+                <span
+                  className={
+                    cadastrada
+                      ? "text-xs font-medium text-emerald-600"
+                      : "text-xs font-medium text-destructive"
+                  }
+                >
+                  {nome}
+                </span>
+                {pendente ? (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 shrink-0"
+                    title="Cadastrar transportadora com os dados do CT-e"
+                    disabled={cadastrarTransportadora.isPending}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      cadastrarTransportadora.mutate(c);
+                    }}
+                  >
+                    {cadastrarTransportadora.isPending &&
+                    cadastrarTransportadora.variables?.id === c.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <UserPlus className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                ) : null}
               </div>
             </div>
           );
