@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, PlayCircle, ScanSearch } from "lucide-react";
+import { Loader2, PlayCircle, ScanSearch, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -26,6 +26,7 @@ import {
   auditarPendentes,
   resolverDivergencia,
 } from "@/lib/cte-audit.functions";
+import { salvarToleranciasAuditoria } from "@/lib/frete-pagamento.functions";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/auditoria-fretes")({
@@ -62,7 +63,11 @@ function AuditoriaFretesPage() {
   const runOne = useServerFn(auditarCte);
   const runAll = useServerFn(auditarPendentes);
   const resolver = useServerFn(resolverDivergencia);
+  const salvarTolerancias = useServerFn(salvarToleranciasAuditoria);
   const [selected, setSelected] = useState<Row | null>(null);
+  const [tolOpen, setTolOpen] = useState(false);
+  const [tolValor, setTolValor] = useState("");
+  const [tolPerc, setTolPerc] = useState("");
   const [obs, setObs] = useState("");
   const [valorAcordado, setValorAcordado] = useState("");
 
@@ -92,6 +97,35 @@ function AuditoriaFretesPage() {
         divergencia: divMap.get(a.cte_id) ?? null,
       }));
     },
+  });
+
+  const { data: config } = useQuery({
+    queryKey: ["config-auditoria-frete"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("configuracoes_auditoria_frete")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const salvarTol = useMutation({
+    mutationFn: async () =>
+      salvarTolerancias({
+        data: {
+          toleranciaValor: Number(tolValor || 0),
+          toleranciaPercentual: Number(tolPerc || 0),
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Tolerâncias atualizadas");
+      setTolOpen(false);
+      qc.invalidateQueries({ queryKey: ["config-auditoria-frete"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const resumo = useMemo(() => {
@@ -297,6 +331,18 @@ function AuditoriaFretesPage() {
               Confronto entre o frete cobrado no CT-e e a tabela de preço contratada.
             </p>
           </div>
+          <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setTolValor(String(Number(config?.tolerancia_valor ?? 0)));
+              setTolPerc(String(Number(config?.tolerancia_percentual ?? 0)));
+              setTolOpen(true);
+            }}
+          >
+            <SlidersHorizontal className="mr-1 h-4 w-4" />
+            Tolerâncias
+          </Button>
           <Button disabled={auditAll.isPending} onClick={() => auditAll.mutate()}>
             {auditAll.isPending ? (
               <Loader2 className="mr-1 h-4 w-4 animate-spin" />
@@ -305,6 +351,7 @@ function AuditoriaFretesPage() {
             )}
             Auditar pendentes
           </Button>
+          </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-4">
@@ -336,6 +383,44 @@ function AuditoriaFretesPage() {
           defaultSort={{ id: "data", dir: "desc" }}
         />
       </div>
+
+      <Dialog open={tolOpen} onOpenChange={setTolOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tolerâncias da auditoria</DialogTitle>
+            <DialogDescription>
+              O CT-e é considerado conforme quando a diferença fica dentro de qualquer uma das
+              tolerâncias abaixo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="tol-valor">Tolerância em R$</Label>
+              <Input
+                id="tol-valor"
+                inputMode="decimal"
+                value={tolValor}
+                onChange={(e) => setTolValor(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="tol-perc">Tolerância em %</Label>
+              <Input
+                id="tol-perc"
+                inputMode="decimal"
+                value={tolPerc}
+                onChange={(e) => setTolPerc(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button disabled={salvarTol.isPending} onClick={() => salvarTol.mutate()}>
+              {salvarTol.isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent className="max-w-2xl">
