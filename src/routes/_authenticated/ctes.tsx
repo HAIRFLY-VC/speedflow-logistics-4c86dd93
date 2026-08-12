@@ -263,6 +263,21 @@ function CtesPage() {
           rowKey={(c) => c.id}
           emptyMessage="Nenhum CT-e importado."
           defaultSort={{ id: "emissao", dir: "desc" }}
+          onRowClick={(c) => setSelected(c)}
+        />
+
+        <CteDetailDialog
+          cte={selected}
+          open={!!selected}
+          onOpenChange={(v) => !v && setSelected(null)}
+          transportadoraNome={
+            selected?.transportadora_id
+              ? nomeTransportadora.get(selected.transportadora_id)
+              : undefined
+          }
+          statusTone={selected ? STATUS_TONE[selected.status] : undefined}
+          onDownloadXml={(id) => openXml.mutate(id)}
+          downloading={openXml.isPending}
         />
       </div>
     </AppShell>
