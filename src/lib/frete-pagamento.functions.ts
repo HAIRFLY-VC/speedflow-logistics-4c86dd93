@@ -129,7 +129,7 @@ export const lancarOrdemNoErp = createServerFn({ method: "POST" })
       .eq("id", ordem.id);
 
     const { enviarOrdemParaErp } = await import("./frete-erp.server");
-    const result = await enviarOrdemParaErp({
+    const result = await enviarOrdemParaErp(context.supabase, {
       ordem_id: ordem.id,
       cte_chave: cte?.chave_acesso ?? "",
       cte_numero: cte?.numero ?? null,

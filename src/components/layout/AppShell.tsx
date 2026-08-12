@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   Wand2,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -64,6 +65,7 @@ const NAV: NavItem[] = [
   { title: "Borderôs", url: "/borderos", icon: FileText, roles: ["adm", "gestor", "operador"] },
   { title: "Usuários", url: "/usuarios", icon: Users, roles: ["adm"] },
   { title: "Configurações", url: "/configuracoes", icon: Settings, roles: ["adm", "gestor", "operador", "fretista"] },
+  { title: "Config. de fretes", url: "/configuracoes-fretes", icon: ShieldCheck, roles: ["adm"] },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
