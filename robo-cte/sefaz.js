@@ -158,22 +158,20 @@ export class SefazCteClient {
     }
 
     const maxNsu = parseInt(extractText(cteDistDFeInteresseResult, "maxNSU") || String(ultimoNsu), 10);
-    const docZipSections = extractAll(cteDistDFeInteresseResult, "docZip");
+    const docs = extractDocZips(cteDistDFeInteresseResult);
 
     const xmls = [];
-    for (const section of docZipSections) {
-      const nsu = extractText(section, "NSU");
-      const schema = extractText(section, "schema") || "";
-      const base64 = extractText(section, "docZip") || section;
-      if (!base64) continue;
+    for (const doc of docs) {
+      if (!doc.base64) continue;
       try {
-        const compressed = Buffer.from(base64, "base64");
+        const compressed = Buffer.from(doc.base64, "base64");
         const xmlDoc = zlib.gunzipSync(compressed).toString("utf-8");
-        xmls.push({ nsu: nsu ? parseInt(nsu, 10) : 0, schema, xml: xmlDoc });
+        xmls.push({ nsu: parseInt(doc.nsu, 10) || 0, schema: doc.schema, xml: xmlDoc });
       } catch (e) {
         // ignora documentos que não conseguir descompactar
       }
     }
+
 
     return { xmls, maxNsu, cStat, xMotivo };
   }
