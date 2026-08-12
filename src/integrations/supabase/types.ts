@@ -1314,6 +1314,9 @@ export type Database = {
       tabelas_preco_frete: {
         Row: {
           ad_valorem_percentual: number
+          arquivo_nome: string | null
+          arquivo_path: string | null
+          arquivo_tipo: string | null
           ativo: boolean
           created_at: string
           data_fim: string | null
@@ -1334,6 +1337,9 @@ export type Database = {
         }
         Insert: {
           ad_valorem_percentual?: number
+          arquivo_nome?: string | null
+          arquivo_path?: string | null
+          arquivo_tipo?: string | null
           ativo?: boolean
           created_at?: string
           data_fim?: string | null
@@ -1354,6 +1360,9 @@ export type Database = {
         }
         Update: {
           ad_valorem_percentual?: number
+          arquivo_nome?: string | null
+          arquivo_path?: string | null
+          arquivo_tipo?: string | null
           ativo?: boolean
           created_at?: string
           data_fim?: string | null
