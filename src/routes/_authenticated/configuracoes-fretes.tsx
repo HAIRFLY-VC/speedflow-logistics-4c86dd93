@@ -115,6 +115,8 @@ function ConfiguracoesFretesPage() {
   const [openTransp, setOpenTransp] = useState(false);
   const [openTabela, setOpenTabela] = useState(false);
   const [openErp, setOpenErp] = useState(false);
+  const [openSecret, setOpenSecret] = useState(false);
+  const [newSecret, setNewSecret] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["configuracoes-fretes"],
