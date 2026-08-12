@@ -422,8 +422,22 @@ async function run() {
     if (umaVez) break;
     const cfg = readConfig();
     const intervalo = (cfg.intervaloMinutos || 30) * 60 * 1000;
-    log(`Aguardando ${cfg.intervaloMinutos || 30} minutos para proximo ciclo`);
-    await sleep(intervalo);
+    const intervaloNfe = Math.max(15, cfg.intervaloNfeSegundos || 60) * 1000;
+    log(
+      `Aguardando ${cfg.intervaloMinutos || 30} minutos para proximo ciclo ` +
+        `(NF-e solicitadas sao verificadas a cada ${intervaloNfe / 1000}s)`
+    );
+    // Durante a espera, atende rapidamente as NF-e solicitadas pelo aplicativo.
+    let esperado = 0;
+    while (esperado < intervalo) {
+      await sleep(Math.min(intervaloNfe, intervalo - esperado));
+      esperado += intervaloNfe;
+      try {
+        await processarNfesPendentes(readConfig(), false);
+      } catch (e) {
+        log(`Erro ao processar NF-e pendentes: ${e.message}`);
+      }
+    }
   } while (true);
 
 
