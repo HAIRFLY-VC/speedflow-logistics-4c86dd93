@@ -98,17 +98,29 @@ function writeUltimoNsu(empresaIndex, nsu) {
   }
 }
 
+let nsuOrigem = "estado";
+
 function getUltimoNsu(cfg, empresaIndex) {
   const empresa = cfg.empresas[empresaIndex];
   // --nsu=N forca o inicio da leitura a partir do NSU informado (ex.: --nsu=0 reprocessa tudo).
   const arg = process.argv.find((a) => a.startsWith("--nsu="));
   if (arg) {
     const n = parseInt(arg.split("=")[1], 10);
-    if (!Number.isNaN(n)) return n;
+    if (!Number.isNaN(n)) {
+      nsuOrigem = "argumento --nsu";
+      return n;
+    }
   }
   const salvo = readUltimoNsu(empresaIndex);
-  if (salvo != null) return salvo;
-  if (empresa.ultimoNsu != null) return empresa.ultimoNsu;
+  if (salvo != null) {
+    nsuOrigem = "estado.json";
+    return salvo;
+  }
+  if (empresa.ultimoNsu != null) {
+    nsuOrigem = "config.json";
+    return empresa.ultimoNsu;
+  }
+  nsuOrigem = "inicio";
   return 0;
 }
 
@@ -166,6 +178,7 @@ async function processarEmpresa(cfg, empresaIndex, modoTeste) {
 
   const client = new SefazCteClient(empresa, cfg.ambiente);
   let ultimoNsu = getUltimoNsu(cfg, empresaIndex);
+  log(`NSU inicial=${ultimoNsu} (origem: ${nsuOrigem})`);
   let totalEnviados = 0;
   let totalCiclos = 0;
 
