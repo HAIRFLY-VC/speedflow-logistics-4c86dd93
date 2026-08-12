@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import { uploadCteXml, getCteXmlUrl } from "@/lib/cte.functions";
+import { CteDetailDialog } from "@/components/ctes/CteDetailDialog";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/ctes")({
@@ -57,6 +58,7 @@ function CtesPage() {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [selected, setSelected] = useState<Cte | null>(null);
   const upload = useServerFn(uploadCteXml);
   const signUrl = useServerFn(getCteXmlUrl);
 
@@ -209,7 +211,10 @@ function CtesPage() {
             variant="ghost"
             title="Baixar XML"
             disabled={!c.xml_storage_path || openXml.isPending}
-            onClick={() => openXml.mutate(c.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              openXml.mutate(c.id);
+            }}
           >
             <FileDown className="h-4 w-4" />
           </Button>
@@ -258,6 +263,21 @@ function CtesPage() {
           rowKey={(c) => c.id}
           emptyMessage="Nenhum CT-e importado."
           defaultSort={{ id: "emissao", dir: "desc" }}
+          onRowClick={(c) => setSelected(c)}
+        />
+
+        <CteDetailDialog
+          cte={selected}
+          open={!!selected}
+          onOpenChange={(v) => !v && setSelected(null)}
+          transportadoraNome={
+            selected?.transportadora_id
+              ? nomeTransportadora.get(selected.transportadora_id)
+              : undefined
+          }
+          statusTone={selected ? STATUS_TONE[selected.status] : undefined}
+          onDownloadXml={(id) => openXml.mutate(id)}
+          downloading={openXml.isPending}
         />
       </div>
     </AppShell>
