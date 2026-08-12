@@ -78,10 +78,15 @@ const PENDING_ORDERS_SQL = `
 // Erros típicos de indisponibilidade do servidor de origem (Cloudflare entre nós e o ERP).
 const TRANSIENT_HTTP_STATUSES = new Set([502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 527, 530]);
 
+function nowBr(): string {
+  return new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+}
+
 function friendlyErpError(status: number, bodyText: string): string {
   if (TRANSIENT_HTTP_STATUSES.has(status)) {
-    return `ERP fora do ar (HTTP ${status}). Tente novamente em alguns minutos.`;
+    return `ERP fora do ar (HTTP ${status}) em ${nowBr()}. O servidor do ERP não respondeu; tente novamente em alguns minutos.`;
   }
+
   if (status === 401 || status === 403) {
     return `ERP recusou a autenticação (HTTP ${status}). Verifique a API Key.`;
   }
@@ -249,15 +254,28 @@ export async function syncErpOrders(opts: {
         .eq("id", customerId);
       if (error) throw error;
     } else {
-      const { data: ins, error } = await supabaseAdmin
+      // upsert idempotente: evita 23505 quando o mesmo cliente aparece em vários
+      // pedidos processados em paralelo na mesma leva.
+      const { data: ups, error } = await supabaseAdmin
         .from("customers")
-        .insert(customerPayload)
+        .upsert(customerPayload, { onConflict: "erp_id" })
         .select("id")
-        .single();
-      if (error || !ins) throw error ?? new Error("insert customer falhou");
-      customerId = ins.id;
-      customerCreated = true;
+        .maybeSingle();
+      if (ups?.id) {
+        customerId = ups.id;
+        customerCreated = true;
+      } else {
+        // corrida: outra linha criou o cliente entre o select e o upsert
+        const { data: again, error: againErr } = await supabaseAdmin
+          .from("customers")
+          .select("id")
+          .eq("erp_id", codCliente)
+          .maybeSingle();
+        if (!again) throw error ?? againErr ?? new Error("insert customer falhou");
+        customerId = again.id;
+      }
     }
+
 
     const pedidoStr = String(row.PEDIDO);
     const totalAmount = Number(row.VALOR ?? row.VALOR_PEDIDO ?? 0);

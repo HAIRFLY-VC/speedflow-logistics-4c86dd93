@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION private.order_belongs_to_carrier(uuid, uuid) TO authenticated;
