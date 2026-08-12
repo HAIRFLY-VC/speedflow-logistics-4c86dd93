@@ -529,20 +529,35 @@ function TabelaDialog({
       );
     }
     if (r.rotas?.length) {
+      // Células mescladas (origem, taxa de despacho, peso mínimo) vêm vazias nas
+      // linhas seguintes: herdamos o último valor preenchido.
+      let ultOrigem = "";
+      let ultDespacho = 0;
+      let ultPesoMin =
+        r.rotas.find((ro) => (ro.peso_minimo_kg ?? 0) > 0)?.peso_minimo_kg ?? 50;
       setRotas(
-        r.rotas.map((ro) => ({
-          origem: (ro.origem ?? "").trim(),
-          destino: (ro.destino ?? "").trim(),
-          tarifa_frete_peso: String(ro.tarifa_frete_peso ?? 0),
-          frete_valor_percentual: String(ro.frete_valor_percentual ?? 0),
-          taxa_despacho: String(ro.taxa_despacho ?? 0),
-          frete_minimo: String(ro.frete_minimo ?? 0),
-          peso_minimo_kg: String(ro.peso_minimo_kg ?? 0),
-          prazo_entrega_min_dias:
-            ro.prazo_entrega_min_dias == null ? "" : String(ro.prazo_entrega_min_dias),
-          prazo_entrega_max_dias:
-            ro.prazo_entrega_max_dias == null ? "" : String(ro.prazo_entrega_max_dias),
-        })),
+        r.rotas.map((ro) => {
+          const origem = (ro.origem ?? "").trim() || ultOrigem;
+          ultOrigem = origem || ultOrigem;
+          const despacho = ro.taxa_despacho && ro.taxa_despacho > 0 ? ro.taxa_despacho : ultDespacho;
+          ultDespacho = despacho || ultDespacho;
+          const pesoMin =
+            ro.peso_minimo_kg && ro.peso_minimo_kg > 0 ? ro.peso_minimo_kg : ultPesoMin;
+          ultPesoMin = pesoMin || ultPesoMin;
+          return {
+            origem,
+            destino: (ro.destino ?? "").trim(),
+            tarifa_frete_peso: String(ro.tarifa_frete_peso ?? 0),
+            frete_valor_percentual: String(ro.frete_valor_percentual ?? 0),
+            taxa_despacho: String(despacho),
+            frete_minimo: String(ro.frete_minimo ?? 0),
+            peso_minimo_kg: String(pesoMin),
+            prazo_entrega_min_dias:
+              ro.prazo_entrega_min_dias == null ? "" : String(ro.prazo_entrega_min_dias),
+            prazo_entrega_max_dias:
+              ro.prazo_entrega_max_dias == null ? "" : String(ro.prazo_entrega_max_dias),
+          };
+        }),
       );
     }
   }
