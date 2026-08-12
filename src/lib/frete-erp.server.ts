@@ -1,5 +1,10 @@
-// Integração (stub) com o ERP para lançamento das ordens de pagamento de frete.
-// Monta o payload e, quando ERP_API_BASE_URL estiver configurado, envia via HTTP.
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
+
+// Integração com o ERP para lançamento das ordens de pagamento de frete.
+// Monta o payload e, quando configurado, envia via HTTP. As credenciais do ERP
+// são lidas da tabela configuracoes_erp (acesso restrito a administradores).
+
 export type OrdemPayload = {
   ordem_id: string;
   cte_chave: string;
@@ -17,9 +22,24 @@ export type EnvioResult = {
   payload: OrdemPayload;
 };
 
-export async function enviarOrdemParaErp(payload: OrdemPayload): Promise<EnvioResult> {
-  const base = process.env["ERP_API_BASE_URL"];
-  const key = process.env["ERP_API_KEY"];
+async function getErpConfig(db: SupabaseClient<Database>) {
+  const { data, error } = await db
+    .from("configuracoes_erp")
+    .select("url_base, api_key")
+    .eq("id", 1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return {
+    base: (data?.url_base ?? "").trim() || null,
+    key: (data?.api_key ?? "").trim() || null,
+  };
+}
+
+export async function enviarOrdemParaErp(
+  db: SupabaseClient<Database>,
+  payload: OrdemPayload,
+): Promise<EnvioResult> {
+  const { base, key } = await getErpConfig(db);
 
   // Sem endpoint configurado: opera em modo simulado (stub).
   if (!base || !key) {

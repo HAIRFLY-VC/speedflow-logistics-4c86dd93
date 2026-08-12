@@ -148,6 +148,30 @@ export type Database = {
         }
         Relationships: []
       }
+      configuracoes_erp: {
+        Row: {
+          api_key: string | null
+          created_at: string
+          id: number
+          updated_at: string
+          url_base: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          created_at?: string
+          id?: number
+          updated_at?: string
+          url_base?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          created_at?: string
+          id?: number
+          updated_at?: string
+          url_base?: string | null
+        }
+        Relationships: []
+      }
       cte_auditorias: {
         Row: {
           created_at: string
