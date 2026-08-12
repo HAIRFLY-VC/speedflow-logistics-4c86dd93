@@ -528,6 +528,23 @@ function TabelaDialog({
         })),
       );
     }
+    if (r.rotas?.length) {
+      setRotas(
+        r.rotas.map((ro) => ({
+          origem: (ro.origem ?? "").trim(),
+          destino: (ro.destino ?? "").trim(),
+          tarifa_frete_peso: String(ro.tarifa_frete_peso ?? 0),
+          frete_valor_percentual: String(ro.frete_valor_percentual ?? 0),
+          taxa_despacho: String(ro.taxa_despacho ?? 0),
+          frete_minimo: String(ro.frete_minimo ?? 0),
+          peso_minimo_kg: String(ro.peso_minimo_kg ?? 0),
+          prazo_entrega_min_dias:
+            ro.prazo_entrega_min_dias == null ? "" : String(ro.prazo_entrega_min_dias),
+          prazo_entrega_max_dias:
+            ro.prazo_entrega_max_dias == null ? "" : String(ro.prazo_entrega_max_dias),
+        })),
+      );
+    }
   }
 
   const set = <K extends keyof TabelaForm>(key: K, value: TabelaForm[K]) =>
