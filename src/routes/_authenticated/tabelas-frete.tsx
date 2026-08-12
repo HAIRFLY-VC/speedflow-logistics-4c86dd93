@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Loader2, Trash2 } from "lucide-react";
+import { Plus, Pencil, Loader2, Trash2, FileText, Upload, Download, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
