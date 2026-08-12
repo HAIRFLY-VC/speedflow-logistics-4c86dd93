@@ -111,15 +111,7 @@ export async function ingestCteXml(params: {
     transportadoraId = data?.id ?? null;
   }
 
-  let empresaId: string | null = null;
-  if (parsed.cnpj_destinatario) {
-    const { data } = await supabaseAdmin
-      .from("empresas")
-      .select("id")
-      .eq("cnpj", parsed.cnpj_destinatario)
-      .maybeSingle();
-    empresaId = data?.id ?? null;
-  }
+  const empresaId: string | null = empresaRemetenteId;
 
   const storagePath = `${parsed.chave_acesso}.xml`;
   const { error: upErr } = await supabaseAdmin.storage
