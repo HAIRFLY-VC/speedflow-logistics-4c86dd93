@@ -88,10 +88,44 @@ function extractAll(xml, tag) {
   return out;
 }
 
+// Extrai os nos <docZip NSU="..." schema="...">base64</docZip> com seus atributos.
+function extractDocZips(xml) {
+  const re = /<(?:\w+:)?docZip([^>]*)>([\s\S]*?)<\/(?:\w+:)?docZip>/gi;
+  const out = [];
+  let m;
+  while ((m = re.exec(xml)) !== null) {
+    const attrs = m[1] || "";
+    const nsu = /NSU\s*=\s*"([^"]*)"/i.exec(attrs)?.[1] || "0";
+    const schema = /schema\s*=\s*"([^"]*)"/i.exec(attrs)?.[1] || "";
+    out.push({ nsu, schema, base64: (m[2] || "").trim() });
+  }
+  return out;
+}
+
+function extractSoapFault(xml) {
+  if (!/<(?:\w+:)?Fault[\s>]/i.test(xml)) return null;
+  const motivo =
+    extractText(xml, "faultstring") ||
+    extractText(xml, "Text") ||
+    extractText(xml, "Reason") ||
+    "erro SOAP nao identificado";
+  return motivo.replace(/<[^>]+>/g, "").trim();
+}
+
+function decodeEntities(s) {
+  return s
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
 export class SefazCteClient {
   constructor(empresa, ambiente) {
     this.empresa = empresa;
-    this.url = URLS[ambiente] || URLS.producao;
+    this.ambiente = ambiente || "producao";
+    this.url = URLS[this.ambiente] || URLS.producao;
     const pfx = readFileSync(empresa.caminhoCertificado);
     this.agent = new https.Agent({
       pfx,
@@ -104,8 +138,13 @@ export class SefazCteClient {
     const envelope = buildEnvelope(this.empresa.cnpj, this.empresa.ufAutor, ultimoNsu, this.ambiente);
     const response = await postXml(this.url, envelope, this.agent);
 
+    const fault = extractSoapFault(response);
+    if (fault) throw new Error(`SEFAZ recusou a requisicao (SOAP Fault): ${fault}`);
 
-    const cteDistDFeInteresseResult = extractText(response, "cteDistDFeInteresseResult") || response;
+    const cteDistDFeInteresseResult = decodeEntities(
+      extractText(response, "cteDistDFeInteresseResult") || response
+    );
+
 
     // Verifica cStat de retorno
     const cStat = extractText(cteDistDFeInteresseResult, "cStat");
