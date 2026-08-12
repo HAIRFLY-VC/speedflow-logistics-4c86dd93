@@ -72,12 +72,51 @@ function NfeDetailPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["nfe", chave],
     queryFn: () => fetchNfe({ data: { chave } }),
+    refetchInterval: (q) => (q.state.data?.nfe ? false : 5000),
   });
 
   const nfe = data?.nfe as
     | (Record<string, any> & { itens: NfeItem[] })
     | null
     | undefined;
+
+  // Assim que a tela abre sem a nota no sistema, solicita a captura automática
+  // do XML na SEFAZ pelo robô que detém o certificado A1.
+  const solicitar = useServerFn(solicitarNfeXml);
+  const fetchSolicitacao = useServerFn(getNfeSolicitacao);
+  const pedidoFeito = useRef(false);
+
+  useEffect(() => {
+    if (isLoading || nfe || pedidoFeito.current) return;
+    pedidoFeito.current = true;
+    solicitar({ data: { chave } })
+      .then(() => qc.invalidateQueries({ queryKey: ["nfe-solicitacao", chave] }))
+      .catch((e: Error) => toast.error(e.message));
+  }, [isLoading, nfe, chave, solicitar, qc]);
+
+  const { data: solData } = useQuery({
+    queryKey: ["nfe-solicitacao", chave],
+    queryFn: () => fetchSolicitacao({ data: { chave } }),
+    enabled: !nfe && !isLoading,
+    refetchInterval: 5000,
+  });
+  const solicitacao = solData?.solicitacao as
+    | { status: string; mensagem: string | null; tentativas: number }
+    | null
+    | undefined;
+
+  const retentar = useMutation({
+    mutationFn: async () => {
+      pedidoFeito.current = true;
+      return solicitar({ data: { chave } });
+    },
+    onSuccess: () => {
+      toast.success("Nova tentativa de leitura enviada ao robô");
+      qc.invalidateQueries({ queryKey: ["nfe-solicitacao", chave] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const readXml = useMutation({
     mutationFn: async () => {
