@@ -210,18 +210,32 @@ async function run() {
   const umaVez = process.argv.includes("--uma-vez") || modoTeste;
   log(`Robo iniciado. Modo teste=${modoTeste}, uma vez=${umaVez}`);
 
+  // Falha de configuracao e fatal: nao adianta repetir o ciclo.
+  try {
+    validarConfig(readConfig());
+  } catch (e) {
+    if (e instanceof ConfigError) {
+      log(`ERRO DE CONFIGURACAO: ${e.message}`);
+      process.exitCode = 1;
+      log("Robo finalizado.");
+      return;
+    }
+    throw e;
+  }
+
   do {
     try {
       const cfg = readConfig();
-      if (!cfg.empresas || !cfg.empresas.length) {
-        log("Nenhuma empresa configurada. Encerrando.");
-        break;
-      }
       for (let i = 0; i < cfg.empresas.length; i++) {
         await processarEmpresa(cfg, i, modoTeste);
         await sleep(1000);
       }
     } catch (e) {
+      if (e instanceof ConfigError) {
+        log(`ERRO DE CONFIGURACAO: ${e.message}`);
+        process.exitCode = 1;
+        break;
+      }
       log(`Erro no ciclo: ${e.message}`);
       if (umaVez) break;
     }
@@ -231,6 +245,7 @@ async function run() {
     log(`Aguardando ${cfg.intervaloMinutos || 30} minutos para proximo ciclo`);
     await sleep(intervalo);
   } while (true);
+
 
   log("Robo finalizado.");
 }
