@@ -100,6 +100,12 @@ function writeUltimoNsu(empresaIndex, nsu) {
 
 function getUltimoNsu(cfg, empresaIndex) {
   const empresa = cfg.empresas[empresaIndex];
+  // --nsu=N forca o inicio da leitura a partir do NSU informado (ex.: --nsu=0 reprocessa tudo).
+  const arg = process.argv.find((a) => a.startsWith("--nsu="));
+  if (arg) {
+    const n = parseInt(arg.split("=")[1], 10);
+    if (!Number.isNaN(n)) return n;
+  }
   const salvo = readUltimoNsu(empresaIndex);
   if (salvo != null) return salvo;
   if (empresa.ultimoNsu != null) return empresa.ultimoNsu;
