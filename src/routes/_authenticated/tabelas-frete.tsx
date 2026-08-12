@@ -27,6 +27,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  extractTabelaFrete,
+  type ExtractInput,
+  type ExtractedTabela,
+} from "@/lib/tabela-frete-extract.functions";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/tabelas-frete")({
