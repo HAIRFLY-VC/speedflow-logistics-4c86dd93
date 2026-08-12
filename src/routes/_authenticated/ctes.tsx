@@ -1,0 +1,265 @@
+import { useMemo, useRef, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { Upload, Loader2, FileDown } from "lucide-react";
+import { toast } from "sonner";
+
+import { AppShell } from "@/components/layout/AppShell";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
+import { uploadCteXml, getCteXmlUrl } from "@/lib/cte.functions";
+import type { Tables } from "@/integrations/supabase/types";
+
+export const Route = createFileRoute("/_authenticated/ctes")({
+  component: CtesPage,
+  head: () => ({
+    meta: [
+      { title: "CT-e | SpeedFlow Logistics" },
+      {
+        name: "description",
+        content:
+          "Captura e acompanhamento dos conhecimentos de transporte eletrônicos para auditoria de fretes.",
+      },
+      { property: "og:title", content: "CT-e | SpeedFlow Logistics" },
+      {
+        property: "og:description",
+        content: "Importação de XML de CT-e e acompanhamento do status de auditoria.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+});
+
+type Cte = Tables<"ctes">;
+type Transportadora = Tables<"transportadoras">;
+
+const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const STATUS_TONE: Record<string, string> = {
+  RECEBIDO: "bg-blue-500/10 text-blue-600",
+  PENDENTE_IDENTIFICACAO: "bg-amber-500/10 text-amber-600",
+  EM_AUDITORIA: "bg-blue-500/10 text-blue-600",
+  APROVADO: "bg-emerald-500/10 text-emerald-600",
+  DIVERGENTE: "bg-destructive/10 text-destructive",
+  EM_RESOLUCAO: "bg-amber-500/10 text-amber-600",
+  RESOLVIDO: "bg-emerald-500/10 text-emerald-600",
+  AUTORIZADO: "bg-emerald-500/10 text-emerald-600",
+  LANCADO_ERP: "bg-emerald-500/10 text-emerald-600",
+  ERRO_ERP: "bg-destructive/10 text-destructive",
+  REJEITADO: "bg-destructive/10 text-destructive",
+};
+
+function CtesPage() {
+  const qc = useQueryClient();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const upload = useServerFn(uploadCteXml);
+  const signUrl = useServerFn(getCteXmlUrl);
+
+  const { data: transportadoras } = useQuery({
+    queryKey: ["transportadoras"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("transportadoras").select("*");
+      if (error) throw error;
+      return data as Transportadora[];
+    },
+  });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["ctes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ctes")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      return data as Cte[];
+    },
+  });
+
+  const nomeTransportadora = useMemo(() => {
+    const map = new Map<string, string>();
+    (transportadoras ?? []).forEach((t) => map.set(t.id, t.razao_social));
+    return map;
+  }, [transportadoras]);
+
+  const openXml = useMutation({
+    mutationFn: async (cteId: string) => signUrl({ data: { cteId } }),
+    onSuccess: (res) => window.open(res.url, "_blank", "noopener"),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  async function handleFiles(files: FileList | null) {
+    if (!files?.length) return;
+    setUploading(true);
+    let ok = 0;
+    let dup = 0;
+    const errors: string[] = [];
+    for (const file of Array.from(files)) {
+      try {
+        const xml = await file.text();
+        const res = await upload({ data: { xml } });
+        if (res.duplicated) dup += 1;
+        else ok += 1;
+      } catch (e) {
+        errors.push(`${file.name}: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+    setUploading(false);
+    if (inputRef.current) inputRef.current.value = "";
+    qc.invalidateQueries({ queryKey: ["ctes"] });
+    if (ok) toast.success(`${ok} CT-e importado(s)`);
+    if (dup) toast.info(`${dup} CT-e já cadastrado(s)`);
+    errors.forEach((msg) => toast.error(msg));
+  }
+
+  const columns = useMemo<ColumnDef<Cte>[]>(
+    () => [
+      {
+        id: "numero",
+        header: "CT-e",
+        accessor: (c) => c.numero ?? "",
+        render: (c) => (
+          <div>
+            <div className="font-medium">
+              {c.numero ?? "—"}
+              {c.serie ? <span className="text-muted-foreground">/{c.serie}</span> : null}
+            </div>
+            <div className="font-mono text-[10px] text-muted-foreground">{c.chave_acesso}</div>
+          </div>
+        ),
+      },
+      {
+        id: "transportadora",
+        header: "Transportadora",
+        accessor: (c) =>
+          c.transportadora_id
+            ? (nomeTransportadora.get(c.transportadora_id) ?? "—")
+            : (c.cnpj_emitente ?? "Não identificada"),
+      },
+      {
+        id: "emissao",
+        header: "Emissão",
+        filterType: "date",
+        accessor: (c) => c.data_emissao ?? "",
+        render: (c) =>
+          c.data_emissao ? new Date(c.data_emissao).toLocaleDateString("pt-BR") : "—",
+      },
+      { id: "uf", header: "UF", align: "center", accessor: (c) => c.uf_destino ?? "—" },
+      {
+        id: "peso",
+        header: "Peso taxado",
+        align: "right",
+        filterType: "number",
+        accessor: (c) => Number(c.peso_taxado ?? 0),
+        render: (c) =>
+          c.peso_taxado == null ? "—" : `${Number(c.peso_taxado).toLocaleString("pt-BR")} kg`,
+      },
+      {
+        id: "mercadoria",
+        header: "Mercadoria",
+        align: "right",
+        filterType: "number",
+        accessor: (c) => Number(c.valor_mercadoria),
+        render: (c) => brl(Number(c.valor_mercadoria)),
+      },
+      {
+        id: "frete",
+        header: "Frete cobrado",
+        align: "right",
+        filterType: "number",
+        accessor: (c) => Number(c.valor_total_frete),
+        render: (c) => (
+          <span className="font-medium">{brl(Number(c.valor_total_frete))}</span>
+        ),
+      },
+      {
+        id: "origem",
+        header: "Origem",
+        accessor: (c) => c.origem_captura,
+        render: (c) => (c.origem_captura === "MANUAL" ? "Manual" : "Automática"),
+      },
+      {
+        id: "status",
+        header: "Status",
+        accessor: (c) => c.status,
+        render: (c) => (
+          <Badge
+            variant="secondary"
+            className={STATUS_TONE[c.status] ?? "bg-muted text-muted-foreground"}
+          >
+            {c.status.replaceAll("_", " ")}
+          </Badge>
+        ),
+      },
+      {
+        id: "actions",
+        header: "",
+        sortable: false,
+        filterable: false,
+        accessor: () => "",
+        render: (c) => (
+          <Button
+            size="icon"
+            variant="ghost"
+            title="Baixar XML"
+            disabled={!c.xml_storage_path || openXml.isPending}
+            onClick={() => openXml.mutate(c.id)}
+          >
+            <FileDown className="h-4 w-4" />
+          </Button>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [nomeTransportadora, openXml.isPending],
+  );
+
+  return (
+    <AppShell>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">CT-e</h1>
+            <p className="text-muted-foreground text-sm">
+              Importe os XML dos conhecimentos de transporte para auditar os fretes.
+            </p>
+          </div>
+          <div>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".xml,text/xml,application/xml"
+              multiple
+              className="hidden"
+              onChange={(e) => void handleFiles(e.target.files)}
+            />
+            <Button disabled={uploading} onClick={() => inputRef.current?.click()}>
+              {uploading ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4 mr-1" />
+              )}
+              Importar XML
+            </Button>
+          </div>
+        </div>
+
+        <DataTable
+          tableKey="ctes"
+          columns={columns}
+          data={data}
+          isLoading={isLoading}
+          rowKey={(c) => c.id}
+          emptyMessage="Nenhum CT-e importado."
+          defaultSort={{ id: "emissao", dir: "desc" }}
+        />
+      </div>
+    </AppShell>
+  );
+}

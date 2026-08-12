@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedBorderosRouteImport } from './routes/_authenticated/borderos'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedCtesRouteImport } from './routes/_authenticated/ctes'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedFretistasRouteImport } from './routes/_authenticated/fretistas'
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
@@ -29,6 +30,7 @@ import { Route as AuthenticatedPedidosOrderIdRouteImport } from './routes/_authe
 import { Route as AuthenticatedRotasIndexRouteImport } from './routes/_authenticated/rotas.index'
 import { Route as AuthenticatedRotasRouteIdRouteImport } from './routes/_authenticated/rotas.$routeId'
 import { Route as ApiPublicHooksErpSyncRouteImport } from './routes/api/public/hooks/erp-sync'
+import { Route as ApiPublicHooksIngestCteRouteImport } from './routes/api/public/hooks/ingest-cte'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -60,6 +62,11 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCtesRoute = AuthenticatedCtesRouteImport.update({
+  id: '/ctes',
+  path: '/ctes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -137,6 +144,11 @@ const ApiPublicHooksErpSyncRoute = ApiPublicHooksErpSyncRouteImport.update({
   path: '/api/public/hooks/erp-sync',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksIngestCteRoute = ApiPublicHooksIngestCteRouteImport.update({
+  id: '/api/public/hooks/ingest-cte',
+  path: '/api/public/hooks/ingest-cte',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -144,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/borderos': typeof AuthenticatedBorderosRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/ctes': typeof AuthenticatedCtesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/fretistas': typeof AuthenticatedFretistasRoute
   '/kanban': typeof AuthenticatedKanbanRoute
@@ -158,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
   '/rotas/': typeof AuthenticatedRotasIndexRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
+  '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -165,6 +179,7 @@ export interface FileRoutesByTo {
   '/borderos': typeof AuthenticatedBorderosRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/ctes': typeof AuthenticatedCtesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/fretistas': typeof AuthenticatedFretistasRoute
   '/kanban': typeof AuthenticatedKanbanRoute
@@ -179,6 +194,7 @@ export interface FileRoutesByTo {
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
   '/rotas': typeof AuthenticatedRotasIndexRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
+  '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -188,6 +204,7 @@ export interface FileRoutesById {
   '/_authenticated/borderos': typeof AuthenticatedBorderosRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/ctes': typeof AuthenticatedCtesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/fretistas': typeof AuthenticatedFretistasRoute
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
@@ -202,6 +219,7 @@ export interface FileRoutesById {
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
   '/_authenticated/rotas/': typeof AuthenticatedRotasIndexRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
+  '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -211,6 +229,7 @@ export interface FileRouteTypes {
     | '/borderos'
     | '/clientes'
     | '/configuracoes'
+    | '/ctes'
     | '/dashboard'
     | '/fretistas'
     | '/kanban'
@@ -225,6 +244,7 @@ export interface FileRouteTypes {
     | '/pedidos/'
     | '/rotas/'
     | '/api/public/hooks/erp-sync'
+    | '/api/public/hooks/ingest-cte'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -232,6 +252,7 @@ export interface FileRouteTypes {
     | '/borderos'
     | '/clientes'
     | '/configuracoes'
+    | '/ctes'
     | '/dashboard'
     | '/fretistas'
     | '/kanban'
@@ -246,6 +267,7 @@ export interface FileRouteTypes {
     | '/pedidos'
     | '/rotas'
     | '/api/public/hooks/erp-sync'
+    | '/api/public/hooks/ingest-cte'
   id:
     | '__root__'
     | '/'
@@ -254,6 +276,7 @@ export interface FileRouteTypes {
     | '/_authenticated/borderos'
     | '/_authenticated/clientes'
     | '/_authenticated/configuracoes'
+    | '/_authenticated/ctes'
     | '/_authenticated/dashboard'
     | '/_authenticated/fretistas'
     | '/_authenticated/kanban'
@@ -268,6 +291,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pedidos/'
     | '/_authenticated/rotas/'
     | '/api/public/hooks/erp-sync'
+    | '/api/public/hooks/ingest-cte'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -275,6 +299,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPublicHooksErpSyncRoute: typeof ApiPublicHooksErpSyncRoute
+  ApiPublicHooksIngestCteRoute: typeof ApiPublicHooksIngestCteRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -319,6 +344,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/configuracoes'
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ctes': {
+      id: '/_authenticated/ctes'
+      path: '/ctes'
+      fullPath: '/ctes'
+      preLoaderRoute: typeof AuthenticatedCtesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -419,6 +451,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksErpSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/ingest-cte': {
+      id: '/api/public/hooks/ingest-cte'
+      path: '/api/public/hooks/ingest-cte'
+      fullPath: '/api/public/hooks/ingest-cte'
+      preLoaderRoute: typeof ApiPublicHooksIngestCteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -426,6 +465,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBorderosRoute: typeof AuthenticatedBorderosRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedCtesRoute: typeof AuthenticatedCtesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFretistasRoute: typeof AuthenticatedFretistasRoute
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
@@ -445,6 +485,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBorderosRoute: AuthenticatedBorderosRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedCtesRoute: AuthenticatedCtesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFretistasRoute: AuthenticatedFretistasRoute,
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
@@ -468,6 +509,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPublicHooksErpSyncRoute: ApiPublicHooksErpSyncRoute,
+  ApiPublicHooksIngestCteRoute: ApiPublicHooksIngestCteRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
