@@ -31,8 +31,10 @@ nano config.json
 
 - Cole o segredo de ingestão no campo `segredoIngest`.
 - Ajuste a URL do `endpoint` (use a URL de produção publicada do app).
+- Configure `ufAutor` com o código IBGE da UF do contribuinte (ex: 35 para SP, 31 para MG).
 - Adicione uma entrada em `empresas` para cada CNPJ/certificado.
 - Mantenha `ambiente: "homologacao"` para testar. Depois, mude para `"producao"`.
+
 
 ### 3. Teste manualmente
 
