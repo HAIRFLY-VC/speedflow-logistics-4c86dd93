@@ -90,6 +90,25 @@ const num = (v: string) => {
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const BUCKET = "tabelas-frete";
+
+async function signedUrl(path: string, download?: string) {
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(path, 300, download ? { download } : undefined);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+async function abrirArquivo(path: string, nome?: string | null, baixar?: boolean) {
+  try {
+    const url = await signedUrl(path, baixar ? (nome ?? "tabela") : undefined);
+    window.open(url, "_blank", "noopener,noreferrer");
+  } catch (e) {
+    toast.error((e as Error).message);
+  }
+}
+
 function emptyForm(): TabelaForm {
   return {
     transportadora_id: "",
