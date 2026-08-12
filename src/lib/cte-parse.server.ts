@@ -8,6 +8,7 @@ export type ParsedCte = {
   numero: string | null;
   serie: string | null;
   cnpj_emitente: string | null;
+  nome_emitente: string | null;
   cnpj_destinatario: string | null;
   cnpj_remetente: string | null;
   data_emissao: string | null;
@@ -98,6 +99,7 @@ export function parseCteXml(xml: string): ParsedCte {
     numero: tagValue(ide, "nCT"),
     serie: tagValue(ide, "serie"),
     cnpj_emitente: emit ? onlyDigits(tagValue(emit, "CNPJ") ?? "") || null : null,
+    nome_emitente: emit ? (tagValue(emit, "xNome") ?? "").trim() || null : null,
     cnpj_destinatario: dest ? onlyDigits(tagValue(dest, "CNPJ") ?? "") || null : null,
     cnpj_remetente: rem ? onlyDigits(tagValue(rem, "CNPJ") ?? "") || null : null,
     data_emissao: dh ? new Date(dh).toISOString() : null,

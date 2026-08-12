@@ -133,6 +133,7 @@ export async function ingestCteXml(params: {
       transportadora_id: transportadoraId,
       empresa_id: empresaId,
       cnpj_emitente: parsed.cnpj_emitente,
+      nome_emitente: parsed.nome_emitente,
       cnpj_destinatario: parsed.cnpj_destinatario,
       data_emissao: parsed.data_emissao,
       valor_total_frete: parsed.valor_total_frete,
