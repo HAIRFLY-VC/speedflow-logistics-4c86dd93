@@ -441,6 +441,36 @@ function TabelaDialog({
 
       if (!tabelaId) throw new Error("Falha ao salvar a tabela");
 
+      if (arquivo) {
+        const ext = arquivo.name.split(".").pop()?.toLowerCase() ?? "bin";
+        const path = `${tabelaId}/${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from(BUCKET)
+          .upload(path, arquivo, { contentType: arquivo.type || undefined, upsert: false });
+        if (upErr) throw upErr;
+        const { error: metaErr } = await supabase
+          .from("tabelas_preco_frete")
+          .update({
+            arquivo_path: path,
+            arquivo_nome: arquivo.name,
+            arquivo_tipo: arquivo.type || null,
+          })
+          .eq("id", tabelaId);
+        if (metaErr) throw metaErr;
+        if (arquivoAtual?.path) {
+          await supabase.storage.from(BUCKET).remove([arquivoAtual.path]);
+        }
+      } else if (!arquivoAtual && editing?.arquivo_path) {
+        const { error: metaErr } = await supabase
+          .from("tabelas_preco_frete")
+          .update({ arquivo_path: null, arquivo_nome: null, arquivo_tipo: null })
+          .eq("id", tabelaId);
+        if (metaErr) throw metaErr;
+        await supabase.storage.from(BUCKET).remove([editing.arquivo_path]);
+      }
+
+
+
       const { error: delError } = await supabase
         .from("tabelas_preco_frete_faixas")
         .delete()
