@@ -369,6 +369,7 @@ export type Database = {
           empresa_id: string | null
           id: string
           nfs_referenciadas: Json
+          nome_emitente: string | null
           numero: string | null
           observacao: string | null
           origem_captura: Database["public"]["Enums"]["cte_origem_captura"]
@@ -392,6 +393,7 @@ export type Database = {
           empresa_id?: string | null
           id?: string
           nfs_referenciadas?: Json
+          nome_emitente?: string | null
           numero?: string | null
           observacao?: string | null
           origem_captura?: Database["public"]["Enums"]["cte_origem_captura"]
@@ -415,6 +417,7 @@ export type Database = {
           empresa_id?: string | null
           id?: string
           nfs_referenciadas?: Json
+          nome_emitente?: string | null
           numero?: string | null
           observacao?: string | null
           origem_captura?: Database["public"]["Enums"]["cte_origem_captura"]
