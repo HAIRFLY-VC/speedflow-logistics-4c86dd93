@@ -166,7 +166,20 @@ function InstalacaoRobo({ segredoConfigurado }: { segredoConfigurado?: boolean }
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">a) Crie o config.json</p>
+            <p className="text-xs font-medium text-muted-foreground">a) Segredo de ingestão (CTE_INGEST_SECRET)</p>
+            <p className="text-muted-foreground">
+              O valor do segredo não é exibido no app por segurança. Para obter um valor válido, gere um token forte no
+              servidor (ex: <code className="rounded bg-muted px-1">openssl rand -hex 32</code>) e salve-o no projeto
+              em <strong>Config. de fretes</strong> → <strong>Rotacionar segredo de ingestão</strong>. Depois cole o
+              mesmo valor no <code>config.json</code> do robô.
+            </p>
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-700">
+              <strong>Importante:</strong> o certificado A1 fica no servidor do robô; o segredo serve apenas para o app
+              aceitar os XMLs enviados por ele.
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground">b) Crie o config.json</p>
             <p className="text-muted-foreground">
               Copie o arquivo <code>config.exemplo.json</code> para <code>config.json</code> e preencha os dados de cada
               empresa.
@@ -174,7 +187,7 @@ function InstalacaoRobo({ segredoConfigurado }: { segredoConfigurado?: boolean }
             <CodeBlock>{configJson}</CodeBlock>
           </div>
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">b) Teste em modo manual</p>
+            <p className="text-xs font-medium text-muted-foreground">c) Teste em modo manual</p>
             <CodeBlock>{`node index.js --modo-teste`}</CodeBlock>
             <p className="text-muted-foreground">
               No modo teste, o robô consulta a SEFAZ e lista os CT-e encontrados, mas não envia nada para o app. Útil
