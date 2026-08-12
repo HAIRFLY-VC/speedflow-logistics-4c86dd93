@@ -237,7 +237,7 @@ sudo systemctl status robo-cte`}</CodeBlock>
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
               )}
               <span>
-                Segredo de ingestão configurado no app: {segredoConfigurado ? "Sim" : "Não — vá em Config. de fretes"}
+                Segredo de ingestão configurado no app: {segredoConfigurado ? "Sim — cole o mesmo valor no config.json do robô" : "Não — vá em Config. de fretes e cadastre o CTE_INGEST_SECRET"}
               </span>
             </li>
             <li className="flex items-start gap-2">
