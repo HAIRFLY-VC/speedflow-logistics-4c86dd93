@@ -133,6 +133,47 @@ function CtesPage() {
   });
 
 
+  const cadastrarTransportadora = useMutation({
+    mutationFn: async (cte: Cte) => {
+      const cnpj = (cte.cnpj_emitente ?? "").replace(/\D/g, "");
+      if (!cnpj) throw new Error("CT-e sem CNPJ do emitente");
+      const razao = cte.nome_emitente?.trim() || `Transportadora ${cnpj}`;
+
+      const { data: existente } = await supabase
+        .from("transportadoras")
+        .select("id")
+        .eq("cnpj", cnpj)
+        .maybeSingle();
+
+      let id = existente?.id;
+      if (!id) {
+        const { data: nova, error } = await supabase
+          .from("transportadoras")
+          .insert({ cnpj, razao_social: razao, ativo: true })
+          .select("id")
+          .single();
+        if (error) throw error;
+        id = nova.id;
+      }
+
+      const { error: linkErr } = await supabase
+        .from("ctes")
+        .update({ transportadora_id: id })
+        .eq("cnpj_emitente", cte.cnpj_emitente!)
+        .is("transportadora_id", null);
+      if (linkErr) throw linkErr;
+      return razao;
+    },
+    onSuccess: async (razao) => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["transportadoras"] }),
+        qc.invalidateQueries({ queryKey: ["ctes"] }),
+      ]);
+      toast.success(`Transportadora "${razao}" cadastrada`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   async function handleFiles(files: FileList | null) {
     if (!files?.length) return;
     setUploading(true);
