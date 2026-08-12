@@ -246,16 +246,54 @@ function NfeDetailPage() {
         ) : !nfe ? (
           <Card>
             <CardHeader>
-              <CardTitle>NF-e ainda não importada</CardTitle>
+              <CardTitle>
+                {solicitacao?.status === "ERRO"
+                  ? "Não foi possível ler o XML na SEFAZ"
+                  : "Lendo o XML da NF-e na SEFAZ…"}
+              </CardTitle>
             </CardHeader>
             <CardContent className="text-muted-foreground space-y-3 text-sm">
-              <p>
-                Esta nota fiscal está referenciada no CT-e, mas o XML dela ainda não foi
-                enviado ao sistema. Use “Importar XML” para carregar o arquivo da NF-e e ver o
-                detalhamento completo.
-              </p>
+              {solicitacao?.status === "ERRO" ? (
+                <>
+                  <p>
+                    O robô de captura (certificado A1) não conseguiu obter esta nota:{" "}
+                    <span className="text-foreground font-medium">
+                      {solicitacao.mensagem ?? "erro não informado"}
+                    </span>
+                    . Tentativas: {solicitacao.tentativas}.
+                  </p>
+                  <p>
+                    Você pode tentar novamente ou enviar o arquivo manualmente em “Importar
+                    XML”.
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => retentar.mutate()}
+                    disabled={retentar.isPending}
+                  >
+                    {retentar.isPending ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : null}
+                    Tentar novamente
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    A leitura do XML foi solicitada automaticamente ao robô de captura, que usa
+                    o certificado A1 para baixar a nota na SEFAZ. Esta tela é atualizada
+                    sozinha assim que o XML chegar.
+                  </p>
+                  <p>
+                    Se preferir, você também pode enviar o arquivo manualmente em “Importar
+                    XML”.
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
+
         ) : (
           <>
             <Card>
