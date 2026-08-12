@@ -616,7 +616,7 @@ function TabelaDialog({
             />
           </div>
 
-          <div className="md:col-span-3 space-y-1.5">
+          <div className="md:col-span-3 space-y-1.5 hidden">
             <Label className="text-xs">Arquivo da tabela (PDF, Excel, imagem)</Label>
             <div className="rounded-md border border-dashed p-3 space-y-2">
               {arquivo ? (
