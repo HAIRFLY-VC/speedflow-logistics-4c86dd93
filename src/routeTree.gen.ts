@@ -21,6 +21,8 @@ import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedMinhasRotasRouteImport } from './routes/_authenticated/minhas-rotas'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedSugestaoRotasRouteImport } from './routes/_authenticated/sugestao-rotas'
+import { Route as AuthenticatedTabelasFreteRouteImport } from './routes/_authenticated/tabelas-frete'
+import { Route as AuthenticatedTransportadorasRouteImport } from './routes/_authenticated/transportadoras'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosOrderIdRouteImport } from './routes/_authenticated/pedidos.$orderId'
@@ -90,6 +92,18 @@ const AuthenticatedSugestaoRotasRoute =
     path: '/sugestao-rotas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedTabelasFreteRoute =
+  AuthenticatedTabelasFreteRouteImport.update({
+    id: '/tabelas-frete',
+    path: '/tabelas-frete',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedTransportadorasRoute =
+  AuthenticatedTransportadorasRouteImport.update({
+    id: '/transportadoras',
+    path: '/transportadoras',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
@@ -136,6 +150,8 @@ export interface FileRoutesByFullPath {
   '/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
+  '/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
+  '/transportadoras': typeof AuthenticatedTransportadorasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
@@ -155,6 +171,8 @@ export interface FileRoutesByTo {
   '/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
+  '/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
+  '/transportadoras': typeof AuthenticatedTransportadorasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
@@ -176,6 +194,8 @@ export interface FileRoutesById {
   '/_authenticated/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
+  '/_authenticated/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
+  '/_authenticated/transportadoras': typeof AuthenticatedTransportadorasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/_authenticated/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
@@ -197,6 +217,8 @@ export interface FileRouteTypes {
     | '/minhas-rotas'
     | '/produtos'
     | '/sugestao-rotas'
+    | '/tabelas-frete'
+    | '/transportadoras'
     | '/usuarios'
     | '/pedidos/$orderId'
     | '/rotas/$routeId'
@@ -216,6 +238,8 @@ export interface FileRouteTypes {
     | '/minhas-rotas'
     | '/produtos'
     | '/sugestao-rotas'
+    | '/tabelas-frete'
+    | '/transportadoras'
     | '/usuarios'
     | '/pedidos/$orderId'
     | '/rotas/$routeId'
@@ -236,6 +260,8 @@ export interface FileRouteTypes {
     | '/_authenticated/minhas-rotas'
     | '/_authenticated/produtos'
     | '/_authenticated/sugestao-rotas'
+    | '/_authenticated/tabelas-frete'
+    | '/_authenticated/transportadoras'
     | '/_authenticated/usuarios'
     | '/_authenticated/pedidos/$orderId'
     | '/_authenticated/rotas/$routeId'
@@ -337,6 +363,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSugestaoRotasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tabelas-frete': {
+      id: '/_authenticated/tabelas-frete'
+      path: '/tabelas-frete'
+      fullPath: '/tabelas-frete'
+      preLoaderRoute: typeof AuthenticatedTabelasFreteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/transportadoras': {
+      id: '/_authenticated/transportadoras'
+      path: '/transportadoras'
+      fullPath: '/transportadoras'
+      preLoaderRoute: typeof AuthenticatedTransportadorasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/usuarios': {
       id: '/_authenticated/usuarios'
       path: '/usuarios'
@@ -392,6 +432,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMinhasRotasRoute: typeof AuthenticatedMinhasRotasRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedSugestaoRotasRoute: typeof AuthenticatedSugestaoRotasRoute
+  AuthenticatedTabelasFreteRoute: typeof AuthenticatedTabelasFreteRoute
+  AuthenticatedTransportadorasRoute: typeof AuthenticatedTransportadorasRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedPedidosOrderIdRoute: typeof AuthenticatedPedidosOrderIdRoute
   AuthenticatedRotasRouteIdRoute: typeof AuthenticatedRotasRouteIdRoute
@@ -409,6 +451,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMinhasRotasRoute: AuthenticatedMinhasRotasRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedSugestaoRotasRoute: AuthenticatedSugestaoRotasRoute,
+  AuthenticatedTabelasFreteRoute: AuthenticatedTabelasFreteRoute,
+  AuthenticatedTransportadorasRoute: AuthenticatedTransportadorasRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedPedidosOrderIdRoute: AuthenticatedPedidosOrderIdRoute,
   AuthenticatedRotasRouteIdRoute: AuthenticatedRotasRouteIdRoute,
