@@ -27,6 +27,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  extractTabelaFrete,
+  type ExtractInput,
+  type ExtractedTabela,
+} from "@/lib/tabela-frete-extract.functions";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/tabelas-frete")({
@@ -394,6 +400,81 @@ function TabelaDialog({
     },
   });
 
+  const [lendoArquivo, setLendoArquivo] = useState(false);
+  const extrair = useServerFn(extractTabelaFrete);
+
+  async function lerArquivo(f: File) {
+    setLendoArquivo(true);
+    try {
+      const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
+      const payload: ExtractInput = { fileName: f.name };
+      if (ext === "csv" || ext === "txt") {
+        payload.text = await f.text();
+      } else if (ext === "xls" || ext === "xlsx") {
+        const XLSX = await import("xlsx");
+        const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
+        payload.text = wb.SheetNames.map(
+          (n) => `# ${n}\n${XLSX.utils.sheet_to_csv(wb.Sheets[n]!)}`,
+        ).join("\n\n");
+      } else {
+        payload.dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error("Falha ao ler o arquivo"));
+          reader.readAsDataURL(f);
+        });
+      }
+      const r = await extrair({ data: payload });
+      aplicarExtracao(r);
+      toast.success("Campos preenchidos a partir do arquivo. Revise antes de salvar.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível ler o arquivo");
+    } finally {
+      setLendoArquivo(false);
+    }
+  }
+
+  function aplicarExtracao(r: ExtractedTabela) {
+    const s = (v: number | null | undefined) => (v == null ? undefined : String(v));
+    setForm((f) => {
+      const cnpj = (r.transportadora_cnpj ?? "").replace(/\D/g, "");
+      const alvo =
+        (cnpj ? transportadoras.find((t) => t.cnpj.replace(/\D/g, "") === cnpj) : undefined) ??
+        (r.transportadora_nome
+          ? transportadoras.find((t) =>
+              t.razao_social.toLowerCase().includes(r.transportadora_nome!.toLowerCase().slice(0, 8)),
+            )
+          : undefined);
+      return {
+        ...f,
+        transportadora_id: alvo?.id ?? f.transportadora_id,
+        nome: r.nome?.trim() || f.nome,
+        descricao: r.descricao?.trim() || f.descricao,
+        data_inicio: r.data_inicio || f.data_inicio,
+        data_fim: r.data_fim || f.data_fim,
+        tipo_calculo: r.tipo_calculo ?? f.tipo_calculo,
+        percentual_valor: s(r.percentual_valor) ?? f.percentual_valor,
+        gris_percentual: s(r.gris_percentual) ?? f.gris_percentual,
+        ad_valorem_percentual: s(r.ad_valorem_percentual) ?? f.ad_valorem_percentual,
+        pedagio_valor: s(r.pedagio_valor) ?? f.pedagio_valor,
+        tas_valor: s(r.tas_valor) ?? f.tas_valor,
+        frete_minimo: s(r.frete_minimo) ?? f.frete_minimo,
+        icms_percentual: s(r.icms_percentual) ?? f.icms_percentual,
+        uf_destino: r.uf_destino?.toUpperCase().slice(0, 2) || f.uf_destino,
+      };
+    });
+    if (r.faixas?.length) {
+      setFaixas(
+        r.faixas.map((fx) => ({
+          peso_de: String(fx.peso_de ?? 0),
+          peso_ate: fx.peso_ate == null ? "" : String(fx.peso_ate),
+          valor_por_kg: String(fx.valor_por_kg ?? 0),
+          valor_fixo_faixa: String(fx.valor_fixo_faixa ?? 0),
+        })),
+      );
+    }
+  }
+
   const set = <K extends keyof TabelaForm>(key: K, value: TabelaForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
@@ -511,6 +592,84 @@ function TabelaDialog({
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-3 space-y-1.5">
+            <Label className="text-xs">Arquivo da tabela (PDF, Excel, imagem)</Label>
+            <div className="rounded-md border border-dashed p-3 space-y-2">
+              {arquivo ? (
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span className="flex items-center gap-2 truncate">
+                    <FileText className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{arquivo.name}</span>
+                  </span>
+                  <Button size="icon" variant="ghost" onClick={() => setArquivo(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : arquivoAtual ? (
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 truncate text-primary hover:underline"
+                    onClick={() => abrirArquivo(arquivoAtual.path)}
+                  >
+                    <FileText className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{arquivoAtual.nome}</span>
+                  </button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Baixar"
+                      onClick={() => abrirArquivo(arquivoAtual.path, arquivoAtual.nome, true)}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Remover arquivo"
+                      onClick={() => setArquivoAtual(null)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Anexe o arquivo original enviado pela transportadora. Ele ficará guardado no app
+                  para consulta.
+                </p>
+              )}
+
+              <Input
+                type="file"
+                accept=".pdf,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
+                disabled={lendoArquivo}
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  if (f && f.size > 20 * 1024 * 1024) {
+                    toast.error("Arquivo maior que 20 MB");
+                    return;
+                  }
+                  setArquivo(f);
+                  if (f) void lerArquivo(f);
+                }}
+              />
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                {lendoArquivo ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" /> Lendo o arquivo e preenchendo os
+                    campos…
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-3 w-3" /> Até 20 MB. Os campos abaixo são preenchidos
+                    automaticamente a partir do arquivo.
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
           <div className="md:col-span-2 space-y-1.5">
             <Label className="text-xs">Transportadora *</Label>
             <Select
@@ -616,72 +775,6 @@ function TabelaDialog({
             />
           </div>
 
-          <div className="md:col-span-3 space-y-1.5">
-            <Label className="text-xs">Arquivo da tabela (PDF, Excel, imagem)</Label>
-            <div className="rounded-md border border-dashed p-3 space-y-2">
-              {arquivo ? (
-                <div className="flex items-center justify-between gap-2 text-sm">
-                  <span className="flex items-center gap-2 truncate">
-                    <FileText className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{arquivo.name}</span>
-                  </span>
-                  <Button size="icon" variant="ghost" onClick={() => setArquivo(null)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : arquivoAtual ? (
-                <div className="flex items-center justify-between gap-2 text-sm">
-                  <button
-                    type="button"
-                    className="flex items-center gap-2 truncate text-primary hover:underline"
-                    onClick={() => abrirArquivo(arquivoAtual.path)}
-                  >
-                    <FileText className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{arquivoAtual.nome}</span>
-                  </button>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      title="Baixar"
-                      onClick={() => abrirArquivo(arquivoAtual.path, arquivoAtual.nome, true)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      title="Remover arquivo"
-                      onClick={() => setArquivoAtual(null)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Anexe o arquivo original enviado pela transportadora. Ele ficará guardado no app
-                  para consulta.
-                </p>
-              )}
-
-              <Input
-                type="file"
-                accept=".pdf,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
-                onChange={(e) => {
-                  const f = e.target.files?.[0] ?? null;
-                  if (f && f.size > 20 * 1024 * 1024) {
-                    toast.error("Arquivo maior que 20 MB");
-                    return;
-                  }
-                  setArquivo(f);
-                }}
-              />
-              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <Upload className="h-3 w-3" /> Até 20 MB por arquivo.
-              </p>
-            </div>
-          </div>
         </div>
 
 
