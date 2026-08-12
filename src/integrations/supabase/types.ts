@@ -1511,10 +1511,6 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
-      order_belongs_to_carrier: {
-        Args: { _order_id: string; _user_id: string }
-        Returns: boolean
-      }
       pode_autorizar_frete: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
