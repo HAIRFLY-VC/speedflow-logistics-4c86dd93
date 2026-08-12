@@ -124,6 +124,259 @@ export type Database = {
         }
         Relationships: []
       }
+      configuracoes_auditoria_frete: {
+        Row: {
+          created_at: string
+          id: number
+          tolerancia_percentual: number
+          tolerancia_valor: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          tolerancia_percentual?: number
+          tolerancia_valor?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          tolerancia_percentual?: number
+          tolerancia_valor?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cte_auditorias: {
+        Row: {
+          created_at: string
+          cte_id: string
+          detalhamento: Json
+          diferenca: number
+          id: string
+          percentual_diferenca: number
+          resultado: Database["public"]["Enums"]["cte_auditoria_resultado"]
+          tabela_preco_id: string | null
+          tolerancia_aplicada: Json
+          valor_cobrado_total: number
+          valor_esperado_total: number
+        }
+        Insert: {
+          created_at?: string
+          cte_id: string
+          detalhamento?: Json
+          diferenca?: number
+          id?: string
+          percentual_diferenca?: number
+          resultado: Database["public"]["Enums"]["cte_auditoria_resultado"]
+          tabela_preco_id?: string | null
+          tolerancia_aplicada?: Json
+          valor_cobrado_total?: number
+          valor_esperado_total?: number
+        }
+        Update: {
+          created_at?: string
+          cte_id?: string
+          detalhamento?: Json
+          diferenca?: number
+          id?: string
+          percentual_diferenca?: number
+          resultado?: Database["public"]["Enums"]["cte_auditoria_resultado"]
+          tabela_preco_id?: string | null
+          tolerancia_aplicada?: Json
+          valor_cobrado_total?: number
+          valor_esperado_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cte_auditorias_cte_id_fkey"
+            columns: ["cte_id"]
+            isOneToOne: false
+            referencedRelation: "ctes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cte_auditorias_tabela_preco_id_fkey"
+            columns: ["tabela_preco_id"]
+            isOneToOne: false
+            referencedRelation: "tabelas_preco_frete"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cte_divergencias: {
+        Row: {
+          created_at: string
+          cte_id: string
+          id: string
+          motivo: string
+          observacao_operador: string | null
+          resolvido_em: string | null
+          resolvido_por: string | null
+          status: Database["public"]["Enums"]["cte_divergencia_status"]
+          updated_at: string
+          valor_acordado: number | null
+        }
+        Insert: {
+          created_at?: string
+          cte_id: string
+          id?: string
+          motivo: string
+          observacao_operador?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          status?: Database["public"]["Enums"]["cte_divergencia_status"]
+          updated_at?: string
+          valor_acordado?: number | null
+        }
+        Update: {
+          created_at?: string
+          cte_id?: string
+          id?: string
+          motivo?: string
+          observacao_operador?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          status?: Database["public"]["Enums"]["cte_divergencia_status"]
+          updated_at?: string
+          valor_acordado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cte_divergencias_cte_id_fkey"
+            columns: ["cte_id"]
+            isOneToOne: false
+            referencedRelation: "ctes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cte_status_historico: {
+        Row: {
+          alterado_em: string
+          alterado_por: string | null
+          cte_id: string
+          id: string
+          observacao: string | null
+          status_anterior: Database["public"]["Enums"]["cte_status"] | null
+          status_novo: Database["public"]["Enums"]["cte_status"]
+        }
+        Insert: {
+          alterado_em?: string
+          alterado_por?: string | null
+          cte_id: string
+          id?: string
+          observacao?: string | null
+          status_anterior?: Database["public"]["Enums"]["cte_status"] | null
+          status_novo: Database["public"]["Enums"]["cte_status"]
+        }
+        Update: {
+          alterado_em?: string
+          alterado_por?: string | null
+          cte_id?: string
+          id?: string
+          observacao?: string | null
+          status_anterior?: Database["public"]["Enums"]["cte_status"] | null
+          status_novo?: Database["public"]["Enums"]["cte_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cte_status_historico_cte_id_fkey"
+            columns: ["cte_id"]
+            isOneToOne: false
+            referencedRelation: "ctes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ctes: {
+        Row: {
+          chave_acesso: string
+          cnpj_destinatario: string | null
+          cnpj_emitente: string | null
+          componentes: Json
+          created_at: string
+          data_emissao: string | null
+          empresa_id: string | null
+          id: string
+          nfs_referenciadas: Json
+          numero: string | null
+          observacao: string | null
+          origem_captura: Database["public"]["Enums"]["cte_origem_captura"]
+          peso_taxado: number | null
+          serie: string | null
+          status: Database["public"]["Enums"]["cte_status"]
+          transportadora_id: string | null
+          uf_destino: string | null
+          updated_at: string
+          valor_mercadoria: number
+          valor_total_frete: number
+          xml_storage_path: string | null
+        }
+        Insert: {
+          chave_acesso: string
+          cnpj_destinatario?: string | null
+          cnpj_emitente?: string | null
+          componentes?: Json
+          created_at?: string
+          data_emissao?: string | null
+          empresa_id?: string | null
+          id?: string
+          nfs_referenciadas?: Json
+          numero?: string | null
+          observacao?: string | null
+          origem_captura?: Database["public"]["Enums"]["cte_origem_captura"]
+          peso_taxado?: number | null
+          serie?: string | null
+          status?: Database["public"]["Enums"]["cte_status"]
+          transportadora_id?: string | null
+          uf_destino?: string | null
+          updated_at?: string
+          valor_mercadoria?: number
+          valor_total_frete?: number
+          xml_storage_path?: string | null
+        }
+        Update: {
+          chave_acesso?: string
+          cnpj_destinatario?: string | null
+          cnpj_emitente?: string | null
+          componentes?: Json
+          created_at?: string
+          data_emissao?: string | null
+          empresa_id?: string | null
+          id?: string
+          nfs_referenciadas?: Json
+          numero?: string | null
+          observacao?: string | null
+          origem_captura?: Database["public"]["Enums"]["cte_origem_captura"]
+          peso_taxado?: number | null
+          serie?: string | null
+          status?: Database["public"]["Enums"]["cte_status"]
+          transportadora_id?: string | null
+          uf_destino?: string | null
+          updated_at?: string
+          valor_mercadoria?: number
+          valor_total_frete?: number
+          xml_storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ctes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ctes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "transportadoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address_line: string | null
@@ -298,6 +551,33 @@ export type Database = {
           },
         ]
       }
+      empresas: {
+        Row: {
+          ativo: boolean
+          cnpj: string
+          created_at: string
+          id: string
+          razao_social: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cnpj: string
+          created_at?: string
+          id?: string
+          razao_social: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cnpj?: string
+          created_at?: string
+          id?: string
+          razao_social?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       erp_sync_runs: {
         Row: {
           customers_created: number
@@ -351,6 +631,7 @@ export type Database = {
           id: string
           is_active: boolean
           phone: string | null
+          transportadora_id: string | null
           updated_at: string
           user_id: string | null
           vehicle_plate: string | null
@@ -363,6 +644,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           phone?: string | null
+          transportadora_id?: string | null
           updated_at?: string
           user_id?: string | null
           vehicle_plate?: string | null
@@ -375,12 +657,21 @@ export type Database = {
           id?: string
           is_active?: boolean
           phone?: string | null
+          transportadora_id?: string | null
           updated_at?: string
           user_id?: string | null
           vehicle_plate?: string | null
           vehicle_type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "freight_carriers_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "transportadoras"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invoices: {
         Row: {
@@ -422,6 +713,56 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: true
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ordens_pagamento_frete: {
+        Row: {
+          autorizado_em: string | null
+          autorizado_por: string | null
+          created_at: string
+          cte_id: string
+          erro_mensagem: string | null
+          id: string
+          payload_erp_enviado: Json | null
+          referencia_erp: string | null
+          status: Database["public"]["Enums"]["ordem_pagamento_status"]
+          updated_at: string
+          valor_autorizado: number
+        }
+        Insert: {
+          autorizado_em?: string | null
+          autorizado_por?: string | null
+          created_at?: string
+          cte_id: string
+          erro_mensagem?: string | null
+          id?: string
+          payload_erp_enviado?: Json | null
+          referencia_erp?: string | null
+          status?: Database["public"]["Enums"]["ordem_pagamento_status"]
+          updated_at?: string
+          valor_autorizado?: number
+        }
+        Update: {
+          autorizado_em?: string | null
+          autorizado_por?: string | null
+          created_at?: string
+          cte_id?: string
+          erro_mensagem?: string | null
+          id?: string
+          payload_erp_enviado?: Json | null
+          referencia_erp?: string | null
+          status?: Database["public"]["Enums"]["ordem_pagamento_status"]
+          updated_at?: string
+          valor_autorizado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordens_pagamento_frete_cte_id_fkey"
+            columns: ["cte_id"]
+            isOneToOne: false
+            referencedRelation: "ctes"
             referencedColumns: ["id"]
           },
         ]
@@ -685,6 +1026,7 @@ export type Database = {
           id: string
           is_active: boolean
           phone: string | null
+          pode_autorizar_pagamento_frete: boolean
           updated_at: string
         }
         Insert: {
@@ -693,6 +1035,7 @@ export type Database = {
           id: string
           is_active?: boolean
           phone?: string | null
+          pode_autorizar_pagamento_frete?: boolean
           updated_at?: string
         }
         Update: {
@@ -701,6 +1044,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           phone?: string | null
+          pode_autorizar_pagamento_frete?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -797,6 +1141,154 @@ export type Database = {
           },
         ]
       }
+      tabelas_preco_frete: {
+        Row: {
+          ad_valorem_percentual: number
+          ativo: boolean
+          created_at: string
+          data_fim: string | null
+          data_inicio: string
+          descricao: string | null
+          frete_minimo: number
+          gris_percentual: number
+          icms_percentual: number
+          id: string
+          nome: string
+          pedagio_valor: number
+          percentual_valor: number
+          tas_valor: number
+          tipo_calculo: Database["public"]["Enums"]["tabela_frete_tipo_calculo"]
+          transportadora_id: string
+          uf_destino: string | null
+          updated_at: string
+        }
+        Insert: {
+          ad_valorem_percentual?: number
+          ativo?: boolean
+          created_at?: string
+          data_fim?: string | null
+          data_inicio: string
+          descricao?: string | null
+          frete_minimo?: number
+          gris_percentual?: number
+          icms_percentual?: number
+          id?: string
+          nome: string
+          pedagio_valor?: number
+          percentual_valor?: number
+          tas_valor?: number
+          tipo_calculo?: Database["public"]["Enums"]["tabela_frete_tipo_calculo"]
+          transportadora_id: string
+          uf_destino?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ad_valorem_percentual?: number
+          ativo?: boolean
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          descricao?: string | null
+          frete_minimo?: number
+          gris_percentual?: number
+          icms_percentual?: number
+          id?: string
+          nome?: string
+          pedagio_valor?: number
+          percentual_valor?: number
+          tas_valor?: number
+          tipo_calculo?: Database["public"]["Enums"]["tabela_frete_tipo_calculo"]
+          transportadora_id?: string
+          uf_destino?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tabelas_preco_frete_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "transportadoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tabelas_preco_frete_faixas: {
+        Row: {
+          created_at: string
+          id: string
+          peso_ate: number | null
+          peso_de: number
+          tabela_id: string
+          valor_fixo_faixa: number
+          valor_por_kg: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          peso_ate?: number | null
+          peso_de?: number
+          tabela_id: string
+          valor_fixo_faixa?: number
+          valor_por_kg?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          peso_ate?: number | null
+          peso_de?: number
+          tabela_id?: string
+          valor_fixo_faixa?: number
+          valor_por_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tabelas_preco_frete_faixas_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "tabelas_preco_frete"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transportadoras: {
+        Row: {
+          agencia: string | null
+          ativo: boolean
+          banco: string | null
+          cnpj: string
+          conta: string | null
+          created_at: string
+          id: string
+          pix: string | null
+          razao_social: string
+          updated_at: string
+        }
+        Insert: {
+          agencia?: string | null
+          ativo?: boolean
+          banco?: string | null
+          cnpj: string
+          conta?: string | null
+          created_at?: string
+          id?: string
+          pix?: string | null
+          razao_social: string
+          updated_at?: string
+        }
+        Update: {
+          agencia?: string | null
+          ativo?: boolean
+          banco?: string | null
+          cnpj?: string
+          conta?: string | null
+          created_at?: string
+          id?: string
+          pix?: string | null
+          razao_social?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -856,11 +1348,33 @@ export type Database = {
         Args: { _order_id: string; _user_id: string }
         Returns: boolean
       }
+      pode_autorizar_frete: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "adm" | "gestor" | "operador" | "fretista"
       approval_decision: "aprovado" | "reprovado"
       approval_type: "comercial" | "credito"
+      cte_auditoria_resultado: "OK" | "DIVERGENTE"
+      cte_divergencia_status: "ABERTA" | "EM_NEGOCIACAO" | "RESOLVIDA"
+      cte_origem_captura: "MANUAL" | "SEFAZ_AUTO"
+      cte_status:
+        | "RECEBIDO"
+        | "PENDENTE_IDENTIFICACAO"
+        | "EM_AUDITORIA"
+        | "APROVADO"
+        | "DIVERGENTE"
+        | "EM_RESOLUCAO"
+        | "RESOLVIDO"
+        | "AUTORIZADO"
+        | "LANCADO_ERP"
+        | "ERRO_ERP"
+        | "REJEITADO"
+      ordem_pagamento_status:
+        | "PENDENTE"
+        | "AUTORIZADO"
+        | "AGUARDANDO_INTEGRACAO_ERP"
+        | "LANCADO_ERP"
+        | "ERRO_ERP"
       order_status:
         | "aguardando_aprovacao_comercial"
         | "aguardando_aprovacao_credito"
@@ -874,6 +1388,7 @@ export type Database = {
         | "reprovado_credito"
         | "cancelado"
       route_status: "planejada" | "em_andamento" | "concluida" | "cancelada"
+      tabela_frete_tipo_calculo: "peso" | "valor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1004,6 +1519,29 @@ export const Constants = {
       app_role: ["adm", "gestor", "operador", "fretista"],
       approval_decision: ["aprovado", "reprovado"],
       approval_type: ["comercial", "credito"],
+      cte_auditoria_resultado: ["OK", "DIVERGENTE"],
+      cte_divergencia_status: ["ABERTA", "EM_NEGOCIACAO", "RESOLVIDA"],
+      cte_origem_captura: ["MANUAL", "SEFAZ_AUTO"],
+      cte_status: [
+        "RECEBIDO",
+        "PENDENTE_IDENTIFICACAO",
+        "EM_AUDITORIA",
+        "APROVADO",
+        "DIVERGENTE",
+        "EM_RESOLUCAO",
+        "RESOLVIDO",
+        "AUTORIZADO",
+        "LANCADO_ERP",
+        "ERRO_ERP",
+        "REJEITADO",
+      ],
+      ordem_pagamento_status: [
+        "PENDENTE",
+        "AUTORIZADO",
+        "AGUARDANDO_INTEGRACAO_ERP",
+        "LANCADO_ERP",
+        "ERRO_ERP",
+      ],
       order_status: [
         "aguardando_aprovacao_comercial",
         "aguardando_aprovacao_credito",
@@ -1018,6 +1556,7 @@ export const Constants = {
         "cancelado",
       ],
       route_status: ["planejada", "em_andamento", "concluida", "cancelada"],
+      tabela_frete_tipo_calculo: ["peso", "valor"],
     },
   },
 } as const
