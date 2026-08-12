@@ -101,7 +101,7 @@ export async function ingestCteXml(params: {
     });
   if (upErr) throw new Error(`Falha ao armazenar o XML: ${upErr.message}`);
 
-  const status = transportadoraId ? "RECEBIDO" : "PENDENTE_IDENTIFICACAO";
+  const status = transportadoraId && empresaId ? "RECEBIDO" : "PENDENTE_IDENTIFICACAO";
 
   const { data: inserted, error } = await supabaseAdmin
     .from("ctes")
@@ -144,7 +144,7 @@ export async function ingestCteXml(params: {
   });
 
   // Auditoria automática assim que o CT-e é identificado.
-  if (transportadoraId) {
+  if (transportadoraId && empresaId) {
     try {
       const { auditCte } = await import("./cte-audit.server");
       const outcome = await auditCte(supabaseAdmin, inserted.id);
