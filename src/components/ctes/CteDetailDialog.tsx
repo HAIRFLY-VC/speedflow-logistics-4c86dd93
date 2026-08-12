@@ -128,6 +128,14 @@ export function CteDetailDialog({
             <Field label="Valor da mercadoria" value={brl(Number(cte.valor_mercadoria))} />
             <Field label="Frete cobrado" value={brl(Number(cte.valor_total_frete))} />
             <Field
+              label="% do frete"
+              value={
+                Number(cte.valor_mercadoria) > 0
+                  ? `${((Number(cte.valor_total_frete) / Number(cte.valor_mercadoria)) * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+                  : "—"
+              }
+            />
+            <Field
               label="Recebido em"
               value={new Date(cte.created_at).toLocaleString("pt-BR")}
             />
