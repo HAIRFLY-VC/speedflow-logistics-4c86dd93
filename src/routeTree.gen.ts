@@ -9,74 +9,47 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
-import { Route as AuthenticatedSugestaoRotasRouteImport } from './routes/_authenticated/sugestao-rotas'
-import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
-import { Route as AuthenticatedMinhasRotasRouteImport } from './routes/_authenticated/minhas-rotas'
-import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
-import { Route as AuthenticatedFretistasRouteImport } from './routes/_authenticated/fretistas'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
-import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedBorderosRouteImport } from './routes/_authenticated/borderos'
-import { Route as AuthenticatedRotasIndexRouteImport } from './routes/_authenticated/rotas.index'
+import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
+import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedFretistasRouteImport } from './routes/_authenticated/fretistas'
+import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
+import { Route as AuthenticatedMinhasRotasRouteImport } from './routes/_authenticated/minhas-rotas'
+import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
+import { Route as AuthenticatedSugestaoRotasRouteImport } from './routes/_authenticated/sugestao-rotas'
+import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
-import { Route as AuthenticatedRotasRouteIdRouteImport } from './routes/_authenticated/rotas.$routeId'
 import { Route as AuthenticatedPedidosOrderIdRouteImport } from './routes/_authenticated/pedidos.$orderId'
+import { Route as AuthenticatedRotasIndexRouteImport } from './routes/_authenticated/rotas.index'
+import { Route as AuthenticatedRotasRouteIdRouteImport } from './routes/_authenticated/rotas.$routeId'
 import { Route as ApiPublicHooksErpSyncRouteImport } from './routes/api/public/hooks/erp-sync'
 
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
-  id: '/usuarios',
-  path: '/usuarios',
+const AuthenticatedBorderosRoute = AuthenticatedBorderosRouteImport.update({
+  id: '/borderos',
+  path: '/borderos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedSugestaoRotasRoute =
-  AuthenticatedSugestaoRotasRouteImport.update({
-    id: '/sugestao-rotas',
-    path: '/sugestao-rotas',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
-  id: '/produtos',
-  path: '/produtos',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedMinhasRotasRoute =
-  AuthenticatedMinhasRotasRouteImport.update({
-    id: '/minhas-rotas',
-    path: '/minhas-rotas',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedKanbanRoute = AuthenticatedKanbanRouteImport.update({
-  id: '/kanban',
-  path: '/kanban',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedFretistasRoute = AuthenticatedFretistasRouteImport.update({
-  id: '/fretistas',
-  path: '/fretistas',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedConfiguracoesRoute =
@@ -85,19 +58,41 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
-  id: '/clientes',
-  path: '/clientes',
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedBorderosRoute = AuthenticatedBorderosRouteImport.update({
-  id: '/borderos',
-  path: '/borderos',
+const AuthenticatedFretistasRoute = AuthenticatedFretistasRouteImport.update({
+  id: '/fretistas',
+  path: '/fretistas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedRotasIndexRoute = AuthenticatedRotasIndexRouteImport.update({
-  id: '/rotas/',
-  path: '/rotas/',
+const AuthenticatedKanbanRoute = AuthenticatedKanbanRouteImport.update({
+  id: '/kanban',
+  path: '/kanban',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMinhasRotasRoute =
+  AuthenticatedMinhasRotasRouteImport.update({
+    id: '/minhas-rotas',
+    path: '/minhas-rotas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
+  id: '/produtos',
+  path: '/produtos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSugestaoRotasRoute =
+  AuthenticatedSugestaoRotasRouteImport.update({
+    id: '/sugestao-rotas',
+    path: '/sugestao-rotas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPedidosIndexRoute =
@@ -106,16 +101,21 @@ const AuthenticatedPedidosIndexRoute =
     path: '/pedidos/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedRotasRouteIdRoute =
-  AuthenticatedRotasRouteIdRouteImport.update({
-    id: '/rotas/$routeId',
-    path: '/rotas/$routeId',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedPedidosOrderIdRoute =
   AuthenticatedPedidosOrderIdRouteImport.update({
     id: '/pedidos/$orderId',
     path: '/pedidos/$orderId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRotasIndexRoute = AuthenticatedRotasIndexRouteImport.update({
+  id: '/rotas/',
+  path: '/rotas/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRotasRouteIdRoute =
+  AuthenticatedRotasRouteIdRouteImport.update({
+    id: '/rotas/$routeId',
+    path: '/rotas/$routeId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const ApiPublicHooksErpSyncRoute = ApiPublicHooksErpSyncRouteImport.update({
@@ -253,11 +253,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -267,67 +267,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/usuarios': {
-      id: '/_authenticated/usuarios'
-      path: '/usuarios'
-      fullPath: '/usuarios'
-      preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/sugestao-rotas': {
-      id: '/_authenticated/sugestao-rotas'
-      path: '/sugestao-rotas'
-      fullPath: '/sugestao-rotas'
-      preLoaderRoute: typeof AuthenticatedSugestaoRotasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/produtos': {
-      id: '/_authenticated/produtos'
-      path: '/produtos'
-      fullPath: '/produtos'
-      preLoaderRoute: typeof AuthenticatedProdutosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/minhas-rotas': {
-      id: '/_authenticated/minhas-rotas'
-      path: '/minhas-rotas'
-      fullPath: '/minhas-rotas'
-      preLoaderRoute: typeof AuthenticatedMinhasRotasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/kanban': {
-      id: '/_authenticated/kanban'
-      path: '/kanban'
-      fullPath: '/kanban'
-      preLoaderRoute: typeof AuthenticatedKanbanRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/fretistas': {
-      id: '/_authenticated/fretistas'
-      path: '/fretistas'
-      fullPath: '/fretistas'
-      preLoaderRoute: typeof AuthenticatedFretistasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/configuracoes': {
-      id: '/_authenticated/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/configuracoes'
-      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+    '/_authenticated/borderos': {
+      id: '/_authenticated/borderos'
+      path: '/borderos'
+      fullPath: '/borderos'
+      preLoaderRoute: typeof AuthenticatedBorderosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clientes': {
@@ -337,18 +288,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/borderos': {
-      id: '/_authenticated/borderos'
-      path: '/borderos'
-      fullPath: '/borderos'
-      preLoaderRoute: typeof AuthenticatedBorderosRouteImport
+    '/_authenticated/configuracoes': {
+      id: '/_authenticated/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/rotas/': {
-      id: '/_authenticated/rotas/'
-      path: '/rotas'
-      fullPath: '/rotas/'
-      preLoaderRoute: typeof AuthenticatedRotasIndexRouteImport
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fretistas': {
+      id: '/_authenticated/fretistas'
+      path: '/fretistas'
+      fullPath: '/fretistas'
+      preLoaderRoute: typeof AuthenticatedFretistasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/kanban': {
+      id: '/_authenticated/kanban'
+      path: '/kanban'
+      fullPath: '/kanban'
+      preLoaderRoute: typeof AuthenticatedKanbanRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/minhas-rotas': {
+      id: '/_authenticated/minhas-rotas'
+      path: '/minhas-rotas'
+      fullPath: '/minhas-rotas'
+      preLoaderRoute: typeof AuthenticatedMinhasRotasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/produtos': {
+      id: '/_authenticated/produtos'
+      path: '/produtos'
+      fullPath: '/produtos'
+      preLoaderRoute: typeof AuthenticatedProdutosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sugestao-rotas': {
+      id: '/_authenticated/sugestao-rotas'
+      path: '/sugestao-rotas'
+      fullPath: '/sugestao-rotas'
+      preLoaderRoute: typeof AuthenticatedSugestaoRotasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/usuarios': {
+      id: '/_authenticated/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pedidos/': {
@@ -358,18 +351,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPedidosIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/rotas/$routeId': {
-      id: '/_authenticated/rotas/$routeId'
-      path: '/rotas/$routeId'
-      fullPath: '/rotas/$routeId'
-      preLoaderRoute: typeof AuthenticatedRotasRouteIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/pedidos/$orderId': {
       id: '/_authenticated/pedidos/$orderId'
       path: '/pedidos/$orderId'
       fullPath: '/pedidos/$orderId'
       preLoaderRoute: typeof AuthenticatedPedidosOrderIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rotas/': {
+      id: '/_authenticated/rotas/'
+      path: '/rotas'
+      fullPath: '/rotas/'
+      preLoaderRoute: typeof AuthenticatedRotasIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rotas/$routeId': {
+      id: '/_authenticated/rotas/$routeId'
+      path: '/rotas/$routeId'
+      fullPath: '/rotas/$routeId'
+      preLoaderRoute: typeof AuthenticatedRotasRouteIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/api/public/hooks/erp-sync': {
@@ -428,13 +428,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
