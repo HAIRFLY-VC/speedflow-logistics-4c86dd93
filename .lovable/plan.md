@@ -1,0 +1,1 @@
+Adicionar um controle de colapsar/expandir menu lateral acessível diretamente no rodapé ou topo do menu lateral, com feedback visual do estado atual e atalho de teclado, para facilitar o acesso independentemente do header.
