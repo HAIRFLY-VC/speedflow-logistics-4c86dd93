@@ -239,7 +239,11 @@ async function processarEmpresa(cfg, empresaIndex, modoTeste) {
           log(`[TESTE] XML encontrado (NSU ${cte.nsu}) - nao enviado`);
           continue;
         }
-        const result = await enviarXml(cfg.endpoint, cfg.segredoIngest, cte.xml);
+        const result = await enviarXml(cfg.endpoint, cfg.segredoIngest, cte.xml, {
+          retentativas: cfg.retentativas || 3,
+          timeoutMs: cfg.timeoutMs || 60000,
+        });
+        await sleep(300); // pequena pausa entre envios para nao saturar o endpoint
         const body = JSON.parse(result.body || "{}");
         log(`Enviado NSU ${cte.nsu} -> status=${body.status || "-"}, duplicado=${body.duplicated || false}`);
         totalEnviados++;
