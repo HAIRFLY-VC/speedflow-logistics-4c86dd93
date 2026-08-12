@@ -1,0 +1,16 @@
+{
+  "name": "robo-cte-speedflow",
+  "version": "1.0.0",
+  "description": "Robô de captura automática de CT-e na SEFAZ usando certificado A1 e envio para o SpeedFlow Logistics",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node index.js --modo-teste"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["cte", "sefaz", "dfe", "certificado-a1", "speedflow"],
+  "license": "UNLICENSED"
+}

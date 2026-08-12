@@ -1,0 +1,21 @@
+{
+  "ambiente": "producao",
+  "intervaloMinutos": 30,
+  "retentativas": 3,
+  "timeoutMs": 60000,
+  "endpoint": "https://project--0f575c65-0542-477f-8d03-b4c26e47b952.lovable.app/api/public/hooks/ingest-cte",
+  "segredoIngest": "COLAR_AQUI_O_CTE_INGEST_SECRET",
+  "empresas": [
+    {
+      "nome": "Empresa Principal",
+      "cnpj": "00000000000191",
+      "caminhoCertificado": "./certificado.pfx",
+      "senhaCertificado": "SENHA_DO_CERTIFICADO",
+      "ultimoNsu": 0
+    }
+  ],
+  "log": {
+    "caminho": "./logs/robo-cte.log",
+    "maxLinhasArquivo": 5000
+  }
+}
