@@ -13,7 +13,7 @@ export type IngestResult = {
 
 type LogEntry = {
   origem: "MANUAL" | "SEFAZ_AUTO";
-  resultado: "CRIADO" | "DUPLICADO" | "ERRO";
+  resultado: "CRIADO" | "DUPLICADO" | "ERRO" | "IGNORADO";
   chave_acesso?: string | null;
   cnpj_emitente?: string | null;
   cnpj_destinatario?: string | null;
@@ -45,6 +45,35 @@ export async function ingestCteXml(params: {
 }): Promise<IngestResult> {
   const parsed: ParsedCte = parseCteXml(params.xml);
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // Só importa CT-e cujo REMETENTE seja uma das empresas cadastradas (detentoras do certificado A1).
+  let empresaRemetenteId: string | null = null;
+  if (parsed.cnpj_remetente) {
+    const { data } = await supabaseAdmin
+      .from("empresas")
+      .select("id")
+      .eq("cnpj", parsed.cnpj_remetente)
+      .maybeSingle();
+    empresaRemetenteId = data?.id ?? null;
+  }
+  if (!empresaRemetenteId) {
+    const msg = `CT-e ignorado: remetente ${parsed.cnpj_remetente ?? "não informado"} não é uma empresa cadastrada`;
+    await logCteIngest({
+      origem: params.origem,
+      resultado: "IGNORADO",
+      chave_acesso: parsed.chave_acesso,
+      cnpj_emitente: parsed.cnpj_emitente,
+      cnpj_destinatario: parsed.cnpj_destinatario,
+      mensagem: msg,
+    });
+    return {
+      ok: true,
+      chave_acesso: parsed.chave_acesso,
+      status: "IGNORADO",
+      message: msg,
+    };
+  }
+
 
   const { data: existing } = await supabaseAdmin
     .from("ctes")
@@ -82,15 +111,7 @@ export async function ingestCteXml(params: {
     transportadoraId = data?.id ?? null;
   }
 
-  let empresaId: string | null = null;
-  if (parsed.cnpj_destinatario) {
-    const { data } = await supabaseAdmin
-      .from("empresas")
-      .select("id")
-      .eq("cnpj", parsed.cnpj_destinatario)
-      .maybeSingle();
-    empresaId = data?.id ?? null;
-  }
+  const empresaId: string | null = empresaRemetenteId;
 
   const storagePath = `${parsed.chave_acesso}.xml`;
   const { error: upErr } = await supabaseAdmin.storage
@@ -138,7 +159,7 @@ export async function ingestCteXml(params: {
     mensagem: transportadoraId
       ? empresaId
         ? null
-        : "Empresa destinatária não cadastrada"
+        : "Empresa remetente não cadastrada"
       : "Transportadora emitente não cadastrada",
     cte_id: inserted.id,
   });
