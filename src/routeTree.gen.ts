@@ -36,6 +36,7 @@ import { Route as AuthenticatedRotasIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedRotasRouteIdRouteImport } from './routes/_authenticated/rotas.$routeId'
 import { Route as ApiPublicHooksErpSyncRouteImport } from './routes/api/public/hooks/erp-sync'
 import { Route as ApiPublicHooksIngestCteRouteImport } from './routes/api/public/hooks/ingest-cte'
+import { Route as ApiPublicHooksIngestNfeRouteImport } from './routes/api/public/hooks/ingest-nfe'
 import { Route as ApiPublicHooksNfePendentesRouteImport } from './routes/api/public/hooks/nfe-pendentes'
 
 const IndexRoute = IndexRouteImport.update({
@@ -183,6 +184,11 @@ const ApiPublicHooksIngestCteRoute = ApiPublicHooksIngestCteRouteImport.update({
   path: '/api/public/hooks/ingest-cte',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksIngestNfeRoute = ApiPublicHooksIngestNfeRouteImport.update({
+  id: '/api/public/hooks/ingest-nfe',
+  path: '/api/public/hooks/ingest-nfe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksNfePendentesRoute =
   ApiPublicHooksNfePendentesRouteImport.update({
     id: '/api/public/hooks/nfe-pendentes',
@@ -217,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/rotas/': typeof AuthenticatedRotasIndexRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
+  '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
   '/api/public/hooks/nfe-pendentes': typeof ApiPublicHooksNfePendentesRoute
 }
 export interface FileRoutesByTo {
@@ -246,6 +253,7 @@ export interface FileRoutesByTo {
   '/rotas': typeof AuthenticatedRotasIndexRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
+  '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
   '/api/public/hooks/nfe-pendentes': typeof ApiPublicHooksNfePendentesRoute
 }
 export interface FileRoutesById {
@@ -277,6 +285,7 @@ export interface FileRoutesById {
   '/_authenticated/rotas/': typeof AuthenticatedRotasIndexRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
+  '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
   '/api/public/hooks/nfe-pendentes': typeof ApiPublicHooksNfePendentesRoute
 }
 export interface FileRouteTypes {
@@ -308,6 +317,7 @@ export interface FileRouteTypes {
     | '/rotas/'
     | '/api/public/hooks/erp-sync'
     | '/api/public/hooks/ingest-cte'
+    | '/api/public/hooks/ingest-nfe'
     | '/api/public/hooks/nfe-pendentes'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -337,6 +347,7 @@ export interface FileRouteTypes {
     | '/rotas'
     | '/api/public/hooks/erp-sync'
     | '/api/public/hooks/ingest-cte'
+    | '/api/public/hooks/ingest-nfe'
     | '/api/public/hooks/nfe-pendentes'
   id:
     | '__root__'
@@ -367,6 +378,7 @@ export interface FileRouteTypes {
     | '/_authenticated/rotas/'
     | '/api/public/hooks/erp-sync'
     | '/api/public/hooks/ingest-cte'
+    | '/api/public/hooks/ingest-nfe'
     | '/api/public/hooks/nfe-pendentes'
   fileRoutesById: FileRoutesById
 }
@@ -376,6 +388,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ApiPublicHooksErpSyncRoute: typeof ApiPublicHooksErpSyncRoute
   ApiPublicHooksIngestCteRoute: typeof ApiPublicHooksIngestCteRoute
+  ApiPublicHooksIngestNfeRoute: typeof ApiPublicHooksIngestNfeRoute
   ApiPublicHooksNfePendentesRoute: typeof ApiPublicHooksNfePendentesRoute
 }
 
@@ -570,6 +583,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksIngestCteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/ingest-nfe': {
+      id: '/api/public/hooks/ingest-nfe'
+      path: '/api/public/hooks/ingest-nfe'
+      fullPath: '/api/public/hooks/ingest-nfe'
+      preLoaderRoute: typeof ApiPublicHooksIngestNfeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/nfe-pendentes': {
       id: '/api/public/hooks/nfe-pendentes'
       path: '/api/public/hooks/nfe-pendentes'
@@ -639,6 +659,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ApiPublicHooksErpSyncRoute: ApiPublicHooksErpSyncRoute,
   ApiPublicHooksIngestCteRoute: ApiPublicHooksIngestCteRoute,
+  ApiPublicHooksIngestNfeRoute: ApiPublicHooksIngestNfeRoute,
   ApiPublicHooksNfePendentesRoute: ApiPublicHooksNfePendentesRoute,
 }
 export const routeTree = rootRouteImport
