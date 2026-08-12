@@ -554,6 +554,66 @@ function ConfiguracoesFretesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Modal Rotacionar segredo */}
+      <Dialog open={openSecret} onOpenChange={setOpenSecret}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rotacionar segredo de ingestão</DialogTitle>
+            <DialogDescription>
+              O novo valor autenticará o robô de CT-e no endpoint público do app.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-700">
+              <strong>Importante:</strong> o segredo não pode ser salvo diretamente por esta tela. Use o
+              passo a passo abaixo:
+            </div>
+            <ol className="list-decimal space-y-1.5 pl-4 text-muted-foreground">
+              <li>
+                No servidor do robô, gere um token forte:{" "}
+                <code className="rounded bg-muted px-1">openssl rand -hex 32</code>
+              </li>
+              <li>
+                Cole o valor abaixo e copie a instrução para o chat do Lovable, que salvará a secret de
+                forma segura.
+              </li>
+              <li>
+                Cole o mesmo valor no <code className="rounded bg-muted px-1">segredoIngest</code> do{" "}
+                <code className="rounded bg-muted px-1">config.json</code> do robô.
+              </li>
+            </ol>
+            <div>
+              <Label htmlFor="secret-value">Novo valor do CTE_INGEST_SECRET</Label>
+              <Input
+                id="secret-value"
+                type="password"
+                value={newSecret}
+                onChange={(e) => setNewSecret(e.target.value)}
+                placeholder="cole aqui o token gerado no servidor"
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              disabled={!newSecret.trim()}
+              onClick={() => {
+                const instruction = `Rotacione o CTE_INGEST_SECRET para: ${newSecret}`;
+                void navigator.clipboard.writeText(instruction);
+                toast.success("Instrução copiada. Cole no chat para salvar de forma segura.");
+              }}
+            >
+              Copiar instrução para o chat
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenSecret(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </AppShell>
   );
 }
