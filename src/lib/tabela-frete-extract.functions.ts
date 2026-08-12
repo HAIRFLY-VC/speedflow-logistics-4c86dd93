@@ -76,6 +76,25 @@ const SCHEMA = {
         },
       },
     },
+    rotas: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          origem: { type: "string" },
+          destino: { type: "string" },
+          uf_origem: { type: "string" },
+          uf_destino: { type: "string" },
+          tarifa_frete_peso: { type: "number" },
+          frete_valor_percentual: { type: "number" },
+          taxa_despacho: { type: "number" },
+          frete_minimo: { type: "number" },
+          peso_minimo_kg: { type: "number" },
+          prazo_entrega_min_dias: { type: "number" },
+          prazo_entrega_max_dias: { type: "number" },
+        },
+      },
+    },
   },
 } as const;
 
@@ -84,6 +103,9 @@ Regras:
 - Números em formato brasileiro (1.234,56) devem virar número decimal (1234.56).
 - Percentuais devem ser o número puro (ex: 0,30% -> 0.3).
 - faixas: cada linha de faixa de peso. peso_de/peso_ate em kg; use valor_fixo_faixa quando a faixa tem valor fechado e valor_por_kg quando é por quilo (valor "excedente" por kg entra em valor_por_kg da última faixa aberta, com peso_ate ausente).
+- rotas: MUITO IMPORTANTE. Quando a tabela tiver preços por ORIGEM e DESTINO (linhas com colunas como ORIGEM, DESTINO, TARIFA FRETE PESO (kg), FRETE VALOR, TAXA DESPACHO, FRETE PESO MÍNIMO, PRAZO DE ENTREGA), crie um item em "rotas" para CADA linha da tabela, repetindo a origem quando ela estiver mesclada em várias linhas e repetindo taxa de despacho quando mesclada.
+  - tarifa_frete_peso = valor por kg da linha; frete_valor_percentual = percentual sobre o valor da mercadoria; taxa_despacho = valor fixo; frete_minimo = valor do frete peso mínimo; peso_minimo_kg = peso indicado no cabeçalho do frete mínimo (ex: "FRETE PESO MÍNIMO (50kg)" -> 50).
+  - prazo "2 A 3" -> prazo_entrega_min_dias 2 e prazo_entrega_max_dias 3; prazo único "3" -> ambos 3.
 - tipo_calculo = "peso" quando a cobrança principal é por faixa/kg; "valor" quando é percentual sobre o valor da mercadoria.
 - Datas no formato YYYY-MM-DD. Omita campos que não existirem no documento. Não invente valores.`;
 
