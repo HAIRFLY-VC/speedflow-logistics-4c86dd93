@@ -236,15 +236,23 @@ function ConfiguracoesFretesPage() {
   return (
     <AppShell>
       <div className="space-y-6 max-w-5xl">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Settings className="h-6 w-6" /> Configurações de fretes
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Configure transportadoras, tabelas de preço, tolerâncias e permissões para o módulo de
-            auditoria de CT-e.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              <Settings className="h-6 w-6" /> Configurações de fretes
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Configure transportadoras, tabelas de preço, tolerâncias e permissões para o módulo de
+              auditoria de CT-e.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/captura-cte">
+              <ShieldCheck className="mr-2 h-4 w-4" /> Captura de CT-e (certificado A1)
+            </Link>
+          </Button>
         </div>
+
 
         {isLoading ? (
           <div className="h-40 animate-pulse rounded-lg bg-muted" />

@@ -276,6 +276,50 @@ export type Database = {
           },
         ]
       }
+      cte_ingest_logs: {
+        Row: {
+          chave_acesso: string | null
+          cnpj_destinatario: string | null
+          cnpj_emitente: string | null
+          created_at: string
+          cte_id: string | null
+          id: string
+          mensagem: string | null
+          origem: Database["public"]["Enums"]["cte_origem_captura"]
+          resultado: string
+        }
+        Insert: {
+          chave_acesso?: string | null
+          cnpj_destinatario?: string | null
+          cnpj_emitente?: string | null
+          created_at?: string
+          cte_id?: string | null
+          id?: string
+          mensagem?: string | null
+          origem?: Database["public"]["Enums"]["cte_origem_captura"]
+          resultado: string
+        }
+        Update: {
+          chave_acesso?: string | null
+          cnpj_destinatario?: string | null
+          cnpj_emitente?: string | null
+          created_at?: string
+          cte_id?: string | null
+          id?: string
+          mensagem?: string | null
+          origem?: Database["public"]["Enums"]["cte_origem_captura"]
+          resultado?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cte_ingest_logs_cte_id_fkey"
+            columns: ["cte_id"]
+            isOneToOne: false
+            referencedRelation: "ctes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cte_status_historico: {
         Row: {
           alterado_em: string

@@ -31,13 +31,25 @@ export const Route = createFileRoute("/api/public/hooks/ingest-cte")({
           } else {
             xml = await request.text();
           }
+          const { ingestCteXml, logCteIngest } = await import("@/lib/cte-ingest.server");
+
           if (xml.length < 50 || xml.length > 4_000_000) {
+            await logCteIngest({
+              origem: "SEFAZ_AUTO",
+              resultado: "ERRO",
+              mensagem: "XML inválido ou fora do tamanho permitido",
+            });
             return Response.json({ error: "XML inválido" }, { status: 400 });
           }
 
-          const { ingestCteXml } = await import("@/lib/cte-ingest.server");
-          const result = await ingestCteXml({ xml, origem: "SEFAZ_AUTO" });
-          return Response.json(result, { status: 200 });
+          try {
+            const result = await ingestCteXml({ xml, origem: "SEFAZ_AUTO" });
+            return Response.json(result, { status: 200 });
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            await logCteIngest({ origem: "SEFAZ_AUTO", resultado: "ERRO", mensagem: msg });
+            return Response.json({ ok: false, error: msg }, { status: 500 });
+          }
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           return Response.json({ ok: false, error: msg }, { status: 500 });
