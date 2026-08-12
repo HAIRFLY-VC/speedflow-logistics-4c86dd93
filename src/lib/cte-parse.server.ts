@@ -59,6 +59,7 @@ export function parseCteXml(xml: string): ParsedCte {
   const ide = sectionOf(xml, "ide") ?? "";
   const emit = sectionOf(xml, "emit") ?? "";
   const dest = sectionOf(xml, "dest") ?? "";
+  const rem = sectionOf(xml, "rem") ?? "";
   const vPrest = sectionOf(xml, "vPrest") ?? "";
   const infCarga = sectionOf(xml, "infCarga") ?? "";
 
