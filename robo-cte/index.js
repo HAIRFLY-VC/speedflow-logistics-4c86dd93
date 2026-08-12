@@ -183,7 +183,7 @@ async function processarEmpresa(cfg, empresaIndex, modoTeste) {
   let totalCiclos = 0;
 
   // A SEFAZ retorna no máximo 50 documentos por consulta. Continua até não haver mais documentos.
-  while (totalCiclos < 20) {
+  while (totalCiclos < 200) {
     totalCiclos++;
     log(`Consultando NSU ${ultimoNsu} (ciclo ${totalCiclos})`);
     const { xmls, maxNsu, ultNsu, cStat, xMotivo } = await client.consultar(ultimoNsu);
