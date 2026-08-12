@@ -54,6 +54,7 @@ const NAV: NavItem[] = [
   { title: "Tabelas de frete", url: "/tabelas-frete", icon: FileText, roles: ["adm", "gestor", "operador"] },
   { title: "CT-e", url: "/ctes", icon: FileText, roles: ["adm", "gestor", "operador"] },
   { title: "Auditoria de fretes", url: "/auditoria-fretes", icon: FileText, roles: ["adm", "gestor", "operador"] },
+  { title: "Pagamento de fretes", url: "/pagamento-fretes", icon: FileText, roles: ["adm", "gestor", "operador"] },
 
 
 
