@@ -1429,6 +1429,71 @@ export type Database = {
           },
         ]
       }
+      tabelas_preco_frete_rotas: {
+        Row: {
+          created_at: string
+          destino: string
+          frete_minimo: number
+          frete_valor_percentual: number
+          id: string
+          observacao: string | null
+          origem: string
+          peso_minimo_kg: number
+          prazo_entrega_max_dias: number | null
+          prazo_entrega_min_dias: number | null
+          tabela_id: string
+          tarifa_frete_peso: number
+          taxa_despacho: number
+          uf_destino: string | null
+          uf_origem: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          destino: string
+          frete_minimo?: number
+          frete_valor_percentual?: number
+          id?: string
+          observacao?: string | null
+          origem: string
+          peso_minimo_kg?: number
+          prazo_entrega_max_dias?: number | null
+          prazo_entrega_min_dias?: number | null
+          tabela_id: string
+          tarifa_frete_peso?: number
+          taxa_despacho?: number
+          uf_destino?: string | null
+          uf_origem?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          destino?: string
+          frete_minimo?: number
+          frete_valor_percentual?: number
+          id?: string
+          observacao?: string | null
+          origem?: string
+          peso_minimo_kg?: number
+          prazo_entrega_max_dias?: number | null
+          prazo_entrega_min_dias?: number | null
+          tabela_id?: string
+          tarifa_frete_peso?: number
+          taxa_despacho?: number
+          uf_destino?: string | null
+          uf_origem?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tabelas_preco_frete_rotas_tabela_id_fkey"
+            columns: ["tabela_id"]
+            isOneToOne: false
+            referencedRelation: "tabelas_preco_frete"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transportadoras: {
         Row: {
           agencia: string | null

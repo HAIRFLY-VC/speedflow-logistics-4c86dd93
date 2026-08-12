@@ -70,6 +70,30 @@ type FaixaDraft = {
   valor_fixo_faixa: string;
 };
 
+type RotaDraft = {
+  origem: string;
+  destino: string;
+  tarifa_frete_peso: string;
+  frete_valor_percentual: string;
+  taxa_despacho: string;
+  frete_minimo: string;
+  peso_minimo_kg: string;
+  prazo_entrega_min_dias: string;
+  prazo_entrega_max_dias: string;
+};
+
+const ROTA_VAZIA: RotaDraft = {
+  origem: "",
+  destino: "",
+  tarifa_frete_peso: "0",
+  frete_valor_percentual: "0",
+  taxa_despacho: "0",
+  frete_minimo: "0",
+  peso_minimo_kg: "0",
+  prazo_entrega_min_dias: "",
+  prazo_entrega_max_dias: "",
+};
+
 type TabelaForm = {
   transportadora_id: string;
   nome: string;
@@ -371,6 +395,7 @@ function TabelaDialog({
       : { ...emptyForm(), transportadora_id: transportadoras[0]?.id ?? "" },
   );
   const [faixas, setFaixas] = useState<FaixaDraft[]>([]);
+  const [rotas, setRotas] = useState<RotaDraft[]>([]);
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [arquivoAtual, setArquivoAtual] = useState<{ path: string; nome: string } | null>(
     editing?.arquivo_path
@@ -397,6 +422,36 @@ function TabelaDialog({
         })),
       );
       return data as Faixa[];
+    },
+  });
+
+  useQuery({
+    queryKey: ["tabela-rotas", editing?.id],
+    enabled: Boolean(editing?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete_rotas")
+        .select("*")
+        .eq("tabela_id", editing!.id)
+        .order("origem")
+        .order("destino");
+      if (error) throw error;
+      setRotas(
+        (data ?? []).map((r) => ({
+          origem: r.origem,
+          destino: r.destino,
+          tarifa_frete_peso: String(r.tarifa_frete_peso),
+          frete_valor_percentual: String(r.frete_valor_percentual),
+          taxa_despacho: String(r.taxa_despacho),
+          frete_minimo: String(r.frete_minimo),
+          peso_minimo_kg: String(r.peso_minimo_kg),
+          prazo_entrega_min_dias:
+            r.prazo_entrega_min_dias == null ? "" : String(r.prazo_entrega_min_dias),
+          prazo_entrega_max_dias:
+            r.prazo_entrega_max_dias == null ? "" : String(r.prazo_entrega_max_dias),
+        })),
+      );
+      return data;
     },
   });
 
@@ -470,6 +525,23 @@ function TabelaDialog({
           peso_ate: fx.peso_ate == null ? "" : String(fx.peso_ate),
           valor_por_kg: String(fx.valor_por_kg ?? 0),
           valor_fixo_faixa: String(fx.valor_fixo_faixa ?? 0),
+        })),
+      );
+    }
+    if (r.rotas?.length) {
+      setRotas(
+        r.rotas.map((ro) => ({
+          origem: (ro.origem ?? "").trim(),
+          destino: (ro.destino ?? "").trim(),
+          tarifa_frete_peso: String(ro.tarifa_frete_peso ?? 0),
+          frete_valor_percentual: String(ro.frete_valor_percentual ?? 0),
+          taxa_despacho: String(ro.taxa_despacho ?? 0),
+          frete_minimo: String(ro.frete_minimo ?? 0),
+          peso_minimo_kg: String(ro.peso_minimo_kg ?? 0),
+          prazo_entrega_min_dias:
+            ro.prazo_entrega_min_dias == null ? "" : String(ro.prazo_entrega_min_dias),
+          prazo_entrega_max_dias:
+            ro.prazo_entrega_max_dias == null ? "" : String(ro.prazo_entrega_max_dias),
         })),
       );
     }
@@ -571,10 +643,38 @@ function TabelaDialog({
         const { error } = await supabase.from("tabelas_preco_frete_faixas").insert(rows);
         if (error) throw error;
       }
+
+      const { error: delRotas } = await supabase
+        .from("tabelas_preco_frete_rotas")
+        .delete()
+        .eq("tabela_id", tabelaId);
+      if (delRotas) throw delRotas;
+
+      const rotaRows = rotas
+        .filter((r) => r.origem.trim() !== "" || r.destino.trim() !== "")
+        .map((r) => ({
+          tabela_id: tabelaId!,
+          origem: r.origem.trim(),
+          destino: r.destino.trim(),
+          tarifa_frete_peso: num(r.tarifa_frete_peso),
+          frete_valor_percentual: num(r.frete_valor_percentual),
+          taxa_despacho: num(r.taxa_despacho),
+          frete_minimo: num(r.frete_minimo),
+          peso_minimo_kg: num(r.peso_minimo_kg),
+          prazo_entrega_min_dias:
+            r.prazo_entrega_min_dias === "" ? null : Math.round(num(r.prazo_entrega_min_dias)),
+          prazo_entrega_max_dias:
+            r.prazo_entrega_max_dias === "" ? null : Math.round(num(r.prazo_entrega_max_dias)),
+        }));
+      if (rotaRows.length) {
+        const { error } = await supabase.from("tabelas_preco_frete_rotas").insert(rotaRows);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tabelas-frete"] });
       qc.invalidateQueries({ queryKey: ["tabela-faixas"] });
+      qc.invalidateQueries({ queryKey: ["tabela-rotas"] });
       toast.success(editing ? "Tabela atualizada" : "Tabela criada");
       onOpenChange(false);
     },
@@ -777,6 +877,87 @@ function TabelaDialog({
 
         </div>
 
+
+        <div className="space-y-2 pt-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm font-medium">Preços por origem e destino</Label>
+              <p className="text-xs text-muted-foreground">
+                Use quando a tabela cobra valores e prazos diferentes por rota.
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setRotas((r) => [...r, { ...ROTA_VAZIA }])}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Adicionar rota
+            </Button>
+          </div>
+
+          {rotas.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Nenhuma rota cadastrada. Os valores gerais acima serão usados para todos os destinos.
+            </p>
+          ) : (
+            <div className="space-y-2 overflow-x-auto">
+              <div className="grid min-w-[900px] grid-cols-[1.2fr_1.6fr_0.9fr_0.8fr_0.9fr_0.9fr_0.8fr_0.7fr_0.7fr_auto] gap-2 text-xs text-muted-foreground">
+                <span>Origem</span>
+                <span>Destino</span>
+                <span>Tarifa/kg</span>
+                <span>% Valor</span>
+                <span>Despacho</span>
+                <span>Frete mín.</span>
+                <span>Peso mín. (kg)</span>
+                <span>Prazo de</span>
+                <span>Prazo até</span>
+                <span />
+              </div>
+              {rotas.map((r, i) => (
+                <div
+                  key={i}
+                  className="grid min-w-[900px] grid-cols-[1.2fr_1.6fr_0.9fr_0.8fr_0.9fr_0.9fr_0.8fr_0.7fr_0.7fr_auto] gap-2 items-center"
+                >
+                  {(
+                    [
+                      "origem",
+                      "destino",
+                      "tarifa_frete_peso",
+                      "frete_valor_percentual",
+                      "taxa_despacho",
+                      "frete_minimo",
+                      "peso_minimo_kg",
+                      "prazo_entrega_min_dias",
+                      "prazo_entrega_max_dias",
+                    ] as (keyof RotaDraft)[]
+                  ).map((key) => (
+                    <Input
+                      key={key}
+                      inputMode={key === "origem" || key === "destino" ? "text" : "decimal"}
+                      value={r[key]}
+                      onChange={(e) =>
+                        setRotas((prev) =>
+                          prev.map((row, idx) =>
+                            idx === i ? { ...row, [key]: e.target.value } : row,
+                          ),
+                        )
+                      }
+                    />
+                  ))}
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setRotas((prev) => prev.filter((_, idx) => idx !== i))}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="space-y-2 pt-2">
           <div className="flex items-center justify-between">
