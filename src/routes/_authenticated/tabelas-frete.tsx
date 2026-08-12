@@ -394,6 +394,81 @@ function TabelaDialog({
     },
   });
 
+  const [lendoArquivo, setLendoArquivo] = useState(false);
+  const extrair = useServerFn(extractTabelaFrete);
+
+  async function lerArquivo(f: File) {
+    setLendoArquivo(true);
+    try {
+      const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
+      const payload: ExtractInput = { fileName: f.name };
+      if (ext === "csv" || ext === "txt") {
+        payload.text = await f.text();
+      } else if (ext === "xls" || ext === "xlsx") {
+        const XLSX = await import("xlsx");
+        const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
+        payload.text = wb.SheetNames.map(
+          (n) => `# ${n}\n${XLSX.utils.sheet_to_csv(wb.Sheets[n]!)}`,
+        ).join("\n\n");
+      } else {
+        payload.dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error("Falha ao ler o arquivo"));
+          reader.readAsDataURL(f);
+        });
+      }
+      const r = await extrair({ data: payload });
+      aplicarExtracao(r);
+      toast.success("Campos preenchidos a partir do arquivo. Revise antes de salvar.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível ler o arquivo");
+    } finally {
+      setLendoArquivo(false);
+    }
+  }
+
+  function aplicarExtracao(r: ExtractedTabela) {
+    const s = (v: number | null | undefined) => (v == null ? undefined : String(v));
+    setForm((f) => {
+      const cnpj = (r.transportadora_cnpj ?? "").replace(/\D/g, "");
+      const alvo =
+        (cnpj ? transportadoras.find((t) => t.cnpj.replace(/\D/g, "") === cnpj) : undefined) ??
+        (r.transportadora_nome
+          ? transportadoras.find((t) =>
+              t.razao_social.toLowerCase().includes(r.transportadora_nome!.toLowerCase().slice(0, 8)),
+            )
+          : undefined);
+      return {
+        ...f,
+        transportadora_id: alvo?.id ?? f.transportadora_id,
+        nome: r.nome?.trim() || f.nome,
+        descricao: r.descricao?.trim() || f.descricao,
+        data_inicio: r.data_inicio || f.data_inicio,
+        data_fim: r.data_fim || f.data_fim,
+        tipo_calculo: r.tipo_calculo ?? f.tipo_calculo,
+        percentual_valor: s(r.percentual_valor) ?? f.percentual_valor,
+        gris_percentual: s(r.gris_percentual) ?? f.gris_percentual,
+        ad_valorem_percentual: s(r.ad_valorem_percentual) ?? f.ad_valorem_percentual,
+        pedagio_valor: s(r.pedagio_valor) ?? f.pedagio_valor,
+        tas_valor: s(r.tas_valor) ?? f.tas_valor,
+        frete_minimo: s(r.frete_minimo) ?? f.frete_minimo,
+        icms_percentual: s(r.icms_percentual) ?? f.icms_percentual,
+        uf_destino: r.uf_destino?.toUpperCase().slice(0, 2) || f.uf_destino,
+      };
+    });
+    if (r.faixas?.length) {
+      setFaixas(
+        r.faixas.map((fx) => ({
+          peso_de: String(fx.peso_de ?? 0),
+          peso_ate: fx.peso_ate == null ? "" : String(fx.peso_ate),
+          valor_por_kg: String(fx.valor_por_kg ?? 0),
+          valor_fixo_faixa: String(fx.valor_fixo_faixa ?? 0),
+        })),
+      );
+    }
+  }
+
   const set = <K extends keyof TabelaForm>(key: K, value: TabelaForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
