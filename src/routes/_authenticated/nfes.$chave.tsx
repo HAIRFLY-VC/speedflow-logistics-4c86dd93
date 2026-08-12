@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -10,7 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
-import { getNfe, getNfeXmlUrl, uploadNfeXml } from "@/lib/nfe.functions";
+import {
+  getNfe,
+  getNfeSolicitacao,
+  getNfeXmlUrl,
+  solicitarNfeXml,
+  uploadNfeXml,
+} from "@/lib/nfe.functions";
 
 export const Route = createFileRoute("/_authenticated/nfes/$chave")({
   component: NfeDetailPage,
