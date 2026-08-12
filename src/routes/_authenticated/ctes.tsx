@@ -58,6 +58,7 @@ function CtesPage() {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [selected, setSelected] = useState<Cte | null>(null);
   const upload = useServerFn(uploadCteXml);
   const signUrl = useServerFn(getCteXmlUrl);
 
@@ -210,7 +211,10 @@ function CtesPage() {
             variant="ghost"
             title="Baixar XML"
             disabled={!c.xml_storage_path || openXml.isPending}
-            onClick={() => openXml.mutate(c.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              openXml.mutate(c.id);
+            }}
           >
             <FileDown className="h-4 w-4" />
           </Button>
