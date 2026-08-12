@@ -44,10 +44,11 @@ function postXml(url, xml, agent) {
         path: reqUrl.pathname,
         port: 443,
         headers: {
-          "Content-Type": "application/soap+xml; charset=utf-8",
-          "SOAPAction": SOAP_ACTION,
+          // SOAP 1.2: a acao vai como parametro do Content-Type (nao existe header SOAPAction).
+          "Content-Type": `application/soap+xml; charset=utf-8; action="${SOAP_ACTION}"`,
           "Content-Length": Buffer.byteLength(xml),
         },
+
         agent,
         timeout: 60000,
       },
