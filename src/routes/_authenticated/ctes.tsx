@@ -242,24 +242,39 @@ function CtesPage() {
         filterable: false,
         accessor: () => "",
         render: (c) => (
-          <Button
-            size="icon"
-            variant="ghost"
-            title="Baixar XML"
-            disabled={!c.xml_storage_path || openXml.isPending}
-            onClick={(e) => {
-              e.stopPropagation();
-              openXml.mutate(c.id);
-            }}
-          >
-            <FileDown className="h-4 w-4" />
-          </Button>
+          <div className="flex justify-end gap-1">
+            <Button
+              size="icon"
+              variant="ghost"
+              title="Ler XML"
+              disabled={!c.xml_storage_path || readXml.isPending}
+              onClick={(e) => {
+                e.stopPropagation();
+                readXml.mutate(c);
+              }}
+            >
+              <FileCode className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              title="Baixar XML"
+              disabled={!c.xml_storage_path || openXml.isPending}
+              onClick={(e) => {
+                e.stopPropagation();
+                openXml.mutate(c);
+              }}
+            >
+              <FileDown className="h-4 w-4" />
+            </Button>
+          </div>
         ),
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [nomeTransportadora, openXml.isPending],
+    [nomeTransportadora, openXml.isPending, readXml.isPending],
   );
+
 
   return (
     <AppShell>
