@@ -217,6 +217,36 @@ function TabelasFretePage() {
         render: (t) => brl(Number(t.frete_minimo)),
       },
       {
+        id: "arquivo",
+        header: "Arquivo",
+        align: "center",
+        sortable: false,
+        accessor: (t) => t.arquivo_nome ?? "",
+        render: (t) =>
+          t.arquivo_path ? (
+            <div className="flex items-center justify-center gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                title={t.arquivo_nome ?? "Ver arquivo"}
+                onClick={() => abrirArquivo(t.arquivo_path!)}
+              >
+                <FileText className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                title="Baixar arquivo"
+                onClick={() => abrirArquivo(t.arquivo_path!, t.arquivo_nome, true)}
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          ),
+      },
+      {
         id: "ativo",
         header: "Ativa",
         align: "center",
