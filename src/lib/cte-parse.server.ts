@@ -9,6 +9,7 @@ export type ParsedCte = {
   serie: string | null;
   cnpj_emitente: string | null;
   cnpj_destinatario: string | null;
+  cnpj_remetente: string | null;
   data_emissao: string | null;
   valor_total_frete: number;
   valor_mercadoria: number;
