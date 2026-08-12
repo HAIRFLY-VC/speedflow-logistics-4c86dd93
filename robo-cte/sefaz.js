@@ -154,12 +154,13 @@ export class SefazCteClient {
     if (cStat && cStat !== "138") {
       if (cStat === "137" || cStat === "656") {
         // Sem documentos para o CNPJ consultado ou nenhum documento encontrado
-        return { xmls: [], maxNsu: ultimoNsu, cStat, xMotivo };
+        return { xmls: [], maxNsu: ultimoNsu, ultNsu: ultimoNsu, cStat, xMotivo };
       }
       throw new Error(`SEFAZ retornou cStat=${cStat}: ${xMotivo}`);
     }
 
     const maxNsu = parseInt(extractText(cteDistDFeInteresseResult, "maxNSU") || String(ultimoNsu), 10);
+    const ultNsu = parseInt(extractText(cteDistDFeInteresseResult, "ultNSU") || String(ultimoNsu), 10);
     const docs = extractDocZips(cteDistDFeInteresseResult);
 
     const xmls = [];
@@ -175,7 +176,7 @@ export class SefazCteClient {
     }
 
 
-    return { xmls, maxNsu, cStat, xMotivo };
+    return { xmls, maxNsu, ultNsu, cStat, xMotivo };
   }
 }
 

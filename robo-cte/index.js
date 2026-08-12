@@ -167,8 +167,8 @@ async function processarEmpresa(cfg, empresaIndex, modoTeste) {
   while (totalCiclos < 20) {
     totalCiclos++;
     log(`Consultando NSU ${ultimoNsu} (ciclo ${totalCiclos})`);
-    const { xmls, maxNsu, cStat, xMotivo } = await client.consultar(ultimoNsu);
-    log(`Retorno: cStat=${cStat}, maxNSU=${maxNsu}, documentos=${xmls.length}, motivo=${xMotivo || "ok"}`);
+    const { xmls, maxNsu, ultNsu, cStat, xMotivo } = await client.consultar(ultimoNsu);
+    log(`Retorno: cStat=${cStat}, ultNSU=${ultNsu}, maxNSU=${maxNsu}, documentos=${xmls.length}, motivo=${xMotivo || "ok"}`);
 
     if (!xmls.length) {
       ultimoNsu = maxNsu;
@@ -202,11 +202,13 @@ async function processarEmpresa(cfg, empresaIndex, modoTeste) {
       }
     }
 
-    ultimoNsu = maxNsu;
-    writeUltimoNsu(empresaIndex, ultimoNsu);
+    // Avanca apenas ate o ultimo NSU efetivamente lido (nunca pula direto para maxNSU).
+    const proximoNsu = Math.max(ultNsu || 0, ...xmls.map((x) => x.nsu || 0), ultimoNsu);
+    const avancou = proximoNsu > ultimoNsu;
+    ultimoNsu = proximoNsu;
+    if (!modoTeste) writeUltimoNsu(empresaIndex, ultimoNsu);
 
-    // Se o maxNSU não avançou, não há mais documentos
-    if (maxNsu <= ultimoNsu && ctes.length === 0) break;
+    if (!avancou || ultimoNsu >= maxNsu) break;
     await sleep(500); // pequena pausa entre consultas para não atingir limites
   }
 
