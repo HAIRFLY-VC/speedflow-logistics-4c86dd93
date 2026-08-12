@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Upload, Loader2, FileDown } from "lucide-react";
+import { Upload, Loader2, FileDown, FileCode } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import { uploadCteXml, getCteXmlUrl } from "@/lib/cte.functions";
 import { CteDetailDialog } from "@/components/ctes/CteDetailDialog";
+import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/ctes")({
@@ -327,8 +328,17 @@ function CtesPage() {
               : undefined
           }
           statusTone={selected ? STATUS_TONE[selected.status] : undefined}
-          onDownloadXml={(id) => openXml.mutate(id)}
+          onDownloadXml={(c) => openXml.mutate(c)}
+          onReadXml={(c) => readXml.mutate(c)}
           downloading={openXml.isPending}
+        />
+
+        <XmlViewerDialog
+          open={xmlOpen}
+          onOpenChange={setXmlOpen}
+          xml={xmlContent}
+          title={xmlTitle}
+          loading={readXml.isPending}
         />
       </div>
     </AppShell>
