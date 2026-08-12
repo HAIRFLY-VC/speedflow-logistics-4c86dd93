@@ -69,6 +69,7 @@ const NAV: NavItem[] = [
   { title: "Usuários", url: "/usuarios", icon: Users, roles: ["adm"] },
   { title: "Configurações", url: "/configuracoes", icon: Settings, roles: ["adm", "gestor", "operador", "fretista"] },
   { title: "Config. de fretes", url: "/configuracoes-fretes", icon: ShieldCheck, roles: ["adm"] },
+  { title: "Captura de CT-e", url: "/captura-cte", icon: ShieldCheck, roles: ["adm"] },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
