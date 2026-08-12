@@ -19,16 +19,18 @@ function buildEnvelope(cnpj, ufAutor, ultimoNsu, ambiente) {
   return `<?xml version="1.0" encoding="utf-8"?>
 <soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
   <soap12:Body>
-    <cteDadosMsg xmlns="http://www.portalfiscal.inf.br/cte/wsdl/CTeDistribuicaoDFe">
-      <distDFeInt xmlns="http://www.portalfiscal.inf.br/cte" versao="1.00">
-        <tpAmb>${tpAmb}</tpAmb>
-        <cUFAutor>${uf}</cUFAutor>
-        <CNPJ>${cnpj}</CNPJ>
-        <distNSU>
-          <ultNSU>${nsu}</ultNSU>
-        </distNSU>
-      </distDFeInt>
-    </cteDadosMsg>
+    <cteDistDFeInteresse xmlns="http://www.portalfiscal.inf.br/cte/wsdl/CTeDistribuicaoDFe">
+      <cteDadosMsg>
+        <distDFeInt xmlns="http://www.portalfiscal.inf.br/cte" versao="1.00">
+          <tpAmb>${tpAmb}</tpAmb>
+          <cUFAutor>${uf}</cUFAutor>
+          <CNPJ>${cnpj}</CNPJ>
+          <distNSU>
+            <ultNSU>${nsu}</ultNSU>
+          </distNSU>
+        </distDFeInt>
+      </cteDadosMsg>
+    </cteDistDFeInteresse>
   </soap12:Body>
 </soap12:Envelope>`;
 }
