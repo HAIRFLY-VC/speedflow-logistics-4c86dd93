@@ -70,6 +70,30 @@ type FaixaDraft = {
   valor_fixo_faixa: string;
 };
 
+type RotaDraft = {
+  origem: string;
+  destino: string;
+  tarifa_frete_peso: string;
+  frete_valor_percentual: string;
+  taxa_despacho: string;
+  frete_minimo: string;
+  peso_minimo_kg: string;
+  prazo_entrega_min_dias: string;
+  prazo_entrega_max_dias: string;
+};
+
+const ROTA_VAZIA: RotaDraft = {
+  origem: "",
+  destino: "",
+  tarifa_frete_peso: "0",
+  frete_valor_percentual: "0",
+  taxa_despacho: "0",
+  frete_minimo: "0",
+  peso_minimo_kg: "0",
+  prazo_entrega_min_dias: "",
+  prazo_entrega_max_dias: "",
+};
+
 type TabelaForm = {
   transportadora_id: string;
   nome: string;
