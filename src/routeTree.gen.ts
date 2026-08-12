@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedAuditoriaFretesRouteImport } from './routes/_authenticated/auditoria-fretes'
 import { Route as AuthenticatedBorderosRouteImport } from './routes/_authenticated/borderos'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
@@ -46,6 +47,12 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAuditoriaFretesRoute =
+  AuthenticatedAuditoriaFretesRouteImport.update({
+    id: '/auditoria-fretes',
+    path: '/auditoria-fretes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedBorderosRoute = AuthenticatedBorderosRouteImport.update({
   id: '/borderos',
   path: '/borderos',
@@ -153,6 +160,7 @@ const ApiPublicHooksIngestCteRoute = ApiPublicHooksIngestCteRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/auditoria-fretes': typeof AuthenticatedAuditoriaFretesRoute
   '/borderos': typeof AuthenticatedBorderosRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -176,6 +184,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/auditoria-fretes': typeof AuthenticatedAuditoriaFretesRoute
   '/borderos': typeof AuthenticatedBorderosRoute
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -201,6 +210,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/auditoria-fretes': typeof AuthenticatedAuditoriaFretesRoute
   '/_authenticated/borderos': typeof AuthenticatedBorderosRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -226,6 +236,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/auditoria-fretes'
     | '/borderos'
     | '/clientes'
     | '/configuracoes'
@@ -249,6 +260,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/auditoria-fretes'
     | '/borderos'
     | '/clientes'
     | '/configuracoes'
@@ -273,6 +285,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/auditoria-fretes'
     | '/_authenticated/borderos'
     | '/_authenticated/clientes'
     | '/_authenticated/configuracoes'
@@ -324,6 +337,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/auditoria-fretes': {
+      id: '/_authenticated/auditoria-fretes'
+      path: '/auditoria-fretes'
+      fullPath: '/auditoria-fretes'
+      preLoaderRoute: typeof AuthenticatedAuditoriaFretesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/borderos': {
       id: '/_authenticated/borderos'
@@ -462,6 +482,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAuditoriaFretesRoute: typeof AuthenticatedAuditoriaFretesRoute
   AuthenticatedBorderosRoute: typeof AuthenticatedBorderosRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
@@ -482,6 +503,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAuditoriaFretesRoute: AuthenticatedAuditoriaFretesRoute,
   AuthenticatedBorderosRoute: AuthenticatedBorderosRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
