@@ -511,6 +511,72 @@ function TabelaDialog({
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-3 space-y-1.5">
+            <Label className="text-xs">Arquivo da tabela (PDF, Excel, imagem)</Label>
+            <div className="rounded-md border border-dashed p-3 space-y-2">
+              {arquivo ? (
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span className="flex items-center gap-2 truncate">
+                    <FileText className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{arquivo.name}</span>
+                  </span>
+                  <Button size="icon" variant="ghost" onClick={() => setArquivo(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : arquivoAtual ? (
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 truncate text-primary hover:underline"
+                    onClick={() => abrirArquivo(arquivoAtual.path)}
+                  >
+                    <FileText className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{arquivoAtual.nome}</span>
+                  </button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Baixar"
+                      onClick={() => abrirArquivo(arquivoAtual.path, arquivoAtual.nome, true)}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Remover arquivo"
+                      onClick={() => setArquivoAtual(null)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Anexe o arquivo original enviado pela transportadora. Ele ficará guardado no app
+                  para consulta.
+                </p>
+              )}
+
+              <Input
+                type="file"
+                accept=".pdf,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  if (f && f.size > 20 * 1024 * 1024) {
+                    toast.error("Arquivo maior que 20 MB");
+                    return;
+                  }
+                  setArquivo(f);
+                }}
+              />
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <Upload className="h-3 w-3" /> Até 20 MB por arquivo.
+              </p>
+            </div>
+          </div>
           <div className="md:col-span-2 space-y-1.5">
             <Label className="text-xs">Transportadora *</Label>
             <Select
@@ -616,72 +682,6 @@ function TabelaDialog({
             />
           </div>
 
-          <div className="md:col-span-3 space-y-1.5 hidden">
-            <Label className="text-xs">Arquivo da tabela (PDF, Excel, imagem)</Label>
-            <div className="rounded-md border border-dashed p-3 space-y-2">
-              {arquivo ? (
-                <div className="flex items-center justify-between gap-2 text-sm">
-                  <span className="flex items-center gap-2 truncate">
-                    <FileText className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{arquivo.name}</span>
-                  </span>
-                  <Button size="icon" variant="ghost" onClick={() => setArquivo(null)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : arquivoAtual ? (
-                <div className="flex items-center justify-between gap-2 text-sm">
-                  <button
-                    type="button"
-                    className="flex items-center gap-2 truncate text-primary hover:underline"
-                    onClick={() => abrirArquivo(arquivoAtual.path)}
-                  >
-                    <FileText className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{arquivoAtual.nome}</span>
-                  </button>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      title="Baixar"
-                      onClick={() => abrirArquivo(arquivoAtual.path, arquivoAtual.nome, true)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      title="Remover arquivo"
-                      onClick={() => setArquivoAtual(null)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Anexe o arquivo original enviado pela transportadora. Ele ficará guardado no app
-                  para consulta.
-                </p>
-              )}
-
-              <Input
-                type="file"
-                accept=".pdf,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
-                onChange={(e) => {
-                  const f = e.target.files?.[0] ?? null;
-                  if (f && f.size > 20 * 1024 * 1024) {
-                    toast.error("Arquivo maior que 20 MB");
-                    return;
-                  }
-                  setArquivo(f);
-                }}
-              />
-              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <Upload className="h-3 w-3" /> Até 20 MB por arquivo.
-              </p>
-            </div>
-          </div>
         </div>
 
 
