@@ -643,10 +643,38 @@ function TabelaDialog({
         const { error } = await supabase.from("tabelas_preco_frete_faixas").insert(rows);
         if (error) throw error;
       }
+
+      const { error: delRotas } = await supabase
+        .from("tabelas_preco_frete_rotas")
+        .delete()
+        .eq("tabela_id", tabelaId);
+      if (delRotas) throw delRotas;
+
+      const rotaRows = rotas
+        .filter((r) => r.origem.trim() !== "" || r.destino.trim() !== "")
+        .map((r) => ({
+          tabela_id: tabelaId!,
+          origem: r.origem.trim(),
+          destino: r.destino.trim(),
+          tarifa_frete_peso: num(r.tarifa_frete_peso),
+          frete_valor_percentual: num(r.frete_valor_percentual),
+          taxa_despacho: num(r.taxa_despacho),
+          frete_minimo: num(r.frete_minimo),
+          peso_minimo_kg: num(r.peso_minimo_kg),
+          prazo_entrega_min_dias:
+            r.prazo_entrega_min_dias === "" ? null : Math.round(num(r.prazo_entrega_min_dias)),
+          prazo_entrega_max_dias:
+            r.prazo_entrega_max_dias === "" ? null : Math.round(num(r.prazo_entrega_max_dias)),
+        }));
+      if (rotaRows.length) {
+        const { error } = await supabase.from("tabelas_preco_frete_rotas").insert(rotaRows);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tabelas-frete"] });
       qc.invalidateQueries({ queryKey: ["tabela-faixas"] });
+      qc.invalidateQueries({ queryKey: ["tabela-rotas"] });
       toast.success(editing ? "Tabela atualizada" : "Tabela criada");
       onOpenChange(false);
     },
