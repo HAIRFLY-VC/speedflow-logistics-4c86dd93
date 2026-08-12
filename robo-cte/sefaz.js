@@ -37,6 +37,10 @@ function buildEnvelope(cnpj, ufAutor, ultimoNsu, ambiente) {
 
 
 function postXml(url, xml, agent) {
+  return postXmlAction(url, xml, agent, SOAP_ACTION);
+}
+
+function postXmlAction(url, xml, agent, action) {
   return new Promise((resolve, reject) => {
     const reqUrl = new URL(url);
     const req = https.request(
@@ -47,7 +51,7 @@ function postXml(url, xml, agent) {
         port: 443,
         headers: {
           // SOAP 1.2: a acao vai como parametro do Content-Type (nao existe header SOAPAction).
-          "Content-Type": `application/soap+xml; charset=utf-8; action="${SOAP_ACTION}"`,
+          "Content-Type": `application/soap+xml; charset=utf-8; action="${action}"`,
           "Content-Length": Buffer.byteLength(xml),
         },
 
@@ -197,4 +201,98 @@ export function extrairXmlProcCte(xml) {
   const match = xml.match(/<\?xml[^?]*\?>/i);
   if (!match) return xml;
   return xml;
+}
+
+// ================= NF-e: consulta de XML por chave (NFeDistribuicaoDFe) =================
+
+const URLS_NFE = {
+  producao: "https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx",
+  homologacao: "https://hom1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx",
+};
+
+const SOAP_ACTION_NFE =
+  "http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe/nfeDistDFeInteresse";
+
+function buildEnvelopeNfeChave(cnpj, ufAutor, chave, ambiente) {
+  const tpAmb = ambiente === "homologacao" ? "2" : "1";
+  const uf = String(ufAutor || 35).padStart(2, "0");
+  return `<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <nfeDistDFeInteresse xmlns="http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe">
+      <nfeDadosMsg>
+        <distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01">
+          <tpAmb>${tpAmb}</tpAmb>
+          <cUFAutor>${uf}</cUFAutor>
+          <CNPJ>${cnpj}</CNPJ>
+          <consChNFe>
+            <chNFe>${chave}</chNFe>
+          </consChNFe>
+        </distDFeInt>
+      </nfeDadosMsg>
+    </nfeDistDFeInteresse>
+  </soap12:Body>
+</soap12:Envelope>`;
+}
+
+export class SefazNfeClient {
+  constructor(empresa, ambiente) {
+    this.empresa = empresa;
+    this.ambiente = ambiente || "producao";
+    this.url = URLS_NFE[this.ambiente] || URLS_NFE.producao;
+    const pfx = readFileSync(empresa.caminhoCertificado);
+    this.agent = new https.Agent({
+      pfx,
+      passphrase: empresa.senhaCertificado,
+      rejectUnauthorized: true,
+    });
+  }
+
+  // Retorna o XML da NF-e (procNFe) ou lanca erro explicando o motivo.
+  async consultarChave(chave) {
+    const envelope = buildEnvelopeNfeChave(
+      this.empresa.cnpj,
+      this.empresa.ufAutor,
+      chave,
+      this.ambiente
+    );
+    const response = await postXmlAction(this.url, envelope, this.agent, SOAP_ACTION_NFE);
+
+    const fault = extractSoapFault(response);
+    if (fault) throw new Error(`SEFAZ recusou a requisicao (SOAP Fault): ${fault}`);
+
+    const result = decodeEntities(
+      extractText(response, "nfeDistDFeInteresseResult") || response
+    );
+
+    const cStat = extractText(result, "cStat");
+    const xMotivo = extractText(result, "xMotivo") || "";
+    if (cStat && cStat !== "138") {
+      throw new Error(`SEFAZ retornou cStat=${cStat}: ${xMotivo}`);
+    }
+
+    const docs = extractDocZips(result);
+    let resumo = null;
+    for (const doc of docs) {
+      if (!doc.base64) continue;
+      let xmlDoc;
+      try {
+        xmlDoc = zlib.gunzipSync(Buffer.from(doc.base64, "base64")).toString("utf-8");
+      } catch {
+        continue;
+      }
+      const lower = xmlDoc.toLowerCase();
+      if (lower.includes("<nfeproc") || lower.includes("<procnfe") || lower.includes("<infnfe")) {
+        return xmlDoc;
+      }
+      if (lower.includes("<resnfe")) resumo = xmlDoc;
+    }
+
+    if (resumo) {
+      throw new Error(
+        "A SEFAZ retornou apenas o resumo da NF-e. E necessario manifestar ciencia/confirmacao da operacao para liberar o XML completo."
+      );
+    }
+    throw new Error(`XML da NF-e nao disponivel para o CNPJ consultado (${xMotivo || "sem retorno"})`);
+  }
 }

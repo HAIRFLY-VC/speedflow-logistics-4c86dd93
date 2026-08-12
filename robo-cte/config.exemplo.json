@@ -1,6 +1,7 @@
 {
   "ambiente": "producao",
   "intervaloMinutos": 30,
+  "intervaloNfeSegundos": 60,
   "retentativas": 3,
   "timeoutMs": 60000,
   "endpoint": "https://project--0f575c65-0542-477f-8d03-b4c26e47b952.lovable.app/api/public/hooks/ingest-cte",

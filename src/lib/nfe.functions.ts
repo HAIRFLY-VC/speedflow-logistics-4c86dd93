@@ -93,3 +93,58 @@ export const getNfeXmlUrl = createServerFn({ method: "POST" })
     if (signErr || !signed) throw new Error(signErr?.message ?? "Falha ao gerar link");
     return { url: signed.signedUrl };
   });
+
+export const solicitarNfeXml = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => chaveSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+
+    const { data: existente } = await context.supabase
+      .from("nfes")
+      .select("chave_acesso")
+      .eq("chave_acesso", data.chave)
+      .maybeSingle();
+    if (existente) return { status: "CONCLUIDA" as const, mensagem: null as string | null };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: sol } = await supabaseAdmin
+      .from("nfe_solicitacoes")
+      .select("id, status")
+      .eq("chave_acesso", data.chave)
+      .maybeSingle();
+
+    if (!sol) {
+      const { error } = await supabaseAdmin.from("nfe_solicitacoes").insert({
+        chave_acesso: data.chave,
+        solicitado_por: context.userId,
+        status: "PENDENTE",
+      });
+      if (error) throw new Error(error.message);
+      return { status: "PENDENTE" as const, mensagem: null as string | null };
+    }
+
+    if (sol.status === "ERRO") {
+      await supabaseAdmin
+        .from("nfe_solicitacoes")
+        .update({ status: "PENDENTE", mensagem: null })
+        .eq("id", sol.id);
+      return { status: "PENDENTE" as const, mensagem: null as string | null };
+    }
+
+    return { status: sol.status, mensagem: null as string | null };
+  });
+
+export const getNfeSolicitacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => chaveSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { data: sol, error } = await context.supabase
+      .from("nfe_solicitacoes")
+      .select("status, mensagem, tentativas, updated_at")
+      .eq("chave_acesso", data.chave)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { solicitacao: sol ?? null };
+  });

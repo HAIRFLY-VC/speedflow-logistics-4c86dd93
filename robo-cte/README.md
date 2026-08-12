@@ -111,3 +111,19 @@ No app, vá em **Captura de CT-e** e confira o histórico de recebimentos com or
 ## Suporte
 
 Para dúvidas sobre a configuração no app, use a tela **Captura de CT-e > Instalação do robô**.
+
+## Leitura automática de NF-e (XML das notas do CT-e)
+
+Quando um usuário clica em uma chave de NF-e no detalhamento do CT-e, o aplicativo
+registra a solicitação numa fila. O robô, que possui o certificado A1, faz:
+
+1. `GET /api/public/hooks/nfe-pendentes` — lista as chaves solicitadas;
+2. consulta o webservice `NFeDistribuicaoDFe` da SEFAZ por chave (`consChNFe`);
+3. `POST /api/public/hooks/ingest-nfe` — envia o XML (ou o erro) de volta.
+
+A verificação acontece a cada ciclo e também durante a espera, no intervalo definido
+em `intervaloNfeSegundos` (padrão: 60 segundos).
+
+Observação: a SEFAZ só devolve o XML completo da NF-e quando o CNPJ consultante é o
+destinatário e a operação está manifestada. Caso contrário, o app mostra o motivo e
+permite importar o XML manualmente.

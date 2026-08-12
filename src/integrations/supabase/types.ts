@@ -785,6 +785,39 @@ export type Database = {
           },
         ]
       }
+      nfe_solicitacoes: {
+        Row: {
+          chave_acesso: string
+          created_at: string
+          id: string
+          mensagem: string | null
+          solicitado_por: string | null
+          status: Database["public"]["Enums"]["nfe_solicitacao_status"]
+          tentativas: number
+          updated_at: string
+        }
+        Insert: {
+          chave_acesso: string
+          created_at?: string
+          id?: string
+          mensagem?: string | null
+          solicitado_por?: string | null
+          status?: Database["public"]["Enums"]["nfe_solicitacao_status"]
+          tentativas?: number
+          updated_at?: string
+        }
+        Update: {
+          chave_acesso?: string
+          created_at?: string
+          id?: string
+          mensagem?: string | null
+          solicitado_por?: string | null
+          status?: Database["public"]["Enums"]["nfe_solicitacao_status"]
+          tentativas?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       nfes: {
         Row: {
           chave_acesso: string
@@ -1503,6 +1536,7 @@ export type Database = {
         | "LANCADO_ERP"
         | "ERRO_ERP"
         | "REJEITADO"
+      nfe_solicitacao_status: "PENDENTE" | "PROCESSANDO" | "CONCLUIDA" | "ERRO"
       ordem_pagamento_status:
         | "PENDENTE"
         | "AUTORIZADO"
@@ -1669,6 +1703,7 @@ export const Constants = {
         "ERRO_ERP",
         "REJEITADO",
       ],
+      nfe_solicitacao_status: ["PENDENTE", "PROCESSANDO", "CONCLUIDA", "ERRO"],
       ordem_pagamento_status: [
         "PENDENTE",
         "AUTORIZADO",

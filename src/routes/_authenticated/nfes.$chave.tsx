@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -10,7 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
-import { getNfe, getNfeXmlUrl, uploadNfeXml } from "@/lib/nfe.functions";
+import {
+  getNfe,
+  getNfeSolicitacao,
+  getNfeXmlUrl,
+  solicitarNfeXml,
+  uploadNfeXml,
+} from "@/lib/nfe.functions";
 
 export const Route = createFileRoute("/_authenticated/nfes/$chave")({
   component: NfeDetailPage,
@@ -72,12 +78,51 @@ function NfeDetailPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["nfe", chave],
     queryFn: () => fetchNfe({ data: { chave } }),
+    refetchInterval: (q) => (q.state.data?.nfe ? false : 5000),
   });
 
   const nfe = data?.nfe as
     | (Record<string, any> & { itens: NfeItem[] })
     | null
     | undefined;
+
+  // Assim que a tela abre sem a nota no sistema, solicita a captura automática
+  // do XML na SEFAZ pelo robô que detém o certificado A1.
+  const solicitar = useServerFn(solicitarNfeXml);
+  const fetchSolicitacao = useServerFn(getNfeSolicitacao);
+  const pedidoFeito = useRef(false);
+
+  useEffect(() => {
+    if (isLoading || nfe || pedidoFeito.current) return;
+    pedidoFeito.current = true;
+    solicitar({ data: { chave } })
+      .then(() => qc.invalidateQueries({ queryKey: ["nfe-solicitacao", chave] }))
+      .catch((e: Error) => toast.error(e.message));
+  }, [isLoading, nfe, chave, solicitar, qc]);
+
+  const { data: solData } = useQuery({
+    queryKey: ["nfe-solicitacao", chave],
+    queryFn: () => fetchSolicitacao({ data: { chave } }),
+    enabled: !nfe && !isLoading,
+    refetchInterval: 5000,
+  });
+  const solicitacao = solData?.solicitacao as
+    | { status: string; mensagem: string | null; tentativas: number }
+    | null
+    | undefined;
+
+  const retentar = useMutation({
+    mutationFn: async () => {
+      pedidoFeito.current = true;
+      return solicitar({ data: { chave } });
+    },
+    onSuccess: () => {
+      toast.success("Nova tentativa de leitura enviada ao robô");
+      qc.invalidateQueries({ queryKey: ["nfe-solicitacao", chave] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const readXml = useMutation({
     mutationFn: async () => {
@@ -201,16 +246,54 @@ function NfeDetailPage() {
         ) : !nfe ? (
           <Card>
             <CardHeader>
-              <CardTitle>NF-e ainda não importada</CardTitle>
+              <CardTitle>
+                {solicitacao?.status === "ERRO"
+                  ? "Não foi possível ler o XML na SEFAZ"
+                  : "Lendo o XML da NF-e na SEFAZ…"}
+              </CardTitle>
             </CardHeader>
             <CardContent className="text-muted-foreground space-y-3 text-sm">
-              <p>
-                Esta nota fiscal está referenciada no CT-e, mas o XML dela ainda não foi
-                enviado ao sistema. Use “Importar XML” para carregar o arquivo da NF-e e ver o
-                detalhamento completo.
-              </p>
+              {solicitacao?.status === "ERRO" ? (
+                <>
+                  <p>
+                    O robô de captura (certificado A1) não conseguiu obter esta nota:{" "}
+                    <span className="text-foreground font-medium">
+                      {solicitacao.mensagem ?? "erro não informado"}
+                    </span>
+                    . Tentativas: {solicitacao.tentativas}.
+                  </p>
+                  <p>
+                    Você pode tentar novamente ou enviar o arquivo manualmente em “Importar
+                    XML”.
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => retentar.mutate()}
+                    disabled={retentar.isPending}
+                  >
+                    {retentar.isPending ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : null}
+                    Tentar novamente
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    A leitura do XML foi solicitada automaticamente ao robô de captura, que usa
+                    o certificado A1 para baixar a nota na SEFAZ. Esta tela é atualizada
+                    sozinha assim que o XML chegar.
+                  </p>
+                  <p>
+                    Se preferir, você também pode enviar o arquivo manualmente em “Importar
+                    XML”.
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
+
         ) : (
           <>
             <Card>
