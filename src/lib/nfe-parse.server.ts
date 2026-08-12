@@ -37,10 +37,6 @@ function tagValue(xml: string, tag: string): string | null {
   return m ? m[1].trim() : null;
 }
 
-function sectionOf(xml: string, tag: string): string | null {
-  return tagValue(xml, tag) === null ? null : matchSection(xml, tag);
-}
-
 function matchSection(xml: string, tag: string): string | null {
   const m = xml.match(new RegExp(`<(?:\\w+:)?${tag}[^>]*>([\\s\\S]*?)</(?:\\w+:)?${tag}>`, "i"));
   return m ? m[1] : null;
@@ -118,5 +114,3 @@ export function parseNfeXml(xml: string): ParsedNfe {
     itens,
   };
 }
-
-export { sectionOf };
