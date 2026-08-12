@@ -124,7 +124,7 @@ function getUltimoNsu(cfg, empresaIndex) {
   return 0;
 }
 
-function enviarXml(endpoint, segredo, xml) {
+function enviarXmlUmaVez(endpoint, segredo, xml, timeoutMs) {
   return new Promise((resolve, reject) => {
     const url = new URL(endpoint);
     const body = Buffer.from(xml, "utf-8");
@@ -138,8 +138,10 @@ function enviarXml(endpoint, segredo, xml) {
           "x-ingest-secret": segredo,
           "Content-Type": "application/xml",
           "Content-Length": body.length,
+          Connection: "close",
         },
-        timeout: 60000,
+        agent: false,
+        timeout: timeoutMs || 60000,
       },
       (res) => {
         let chunks = [];
@@ -149,15 +151,22 @@ function enviarXml(endpoint, segredo, xml) {
           if (res.statusCode >= 200 && res.statusCode < 300) {
             resolve({ status: res.statusCode, body: text });
           } else {
-            reject(new Error(`HTTP ${res.statusCode}: ${text.slice(0, 300)}`));
+            const err = new Error(`HTTP ${res.statusCode}: ${text.slice(0, 300)}`);
+            err.retryavel = res.statusCode >= 500 || res.statusCode === 429;
+            reject(err);
           }
         });
       }
     );
-    req.on("error", reject);
+    req.on("error", (e) => {
+      e.retryavel = true; // ECONNRESET, ETIMEDOUT, EPIPE, etc.
+      reject(e);
+    });
     req.on("timeout", () => {
       req.destroy();
-      reject(new Error("Timeout ao enviar XML para o endpoint"));
+      const err = new Error("Timeout ao enviar XML para o endpoint");
+      err.retryavel = true;
+      reject(err);
     });
     req.write(body);
     req.end();
@@ -167,6 +176,25 @@ function enviarXml(endpoint, segredo, xml) {
 async function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
+
+async function enviarXml(endpoint, segredo, xml, opts = {}) {
+  const tentativas = Math.max(1, opts.retentativas || 3);
+  let ultimoErro;
+  for (let i = 1; i <= tentativas; i++) {
+    try {
+      return await enviarXmlUmaVez(endpoint, segredo, xml, opts.timeoutMs);
+    } catch (e) {
+      ultimoErro = e;
+      if (!e.retryavel || i === tentativas) break;
+      const espera = 1000 * Math.pow(2, i - 1);
+      log(`Falha no envio (tentativa ${i}/${tentativas}): ${e.message}. Nova tentativa em ${espera}ms`);
+      await sleep(espera);
+    }
+  }
+  throw ultimoErro;
+}
+
+
 
 async function processarEmpresa(cfg, empresaIndex, modoTeste) {
   const empresa = cfg.empresas[empresaIndex];
