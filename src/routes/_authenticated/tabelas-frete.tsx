@@ -395,6 +395,7 @@ function TabelaDialog({
       : { ...emptyForm(), transportadora_id: transportadoras[0]?.id ?? "" },
   );
   const [faixas, setFaixas] = useState<FaixaDraft[]>([]);
+  const [rotas, setRotas] = useState<RotaDraft[]>([]);
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [arquivoAtual, setArquivoAtual] = useState<{ path: string; nome: string } | null>(
     editing?.arquivo_path
