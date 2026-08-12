@@ -175,6 +175,14 @@ async function processarEmpresa(cfg, empresaIndex, modoTeste) {
       break;
     }
 
+    if (xmls.length) {
+      const porSchema = {};
+      for (const x of xmls) {
+        const k = (x.schema || "sem-schema").split("_")[0];
+        porSchema[k] = (porSchema[k] || 0) + 1;
+      }
+      log(`Tipos recebidos: ${Object.entries(porSchema).map(([k, v]) => `${k}=${v}`).join(", ")}`);
+    }
     const ctes = filtrarProcCte(xmls.map((x) => ({ ...x, xml: extrairXmlProcCte(x.xml) })));
     log(`CT-e filtrados: ${ctes.length}`);
 
