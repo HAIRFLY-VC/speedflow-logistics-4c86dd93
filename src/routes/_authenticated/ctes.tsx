@@ -185,17 +185,41 @@ function CtesPage() {
             ? (nomeTransportadora.get(c.transportadora_id) ?? null)
             : null;
           const nome = cadastrada ?? c.nome_emitente ?? "Não cadastrada";
+          const pendente = !cadastrada && !!c.cnpj_emitente;
           return (
             <div>
               <div className="font-mono text-xs">{c.cnpj_emitente ?? "—"}</div>
-              <div
-                className={
-                  cadastrada
-                    ? "text-xs font-medium text-emerald-600"
-                    : "text-xs font-medium text-destructive"
-                }
-              >
-                {nome}
+              <div className="flex items-center gap-1">
+                <span
+                  className={
+                    cadastrada
+                      ? "text-xs font-medium text-emerald-600"
+                      : "text-xs font-medium text-destructive"
+                  }
+                >
+                  {nome}
+                </span>
+                {pendente ? (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 shrink-0"
+                    title="Cadastrar transportadora com os dados do CT-e"
+                    disabled={cadastrarTransportadora.isPending}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      cadastrarTransportadora.mutate(c);
+                    }}
+                  >
+                    {cadastrarTransportadora.isPending &&
+                    cadastrarTransportadora.variables?.id === c.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <UserPlus className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                ) : null}
               </div>
             </div>
           );
