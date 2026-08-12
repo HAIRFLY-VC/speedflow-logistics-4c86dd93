@@ -46,6 +46,35 @@ export async function ingestCteXml(params: {
   const parsed: ParsedCte = parseCteXml(params.xml);
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+  // Só importa CT-e cujo REMETENTE seja uma das empresas cadastradas (detentoras do certificado A1).
+  let empresaRemetenteId: string | null = null;
+  if (parsed.cnpj_remetente) {
+    const { data } = await supabaseAdmin
+      .from("empresas")
+      .select("id")
+      .eq("cnpj", parsed.cnpj_remetente)
+      .maybeSingle();
+    empresaRemetenteId = data?.id ?? null;
+  }
+  if (!empresaRemetenteId) {
+    const msg = `CT-e ignorado: remetente ${parsed.cnpj_remetente ?? "não informado"} não é uma empresa cadastrada`;
+    await logCteIngest({
+      origem: params.origem,
+      resultado: "IGNORADO",
+      chave_acesso: parsed.chave_acesso,
+      cnpj_emitente: parsed.cnpj_emitente,
+      cnpj_destinatario: parsed.cnpj_destinatario,
+      mensagem: msg,
+    });
+    return {
+      ok: true,
+      chave_acesso: parsed.chave_acesso,
+      status: "IGNORADO",
+      message: msg,
+    };
+  }
+
+
   const { data: existing } = await supabaseAdmin
     .from("ctes")
     .select("id, status")
