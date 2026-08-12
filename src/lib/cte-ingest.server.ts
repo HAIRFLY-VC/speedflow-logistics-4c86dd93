@@ -13,7 +13,7 @@ export type IngestResult = {
 
 type LogEntry = {
   origem: "MANUAL" | "SEFAZ_AUTO";
-  resultado: "CRIADO" | "DUPLICADO" | "ERRO";
+  resultado: "CRIADO" | "DUPLICADO" | "ERRO" | "IGNORADO";
   chave_acesso?: string | null;
   cnpj_emitente?: string | null;
   cnpj_destinatario?: string | null;
