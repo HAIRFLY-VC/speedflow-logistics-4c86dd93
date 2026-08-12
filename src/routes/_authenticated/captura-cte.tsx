@@ -169,9 +169,10 @@ function InstalacaoRobo({ segredoConfigurado }: { segredoConfigurado?: boolean }
             <p className="text-xs font-medium text-muted-foreground">a) Segredo de ingestão (CTE_INGEST_SECRET)</p>
             <p className="text-muted-foreground">
               O valor do segredo não é exibido no app por segurança. Para obter um valor válido, gere um token forte no
-              servidor (ex: <code className="rounded bg-muted px-1">openssl rand -hex 32</code>) e salve-o no projeto
-              em <strong>Config. de fretes</strong> → <strong>Rotacionar segredo de ingestão</strong>. Depois cole o
-              mesmo valor no <code>config.json</code> do robô.
+              servidor (ex: <code className="rounded bg-muted px-1">openssl rand -hex 32</code>), vá em{" "}
+              <strong>Config. de fretes</strong> → <strong>Captura automática de CT-e</strong> →{" "}
+              <strong>Rotacionar segredo</strong> e cole o valor. Depois cole o mesmo valor no{" "}
+              <code>config.json</code> do robô.
             </p>
             <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-700">
               <strong>Importante:</strong> o certificado A1 fica no servidor do robô; o segredo serve apenas para o app
@@ -237,7 +238,7 @@ sudo systemctl status robo-cte`}</CodeBlock>
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
               )}
               <span>
-                Segredo de ingestão configurado no app: {segredoConfigurado ? "Sim — cole o mesmo valor no config.json do robô" : "Não — vá em Config. de fretes e cadastre o CTE_INGEST_SECRET"}
+                Segredo de ingestão configurado no app: {segredoConfigurado ? "Sim — cole o mesmo valor no config.json do robô" : "Não — vá em Config. de fretes → Captura automática de CT-e → Rotacionar segredo"}
               </span>
             </li>
             <li className="flex items-start gap-2">

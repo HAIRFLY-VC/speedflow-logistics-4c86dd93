@@ -46,6 +46,7 @@ export const getConfiguracoesFretes = createServerFn({ method: "GET" })
       toleranciaValor: Number(tol?.tolerancia_valor ?? 0),
       toleranciaPercentual: Number(tol?.tolerancia_percentual ?? 0),
       erpConfigurado: Boolean(erp?.url_base?.trim() && erp?.api_key?.trim()),
+      segredoConfigurado: Boolean(process.env["CTE_INGEST_SECRET"]),
       usuarios: (usuarios ?? []).map((u) => ({
         id: u.id,
         full_name: u.full_name ?? "",
