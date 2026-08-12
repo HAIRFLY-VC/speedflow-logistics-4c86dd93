@@ -432,6 +432,41 @@ function ConfiguracoesFretesPage() {
               </CardContent>
             </Card>
 
+            {/* Captura automática de CT-e */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Key className="h-4 w-4" /> Captura automática de CT-e
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  O robô de importação de CT-e envia XMLs diretamente da SEFAZ para o endpoint{" "}
+                  <code className="rounded bg-muted px-1">/api/public/hooks/ingest-cte</code>. O segredo de
+                  ingestão autentica essas requisições.
+                </p>
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div className="text-sm">
+                    <span className="font-medium">Segredo de ingestão:</span>{" "}
+                    {data?.segredoConfigurado ? (
+                      <span className="text-emerald-600">configurado</span>
+                    ) : (
+                      <span className="text-amber-600">não configurado</span>
+                    )}
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setOpenSecret(true)}>
+                    Rotacionar segredo
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  O valor atual não é exibido por segurança. Para rotacionar, gere um token forte no
+                  servidor do robô (ex: <code className="rounded bg-muted px-1">openssl rand -hex 32</code>)
+                  e informe o mesmo valor no <code className="rounded bg-muted px-1">config.json</code> do
+                  robô.
+                </p>
+              </CardContent>
+            </Card>
+
             {/* Permissões */}
             <section className="space-y-3">
               <h2 className="text-lg font-semibold">Permissões de autorização de pagamento</h2>
