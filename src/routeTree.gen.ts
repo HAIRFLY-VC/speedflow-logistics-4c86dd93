@@ -29,6 +29,7 @@ import { Route as AuthenticatedSugestaoRotasRouteImport } from './routes/_authen
 import { Route as AuthenticatedTabelasFreteRouteImport } from './routes/_authenticated/tabelas-frete'
 import { Route as AuthenticatedTransportadorasRouteImport } from './routes/_authenticated/transportadoras'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
+import { Route as AuthenticatedNfesChaveRouteImport } from './routes/_authenticated/nfes.$chave'
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosOrderIdRouteImport } from './routes/_authenticated/pedidos.$orderId'
 import { Route as AuthenticatedRotasIndexRouteImport } from './routes/_authenticated/rotas.index'
@@ -143,6 +144,11 @@ const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   path: '/usuarios',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedNfesChaveRoute = AuthenticatedNfesChaveRouteImport.update({
+  id: '/nfes/$chave',
+  path: '/nfes/$chave',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPedidosIndexRoute =
   AuthenticatedPedidosIndexRouteImport.update({
     id: '/pedidos/',
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
   '/transportadoras': typeof AuthenticatedTransportadorasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/nfes/$chave': typeof AuthenticatedNfesChaveRoute
   '/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
@@ -224,6 +231,7 @@ export interface FileRoutesByTo {
   '/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
   '/transportadoras': typeof AuthenticatedTransportadorasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/nfes/$chave': typeof AuthenticatedNfesChaveRoute
   '/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
@@ -253,6 +261,7 @@ export interface FileRoutesById {
   '/_authenticated/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
   '/_authenticated/transportadoras': typeof AuthenticatedTransportadorasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
+  '/_authenticated/nfes/$chave': typeof AuthenticatedNfesChaveRoute
   '/_authenticated/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/_authenticated/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
@@ -282,6 +291,7 @@ export interface FileRouteTypes {
     | '/tabelas-frete'
     | '/transportadoras'
     | '/usuarios'
+    | '/nfes/$chave'
     | '/pedidos/$orderId'
     | '/rotas/$routeId'
     | '/pedidos/'
@@ -309,6 +319,7 @@ export interface FileRouteTypes {
     | '/tabelas-frete'
     | '/transportadoras'
     | '/usuarios'
+    | '/nfes/$chave'
     | '/pedidos/$orderId'
     | '/rotas/$routeId'
     | '/pedidos'
@@ -337,6 +348,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tabelas-frete'
     | '/_authenticated/transportadoras'
     | '/_authenticated/usuarios'
+    | '/_authenticated/nfes/$chave'
     | '/_authenticated/pedidos/$orderId'
     | '/_authenticated/rotas/$routeId'
     | '/_authenticated/pedidos/'
@@ -495,6 +507,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/nfes/$chave': {
+      id: '/_authenticated/nfes/$chave'
+      path: '/nfes/$chave'
+      fullPath: '/nfes/$chave'
+      preLoaderRoute: typeof AuthenticatedNfesChaveRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pedidos/': {
       id: '/_authenticated/pedidos/'
       path: '/pedidos'
@@ -558,6 +577,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedTabelasFreteRoute: typeof AuthenticatedTabelasFreteRoute
   AuthenticatedTransportadorasRoute: typeof AuthenticatedTransportadorasRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
+  AuthenticatedNfesChaveRoute: typeof AuthenticatedNfesChaveRoute
   AuthenticatedPedidosOrderIdRoute: typeof AuthenticatedPedidosOrderIdRoute
   AuthenticatedRotasRouteIdRoute: typeof AuthenticatedRotasRouteIdRoute
   AuthenticatedPedidosIndexRoute: typeof AuthenticatedPedidosIndexRoute
@@ -582,6 +602,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTabelasFreteRoute: AuthenticatedTabelasFreteRoute,
   AuthenticatedTransportadorasRoute: AuthenticatedTransportadorasRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
+  AuthenticatedNfesChaveRoute: AuthenticatedNfesChaveRoute,
   AuthenticatedPedidosOrderIdRoute: AuthenticatedPedidosOrderIdRoute,
   AuthenticatedRotasRouteIdRoute: AuthenticatedRotasRouteIdRoute,
   AuthenticatedPedidosIndexRoute: AuthenticatedPedidosIndexRoute,

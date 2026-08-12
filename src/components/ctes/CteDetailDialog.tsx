@@ -177,14 +177,31 @@ export function CteDetailDialog({
               <p className="text-muted-foreground text-sm">Nenhuma NF-e vinculada.</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
-                {nfs.map((nf) => (
-                  <Badge key={nf} variant="outline" className="font-mono text-[10px]">
-                    {nf}
-                  </Badge>
-                ))}
+                {nfs.map((nf) =>
+                  /^\d{44}$/.test(nf) ? (
+                    <Link
+                      key={nf}
+                      to="/nfes/$chave"
+                      params={{ chave: nf }}
+                      onClick={() => onOpenChange(false)}
+                    >
+                      <Badge
+                        variant="outline"
+                        className="hover:bg-muted cursor-pointer font-mono text-[10px]"
+                      >
+                        {nf}
+                      </Badge>
+                    </Link>
+                  ) : (
+                    <Badge key={nf} variant="outline" className="font-mono text-[10px]">
+                      {nf}
+                    </Badge>
+                  ),
+                )}
               </div>
             )}
           </section>
+
 
           {auditorias && auditorias.length > 0 ? (
             <section className="space-y-2">
