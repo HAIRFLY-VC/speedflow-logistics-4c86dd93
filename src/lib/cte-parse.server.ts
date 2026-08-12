@@ -99,6 +99,7 @@ export function parseCteXml(xml: string): ParsedCte {
     serie: tagValue(ide, "serie"),
     cnpj_emitente: emit ? onlyDigits(tagValue(emit, "CNPJ") ?? "") || null : null,
     cnpj_destinatario: dest ? onlyDigits(tagValue(dest, "CNPJ") ?? "") || null : null,
+    cnpj_remetente: rem ? onlyDigits(tagValue(rem, "CNPJ") ?? "") || null : null,
     data_emissao: dh ? new Date(dh).toISOString() : null,
     valor_total_frete: toNumber(tagValue(vPrest, "vTPrest") ?? tagValue(vPrest, "vRec")),
     valor_mercadoria: toNumber(tagValue(infCarga, "vCarga")),
