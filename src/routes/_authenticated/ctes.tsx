@@ -180,6 +180,26 @@ function CtesPage() {
           c.transportadora_id
             ? (nomeTransportadora.get(c.transportadora_id) ?? "—")
             : (c.cnpj_emitente ?? "Não identificada"),
+        render: (c) => {
+          const cadastrada = c.transportadora_id
+            ? (nomeTransportadora.get(c.transportadora_id) ?? null)
+            : null;
+          const nome = cadastrada ?? c.nome_emitente ?? "Não cadastrada";
+          return (
+            <div>
+              <div className="font-mono text-xs">{c.cnpj_emitente ?? "—"}</div>
+              <div
+                className={
+                  cadastrada
+                    ? "text-xs font-medium text-emerald-600"
+                    : "text-xs font-medium text-destructive"
+                }
+              >
+                {nome}
+              </div>
+            </div>
+          );
+        },
       },
       {
         id: "emissao",
