@@ -11,6 +11,34 @@ export type IngestResult = {
   message?: string;
 };
 
+type LogEntry = {
+  origem: "MANUAL" | "SEFAZ_AUTO";
+  resultado: "CRIADO" | "DUPLICADO" | "ERRO";
+  chave_acesso?: string | null;
+  cnpj_emitente?: string | null;
+  cnpj_destinatario?: string | null;
+  mensagem?: string | null;
+  cte_id?: string | null;
+};
+
+/** Grava o recebimento (sucesso, duplicado ou erro) no log de ingestão. */
+export async function logCteIngest(entry: LogEntry): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("cte_ingest_logs").insert({
+      origem: entry.origem,
+      resultado: entry.resultado,
+      chave_acesso: entry.chave_acesso ?? null,
+      cnpj_emitente: entry.cnpj_emitente ?? null,
+      cnpj_destinatario: entry.cnpj_destinatario ?? null,
+      mensagem: entry.mensagem ?? null,
+      cte_id: entry.cte_id ?? null,
+    });
+  } catch {
+    // log nunca deve derrubar a ingestão
+  }
+}
+
 export async function ingestCteXml(params: {
   xml: string;
   origem: "MANUAL" | "SEFAZ_AUTO";
@@ -25,6 +53,15 @@ export async function ingestCteXml(params: {
     .maybeSingle();
 
   if (existing) {
+    await logCteIngest({
+      origem: params.origem,
+      resultado: "DUPLICADO",
+      chave_acesso: parsed.chave_acesso,
+      cnpj_emitente: parsed.cnpj_emitente,
+      cnpj_destinatario: parsed.cnpj_destinatario,
+      mensagem: "CT-e já cadastrado",
+      cte_id: existing.id,
+    });
     return {
       ok: true,
       cte_id: existing.id,
@@ -91,6 +128,20 @@ export async function ingestCteXml(params: {
     .single();
 
   if (error) throw new Error(error.message);
+
+  await logCteIngest({
+    origem: params.origem,
+    resultado: "CRIADO",
+    chave_acesso: parsed.chave_acesso,
+    cnpj_emitente: parsed.cnpj_emitente,
+    cnpj_destinatario: parsed.cnpj_destinatario,
+    mensagem: transportadoraId
+      ? empresaId
+        ? null
+        : "Empresa destinatária não cadastrada"
+      : "Transportadora emitente não cadastrada",
+    cte_id: inserted.id,
+  });
 
   // Auditoria automática assim que o CT-e é identificado.
   if (transportadoraId) {
