@@ -425,6 +425,36 @@ function TabelaDialog({
     },
   });
 
+  useQuery({
+    queryKey: ["tabela-rotas", editing?.id],
+    enabled: Boolean(editing?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete_rotas")
+        .select("*")
+        .eq("tabela_id", editing!.id)
+        .order("origem")
+        .order("destino");
+      if (error) throw error;
+      setRotas(
+        (data ?? []).map((r) => ({
+          origem: r.origem,
+          destino: r.destino,
+          tarifa_frete_peso: String(r.tarifa_frete_peso),
+          frete_valor_percentual: String(r.frete_valor_percentual),
+          taxa_despacho: String(r.taxa_despacho),
+          frete_minimo: String(r.frete_minimo),
+          peso_minimo_kg: String(r.peso_minimo_kg),
+          prazo_entrega_min_dias:
+            r.prazo_entrega_min_dias == null ? "" : String(r.prazo_entrega_min_dias),
+          prazo_entrega_max_dias:
+            r.prazo_entrega_max_dias == null ? "" : String(r.prazo_entrega_max_dias),
+        })),
+      );
+      return data;
+    },
+  });
+
   const [lendoArquivo, setLendoArquivo] = useState(false);
   const extrair = useServerFn(extractTabelaFrete);
 
