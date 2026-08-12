@@ -29,6 +29,7 @@ import { Route as AuthenticatedPedidosOrderIdRouteImport } from './routes/_authe
 import { Route as AuthenticatedRotasIndexRouteImport } from './routes/_authenticated/rotas.index'
 import { Route as AuthenticatedRotasRouteIdRouteImport } from './routes/_authenticated/rotas.$routeId'
 import { Route as ApiPublicHooksErpSyncRouteImport } from './routes/api/public/hooks/erp-sync'
+import { Route as ApiPublicHooksIngestCteRouteImport } from './routes/api/public/hooks/ingest-cte'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -137,6 +138,11 @@ const ApiPublicHooksErpSyncRoute = ApiPublicHooksErpSyncRouteImport.update({
   path: '/api/public/hooks/erp-sync',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksIngestCteRoute = ApiPublicHooksIngestCteRouteImport.update({
+  id: '/api/public/hooks/ingest-cte',
+  path: '/api/public/hooks/ingest-cte',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -158,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
   '/rotas/': typeof AuthenticatedRotasIndexRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
+  '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -179,6 +186,7 @@ export interface FileRoutesByTo {
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
   '/rotas': typeof AuthenticatedRotasIndexRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
+  '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -202,6 +210,7 @@ export interface FileRoutesById {
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
   '/_authenticated/rotas/': typeof AuthenticatedRotasIndexRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
+  '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -225,6 +234,7 @@ export interface FileRouteTypes {
     | '/pedidos/'
     | '/rotas/'
     | '/api/public/hooks/erp-sync'
+    | '/api/public/hooks/ingest-cte'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -246,6 +256,7 @@ export interface FileRouteTypes {
     | '/pedidos'
     | '/rotas'
     | '/api/public/hooks/erp-sync'
+    | '/api/public/hooks/ingest-cte'
   id:
     | '__root__'
     | '/'
@@ -268,6 +279,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pedidos/'
     | '/_authenticated/rotas/'
     | '/api/public/hooks/erp-sync'
+    | '/api/public/hooks/ingest-cte'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -275,6 +287,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPublicHooksErpSyncRoute: typeof ApiPublicHooksErpSyncRoute
+  ApiPublicHooksIngestCteRoute: typeof ApiPublicHooksIngestCteRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -419,6 +432,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksErpSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/ingest-cte': {
+      id: '/api/public/hooks/ingest-cte'
+      path: '/api/public/hooks/ingest-cte'
+      fullPath: '/api/public/hooks/ingest-cte'
+      preLoaderRoute: typeof ApiPublicHooksIngestCteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -468,6 +488,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPublicHooksErpSyncRoute: ApiPublicHooksErpSyncRoute,
+  ApiPublicHooksIngestCteRoute: ApiPublicHooksIngestCteRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
