@@ -365,6 +365,12 @@ function TabelaDialog({
       : { ...emptyForm(), transportadora_id: transportadoras[0]?.id ?? "" },
   );
   const [faixas, setFaixas] = useState<FaixaDraft[]>([]);
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [arquivoAtual, setArquivoAtual] = useState<{ path: string; nome: string } | null>(
+    editing?.arquivo_path
+      ? { path: editing.arquivo_path, nome: editing.arquivo_nome ?? "arquivo" }
+      : null,
+  );
 
   useQuery({
     queryKey: ["tabela-faixas", editing?.id],
