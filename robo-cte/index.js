@@ -19,10 +19,59 @@ function log(msg) {
   }
 }
 
+class ConfigError extends Error {}
+
 function readConfig() {
-  const raw = fs.readFileSync(CONFIG_PATH, "utf-8");
-  return JSON.parse(raw);
+  let raw;
+  try {
+    raw = fs.readFileSync(CONFIG_PATH, "utf-8");
+  } catch {
+    throw new ConfigError(
+      `Nao foi possivel ler o arquivo de configuracao "${CONFIG_PATH}". Crie-o a partir de config.exemplo.json.`
+    );
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    const pos = /position (\d+)/.exec(e.message);
+    let local = "";
+    if (pos) {
+      const idx = Number(pos[1]);
+      const antes = raw.slice(0, idx);
+      const linha = antes.split("\n").length;
+      const coluna = idx - antes.lastIndexOf("\n");
+      local = ` (linha ${linha}, coluna ${coluna})`;
+    }
+    throw new ConfigError(
+      `O arquivo "${CONFIG_PATH}" nao e um JSON valido${local}: ${e.message}. ` +
+        `Dica: em caminhos do Windows use barra normal ("C:/certs/certificado.pfx") ou barra invertida dupla ("C:\\\\certs\\\\certificado.pfx").`
+    );
+  }
 }
+
+function validarConfig(cfg) {
+  const faltando = [];
+  if (!cfg.endpoint) faltando.push("endpoint");
+  if (!cfg.segredoIngest || cfg.segredoIngest.startsWith("COLAR_AQUI"))
+    faltando.push("segredoIngest");
+  if (!Array.isArray(cfg.empresas) || cfg.empresas.length === 0) {
+    faltando.push("empresas");
+  } else {
+    cfg.empresas.forEach((e, i) => {
+      if (!e.cnpj) faltando.push(`empresas[${i}].cnpj`);
+      if (!e.ufAutor) faltando.push(`empresas[${i}].ufAutor`);
+      if (!e.caminhoCertificado) faltando.push(`empresas[${i}].caminhoCertificado`);
+      if (!e.senhaCertificado || e.senhaCertificado === "SENHA_DO_CERTIFICADO")
+        faltando.push(`empresas[${i}].senhaCertificado`);
+    });
+  }
+  if (faltando.length) {
+    throw new ConfigError(
+      `Configuracao incompleta em "${CONFIG_PATH}". Preencha: ${faltando.join(", ")}.`
+    );
+  }
+}
+
 
 function saveConfig(cfg) {
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2), "utf-8");
@@ -161,18 +210,32 @@ async function run() {
   const umaVez = process.argv.includes("--uma-vez") || modoTeste;
   log(`Robo iniciado. Modo teste=${modoTeste}, uma vez=${umaVez}`);
 
+  // Falha de configuracao e fatal: nao adianta repetir o ciclo.
+  try {
+    validarConfig(readConfig());
+  } catch (e) {
+    if (e instanceof ConfigError) {
+      log(`ERRO DE CONFIGURACAO: ${e.message}`);
+      process.exitCode = 1;
+      log("Robo finalizado.");
+      return;
+    }
+    throw e;
+  }
+
   do {
     try {
       const cfg = readConfig();
-      if (!cfg.empresas || !cfg.empresas.length) {
-        log("Nenhuma empresa configurada. Encerrando.");
-        break;
-      }
       for (let i = 0; i < cfg.empresas.length; i++) {
         await processarEmpresa(cfg, i, modoTeste);
         await sleep(1000);
       }
     } catch (e) {
+      if (e instanceof ConfigError) {
+        log(`ERRO DE CONFIGURACAO: ${e.message}`);
+        process.exitCode = 1;
+        break;
+      }
       log(`Erro no ciclo: ${e.message}`);
       if (umaVez) break;
     }
@@ -182,6 +245,7 @@ async function run() {
     log(`Aguardando ${cfg.intervaloMinutos || 30} minutos para proximo ciclo`);
     await sleep(intervalo);
   } while (true);
+
 
   log("Robo finalizado.");
 }

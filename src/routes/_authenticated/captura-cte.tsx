@@ -186,6 +186,13 @@ function InstalacaoRobo({ segredoConfigurado }: { segredoConfigurado?: boolean }
               empresa.
             </p>
             <CodeBlock>{configJson}</CodeBlock>
+            <p className="text-muted-foreground">
+              Atenção no Windows: em <code>caminhoCertificado</code> use barra normal (
+              <code>C:/certs/certificado.pfx</code>) ou barra invertida dupla (
+              <code>C:\\certs\\certificado.pfx</code>). Uma barra invertida simples torna o JSON inválido e o robô
+              retorna <code>Bad escaped character in JSON</code>.
+            </p>
+
           </div>
           <div className="space-y-1.5">
             <p className="text-xs font-medium text-muted-foreground">c) Teste em modo manual</p>
