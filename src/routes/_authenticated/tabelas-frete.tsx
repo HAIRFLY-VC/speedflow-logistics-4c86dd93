@@ -880,6 +880,87 @@ function TabelaDialog({
 
         <div className="space-y-2 pt-2">
           <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm font-medium">Preços por origem e destino</Label>
+              <p className="text-xs text-muted-foreground">
+                Use quando a tabela cobra valores e prazos diferentes por rota.
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setRotas((r) => [...r, { ...ROTA_VAZIA }])}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Adicionar rota
+            </Button>
+          </div>
+
+          {rotas.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Nenhuma rota cadastrada. Os valores gerais acima serão usados para todos os destinos.
+            </p>
+          ) : (
+            <div className="space-y-2 overflow-x-auto">
+              <div className="grid min-w-[900px] grid-cols-[1.2fr_1.6fr_0.9fr_0.8fr_0.9fr_0.9fr_0.8fr_0.7fr_0.7fr_auto] gap-2 text-xs text-muted-foreground">
+                <span>Origem</span>
+                <span>Destino</span>
+                <span>Tarifa/kg</span>
+                <span>% Valor</span>
+                <span>Despacho</span>
+                <span>Frete mín.</span>
+                <span>Peso mín. (kg)</span>
+                <span>Prazo de</span>
+                <span>Prazo até</span>
+                <span />
+              </div>
+              {rotas.map((r, i) => (
+                <div
+                  key={i}
+                  className="grid min-w-[900px] grid-cols-[1.2fr_1.6fr_0.9fr_0.8fr_0.9fr_0.9fr_0.8fr_0.7fr_0.7fr_auto] gap-2 items-center"
+                >
+                  {(
+                    [
+                      "origem",
+                      "destino",
+                      "tarifa_frete_peso",
+                      "frete_valor_percentual",
+                      "taxa_despacho",
+                      "frete_minimo",
+                      "peso_minimo_kg",
+                      "prazo_entrega_min_dias",
+                      "prazo_entrega_max_dias",
+                    ] as (keyof RotaDraft)[]
+                  ).map((key) => (
+                    <Input
+                      key={key}
+                      inputMode={key === "origem" || key === "destino" ? "text" : "decimal"}
+                      value={r[key]}
+                      onChange={(e) =>
+                        setRotas((prev) =>
+                          prev.map((row, idx) =>
+                            idx === i ? { ...row, [key]: e.target.value } : row,
+                          ),
+                        )
+                      }
+                    />
+                  ))}
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setRotas((prev) => prev.filter((_, idx) => idx !== i))}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2 pt-2">
+          <div className="flex items-center justify-between">
             <Label className="text-sm font-medium">Faixas de peso</Label>
             <Button
               type="button"
