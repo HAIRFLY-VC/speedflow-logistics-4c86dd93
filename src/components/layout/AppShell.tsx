@@ -16,6 +16,8 @@ import {
   Menu,
   Wand2,
   ShieldCheck,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,6 +32,7 @@ import {
   SidebarTrigger,
   SidebarHeader,
   SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth, type AppRole } from "@/hooks/useAuth";
@@ -164,12 +167,36 @@ function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-sidebar-border">
+        <SidebarToggleButton />
         <Button variant="ghost" size="sm" onClick={handleSignOut} className="justify-start">
           <LogOut className="h-4 w-4 mr-2" />
-          Sair
+          <span className="group-data-[collapsible=icon]:hidden">Sair</span>
         </Button>
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+function SidebarToggleButton() {
+  const { state, toggleSidebar } = useSidebar();
+  const collapsed = state === "collapsed";
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={toggleSidebar}
+      className="justify-start"
+      title={collapsed ? "Expandir menu" : "Comprimir menu"}
+    >
+      {collapsed ? (
+        <PanelLeftOpen className="h-4 w-4 mr-2" />
+      ) : (
+        <PanelLeftClose className="h-4 w-4 mr-2" />
+      )}
+      <span className="group-data-[collapsible=icon]:hidden">
+        {collapsed ? "Expandir" : "Comprimir"}
+      </span>
+    </Button>
   );
 }
