@@ -1,0 +1,21 @@
+[Unit]
+Description=Robô de captura automática de CT-e — SpeedFlow Logistics
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/robo-cte
+ExecStart=/usr/bin/node /opt/robo-cte/index.js
+Restart=on-failure
+RestartSec=10
+User=robo-cte
+Group=robo-cte
+
+# Segurança básica
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/robo-cte/logs /opt/robo-cte/config.json /opt/robo-cte/.ultimo-nsu
+
+[Install]
+WantedBy=multi-user.target
