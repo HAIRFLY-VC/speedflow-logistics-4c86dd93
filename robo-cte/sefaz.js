@@ -12,15 +12,17 @@ const URLS = {
 
 const SOAP_ACTION = "http://www.portalfiscal.inf.br/cte/wsdl/CTeDistribuicaoDFe/cteDistDFeInteresse";
 
-function buildEnvelope(cnpj, ultimoNsu) {
+function buildEnvelope(cnpj, ufAutor, ultimoNsu, ambiente) {
   const nsu = String(ultimoNsu).padStart(15, "0");
+  const tpAmb = ambiente === "homologacao" ? "2" : "1";
+  const uf = String(ufAutor || 35).padStart(2, "0");
   return `<?xml version="1.0" encoding="utf-8"?>
 <soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
   <soap12:Body>
     <cteDadosMsg xmlns="http://www.portalfiscal.inf.br/cte/wsdl/CTeDistribuicaoDFe">
       <distDFeInt xmlns="http://www.portalfiscal.inf.br/cte" versao="1.00">
-        <tpAmb>1</tpAmb>
-        <cUFAutor>35</cUFAutor>
+        <tpAmb>${tpAmb}</tpAmb>
+        <cUFAutor>${uf}</cUFAutor>
         <CNPJ>${cnpj}</CNPJ>
         <distNSU>
           <ultNSU>${nsu}</ultNSU>
@@ -30,6 +32,7 @@ function buildEnvelope(cnpj, ultimoNsu) {
   </soap12:Body>
 </soap12:Envelope>`;
 }
+
 
 function postXml(url, xml, agent) {
   return new Promise((resolve, reject) => {
