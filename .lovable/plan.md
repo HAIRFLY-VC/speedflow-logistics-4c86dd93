@@ -1,20 +1,37 @@
-## Problema
+# Conectar projeto ao novo repositório GitHub SpeedFlow-Logistics
 
-A tabela `route_orders` tem UNIQUE em `(route_id, order_id)`, mas não em `order_id` sozinho. Quando o ERP move um pedido de uma rota para outra (ex.: ERP-133 → ERP-153), o sync insere o novo vínculo mas **não remove o antigo**, deixando o pedido em duas rotas. Hoje há 6 pedidos duplicados (4130658, 4130659, 4130661, 4130662, 4130665, 4130702).
+## Objetivo
+Conectar o projeto atual ao repositório `SpeedFlow-Logistics` no GitHub, já que hoje o menu mostra apenas a opção "Conectar" (sem vínculo ativo).
 
-## Correção
+## Passo a passo
 
-### 1. Migração de banco
-- Deduplicar `route_orders`: para cada `order_id` com mais de um vínculo, manter apenas o de maior `routes.route_date` (em empate, o mais recente por `route_orders.created_at`) e apagar os demais.
-- Adicionar `UNIQUE (order_id)` em `route_orders` para impedir o problema no futuro.
+1. **Verificar vínculo da conta GitHub com o workspace Lovable**
+   - Abrir o menu **+** (canto inferior esquerdo do chat) → **GitHub**.
+   - Se a tela mostrar "Connect project", significa que não há repositório vinculado.
+   - Se pedir login/autorização do GitHub, prosseguir com a conta desejada.
 
-### 2. Ajuste no sync do ERP (`src/lib/erp-sync.server.ts`)
-No passo "Auto-cadastro de rotas", antes do `upsert` em `route_orders`:
-- Para cada pedido do grupo, deletar quaisquer linhas em `route_orders` cujo `order_id` esteja na lista e `route_id` seja diferente do `routeId` atual.
-- Manter o `upsert` existente para criar/atualizar o vínculo correto.
+2. **Criar o repositório destino no GitHub (se ainda não existir)**
+   - Acessar https://github.com/new.
+   - Nome: `SpeedFlow-Logistics`.
+   - Escolher a conta/organização correta.
+   - Deixar público ou privado conforme preferência.
+   - **Não** inicializar com README, .gitignore ou licença (o Lovable fará o push inicial).
+   - Criar o repositório.
 
-Isso garante que, quando o ERP reatribui um pedido a outra rota, o vínculo antigo é removido na próxima sincronização — e a constraint do banco passa a impedir o estado inválido mesmo em caminhos manuais.
+3. **Iniciar a conexão pelo Lovable**
+   - No menu **+** → **GitHub**, clicar em **Connect project**.
+   - Autorizar o aplicativo Lovable GitHub App no GitHub, se solicitado.
+   - Selecionar a conta/organização onde o repositório `SpeedFlow-Logistics` foi criado.
+   - Escolher o repositório `SpeedFlow-Logistics` na lista.
+   - Confirmar para que o Lovable faça o push inicial do código.
 
-### 3. Verificação
-- Após a migração, rodar `SELECT order_id, COUNT(*) FROM route_orders GROUP BY 1 HAVING COUNT(*)>1` — deve retornar zero linhas.
-- Sincronizar novamente com o ERP e confirmar que não surgem novos duplicados.
+4. **Verificar a sincronização**
+   - Aguardar alguns segundos até que o Lovable indique que está conectado.
+   - No GitHub, abrir o repositório `SpeedFlow-Logistics` e confirmar que os arquivos do projeto e o histórico de commits apareceram.
+   - A partir daí, qualquer alteração no Lovable será enviada automaticamente para o GitHub (e vice-versa, se houver push externo).
+
+## Em caso de erro
+
+- Se aparecer "Já existe um repositório conectado a outro projeto Lovable", confirmar que o repositório `SpeedFlow-Logistics` está vazio/novo e não vinculado a outro projeto.
+- Se houver falha de autorização, revogar o app Lovable em GitHub → Settings → Applications e refazer o passo 3.
+- Se o push inicial falhar, verificar se o repositório não foi inicializado com README ou outro arquivo que cause conflito.
