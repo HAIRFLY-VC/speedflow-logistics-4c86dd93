@@ -16,6 +16,8 @@ import {
   Menu,
   Wand2,
   ShieldCheck,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,6 +32,7 @@ import {
   SidebarTrigger,
   SidebarHeader,
   SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth, type AppRole } from "@/hooks/useAuth";
