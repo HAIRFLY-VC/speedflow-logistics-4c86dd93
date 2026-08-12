@@ -181,9 +181,12 @@ export class SefazCteClient {
 
 export function filtrarProcCte(xmls) {
   return xmls.filter((item) => {
-    const schema = item.schema.toLowerCase();
-    const xml = item.xml.toLowerCase();
-    return schema.includes("procte") || xml.includes("<procte") || xml.includes("procte>");
+    const schema = (item.schema || "").toLowerCase();
+    const xml = (item.xml || "").toLowerCase();
+    if (schema.includes("procevento") || schema.includes("resevento")) return false;
+    if (schema.includes("procte") || schema.includes("cteproc")) return true;
+    // Fallback pelo conteudo: documento autorizado (cteProc/procCTe) com infCte.
+    return (xml.includes("<cteproc") || xml.includes("<procte")) && xml.includes("<infcte");
   });
 }
 
