@@ -227,3 +227,75 @@ export const toggleAutorizacaoPagamento = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Panorama da captura automática de CT-e (endpoint, segredo e últimos recebimentos). */
+export const getCapturaCteStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+
+    const agora = Date.now();
+    const h24 = new Date(agora - 24 * 3600_000).toISOString();
+    const d7 = new Date(agora - 7 * 24 * 3600_000).toISOString();
+
+    const [{ data: logs }, { count: total24h }, { count: total7d }, { count: erros7d }, { data: pendentes }] =
+      await Promise.all([
+        context.supabase
+          .from("cte_ingest_logs")
+          .select("id, origem, resultado, chave_acesso, cnpj_emitente, cnpj_destinatario, mensagem, created_at")
+          .order("created_at", { ascending: false })
+          .limit(50),
+        context.supabase
+          .from("cte_ingest_logs")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", h24),
+        context.supabase
+          .from("cte_ingest_logs")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", d7),
+        context.supabase
+          .from("cte_ingest_logs")
+          .select("id", { count: "exact", head: true })
+          .eq("resultado", "ERRO")
+          .gte("created_at", d7),
+        context.supabase
+          .from("ctes")
+          .select("id, chave_acesso, cnpj_emitente, cnpj_destinatario, created_at")
+          .eq("status", "PENDENTE_IDENTIFICACAO")
+          .order("created_at", { ascending: false })
+          .limit(20),
+      ]);
+
+    const { data: ultimoAuto } = await context.supabase
+      .from("cte_ingest_logs")
+      .select("created_at")
+      .eq("origem", "SEFAZ_AUTO")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    return {
+      segredoConfigurado: Boolean(process.env["CTE_INGEST_SECRET"]),
+      total24h: total24h ?? 0,
+      total7d: total7d ?? 0,
+      erros7d: erros7d ?? 0,
+      ultimoAuto: ultimoAuto?.created_at ?? null,
+      logs: (logs ?? []) as Array<{
+        id: string;
+        origem: string;
+        resultado: string;
+        chave_acesso: string | null;
+        cnpj_emitente: string | null;
+        cnpj_destinatario: string | null;
+        mensagem: string | null;
+        created_at: string;
+      }>,
+      pendentes: (pendentes ?? []) as Array<{
+        id: string;
+        chave_acesso: string;
+        cnpj_emitente: string | null;
+        cnpj_destinatario: string | null;
+        created_at: string;
+      }>,
+    };
+  });
