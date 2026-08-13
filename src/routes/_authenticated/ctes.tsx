@@ -410,7 +410,20 @@ function CtesPage() {
               Importe os XML dos conhecimentos de transporte para auditar os fretes.
             </p>
           </div>
-          <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              disabled={forcarImportacao.isPending || capturaEmAndamento}
+              onClick={() => forcarImportacao.mutate()}
+              title="Solicita ao robô a busca imediata de novos CT-e emitidos contra a empresa"
+            >
+              {forcarImportacao.isPending || capturaEmAndamento ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-1" />
+              )}
+              {capturaEmAndamento ? "Importando..." : "Forçar importação"}
+            </Button>
             <input
               ref={inputRef}
               type="file"
