@@ -299,51 +299,109 @@ export function CteDetailDialog({
                   {Number(ultimaAuditoria.percentual_diferenca).toFixed(2)}%)
                 </div>
 
-                {Array.isArray(ultimaAuditoria.detalhamento) &&
-                ultimaAuditoria.detalhamento.length > 0 ? (
-                  <div className="mt-3 rounded-md border bg-background">
-                    <div className="text-muted-foreground grid grid-cols-4 gap-2 border-b px-3 py-1.5 text-[11px] font-medium">
-                      <span>Componente</span>
-                      <span className="text-right">Esperado</span>
-                      <span className="text-right">Cobrado</span>
-                      <span className="text-right">Diferença</span>
-                    </div>
-                    {(
-                      ultimaAuditoria.detalhamento as unknown as {
-                        nome?: string;
-                        esperado?: number;
-                        cobrado?: number | null;
-                      }[]
-                    ).map((d, i) => {
-                      const esperado = Number(d.esperado ?? 0);
-                      const cobrado = d.cobrado == null ? null : Number(d.cobrado);
-                      const diff = cobrado == null ? null : cobrado - esperado;
-                      return (
-                        <div
-                          key={`${d.nome}-${i}`}
-                          className="grid grid-cols-4 gap-2 border-b px-3 py-1.5 text-xs last:border-b-0"
-                        >
-                          <span>{d.nome ?? "—"}</span>
-                          <span className="text-right">{brl(esperado)}</span>
-                          <span className="text-right">
-                            {cobrado == null ? "—" : brl(cobrado)}
-                          </span>
-                          <span
-                            className={`text-right font-medium ${
-                              diff == null
-                                ? ""
-                                : Math.abs(diff) < 0.01
-                                  ? "text-emerald-600"
-                                  : "text-destructive"
-                            }`}
+                {(() => {
+                  const linhas = (
+                    Array.isArray(ultimaAuditoria.detalhamento)
+                      ? (ultimaAuditoria.detalhamento as unknown as {
+                          nome?: string;
+                          esperado?: number;
+                          cobrado?: number | null;
+                        }[])
+                      : []
+                  ).map((d) => ({
+                    nome: d.nome ?? "—",
+                    esperado: Number(d.esperado ?? 0),
+                    cobrado: d.cobrado == null ? null : Number(d.cobrado),
+                  }));
+                  if (linhas.length === 0) return null;
+
+                  const somaEsperado = linhas.reduce((s, l) => s + l.esperado, 0);
+                  const somaCobrado = linhas.reduce((s, l) => s + (l.cobrado ?? 0), 0);
+                  const totalCte = Number(cte.valor_total_frete);
+                  const naoConciliado = Math.round((totalCte - somaCobrado) * 100) / 100;
+
+                  return (
+                    <div className="bg-background mt-3 overflow-hidden rounded-md border">
+                      <div className="text-muted-foreground grid grid-cols-[1.6fr_1fr_1fr_1fr] gap-2 border-b px-3 py-1.5 text-[11px] font-medium">
+                        <span>Componente</span>
+                        <span className="text-right">Esperado (tabela)</span>
+                        <span className="text-right">Cobrado (CT-e)</span>
+                        <span className="text-right">Diferença</span>
+                      </div>
+                      {linhas.map((l, i) => {
+                        const diff = (l.cobrado ?? 0) - l.esperado;
+                        const semTabela = l.esperado === 0 && l.cobrado != null;
+                        const naoCobrado = l.cobrado == null;
+                        return (
+                          <div
+                            key={`${l.nome}-${i}`}
+                            className="grid grid-cols-[1.6fr_1fr_1fr_1fr] items-center gap-2 border-b px-3 py-1.5 text-xs last:border-b-0"
                           >
-                            {diff == null ? "—" : brl(diff)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : null}
+                            <span className="flex flex-wrap items-center gap-1.5">
+                              {l.nome}
+                              {semTabela ? (
+                                <Badge
+                                  variant="outline"
+                                  className="border-amber-500/40 text-[9px] text-amber-600"
+                                >
+                                  fora da tabela
+                                </Badge>
+                              ) : null}
+                              {naoCobrado ? (
+                                <Badge
+                                  variant="outline"
+                                  className="text-muted-foreground text-[9px]"
+                                >
+                                  não cobrado
+                                </Badge>
+                              ) : null}
+                            </span>
+                            <span className="text-right tabular-nums">{brl(l.esperado)}</span>
+                            <span className="text-right tabular-nums">
+                              {l.cobrado == null ? "—" : brl(l.cobrado)}
+                            </span>
+                            <span
+                              className={`text-right font-medium tabular-nums ${
+                                Math.abs(diff) < 0.01 ? "text-emerald-600" : "text-destructive"
+                              }`}
+                            >
+                              {Math.abs(diff) < 0.01 ? brl(0) : brl(diff)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      <div className="bg-muted/40 grid grid-cols-[1.6fr_1fr_1fr_1fr] gap-2 border-t px-3 py-2 text-xs font-semibold">
+                        <span>Total</span>
+                        <span className="text-right tabular-nums">{brl(somaEsperado)}</span>
+                        <span className="text-right tabular-nums">{brl(somaCobrado)}</span>
+                        <span
+                          className={`text-right tabular-nums ${
+                            Math.abs(somaCobrado - somaEsperado) < 0.01
+                              ? "text-emerald-600"
+                              : "text-destructive"
+                          }`}
+                        >
+                          {brl(somaCobrado - somaEsperado)}
+                        </span>
+                      </div>
+                      <div className="text-muted-foreground grid grid-cols-[1.6fr_1fr_1fr_1fr] gap-2 border-t px-3 py-1.5 text-[11px]">
+                        <span>Total do CT-e</span>
+                        <span />
+                        <span className="text-right tabular-nums">{brl(totalCte)}</span>
+                        <span
+                          className={`text-right tabular-nums ${
+                            Math.abs(naoConciliado) < 0.01 ? "" : "text-amber-600"
+                          }`}
+                        >
+                          {Math.abs(naoConciliado) < 0.01
+                            ? "conciliado"
+                            : `${brl(naoConciliado)} não conciliado`}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
               </div>
             )}
 
