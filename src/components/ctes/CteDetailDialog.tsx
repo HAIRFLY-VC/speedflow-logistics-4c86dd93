@@ -1,6 +1,11 @@
-import { FileCode, FileDown, Loader2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { AlertTriangle, CheckCircle2, FileCode, FileDown, Loader2, ScanSearch } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
+
+import { auditarCte } from "@/lib/cte-audit.functions";
+
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
