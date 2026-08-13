@@ -229,6 +229,42 @@ export type Database = {
           },
         ]
       }
+      cte_captura_comandos: {
+        Row: {
+          concluido_em: string | null
+          created_at: string
+          id: string
+          iniciado_em: string | null
+          mensagem: string | null
+          novos_ctes: number
+          solicitado_por: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          concluido_em?: string | null
+          created_at?: string
+          id?: string
+          iniciado_em?: string | null
+          mensagem?: string | null
+          novos_ctes?: number
+          solicitado_por?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          concluido_em?: string | null
+          created_at?: string
+          id?: string
+          iniciado_em?: string | null
+          mensagem?: string | null
+          novos_ctes?: number
+          solicitado_por?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cte_divergencias: {
         Row: {
           created_at: string

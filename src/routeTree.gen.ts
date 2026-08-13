@@ -34,6 +34,7 @@ import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedPedidosOrderIdRouteImport } from './routes/_authenticated/pedidos.$orderId'
 import { Route as AuthenticatedRotasIndexRouteImport } from './routes/_authenticated/rotas.index'
 import { Route as AuthenticatedRotasRouteIdRouteImport } from './routes/_authenticated/rotas.$routeId'
+import { Route as ApiPublicHooksCteComandosRouteImport } from './routes/api/public/hooks/cte-comandos'
 import { Route as ApiPublicHooksErpSyncRouteImport } from './routes/api/public/hooks/erp-sync'
 import { Route as ApiPublicHooksIngestCteRouteImport } from './routes/api/public/hooks/ingest-cte'
 import { Route as ApiPublicHooksIngestNfeRouteImport } from './routes/api/public/hooks/ingest-nfe'
@@ -174,6 +175,12 @@ const AuthenticatedRotasRouteIdRoute =
     path: '/rotas/$routeId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicHooksCteComandosRoute =
+  ApiPublicHooksCteComandosRouteImport.update({
+    id: '/api/public/hooks/cte-comandos',
+    path: '/api/public/hooks/cte-comandos',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksErpSyncRoute = ApiPublicHooksErpSyncRouteImport.update({
   id: '/api/public/hooks/erp-sync',
   path: '/api/public/hooks/erp-sync',
@@ -221,6 +228,7 @@ export interface FileRoutesByFullPath {
   '/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
   '/rotas/': typeof AuthenticatedRotasIndexRoute
+  '/api/public/hooks/cte-comandos': typeof ApiPublicHooksCteComandosRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
   '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
@@ -251,6 +259,7 @@ export interface FileRoutesByTo {
   '/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
   '/rotas': typeof AuthenticatedRotasIndexRoute
+  '/api/public/hooks/cte-comandos': typeof ApiPublicHooksCteComandosRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
   '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
@@ -283,6 +292,7 @@ export interface FileRoutesById {
   '/_authenticated/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
   '/_authenticated/rotas/': typeof AuthenticatedRotasIndexRoute
+  '/api/public/hooks/cte-comandos': typeof ApiPublicHooksCteComandosRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
   '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
@@ -315,6 +325,7 @@ export interface FileRouteTypes {
     | '/rotas/$routeId'
     | '/pedidos/'
     | '/rotas/'
+    | '/api/public/hooks/cte-comandos'
     | '/api/public/hooks/erp-sync'
     | '/api/public/hooks/ingest-cte'
     | '/api/public/hooks/ingest-nfe'
@@ -345,6 +356,7 @@ export interface FileRouteTypes {
     | '/rotas/$routeId'
     | '/pedidos'
     | '/rotas'
+    | '/api/public/hooks/cte-comandos'
     | '/api/public/hooks/erp-sync'
     | '/api/public/hooks/ingest-cte'
     | '/api/public/hooks/ingest-nfe'
@@ -376,6 +388,7 @@ export interface FileRouteTypes {
     | '/_authenticated/rotas/$routeId'
     | '/_authenticated/pedidos/'
     | '/_authenticated/rotas/'
+    | '/api/public/hooks/cte-comandos'
     | '/api/public/hooks/erp-sync'
     | '/api/public/hooks/ingest-cte'
     | '/api/public/hooks/ingest-nfe'
@@ -386,6 +399,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicHooksCteComandosRoute: typeof ApiPublicHooksCteComandosRoute
   ApiPublicHooksErpSyncRoute: typeof ApiPublicHooksErpSyncRoute
   ApiPublicHooksIngestCteRoute: typeof ApiPublicHooksIngestCteRoute
   ApiPublicHooksIngestNfeRoute: typeof ApiPublicHooksIngestNfeRoute
@@ -569,6 +583,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRotasRouteIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/cte-comandos': {
+      id: '/api/public/hooks/cte-comandos'
+      path: '/api/public/hooks/cte-comandos'
+      fullPath: '/api/public/hooks/cte-comandos'
+      preLoaderRoute: typeof ApiPublicHooksCteComandosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/erp-sync': {
       id: '/api/public/hooks/erp-sync'
       path: '/api/public/hooks/erp-sync'
@@ -657,6 +678,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicHooksCteComandosRoute: ApiPublicHooksCteComandosRoute,
   ApiPublicHooksErpSyncRoute: ApiPublicHooksErpSyncRoute,
   ApiPublicHooksIngestCteRoute: ApiPublicHooksIngestCteRoute,
   ApiPublicHooksIngestNfeRoute: ApiPublicHooksIngestNfeRoute,

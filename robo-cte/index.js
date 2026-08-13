@@ -253,6 +253,46 @@ function requestJson(url, metodo, segredo, body, timeoutMs) {
   });
 }
 
+// Verifica se o aplicativo solicitou uma importacao forcada de CT-e.
+async function verificarComandoCaptura(cfg) {
+  try {
+    const resp = await requestJson(
+      urlHook(cfg.endpoint, "cte-comandos"),
+      "GET",
+      cfg.segredoIngest,
+      null,
+      cfg.timeoutMs
+    );
+    return resp && resp.forcar ? resp.comandoId : null;
+  } catch (e) {
+    log(`Nao foi possivel consultar comandos de captura: ${e.message}`);
+    return null;
+  }
+}
+
+async function reportarComandoCaptura(cfg, comandoId, status, mensagem, novosCtes) {
+  try {
+    await requestJson(
+      urlHook(cfg.endpoint, "cte-comandos"),
+      "POST",
+      cfg.segredoIngest,
+      { comandoId, status, mensagem, novosCtes },
+      cfg.timeoutMs
+    );
+  } catch (e) {
+    log(`Nao foi possivel reportar o comando ${comandoId}: ${e.message}`);
+  }
+}
+
+async function executarCicloEmpresas(cfg, modoTeste) {
+  let total = 0;
+  for (let i = 0; i < cfg.empresas.length; i++) {
+    total += (await processarEmpresa(cfg, i, modoTeste)) || 0;
+    await sleep(1000);
+  }
+  return total;
+}
+
 async function processarNfesPendentes(cfg, modoTeste) {
   let pendentes = [];
   try {
@@ -382,6 +422,7 @@ async function processarEmpresa(cfg, empresaIndex, modoTeste) {
   }
 
   log(`Finalizado ${empresa.nome}: ${totalEnviados} CT-e enviados, NSU=${ultimoNsu}`);
+  return totalEnviados;
 }
 
 async function run() {
@@ -405,10 +446,7 @@ async function run() {
   do {
     try {
       const cfg = readConfig();
-      for (let i = 0; i < cfg.empresas.length; i++) {
-        await processarEmpresa(cfg, i, modoTeste);
-        await sleep(1000);
-      }
+      await executarCicloEmpresas(cfg, modoTeste);
       await processarNfesPendentes(cfg, modoTeste);
     } catch (e) {
       if (e instanceof ConfigError) {
@@ -425,9 +463,9 @@ async function run() {
     const intervaloNfe = Math.max(15, cfg.intervaloNfeSegundos || 60) * 1000;
     log(
       `Aguardando ${cfg.intervaloMinutos || 30} minutos para proximo ciclo ` +
-        `(NF-e solicitadas sao verificadas a cada ${intervaloNfe / 1000}s)`
+        `(NF-e solicitadas e pedidos de importacao forcada sao verificados a cada ${intervaloNfe / 1000}s)`
     );
-    // Durante a espera, atende rapidamente as NF-e solicitadas pelo aplicativo.
+    // Durante a espera, atende rapidamente as NF-e solicitadas e os pedidos de importacao forcada.
     let esperado = 0;
     while (esperado < intervalo) {
       await sleep(Math.min(intervaloNfe, intervalo - esperado));
@@ -437,6 +475,31 @@ async function run() {
       } catch (e) {
         log(`Erro ao processar NF-e pendentes: ${e.message}`);
       }
+      let cfgAtual;
+      try {
+        cfgAtual = readConfig();
+      } catch (e) {
+        log(`Erro ao ler configuracao: ${e.message}`);
+        continue;
+      }
+      const comandoId = await verificarComandoCaptura(cfgAtual);
+      if (!comandoId) continue;
+      log(`Importacao forcada solicitada pelo aplicativo (comando ${comandoId})`);
+      try {
+        const enviados = await executarCicloEmpresas(cfgAtual, false);
+        await reportarComandoCaptura(
+          cfgAtual,
+          comandoId,
+          "CONCLUIDO",
+          `${enviados} CT-e enviados ao aplicativo`,
+          enviados
+        );
+        log(`Importacao forcada concluida: ${enviados} CT-e enviados`);
+      } catch (e) {
+        log(`Erro na importacao forcada: ${e.message}`);
+        await reportarComandoCaptura(cfgAtual, comandoId, "ERRO", e.message, 0);
+      }
+      esperado = intervalo; // reinicia a contagem do ciclo regular
     }
   } while (true);
 
