@@ -153,7 +153,7 @@ function calcularEsperado(
     itens.push({ nome: "ICMS", esperado: round2(total - subtotal), cobrado: null });
   }
 
-  return { itens, total: round2(total) };
+  return { itens, total: round2(total), rota: rotaNome };
 }
 
 /** Executa a auditoria de um CT-e, grava o resultado e atualiza o status. */
