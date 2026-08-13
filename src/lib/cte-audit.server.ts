@@ -222,13 +222,33 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
   );
 
   const norm = (s: string) => s.toUpperCase().replace(/\s+/g, " ").trim();
-  const detalhamento = itens.map((item) => {
+  const usados = new Set<number>();
+  const detalhamento: AuditItem[] = itens.map((item) => {
     const alvo = norm(item.nome);
-    const match =
-      componentes.find((c) => norm(c.nome ?? "") === alvo) ??
-      componentes.find((c) => norm(c.nome ?? "").includes(alvo));
-    return { ...item, cobrado: match ? round2(Number(match.valor ?? 0)) : null };
+    let idx = componentes.findIndex((c, i) => !usados.has(i) && norm(c.nome ?? "") === alvo);
+    if (idx < 0) {
+      idx = componentes.findIndex(
+        (c, i) => !usados.has(i) && norm(c.nome ?? "").startsWith(alvo),
+      );
+    }
+    if (idx >= 0) usados.add(idx);
+    return {
+      ...item,
+      cobrado: idx >= 0 ? round2(Number(componentes[idx]!.valor ?? 0)) : null,
+    };
   });
+
+  // Componentes cobrados no CT-e que não existem na tabela (ex.: ADICIONAL FRETE)
+  // precisam aparecer, senão a soma da coluna "Cobrado" não fecha com o total.
+  componentes.forEach((c, i) => {
+    if (usados.has(i)) return;
+    detalhamento.push({
+      nome: norm(c.nome ?? "") || "OUTROS",
+      esperado: 0,
+      cobrado: round2(Number(c.valor ?? 0)),
+    });
+  });
+
 
 
   const diferenca = round2(cobrado - total);
