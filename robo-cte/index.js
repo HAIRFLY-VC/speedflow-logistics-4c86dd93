@@ -253,6 +253,46 @@ function requestJson(url, metodo, segredo, body, timeoutMs) {
   });
 }
 
+// Verifica se o aplicativo solicitou uma importacao forcada de CT-e.
+async function verificarComandoCaptura(cfg) {
+  try {
+    const resp = await requestJson(
+      urlHook(cfg.endpoint, "cte-comandos"),
+      "GET",
+      cfg.segredoIngest,
+      null,
+      cfg.timeoutMs
+    );
+    return resp && resp.forcar ? resp.comandoId : null;
+  } catch (e) {
+    log(`Nao foi possivel consultar comandos de captura: ${e.message}`);
+    return null;
+  }
+}
+
+async function reportarComandoCaptura(cfg, comandoId, status, mensagem, novosCtes) {
+  try {
+    await requestJson(
+      urlHook(cfg.endpoint, "cte-comandos"),
+      "POST",
+      cfg.segredoIngest,
+      { comandoId, status, mensagem, novosCtes },
+      cfg.timeoutMs
+    );
+  } catch (e) {
+    log(`Nao foi possivel reportar o comando ${comandoId}: ${e.message}`);
+  }
+}
+
+async function executarCicloEmpresas(cfg, modoTeste) {
+  let total = 0;
+  for (let i = 0; i < cfg.empresas.length; i++) {
+    total += (await processarEmpresa(cfg, i, modoTeste)) || 0;
+    await sleep(1000);
+  }
+  return total;
+}
+
 async function processarNfesPendentes(cfg, modoTeste) {
   let pendentes = [];
   try {
@@ -382,6 +422,7 @@ async function processarEmpresa(cfg, empresaIndex, modoTeste) {
   }
 
   log(`Finalizado ${empresa.nome}: ${totalEnviados} CT-e enviados, NSU=${ultimoNsu}`);
+  return totalEnviados;
 }
 
 async function run() {
