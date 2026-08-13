@@ -35,16 +35,55 @@ export const solicitarCapturaCte = createServerFn({ method: "POST" })
     return { id: data.id as string, jaSolicitado: false };
   });
 
+const LIMITE_PENDENTE_MS = 3 * 60 * 1000;
+const LIMITE_PROCESSANDO_MS = 10 * 60 * 1000;
+
 export const getUltimoComandoCaptura = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertStaff(context);
     const { data, error } = await context.supabase
       .from("cte_captura_comandos")
-      .select("id, status, mensagem, novos_ctes, created_at, concluido_em")
+      .select("id, status, mensagem, novos_ctes, created_at, iniciado_em, concluido_em")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return data ?? null;
+    if (!data) return null;
+
+    // Expira comandos que o robô nunca assumiu ou deixou travados.
+    const inicio = new Date((data.iniciado_em ?? data.created_at) as string).getTime();
+    const decorrido = Date.now() - inicio;
+    const expirado =
+      (data.status === "PENDENTE" && decorrido > LIMITE_PENDENTE_MS) ||
+      (data.status === "PROCESSANDO" && decorrido > LIMITE_PROCESSANDO_MS);
+
+    if (expirado) {
+      const mensagem =
+        "Robô não respondeu — verifique se o serviço local está atualizado e ativo.";
+      await context.supabase
+        .from("cte_captura_comandos")
+        .update({ status: "ERRO", mensagem, concluido_em: new Date().toISOString() })
+        .eq("id", data.id);
+      return { ...data, status: "ERRO", mensagem };
+    }
+
+    return data;
   });
+
+export const cancelarCapturaCte = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context);
+    const { error } = await context.supabase
+      .from("cte_captura_comandos")
+      .update({
+        status: "ERRO",
+        mensagem: "Cancelado pelo usuário",
+        concluido_em: new Date().toISOString(),
+      })
+      .in("status", ["PENDENTE", "PROCESSANDO"]);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
