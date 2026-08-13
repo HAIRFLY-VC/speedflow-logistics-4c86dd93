@@ -210,7 +210,6 @@ function CtesPage() {
               {c.numero ?? "—"}
               {c.serie ? <span className="text-muted-foreground">/{c.serie}</span> : null}
             </div>
-            <div className="font-mono text-[10px] text-muted-foreground">{c.chave_acesso}</div>
           </div>
         ),
       },
