@@ -214,18 +214,22 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     ? (cte.componentes as { nome?: string; valor?: number }[])
     : [];
 
-  const { itens, total } = calcularEsperado(
+  const { itens, total, rota } = calcularEsperado(
     tabela,
     Number(cte.peso_taxado ?? 0),
     Number(cte.valor_mercadoria ?? 0),
+    cobrado,
   );
 
+  const norm = (s: string) => s.toUpperCase().replace(/\s+/g, " ").trim();
   const detalhamento = itens.map((item) => {
-    const match = componentes.find((c) =>
-      (c.nome ?? "").toUpperCase().includes(item.nome.split(" ")[0]!),
-    );
+    const alvo = norm(item.nome);
+    const match =
+      componentes.find((c) => norm(c.nome ?? "") === alvo) ??
+      componentes.find((c) => norm(c.nome ?? "").includes(alvo));
     return { ...item, cobrado: match ? round2(Number(match.valor ?? 0)) : null };
   });
+
 
   const diferenca = round2(cobrado - total);
   const percentual = total > 0 ? round2((Math.abs(diferenca) / total) * 100) : 100;
