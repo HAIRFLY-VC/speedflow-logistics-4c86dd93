@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Upload, Loader2, FileDown, FileCode, UserPlus } from "lucide-react";
+import { Upload, Loader2, FileDown, FileCode, UserPlus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import { uploadCteXml, getCteXmlUrl } from "@/lib/cte.functions";
+import { solicitarCapturaCte, getUltimoComandoCaptura } from "@/lib/cte-captura.functions";
 import { CteDetailDialog } from "@/components/ctes/CteDetailDialog";
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
 import type { Tables } from "@/integrations/supabase/types";
@@ -62,6 +63,30 @@ function CtesPage() {
   const [selected, setSelected] = useState<Cte | null>(null);
   const upload = useServerFn(uploadCteXml);
   const signUrl = useServerFn(getCteXmlUrl);
+  const solicitarCaptura = useServerFn(solicitarCapturaCte);
+  const ultimoComando = useServerFn(getUltimoComandoCaptura);
+
+  const { data: comando } = useQuery({
+    queryKey: ["cte-captura-comando"],
+    queryFn: () => ultimoComando(),
+    refetchInterval: 15_000,
+  });
+
+  const forcarImportacao = useMutation({
+    mutationFn: async () => solicitarCaptura(),
+    onSuccess: (r) => {
+      if (r.jaSolicitado) {
+        toast.info("Já existe uma importação em andamento. Aguarde a conclusão.");
+      } else {
+        toast.success("Importação solicitada. O robô buscará os novos CT-e em instantes.");
+      }
+      void qc.invalidateQueries({ queryKey: ["cte-captura-comando"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const capturaEmAndamento =
+    comando?.status === "PENDENTE" || comando?.status === "PROCESSANDO";
 
   const { data: transportadoras } = useQuery({
     queryKey: ["transportadoras"],
