@@ -11,7 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import { uploadCteXml, getCteXmlUrl } from "@/lib/cte.functions";
-import { solicitarCapturaCte, getUltimoComandoCaptura } from "@/lib/cte-captura.functions";
+import {
+  solicitarCapturaCte,
+  getUltimoComandoCaptura,
+  cancelarCapturaCte,
+} from "@/lib/cte-captura.functions";
 import { CteDetailDialog } from "@/components/ctes/CteDetailDialog";
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
 import type { Tables } from "@/integrations/supabase/types";
