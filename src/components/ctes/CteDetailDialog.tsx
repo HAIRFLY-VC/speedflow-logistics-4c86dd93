@@ -243,6 +243,135 @@ export function CteDetailDialog({
             )}
           </section>
 
+          <Separator />
+
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold">Auditoria da cobrança</h3>
+              <Button size="sm" disabled={audit.isPending} onClick={() => audit.mutate(cte.id)}>
+                {audit.isPending ? (
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                ) : (
+                  <ScanSearch className="mr-1 h-4 w-4" />
+                )}
+                Auditar cobrança
+              </Button>
+            </div>
+
+            {!ultimaAuditoria ? (
+              <p className="text-muted-foreground text-sm">
+                Nenhuma auditoria executada. Compare a cobrança com a tabela de frete da
+                transportadora emissora.
+              </p>
+            ) : (
+              <div
+                className={`rounded-md border p-3 ${
+                  ultimaAuditoria.resultado === "OK"
+                    ? "border-emerald-500/40 bg-emerald-500/5"
+                    : "border-destructive/40 bg-destructive/5"
+                }`}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  {ultimaAuditoria.resultado === "OK" ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  ) : (
+                    <AlertTriangle className="text-destructive h-4 w-4" />
+                  )}
+                  <span
+                    className={`text-sm font-semibold ${
+                      ultimaAuditoria.resultado === "OK"
+                        ? "text-emerald-600"
+                        : "text-destructive"
+                    }`}
+                  >
+                    {ultimaAuditoria.resultado === "OK"
+                      ? "OK — cobrança confere com a tabela"
+                      : "DIVERGENTE"}
+                  </span>
+                  <span className="text-muted-foreground ml-auto text-xs">
+                    {new Date(ultimaAuditoria.created_at).toLocaleString("pt-BR")}
+                  </span>
+                </div>
+                <div className="text-muted-foreground mt-1 text-xs">
+                  Esperado {brl(Number(ultimaAuditoria.valor_esperado_total))} · Cobrado{" "}
+                  {brl(Number(ultimaAuditoria.valor_cobrado_total))} · Diferença{" "}
+                  {brl(Number(ultimaAuditoria.diferenca))} (
+                  {Number(ultimaAuditoria.percentual_diferenca).toFixed(2)}%)
+                </div>
+
+                {Array.isArray(ultimaAuditoria.detalhamento) &&
+                ultimaAuditoria.detalhamento.length > 0 ? (
+                  <div className="mt-3 rounded-md border bg-background">
+                    <div className="text-muted-foreground grid grid-cols-4 gap-2 border-b px-3 py-1.5 text-[11px] font-medium">
+                      <span>Componente</span>
+                      <span className="text-right">Esperado</span>
+                      <span className="text-right">Cobrado</span>
+                      <span className="text-right">Diferença</span>
+                    </div>
+                    {(
+                      ultimaAuditoria.detalhamento as unknown as {
+                        nome?: string;
+                        esperado?: number;
+                        cobrado?: number | null;
+                      }[]
+                    ).map((d, i) => {
+                      const esperado = Number(d.esperado ?? 0);
+                      const cobrado = d.cobrado == null ? null : Number(d.cobrado);
+                      const diff = cobrado == null ? null : cobrado - esperado;
+                      return (
+                        <div
+                          key={`${d.nome}-${i}`}
+                          className="grid grid-cols-4 gap-2 border-b px-3 py-1.5 text-xs last:border-b-0"
+                        >
+                          <span>{d.nome ?? "—"}</span>
+                          <span className="text-right">{brl(esperado)}</span>
+                          <span className="text-right">
+                            {cobrado == null ? "—" : brl(cobrado)}
+                          </span>
+                          <span
+                            className={`text-right font-medium ${
+                              diff == null
+                                ? ""
+                                : Math.abs(diff) < 0.01
+                                  ? "text-emerald-600"
+                                  : "text-destructive"
+                            }`}
+                          >
+                            {diff == null ? "—" : brl(diff)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {divergenciasAbertas.length > 0 ? (
+              <div className="space-y-1.5">
+                <h4 className="text-sm font-medium">Divergências em aberto</h4>
+                <div className="rounded-md border">
+                  {divergenciasAbertas.map((d) => (
+                    <div key={d.id} className="border-b px-3 py-2 text-sm last:border-b-0">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-destructive">{d.motivo}</span>
+                        <Badge variant="outline" className="text-[10px]">
+                          {d.status.replaceAll("_", " ")}
+                        </Badge>
+                      </div>
+                      {d.observacao_operador ? (
+                        <div className="text-muted-foreground mt-1 text-xs">
+                          {d.observacao_operador}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </section>
+
+
 
           {auditorias && auditorias.length > 0 ? (
             <section className="space-y-2">
