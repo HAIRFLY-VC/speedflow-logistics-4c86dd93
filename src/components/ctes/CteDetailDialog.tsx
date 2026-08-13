@@ -80,7 +80,42 @@ export function CteDetailDialog({
     },
   });
 
+  const { data: divergencias } = useQuery({
+    queryKey: ["cte-divergencias", cte?.id],
+    enabled: !!cte?.id && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cte_divergencias")
+        .select("*")
+        .eq("cte_id", cte!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const qc = useQueryClient();
+  const runAudit = useServerFn(auditarCte);
+  const audit = useMutation({
+    mutationFn: (cteId: string) => runAudit({ data: { cteId } }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["cte-auditorias", cte?.id] });
+      qc.invalidateQueries({ queryKey: ["cte-divergencias", cte?.id] });
+      qc.invalidateQueries({ queryKey: ["cte-historico", cte?.id] });
+      qc.invalidateQueries({ queryKey: ["ctes"] });
+      if (res.resultado === "OK") toast.success("Auditoria OK: cobrança bate com a tabela.");
+      else
+        toast.error(
+          `Divergência encontrada: ${brl(Number(res.diferenca))} (${Number(res.percentual_diferenca).toFixed(2)}%)`,
+        );
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao auditar"),
+  });
+
   if (!cte) return null;
+
+  const ultimaAuditoria = auditorias?.[0];
+  const divergenciasAbertas = (divergencias ?? []).filter((d) => d.status !== "RESOLVIDA");
 
   const componentes = (Array.isArray(cte.componentes) ? cte.componentes : []) as {
     nome?: string;
