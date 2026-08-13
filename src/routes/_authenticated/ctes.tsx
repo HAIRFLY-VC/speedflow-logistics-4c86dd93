@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -87,6 +87,24 @@ function CtesPage() {
 
   const capturaEmAndamento =
     comando?.status === "PENDENTE" || comando?.status === "PROCESSANDO";
+
+  const capturaAnterior = useRef<string | null>(null);
+  useEffect(() => {
+    const atual = comando ? `${comando.id}:${comando.status}` : null;
+    if (
+      capturaAnterior.current &&
+      atual !== capturaAnterior.current &&
+      (comando?.status === "CONCLUIDO" || comando?.status === "ERRO")
+    ) {
+      void qc.invalidateQueries({ queryKey: ["ctes"] });
+      if (comando.status === "CONCLUIDO") {
+        toast.success(`Importação concluída: ${comando.novos_ctes ?? 0} CT-e processados.`);
+      } else {
+        toast.error(`Falha na importação: ${comando.mensagem ?? "erro desconhecido"}`);
+      }
+    }
+    capturaAnterior.current = atual;
+  }, [comando, qc]);
 
   const { data: transportadoras } = useQuery({
     queryKey: ["transportadoras"],
