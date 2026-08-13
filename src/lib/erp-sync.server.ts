@@ -265,16 +265,37 @@ export async function syncErpOrders(opts: {
         customerId = ups.id;
         customerCreated = true;
       } else {
-        // corrida: outra linha criou o cliente entre o select e o upsert
-        const { data: again, error: againErr } = await supabaseAdmin
+        // Fallback: se o upsert falhar (corrida ou índice indisponível para ON CONFLICT),
+        // procura o cliente pelo código do ERP e, se ainda não existir, insere direto.
+        const { data: again } = await supabaseAdmin
           .from("customers")
           .select("id")
           .eq("erp_id", codCliente)
           .maybeSingle();
-        if (!again) throw error ?? againErr ?? new Error("insert customer falhou");
-        customerId = again.id;
+        if (again?.id) {
+          customerId = again.id;
+        } else {
+          const { data: ins, error: insErr } = await supabaseAdmin
+            .from("customers")
+            .insert(customerPayload)
+            .select("id")
+            .maybeSingle();
+          if (ins?.id) {
+            customerId = ins.id;
+            customerCreated = true;
+          } else {
+            const { data: last } = await supabaseAdmin
+              .from("customers")
+              .select("id")
+              .eq("erp_id", codCliente)
+              .maybeSingle();
+            if (!last) throw insErr ?? error ?? new Error("insert customer falhou");
+            customerId = last.id;
+          }
+        }
       }
     }
+
 
 
     const pedidoStr = String(row.PEDIDO);
