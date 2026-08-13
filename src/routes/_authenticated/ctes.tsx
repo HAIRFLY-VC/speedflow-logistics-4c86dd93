@@ -11,7 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import { uploadCteXml, getCteXmlUrl } from "@/lib/cte.functions";
-import { solicitarCapturaCte, getUltimoComandoCaptura } from "@/lib/cte-captura.functions";
+import {
+  solicitarCapturaCte,
+  getUltimoComandoCaptura,
+  cancelarCapturaCte,
+} from "@/lib/cte-captura.functions";
 import { CteDetailDialog } from "@/components/ctes/CteDetailDialog";
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
 import type { Tables } from "@/integrations/supabase/types";
@@ -65,11 +69,15 @@ function CtesPage() {
   const signUrl = useServerFn(getCteXmlUrl);
   const solicitarCaptura = useServerFn(solicitarCapturaCte);
   const ultimoComando = useServerFn(getUltimoComandoCaptura);
+  const cancelarCaptura = useServerFn(cancelarCapturaCte);
 
   const { data: comando } = useQuery({
     queryKey: ["cte-captura-comando"],
     queryFn: () => ultimoComando(),
-    refetchInterval: 15_000,
+    refetchInterval: (q) => {
+      const s = (q.state.data as { status?: string } | null | undefined)?.status;
+      return s === "PENDENTE" || s === "PROCESSANDO" ? 8_000 : 30_000;
+    },
   });
 
   const forcarImportacao = useMutation({
@@ -85,8 +93,29 @@ function CtesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const cancelarImportacao = useMutation({
+    mutationFn: async () => cancelarCaptura(),
+    onSuccess: () => {
+      toast.info("Importação cancelada.");
+      void qc.invalidateQueries({ queryKey: ["cte-captura-comando"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const capturaEmAndamento =
     comando?.status === "PENDENTE" || comando?.status === "PROCESSANDO";
+
+  // Tempo decorrido desde a solicitação, para o usuário saber que está aguardando o robô.
+  const [agora, setAgora] = useState(() => Date.now());
+  useEffect(() => {
+    if (!capturaEmAndamento) return;
+    const t = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [capturaEmAndamento]);
+  const segundosEsperando = capturaEmAndamento
+    ? Math.max(0, Math.floor((agora - new Date(comando!.created_at as string).getTime()) / 1000))
+    : 0;
+
 
   const capturaAnterior = useRef<string | null>(null);
   useEffect(() => {
@@ -440,8 +469,20 @@ function CtesPage() {
               ) : (
                 <RefreshCw className="h-4 w-4 mr-1" />
               )}
-              {capturaEmAndamento ? "Importando..." : "Forçar importação"}
+              {capturaEmAndamento
+                ? `Aguardando robô (${segundosEsperando}s)`
+                : "Forçar importação"}
             </Button>
+            {capturaEmAndamento && (
+              <Button
+                variant="ghost"
+                disabled={cancelarImportacao.isPending}
+                onClick={() => cancelarImportacao.mutate()}
+              >
+                Cancelar
+              </Button>
+            )}
+
             <input
               ref={inputRef}
               type="file"
