@@ -375,7 +375,7 @@ export function CteDetailDialog({
 
           {auditorias && auditorias.length > 0 ? (
             <section className="space-y-2">
-              <h3 className="text-sm font-semibold">Auditorias</h3>
+              <h3 className="text-sm font-semibold">Histórico de auditorias</h3>
               <div className="rounded-md border">
                 {auditorias.map((a) => (
                   <div key={a.id} className="border-b px-3 py-2 text-sm last:border-b-0">
