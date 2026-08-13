@@ -34,7 +34,9 @@ async function getTolerancia(db: Db) {
   };
 }
 
-/** Seleciona a tabela vigente mais específica (UF do CT-e antes da genérica). */
+/** Seleciona a tabela vigente mais específica (UF do CT-e antes da genérica).
+ *  Se nenhuma tabela estiver vigente na data de emissão (ex.: tabela cadastrada
+ *  depois), usa a vigente hoje / a mais recente cadastrada da transportadora. */
 async function pickTabela(
   db: Db,
   transportadoraId: string,
@@ -42,24 +44,34 @@ async function pickTabela(
   emissao: string | null,
 ) {
   const dia = (emissao ? new Date(emissao) : new Date()).toISOString().slice(0, 10);
+  const hoje = new Date().toISOString().slice(0, 10);
   const { data, error } = await db
     .from("tabelas_preco_frete")
-    .select("*, tabelas_preco_frete_faixas(*)")
+    .select("*, tabelas_preco_frete_faixas(*), tabelas_preco_frete_rotas(*)")
     .eq("transportadora_id", transportadoraId)
-    .eq("ativo", true)
-    .lte("data_inicio", dia);
+    .eq("ativo", true);
   if (error) throw new Error(error.message);
 
-  const vigentes = (data ?? []).filter(
-    (t) => !t.data_fim || t.data_fim >= dia,
+  const todas = data ?? [];
+  const vigentesEm = (ref: string) =>
+    todas.filter((t) => t.data_inicio <= ref && (!t.data_fim || t.data_fim >= ref));
+
+  const escolher = (lista: typeof todas) => {
+    const especificas = lista.filter((t) => t.uf_destino && t.uf_destino === ufDestino);
+    const genericas = lista.filter((t) => !t.uf_destino);
+    return [...especificas, ...genericas].sort(
+      (a, b) => (a.data_inicio < b.data_inicio ? 1 : -1),
+    )[0];
+  };
+
+  return (
+    escolher(vigentesEm(dia)) ??
+    escolher(vigentesEm(hoje)) ??
+    escolher(todas) ??
+    null
   );
-  const especificas = vigentes.filter((t) => t.uf_destino && t.uf_destino === ufDestino);
-  const genericas = vigentes.filter((t) => !t.uf_destino);
-  const escolhida = [...especificas, ...genericas].sort(
-    (a, b) => (a.data_inicio < b.data_inicio ? 1 : -1),
-  )[0];
-  return escolhida ?? null;
 }
+
 
 type Tabela = NonNullable<Awaited<ReturnType<typeof pickTabela>>>;
 
@@ -67,27 +79,63 @@ function calcularEsperado(
   tabela: Tabela,
   peso: number,
   valorMercadoria: number,
-): { itens: AuditItem[]; total: number } {
+  cobradoTotal = 0,
+): { itens: AuditItem[]; total: number; rota?: string } {
   const itens: AuditItem[] = [];
+  const rotas = tabela.tabelas_preco_frete_rotas ?? [];
 
   let base = 0;
-  if (tabela.tipo_calculo === "peso") {
-    const faixas = [...(tabela.tabelas_preco_frete_faixas ?? [])].sort(
-      (a, b) => Number(a.peso_de) - Number(b.peso_de),
-    );
-    const faixa =
-      faixas.find(
-        (f) =>
-          peso >= Number(f.peso_de) && (f.peso_ate == null || peso <= Number(f.peso_ate)),
-      ) ?? faixas[faixas.length - 1];
-    if (faixa) base = Number(faixa.valor_fixo_faixa) + Number(faixa.valor_por_kg) * peso;
+  let rotaNome: string | undefined;
+
+  if (rotas.length > 0) {
+    // Tabela por origem/destino: escolhe a rota cujo valor calculado mais se
+    // aproxima do frete cobrado (o CT-e não traz o nome da praça da tabela).
+    const candidatas = rotas.map((r) => {
+      const pesoCob = Math.max(peso, Number(r.peso_minimo_kg ?? 0));
+      const fretePeso = pesoCob * Number(r.tarifa_frete_peso ?? 0);
+      const freteValor = (Number(r.frete_valor_percentual ?? 0) / 100) * valorMercadoria;
+      let sub = fretePeso + freteValor;
+      const min = Number(r.frete_minimo ?? 0);
+      if (min > 0 && sub < min) sub = min;
+      const despacho = Number(r.taxa_despacho ?? 0);
+      return {
+        rota: `${r.origem} → ${r.destino}`,
+        fretePeso,
+        freteValor,
+        despacho,
+        total: sub + despacho,
+      };
+    });
+    const escolhida = candidatas.sort(
+      (a, b) => Math.abs(a.total - cobradoTotal) - Math.abs(b.total - cobradoTotal),
+    )[0]!;
+    rotaNome = escolhida.rota;
+    itens.push({ nome: "FRETE PESO", esperado: round2(escolhida.fretePeso), cobrado: null });
+    itens.push({ nome: "FRETE VALOR", esperado: round2(escolhida.freteValor), cobrado: null });
+    if (escolhida.despacho) {
+      itens.push({ nome: "DESPACHO", esperado: round2(escolhida.despacho), cobrado: null });
+    }
+    base = escolhida.total;
   } else {
-    base = (Number(tabela.percentual_valor) / 100) * valorMercadoria;
+    if (tabela.tipo_calculo === "peso") {
+      const faixas = [...(tabela.tabelas_preco_frete_faixas ?? [])].sort(
+        (a, b) => Number(a.peso_de) - Number(b.peso_de),
+      );
+      const faixa =
+        faixas.find(
+          (f) =>
+            peso >= Number(f.peso_de) && (f.peso_ate == null || peso <= Number(f.peso_ate)),
+        ) ?? faixas[faixas.length - 1];
+      if (faixa) base = Number(faixa.valor_fixo_faixa) + Number(faixa.valor_por_kg) * peso;
+    } else {
+      base = (Number(tabela.percentual_valor) / 100) * valorMercadoria;
+    }
+
+    const minimo = Number(tabela.frete_minimo);
+    if (minimo > 0 && base < minimo) base = minimo;
+    itens.push({ nome: "FRETE", esperado: round2(base), cobrado: null });
   }
 
-  const minimo = Number(tabela.frete_minimo);
-  if (minimo > 0 && base < minimo) base = minimo;
-  itens.push({ nome: "FRETE", esperado: round2(base), cobrado: null });
 
   const gris = (Number(tabela.gris_percentual) / 100) * valorMercadoria;
   const adv = (Number(tabela.ad_valorem_percentual) / 100) * valorMercadoria;
@@ -105,7 +153,7 @@ function calcularEsperado(
     itens.push({ nome: "ICMS", esperado: round2(total - subtotal), cobrado: null });
   }
 
-  return { itens, total: round2(total) };
+  return { itens, total: round2(total), rota: rotaNome };
 }
 
 /** Executa a auditoria de um CT-e, grava o resultado e atualiza o status. */
@@ -166,18 +214,22 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     ? (cte.componentes as { nome?: string; valor?: number }[])
     : [];
 
-  const { itens, total } = calcularEsperado(
+  const { itens, total, rota } = calcularEsperado(
     tabela,
     Number(cte.peso_taxado ?? 0),
     Number(cte.valor_mercadoria ?? 0),
+    cobrado,
   );
 
+  const norm = (s: string) => s.toUpperCase().replace(/\s+/g, " ").trim();
   const detalhamento = itens.map((item) => {
-    const match = componentes.find((c) =>
-      (c.nome ?? "").toUpperCase().includes(item.nome.split(" ")[0]!),
-    );
+    const alvo = norm(item.nome);
+    const match =
+      componentes.find((c) => norm(c.nome ?? "") === alvo) ??
+      componentes.find((c) => norm(c.nome ?? "").includes(alvo));
     return { ...item, cobrado: match ? round2(Number(match.valor ?? 0)) : null };
   });
+
 
   const diferenca = round2(cobrado - total);
   const percentual = total > 0 ? round2((Math.abs(diferenca) / total) * 100) : 100;
@@ -205,12 +257,21 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     .update({ status: resultado === "OK" ? "APROVADO" : "DIVERGENTE" })
     .eq("id", cte.id);
 
+  const refTabela = rota ? `"${tabela.nome}" (rota ${rota})` : `"${tabela.nome}"`;
+
   if (resultado === "DIVERGENTE") {
     await registrarDivergencia(
       db,
       cte.id,
-      `Diferença de ${diferenca.toFixed(2)} (${percentual.toFixed(2)}%) em relação à tabela "${tabela.nome}"`,
+      `Diferença de ${diferenca.toFixed(2)} (${percentual.toFixed(2)}%) em relação à tabela ${refTabela}`,
     );
+  } else {
+    // Auditoria bateu: encerra divergências abertas anteriores (ex.: "sem tabela vigente").
+    await db
+      .from("cte_divergencias")
+      .update({ status: "RESOLVIDA", resolvido_em: new Date().toISOString() })
+      .eq("cte_id", cte.id)
+      .neq("status", "RESOLVIDA");
   }
 
   return {
@@ -223,7 +284,9 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     percentual_diferenca: percentual,
     tabela_preco_id: tabela.id,
     detalhamento,
+    motivo: `Tabela ${refTabela}`,
   };
+
 }
 
 async function registrarDivergencia(db: Db, cteId: string, motivo: string) {
