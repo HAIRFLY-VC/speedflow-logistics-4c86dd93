@@ -34,7 +34,9 @@ async function getTolerancia(db: Db) {
   };
 }
 
-/** Seleciona a tabela vigente mais específica (UF do CT-e antes da genérica). */
+/** Seleciona a tabela vigente mais específica (UF do CT-e antes da genérica).
+ *  Se nenhuma tabela estiver vigente na data de emissão (ex.: tabela cadastrada
+ *  depois), usa a vigente hoje / a mais recente cadastrada da transportadora. */
 async function pickTabela(
   db: Db,
   transportadoraId: string,
@@ -42,24 +44,34 @@ async function pickTabela(
   emissao: string | null,
 ) {
   const dia = (emissao ? new Date(emissao) : new Date()).toISOString().slice(0, 10);
+  const hoje = new Date().toISOString().slice(0, 10);
   const { data, error } = await db
     .from("tabelas_preco_frete")
-    .select("*, tabelas_preco_frete_faixas(*)")
+    .select("*, tabelas_preco_frete_faixas(*), tabelas_preco_frete_rotas(*)")
     .eq("transportadora_id", transportadoraId)
-    .eq("ativo", true)
-    .lte("data_inicio", dia);
+    .eq("ativo", true);
   if (error) throw new Error(error.message);
 
-  const vigentes = (data ?? []).filter(
-    (t) => !t.data_fim || t.data_fim >= dia,
+  const todas = data ?? [];
+  const vigentesEm = (ref: string) =>
+    todas.filter((t) => t.data_inicio <= ref && (!t.data_fim || t.data_fim >= ref));
+
+  const escolher = (lista: typeof todas) => {
+    const especificas = lista.filter((t) => t.uf_destino && t.uf_destino === ufDestino);
+    const genericas = lista.filter((t) => !t.uf_destino);
+    return [...especificas, ...genericas].sort(
+      (a, b) => (a.data_inicio < b.data_inicio ? 1 : -1),
+    )[0];
+  };
+
+  return (
+    escolher(vigentesEm(dia)) ??
+    escolher(vigentesEm(hoje)) ??
+    escolher(todas) ??
+    null
   );
-  const especificas = vigentes.filter((t) => t.uf_destino && t.uf_destino === ufDestino);
-  const genericas = vigentes.filter((t) => !t.uf_destino);
-  const escolhida = [...especificas, ...genericas].sort(
-    (a, b) => (a.data_inicio < b.data_inicio ? 1 : -1),
-  )[0];
-  return escolhida ?? null;
 }
+
 
 type Tabela = NonNullable<Awaited<ReturnType<typeof pickTabela>>>;
 
