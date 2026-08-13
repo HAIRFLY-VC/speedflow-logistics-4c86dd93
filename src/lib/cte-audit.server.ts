@@ -79,27 +79,63 @@ function calcularEsperado(
   tabela: Tabela,
   peso: number,
   valorMercadoria: number,
-): { itens: AuditItem[]; total: number } {
+  cobradoTotal = 0,
+): { itens: AuditItem[]; total: number; rota?: string } {
   const itens: AuditItem[] = [];
+  const rotas = tabela.tabelas_preco_frete_rotas ?? [];
 
   let base = 0;
-  if (tabela.tipo_calculo === "peso") {
-    const faixas = [...(tabela.tabelas_preco_frete_faixas ?? [])].sort(
-      (a, b) => Number(a.peso_de) - Number(b.peso_de),
-    );
-    const faixa =
-      faixas.find(
-        (f) =>
-          peso >= Number(f.peso_de) && (f.peso_ate == null || peso <= Number(f.peso_ate)),
-      ) ?? faixas[faixas.length - 1];
-    if (faixa) base = Number(faixa.valor_fixo_faixa) + Number(faixa.valor_por_kg) * peso;
+  let rotaNome: string | undefined;
+
+  if (rotas.length > 0) {
+    // Tabela por origem/destino: escolhe a rota cujo valor calculado mais se
+    // aproxima do frete cobrado (o CT-e não traz o nome da praça da tabela).
+    const candidatas = rotas.map((r) => {
+      const pesoCob = Math.max(peso, Number(r.peso_minimo_kg ?? 0));
+      const fretePeso = pesoCob * Number(r.tarifa_frete_peso ?? 0);
+      const freteValor = (Number(r.frete_valor_percentual ?? 0) / 100) * valorMercadoria;
+      let sub = fretePeso + freteValor;
+      const min = Number(r.frete_minimo ?? 0);
+      if (min > 0 && sub < min) sub = min;
+      const despacho = Number(r.taxa_despacho ?? 0);
+      return {
+        rota: `${r.origem} → ${r.destino}`,
+        fretePeso,
+        freteValor,
+        despacho,
+        total: sub + despacho,
+      };
+    });
+    const escolhida = candidatas.sort(
+      (a, b) => Math.abs(a.total - cobradoTotal) - Math.abs(b.total - cobradoTotal),
+    )[0]!;
+    rotaNome = escolhida.rota;
+    itens.push({ nome: "FRETE PESO", esperado: round2(escolhida.fretePeso), cobrado: null });
+    itens.push({ nome: "FRETE VALOR", esperado: round2(escolhida.freteValor), cobrado: null });
+    if (escolhida.despacho) {
+      itens.push({ nome: "DESPACHO", esperado: round2(escolhida.despacho), cobrado: null });
+    }
+    base = escolhida.total;
   } else {
-    base = (Number(tabela.percentual_valor) / 100) * valorMercadoria;
+    if (tabela.tipo_calculo === "peso") {
+      const faixas = [...(tabela.tabelas_preco_frete_faixas ?? [])].sort(
+        (a, b) => Number(a.peso_de) - Number(b.peso_de),
+      );
+      const faixa =
+        faixas.find(
+          (f) =>
+            peso >= Number(f.peso_de) && (f.peso_ate == null || peso <= Number(f.peso_ate)),
+        ) ?? faixas[faixas.length - 1];
+      if (faixa) base = Number(faixa.valor_fixo_faixa) + Number(faixa.valor_por_kg) * peso;
+    } else {
+      base = (Number(tabela.percentual_valor) / 100) * valorMercadoria;
+    }
+
+    const minimo = Number(tabela.frete_minimo);
+    if (minimo > 0 && base < minimo) base = minimo;
+    itens.push({ nome: "FRETE", esperado: round2(base), cobrado: null });
   }
 
-  const minimo = Number(tabela.frete_minimo);
-  if (minimo > 0 && base < minimo) base = minimo;
-  itens.push({ nome: "FRETE", esperado: round2(base), cobrado: null });
 
   const gris = (Number(tabela.gris_percentual) / 100) * valorMercadoria;
   const adv = (Number(tabela.ad_valorem_percentual) / 100) * valorMercadoria;
