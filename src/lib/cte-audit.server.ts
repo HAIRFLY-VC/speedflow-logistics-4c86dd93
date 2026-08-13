@@ -257,12 +257,21 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     .update({ status: resultado === "OK" ? "APROVADO" : "DIVERGENTE" })
     .eq("id", cte.id);
 
+  const refTabela = rota ? `"${tabela.nome}" (rota ${rota})` : `"${tabela.nome}"`;
+
   if (resultado === "DIVERGENTE") {
     await registrarDivergencia(
       db,
       cte.id,
-      `Diferença de ${diferenca.toFixed(2)} (${percentual.toFixed(2)}%) em relação à tabela "${tabela.nome}"`,
+      `Diferença de ${diferenca.toFixed(2)} (${percentual.toFixed(2)}%) em relação à tabela ${refTabela}`,
     );
+  } else {
+    // Auditoria bateu: encerra divergências abertas anteriores (ex.: "sem tabela vigente").
+    await db
+      .from("cte_divergencias")
+      .update({ status: "RESOLVIDA", resolvido_em: new Date().toISOString() })
+      .eq("cte_id", cte.id)
+      .neq("status", "RESOLVIDA");
   }
 
   return {
@@ -275,7 +284,9 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     percentual_diferenca: percentual,
     tabela_preco_id: tabela.id,
     detalhamento,
+    motivo: `Tabela ${refTabela}`,
   };
+
 }
 
 async function registrarDivergencia(db: Db, cteId: string, motivo: string) {
