@@ -15,6 +15,8 @@ import {
   solicitarCapturaCte,
   getUltimoComandoCaptura,
   cancelarCapturaCte,
+  getRemetentesIgnorados,
+  cadastrarEmpresaRemetente,
 } from "@/lib/cte-captura.functions";
 import { CteDetailDialog } from "@/components/ctes/CteDetailDialog";
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
