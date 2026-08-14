@@ -217,16 +217,21 @@ function EmpresaDialog({
   const salvar = useMutation({
     mutationFn: async () => {
       if (!isEditing && !dados) throw new Error("Consulte o CNPJ antes de salvar");
-      const payload = isEditing
-        ? { razao_social: razaoSocial.trim(), ativo }
-        : { cnpj: dados!.cnpj, razao_social: dados!.razao_social, ativo: true };
-      const { error } = await supabase
-        .from("empresas")
-        .upsert(
-          isEditing ? { id: editing!.id, ...payload } : payload,
-          isEditing ? {} : { onConflict: "cnpj" },
-        );
-      if (error) throw error;
+      if (isEditing) {
+        const { error } = await supabase
+          .from("empresas")
+          .update({ razao_social: razaoSocial.trim(), ativo })
+          .eq("id", editing!.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("empresas")
+          .upsert(
+            { cnpj: dados!.cnpj, razao_social: dados!.razao_social, ativo: true },
+            { onConflict: "cnpj" },
+          );
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       toast.success(isEditing ? "Empresa atualizada" : "Empresa cadastrada");
