@@ -320,10 +320,12 @@ export type Database = {
           chave_acesso: string | null
           cnpj_destinatario: string | null
           cnpj_emitente: string | null
+          cnpj_remetente: string | null
           created_at: string
           cte_id: string | null
           id: string
           mensagem: string | null
+          nome_remetente: string | null
           origem: Database["public"]["Enums"]["cte_origem_captura"]
           resultado: string
         }
@@ -331,10 +333,12 @@ export type Database = {
           chave_acesso?: string | null
           cnpj_destinatario?: string | null
           cnpj_emitente?: string | null
+          cnpj_remetente?: string | null
           created_at?: string
           cte_id?: string | null
           id?: string
           mensagem?: string | null
+          nome_remetente?: string | null
           origem?: Database["public"]["Enums"]["cte_origem_captura"]
           resultado: string
         }
@@ -342,10 +346,12 @@ export type Database = {
           chave_acesso?: string | null
           cnpj_destinatario?: string | null
           cnpj_emitente?: string | null
+          cnpj_remetente?: string | null
           created_at?: string
           cte_id?: string | null
           id?: string
           mensagem?: string | null
+          nome_remetente?: string | null
           origem?: Database["public"]["Enums"]["cte_origem_captura"]
           resultado?: string
         }
