@@ -68,6 +68,8 @@ export async function ingestCteXml(params: {
       chave_acesso: parsed.chave_acesso,
       cnpj_emitente: parsed.cnpj_emitente,
       cnpj_destinatario: parsed.cnpj_destinatario,
+      cnpj_remetente: parsed.cnpj_remetente,
+      nome_remetente: parsed.nome_remetente,
       mensagem: msg,
     });
     return {
@@ -92,6 +94,8 @@ export async function ingestCteXml(params: {
       chave_acesso: parsed.chave_acesso,
       cnpj_emitente: parsed.cnpj_emitente,
       cnpj_destinatario: parsed.cnpj_destinatario,
+      cnpj_remetente: parsed.cnpj_remetente,
+      nome_remetente: parsed.nome_remetente,
       mensagem: "CT-e já cadastrado",
       cte_id: existing.id,
     });
@@ -139,6 +143,8 @@ export async function ingestCteXml(params: {
       cnpj_emitente: parsed.cnpj_emitente,
       nome_emitente: parsed.nome_emitente,
       cnpj_destinatario: parsed.cnpj_destinatario,
+      cnpj_remetente: parsed.cnpj_remetente,
+      nome_remetente: parsed.nome_remetente,
       data_emissao: parsed.data_emissao,
       valor_total_frete: parsed.valor_total_frete,
       valor_mercadoria: parsed.valor_mercadoria,
@@ -163,6 +169,8 @@ export async function ingestCteXml(params: {
     chave_acesso: parsed.chave_acesso,
     cnpj_emitente: parsed.cnpj_emitente,
     cnpj_destinatario: parsed.cnpj_destinatario,
+      cnpj_remetente: parsed.cnpj_remetente,
+      nome_remetente: parsed.nome_remetente,
     mensagem: transportadoraId
       ? empresaId
         ? null
