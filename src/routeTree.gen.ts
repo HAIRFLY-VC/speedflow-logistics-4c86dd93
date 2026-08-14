@@ -20,6 +20,7 @@ import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authen
 import { Route as AuthenticatedConfiguracoesFretesRouteImport } from './routes/_authenticated/configuracoes-fretes'
 import { Route as AuthenticatedCtesRouteImport } from './routes/_authenticated/ctes'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticated/empresas'
 import { Route as AuthenticatedFretistasRouteImport } from './routes/_authenticated/fretistas'
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
 import { Route as AuthenticatedMinhasRotasRouteImport } from './routes/_authenticated/minhas-rotas'
@@ -95,6 +96,11 @@ const AuthenticatedCtesRoute = AuthenticatedCtesRouteImport.update({
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEmpresasRoute = AuthenticatedEmpresasRouteImport.update({
+  id: '/empresas',
+  path: '/empresas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedFretistasRoute = AuthenticatedFretistasRouteImport.update({
@@ -214,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes-fretes': typeof AuthenticatedConfiguracoesFretesRoute
   '/ctes': typeof AuthenticatedCtesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/empresas': typeof AuthenticatedEmpresasRoute
   '/fretistas': typeof AuthenticatedFretistasRoute
   '/kanban': typeof AuthenticatedKanbanRoute
   '/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
@@ -245,6 +252,7 @@ export interface FileRoutesByTo {
   '/configuracoes-fretes': typeof AuthenticatedConfiguracoesFretesRoute
   '/ctes': typeof AuthenticatedCtesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/empresas': typeof AuthenticatedEmpresasRoute
   '/fretistas': typeof AuthenticatedFretistasRoute
   '/kanban': typeof AuthenticatedKanbanRoute
   '/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
@@ -278,6 +286,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracoes-fretes': typeof AuthenticatedConfiguracoesFretesRoute
   '/_authenticated/ctes': typeof AuthenticatedCtesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/empresas': typeof AuthenticatedEmpresasRoute
   '/_authenticated/fretistas': typeof AuthenticatedFretistasRoute
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
   '/_authenticated/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
@@ -311,6 +320,7 @@ export interface FileRouteTypes {
     | '/configuracoes-fretes'
     | '/ctes'
     | '/dashboard'
+    | '/empresas'
     | '/fretistas'
     | '/kanban'
     | '/minhas-rotas'
@@ -342,6 +352,7 @@ export interface FileRouteTypes {
     | '/configuracoes-fretes'
     | '/ctes'
     | '/dashboard'
+    | '/empresas'
     | '/fretistas'
     | '/kanban'
     | '/minhas-rotas'
@@ -374,6 +385,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracoes-fretes'
     | '/_authenticated/ctes'
     | '/_authenticated/dashboard'
+    | '/_authenticated/empresas'
     | '/_authenticated/fretistas'
     | '/_authenticated/kanban'
     | '/_authenticated/minhas-rotas'
@@ -483,6 +495,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/empresas': {
+      id: '/_authenticated/empresas'
+      path: '/empresas'
+      fullPath: '/empresas'
+      preLoaderRoute: typeof AuthenticatedEmpresasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/fretistas': {
@@ -630,6 +649,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfiguracoesFretesRoute: typeof AuthenticatedConfiguracoesFretesRoute
   AuthenticatedCtesRoute: typeof AuthenticatedCtesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedEmpresasRoute: typeof AuthenticatedEmpresasRoute
   AuthenticatedFretistasRoute: typeof AuthenticatedFretistasRoute
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
   AuthenticatedMinhasRotasRoute: typeof AuthenticatedMinhasRotasRoute
@@ -655,6 +675,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfiguracoesFretesRoute: AuthenticatedConfiguracoesFretesRoute,
   AuthenticatedCtesRoute: AuthenticatedCtesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedEmpresasRoute: AuthenticatedEmpresasRoute,
   AuthenticatedFretistasRoute: AuthenticatedFretistasRoute,
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
   AuthenticatedMinhasRotasRoute: AuthenticatedMinhasRotasRoute,
