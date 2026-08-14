@@ -98,6 +98,12 @@ export function parseCteXml(xml: string): ParsedCte {
 
   const dh = tagValue(ide, "dhEmi") ?? tagValue(ide, "dEmi");
 
+  const tipoCte = Number(onlyDigits(tagValue(ide, "tpCTe") ?? "0") || 0);
+  const compSec = sectionOf(xml, "infCteComp");
+  let chaveComplementado = compSec ? onlyDigits(tagValue(compSec, "chCTe") ?? "") : "";
+  if (chaveComplementado.length !== 44) chaveComplementado = "";
+
+
   return {
     chave_acesso: chave,
     numero: tagValue(ide, "nCT"),
