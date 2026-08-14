@@ -24,14 +24,24 @@ type Cte = Tables<"ctes">;
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-function Field({ label, value }: { label: string; value: React.ReactNode }) {
+function Field({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: React.ReactNode;
+  hint?: React.ReactNode;
+}) {
   return (
     <div className="space-y-0.5">
       <div className="text-muted-foreground text-xs">{label}</div>
       <div className="text-sm font-medium break-words">{value ?? "—"}</div>
+      {hint ? <div className="text-muted-foreground text-xs break-words">{hint}</div> : null}
     </div>
   );
 }
+
 
 export function CteDetailDialog({
   cte,
@@ -111,6 +121,30 @@ export function CteDetailDialog({
     },
   });
 
+  // Razão social do destinatário: procura na NF-e referenciada e, se não achar, no cadastro de clientes.
+  const { data: nomeDestinatario } = useQuery({
+    queryKey: ["cte-nome-destinatario", cte?.cnpj_destinatario],
+    enabled: !!cte?.cnpj_destinatario && open,
+    queryFn: async () => {
+      const cnpj = cte!.cnpj_destinatario!;
+      const { data: nfe } = await supabase
+        .from("nfes")
+        .select("nome_destinatario")
+        .eq("cnpj_destinatario", cnpj)
+        .limit(1)
+        .maybeSingle();
+      if (nfe?.nome_destinatario) return nfe.nome_destinatario;
+      const { data: cli } = await supabase
+        .from("customers")
+        .select("legal_name")
+        .eq("cnpj", cnpj)
+        .limit(1)
+        .maybeSingle();
+      return cli?.legal_name ?? null;
+    },
+  });
+
+
   const qc = useQueryClient();
   const runAudit = useServerFn(auditarCte);
   const audit = useMutation({
@@ -162,8 +196,17 @@ export function CteDetailDialog({
         <div className="space-y-5">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Field label="Transportadora" value={transportadoraNome ?? "Não identificada"} />
-            <Field label="CNPJ emitente" value={cte.cnpj_emitente ?? "—"} />
-            <Field label="CNPJ destinatário" value={cte.cnpj_destinatario ?? "—"} />
+            <Field
+              label="CNPJ emitente"
+              value={cte.cnpj_emitente ?? "—"}
+              hint={cte.nome_emitente ?? transportadoraNome ?? undefined}
+            />
+            <Field
+              label="CNPJ destinatário"
+              value={cte.cnpj_destinatario ?? "—"}
+              hint={nomeDestinatario ?? undefined}
+            />
+
             <Field
               label="Emissão"
               value={
