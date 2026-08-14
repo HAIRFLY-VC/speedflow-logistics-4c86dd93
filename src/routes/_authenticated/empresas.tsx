@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Loader2, Search } from "lucide-react";
+import { Plus, Loader2, Search, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/_authenticated/empresas")({
       { property: "og:title", content: "Empresas | SpeedFlow Logistics" },
       {
         property: "og:description",
-        content: "Cadastre empresas informando apenas o CNPJ e importe os dados oficiais.",
+        content: "Cadastre e edite empresas informando o CNPJ e importe os dados oficiais.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -58,6 +58,7 @@ const formatCnpj = (v: string) => {
 function EmpresasPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Empresa | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["empresas"],
@@ -98,6 +99,25 @@ function EmpresasPage() {
         accessor: (e) => (e.ativo ? "sim" : "não"),
         render: (e) => <Switch checked={e.ativo} onCheckedChange={() => toggle.mutate(e)} />,
       },
+      {
+        id: "acoes",
+        header: "",
+        align: "right",
+        accessor: () => "",
+        render: (e) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setEditing(e);
+              setOpen(true);
+            }}
+          >
+            <Pencil className="h-4 w-4" />
+            <span className="sr-only">Editar</span>
+          </Button>
+        ),
+      },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -113,7 +133,12 @@ function EmpresasPage() {
               Empresas remetentes (detentoras do certificado A1) consideradas na importação de CT-e.
             </p>
           </div>
-          <Button onClick={() => setOpen(true)}>
+          <Button
+            onClick={() => {
+              setEditing(null);
+              setOpen(true);
+            }}
+          >
             <Plus className="h-4 w-4 mr-1" /> Nova empresa
           </Button>
         </div>
@@ -132,8 +157,10 @@ function EmpresasPage() {
       <EmpresaDialog
         open={open}
         onOpenChange={setOpen}
+        editing={editing}
         onSaved={() => {
           setOpen(false);
+          setEditing(null);
           void qc.invalidateQueries({ queryKey: ["empresas"] });
           void qc.invalidateQueries({ queryKey: ["cte-remetentes-ignorados"] });
         }}
@@ -145,19 +172,42 @@ function EmpresasPage() {
 function EmpresaDialog({
   open,
   onOpenChange,
+  editing,
   onSaved,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  editing: Empresa | null;
   onSaved: () => void;
 }) {
   const consultar = useServerFn(consultarCnpj);
   const [cnpj, setCnpj] = useState("");
+  const [razaoSocial, setRazaoSocial] = useState("");
+  const [ativo, setAtivo] = useState(true);
   const [dados, setDados] = useState<ConsultaCnpj | null>(null);
+
+  const isEditing = !!editing;
+
+  useEffect(() => {
+    if (editing) {
+      setCnpj(editing.cnpj);
+      setRazaoSocial(editing.razao_social);
+      setAtivo(editing.ativo);
+      setDados(null);
+    } else if (open) {
+      setCnpj("");
+      setRazaoSocial("");
+      setAtivo(true);
+      setDados(null);
+    }
+  }, [editing, open]);
 
   const buscar = useMutation({
     mutationFn: async () => consultar({ data: { cnpj } }),
-    onSuccess: (d) => setDados(d),
+    onSuccess: (d) => {
+      setDados(d);
+      setRazaoSocial(d.razao_social);
+    },
     onError: (e: Error) => {
       setDados(null);
       toast.error(e.message);
@@ -166,19 +216,25 @@ function EmpresaDialog({
 
   const salvar = useMutation({
     mutationFn: async () => {
-      if (!dados) throw new Error("Consulte o CNPJ antes de salvar");
-      const { error } = await supabase
-        .from("empresas")
-        .upsert(
-          { cnpj: dados.cnpj, razao_social: dados.razao_social, ativo: true },
-          { onConflict: "cnpj" },
-        );
-      if (error) throw error;
+      if (!isEditing && !dados) throw new Error("Consulte o CNPJ antes de salvar");
+      if (isEditing) {
+        const { error } = await supabase
+          .from("empresas")
+          .update({ razao_social: razaoSocial.trim(), ativo })
+          .eq("id", editing!.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("empresas")
+          .upsert(
+            { cnpj: dados!.cnpj, razao_social: dados!.razao_social, ativo: true },
+            { onConflict: "cnpj" },
+          );
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      toast.success("Empresa cadastrada");
-      setCnpj("");
-      setDados(null);
+      toast.success(isEditing ? "Empresa atualizada" : "Empresa cadastrada");
       onSaved();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -191,16 +247,19 @@ function EmpresaDialog({
         onOpenChange(o);
         if (!o) {
           setCnpj("");
+          setRazaoSocial("");
+          setAtivo(true);
           setDados(null);
         }
       }}
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nova empresa</DialogTitle>
+          <DialogTitle>{isEditing ? "Editar empresa" : "Nova empresa"}</DialogTitle>
           <DialogDescription>
-            Informe apenas o CNPJ — os dados cadastrais são importados da base oficial da
-            Receita/SEFAZ.
+            {isEditing
+              ? "Altere a razão social e o status da empresa."
+              : "Informe apenas o CNPJ — os dados cadastrais são importados da base oficial da Receita/SEFAZ."}
           </DialogDescription>
         </DialogHeader>
 
@@ -216,25 +275,45 @@ function EmpresaDialog({
                   setDados(null);
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && cnpj.length === 14) buscar.mutate();
+                  if (!isEditing && e.key === "Enter" && cnpj.length === 14) buscar.mutate();
                 }}
                 placeholder="00.000.000/0000-00"
                 inputMode="numeric"
+                disabled={isEditing}
               />
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={cnpj.length !== 14 || buscar.isPending}
-                onClick={() => buscar.mutate()}
-              >
-                {buscar.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4" />
-                )}
-                <span className="ml-1">Buscar</span>
-              </Button>
+              {!isEditing ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={cnpj.length !== 14 || buscar.isPending}
+                  onClick={() => buscar.mutate()}
+                >
+                  {buscar.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                  <span className="ml-1">Buscar</span>
+                </Button>
+              ) : null}
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="razao_social">Razão social</Label>
+            <Input
+              id="razao_social"
+              value={razaoSocial}
+              onChange={(e) => setRazaoSocial(e.target.value)}
+              placeholder="Razão social da empresa"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Switch id="ativo" checked={ativo} onCheckedChange={setAtivo} />
+            <Label htmlFor="ativo" className="cursor-pointer">
+              Empresa ativa
+            </Label>
           </div>
 
           {dados ? (
@@ -257,7 +336,10 @@ function EmpresaDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button disabled={!dados || salvar.isPending} onClick={() => salvar.mutate()}>
+          <Button
+            disabled={!razaoSocial.trim() || salvar.isPending || (!isEditing && !dados)}
+            onClick={() => salvar.mutate()}
+          >
             {salvar.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
             Salvar empresa
           </Button>
@@ -266,3 +348,4 @@ function EmpresaDialog({
     </Dialog>
   );
 }
+
