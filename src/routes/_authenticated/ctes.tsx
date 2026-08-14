@@ -125,7 +125,17 @@ function CtesPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
-
+  // Aviso de descartes: some ao fechar e pode ser silenciado definitivamente.
+  const AVISO_KEY = "cte-descartes-aviso-oculto";
+  const [avisoFechado, setAvisoFechado] = useState(false);
+  const [avisoSilenciado, setAvisoSilenciado] = useState(true);
+  useEffect(() => {
+    setAvisoSilenciado(localStorage.getItem(AVISO_KEY) === "1");
+  }, []);
+  const ocultarSempre = () => {
+    localStorage.setItem(AVISO_KEY, "1");
+    setAvisoSilenciado(true);
+  };
 
 
   // Tempo decorrido desde a solicitação, para o usuário saber que está aguardando o robô.
