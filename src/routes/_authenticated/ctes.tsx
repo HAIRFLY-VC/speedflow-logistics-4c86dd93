@@ -607,7 +607,13 @@ function CtesPage() {
                 </li>
               ))}
             </ul>
+            <div className="mt-3">
+              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={ocultarSempre}>
+                Não exibir novamente
+              </Button>
+            </div>
           </div>
+
         )}
 
 
