@@ -119,5 +119,7 @@ export function parseCteXml(xml: string): ParsedCte {
     uf_destino: tagValue(ide, "UFFim") ?? tagValue(ide, "UFEnv"),
     componentes,
     nfs_referenciadas: Array.from(nfs),
+    tipo_cte: tipoCte,
+    chave_cte_complementado: chaveComplementado || null,
   };
 }
