@@ -193,7 +193,7 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
 
 
   if (!cte.transportadora_id) {
-    await db.from("ctes").update({ status: "PENDENTE_IDENTIFICACAO" }).eq("id", cte.id);
+    await db.from("ctes").update({ status: "PENDENTE_IDENTIFICACAO" }).in("id", grupoIds);
     return {
       cte_id: cte.id,
       chave_acesso: cte.chave_acesso,
@@ -218,8 +218,10 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
   const tolerancia = await getTolerancia(db);
 
   if (!tabela) {
-    await db.from("ctes").update({ status: "DIVERGENTE" }).eq("id", cte.id);
-    await registrarDivergencia(db, cte.id, "Sem tabela de preço vigente para a transportadora");
+    await db.from("ctes").update({ status: "DIVERGENTE" }).in("id", grupoIds);
+    for (const id of grupoIds) {
+      await registrarDivergencia(db, id, "Sem tabela de preço vigente para a transportadora");
+    }
     return {
       cte_id: cte.id,
       chave_acesso: cte.chave_acesso,
@@ -352,7 +354,7 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     percentual_diferenca: percentual,
     tabela_preco_id: tabela.id,
     detalhamento,
-    motivo: `Tabela ${refTabela}`,
+    motivo: `Tabela ${refTabela}${refGrupo}`,
   };
 
 }
