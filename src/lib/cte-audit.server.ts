@@ -298,40 +298,49 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     percentual <= tolerancia.tolerancia_percentual;
   const resultado: "OK" | "DIVERGENTE" = dentroTolerancia ? "OK" : "DIVERGENTE";
 
-  const { error: insErr } = await db.from("cte_auditorias").insert({
-    cte_id: cte.id,
-    tabela_preco_id: tabela.id,
-    valor_esperado_total: total,
-    valor_cobrado_total: cobrado,
-    diferenca,
-    percentual_diferenca: percentual,
-    detalhamento: detalhamento as unknown as Database["public"]["Tables"]["cte_auditorias"]["Insert"]["detalhamento"],
-    tolerancia_aplicada: tolerancia as unknown as Database["public"]["Tables"]["cte_auditorias"]["Insert"]["tolerancia_aplicada"],
-    resultado,
-  });
+  const { error: insErr } = await db.from("cte_auditorias").insert(
+    grupoIds.map((id) => ({
+      cte_id: id,
+      tabela_preco_id: tabela.id,
+      valor_esperado_total: total,
+      valor_cobrado_total: cobrado,
+      diferenca,
+      percentual_diferenca: percentual,
+      detalhamento: detalhamento as unknown as Database["public"]["Tables"]["cte_auditorias"]["Insert"]["detalhamento"],
+      tolerancia_aplicada: tolerancia as unknown as Database["public"]["Tables"]["cte_auditorias"]["Insert"]["tolerancia_aplicada"],
+      resultado,
+    })),
+  );
   if (insErr) throw new Error(insErr.message);
 
   await db
     .from("ctes")
     .update({ status: resultado === "OK" ? "APROVADO" : "DIVERGENTE" })
-    .eq("id", cte.id);
+    .in("id", grupoIds);
 
   const refTabela = rota ? `"${tabela.nome}" (rota ${rota})` : `"${tabela.nome}"`;
+  const refGrupo =
+    complementos.length > 0
+      ? ` (auditoria conjunta: CT-e original + ${complementos.length} complemento(s))`
+      : "";
 
   if (resultado === "DIVERGENTE") {
-    await registrarDivergencia(
-      db,
-      cte.id,
-      `Diferença de ${diferenca.toFixed(2)} (${percentual.toFixed(2)}%) em relação à tabela ${refTabela}`,
-    );
+    for (const id of grupoIds) {
+      await registrarDivergencia(
+        db,
+        id,
+        `Diferença de ${diferenca.toFixed(2)} (${percentual.toFixed(2)}%) em relação à tabela ${refTabela}${refGrupo}`,
+      );
+    }
   } else {
     // Auditoria bateu: encerra divergências abertas anteriores (ex.: "sem tabela vigente").
     await db
       .from("cte_divergencias")
       .update({ status: "RESOLVIDA", resolvido_em: new Date().toISOString() })
-      .eq("cte_id", cte.id)
+      .in("cte_id", grupoIds)
       .neq("status", "RESOLVIDA");
   }
+
 
   return {
     cte_id: cte.id,
