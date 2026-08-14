@@ -196,8 +196,17 @@ export function CteDetailDialog({
         <div className="space-y-5">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Field label="Transportadora" value={transportadoraNome ?? "Não identificada"} />
-            <Field label="CNPJ emitente" value={cte.cnpj_emitente ?? "—"} />
-            <Field label="CNPJ destinatário" value={cte.cnpj_destinatario ?? "—"} />
+            <Field
+              label="CNPJ emitente"
+              value={cte.cnpj_emitente ?? "—"}
+              hint={cte.nome_emitente ?? transportadoraNome ?? undefined}
+            />
+            <Field
+              label="CNPJ destinatário"
+              value={cte.cnpj_destinatario ?? "—"}
+              hint={nomeDestinatario ?? undefined}
+            />
+
             <Field
               label="Emissão"
               value={
