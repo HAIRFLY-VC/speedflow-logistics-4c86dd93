@@ -81,7 +81,8 @@ function CtesPage() {
   });
 
   const forcarImportacao = useMutation({
-    mutationFn: async () => solicitarCaptura(),
+    mutationFn: async (reiniciarNsu: boolean = false) =>
+      solicitarCaptura({ data: { reiniciarNsu } }),
     onSuccess: (r) => {
       if (r.jaSolicitado) {
         toast.info("Já existe uma importação em andamento. Aguarde a conclusão.");
@@ -461,7 +462,7 @@ function CtesPage() {
             <Button
               variant="outline"
               disabled={forcarImportacao.isPending || capturaEmAndamento}
-              onClick={() => forcarImportacao.mutate()}
+              onClick={() => forcarImportacao.mutate(false)}
               title="Solicita ao robô a busca imediata de novos CT-e emitidos contra a empresa"
             >
               {forcarImportacao.isPending || capturaEmAndamento ? (
@@ -472,6 +473,22 @@ function CtesPage() {
               {capturaEmAndamento
                 ? `Aguardando robô (${segundosEsperando}s)`
                 : "Forçar importação"}
+            </Button>
+            <Button
+              variant="outline"
+              disabled={forcarImportacao.isPending || capturaEmAndamento}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "Reimportar todos os CT-e desde o início? O robô fará uma varredura completa na SEFAZ.",
+                  )
+                )
+                  forcarImportacao.mutate(true);
+              }}
+              title="Reprocessa todos os CT-e disponíveis na SEFAZ desde o primeiro documento"
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Reimportar tudo
             </Button>
             {capturaEmAndamento && (
               <Button

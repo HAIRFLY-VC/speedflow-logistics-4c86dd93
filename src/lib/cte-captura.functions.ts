@@ -10,7 +10,10 @@ async function assertStaff(context: { supabase: any; userId: string }) {
 
 export const solicitarCapturaCte = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((data?: { reiniciarNsu?: boolean }) => ({
+    reiniciarNsu: Boolean(data?.reiniciarNsu),
+  }))
+  .handler(async ({ context, data }) => {
     await assertStaff(context);
 
     const { data: pendente } = await context.supabase
@@ -25,15 +28,16 @@ export const solicitarCapturaCte = createServerFn({ method: "POST" })
       return { id: pendente.id as string, jaSolicitado: true };
     }
 
-    const { data, error } = await context.supabase
+    const { data: novo, error } = await context.supabase
       .from("cte_captura_comandos")
-      .insert({ solicitado_por: context.userId })
+      .insert({ solicitado_por: context.userId, reiniciar_nsu: data.reiniciarNsu })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
 
-    return { id: data.id as string, jaSolicitado: false };
+    return { id: novo.id as string, jaSolicitado: false };
   });
+
 
 const LIMITE_PENDENTE_MS = 3 * 60 * 1000;
 const LIMITE_PROCESSANDO_MS = 10 * 60 * 1000;

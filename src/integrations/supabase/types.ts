@@ -237,6 +237,7 @@ export type Database = {
           iniciado_em: string | null
           mensagem: string | null
           novos_ctes: number
+          reiniciar_nsu: boolean
           solicitado_por: string | null
           status: string
           updated_at: string
@@ -248,6 +249,7 @@ export type Database = {
           iniciado_em?: string | null
           mensagem?: string | null
           novos_ctes?: number
+          reiniciar_nsu?: boolean
           solicitado_por?: string | null
           status?: string
           updated_at?: string
@@ -259,6 +261,7 @@ export type Database = {
           iniciado_em?: string | null
           mensagem?: string | null
           novos_ctes?: number
+          reiniciar_nsu?: boolean
           solicitado_por?: string | null
           status?: string
           updated_at?: string

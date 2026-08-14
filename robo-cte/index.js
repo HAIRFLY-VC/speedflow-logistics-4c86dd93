@@ -263,7 +263,8 @@ async function verificarComandoCaptura(cfg) {
       null,
       cfg.timeoutMs
     );
-    return resp && resp.forcar ? resp.comandoId : null;
+    if (!resp || !resp.forcar) return null;
+    return { comandoId: resp.comandoId, reiniciarNsu: Boolean(resp.reiniciarNsu) };
   } catch (e) {
     log(`Nao foi possivel consultar comandos de captura: ${e.message}`);
     return null;
@@ -284,10 +285,10 @@ async function reportarComandoCaptura(cfg, comandoId, status, mensagem, novosCte
   }
 }
 
-async function executarCicloEmpresas(cfg, modoTeste) {
+async function executarCicloEmpresas(cfg, modoTeste, reiniciarNsu = false) {
   let total = 0;
   for (let i = 0; i < cfg.empresas.length; i++) {
-    total += (await processarEmpresa(cfg, i, modoTeste)) || 0;
+    total += (await processarEmpresa(cfg, i, modoTeste, reiniciarNsu)) || 0;
     await sleep(1000);
   }
   return total;
@@ -354,7 +355,7 @@ async function processarNfesPendentes(cfg, modoTeste) {
   }
 }
 
-async function processarEmpresa(cfg, empresaIndex, modoTeste) {
+async function processarEmpresa(cfg, empresaIndex, modoTeste, reiniciarNsu = false) {
   const empresa = cfg.empresas[empresaIndex];
   log(`Iniciando consulta para ${empresa.nome} (${empresa.cnpj})`);
 
@@ -363,7 +364,15 @@ async function processarEmpresa(cfg, empresaIndex, modoTeste) {
   }
 
   const client = new SefazCteClient(empresa, cfg.ambiente);
-  let ultimoNsu = getUltimoNsu(cfg, empresaIndex);
+  let ultimoNsu;
+  if (reiniciarNsu) {
+    // Reimportacao total solicitada pelo aplicativo: le desde o primeiro NSU disponivel.
+    ultimoNsu = 0;
+    nsuOrigem = "reimportacao total";
+    if (!modoTeste) writeUltimoNsu(empresaIndex, 0);
+  } else {
+    ultimoNsu = getUltimoNsu(cfg, empresaIndex);
+  }
   log(`NSU inicial=${ultimoNsu} (origem: ${nsuOrigem})`);
   let totalEnviados = 0;
   let totalCiclos = 0;
@@ -482,11 +491,15 @@ async function run() {
         log(`Erro ao ler configuracao: ${e.message}`);
         continue;
       }
-      const comandoId = await verificarComandoCaptura(cfgAtual);
-      if (!comandoId) continue;
-      log(`Importacao forcada solicitada pelo aplicativo (comando ${comandoId})`);
+      const comando = await verificarComandoCaptura(cfgAtual);
+      if (!comando) continue;
+      const { comandoId, reiniciarNsu } = comando;
+      log(
+        `Importacao forcada solicitada pelo aplicativo (comando ${comandoId}` +
+          `${reiniciarNsu ? ", reimportacao total" : ""})`
+      );
       try {
-        const enviados = await executarCicloEmpresas(cfgAtual, false);
+        const enviados = await executarCicloEmpresas(cfgAtual, false, reiniciarNsu);
         await reportarComandoCaptura(
           cfgAtual,
           comandoId,
