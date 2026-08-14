@@ -541,6 +541,54 @@ function CtesPage() {
           </div>
         </div>
 
+        {descartes && descartes.remetentes.length > 0 && (
+          <div className="border-destructive/40 bg-destructive/5 rounded-lg border p-4">
+            <h2 className="text-destructive text-sm font-semibold">
+              CT-e recebidos mas descartados: remetente não cadastrado
+            </h2>
+            <p className="text-muted-foreground mt-1 text-xs">
+              O robô enviou documentos, porém só são importados os CT-e cujo remetente é uma
+              empresa cadastrada
+              {descartes.totalEmpresas === 0 ? " (nenhuma empresa cadastrada hoje)" : ""}. Cadastre
+              o remetente abaixo e use “Reimportar tudo”.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {descartes.remetentes.slice(0, 10).map((r) => (
+                <li
+                  key={r.cnpj}
+                  className="bg-background flex flex-wrap items-center justify-between gap-2 rounded-md border p-2"
+                >
+                  <div>
+                    <div className="font-mono text-xs">{r.cnpj}</div>
+                    <div className="text-xs font-medium">
+                      {r.nome ?? "Nome não informado nos registros"}
+                    </div>
+                    <div className="text-muted-foreground text-xs">
+                      {r.total} documento(s) descartado(s)
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={registrarEmpresa.isPending}
+                    onClick={() => registrarEmpresa.mutate({ cnpj: r.cnpj, nome: r.nome })}
+                  >
+                    {registrarEmpresa.isPending &&
+                    registrarEmpresa.variables?.cnpj === r.cnpj ? (
+                      <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <UserPlus className="mr-1 h-3.5 w-3.5" />
+                    )}
+                    Cadastrar empresa
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+
+
         <DataTable
           tableKey="ctes"
           columns={columns}
