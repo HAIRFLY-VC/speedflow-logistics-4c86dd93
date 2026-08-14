@@ -551,11 +551,22 @@ function CtesPage() {
           </div>
         </div>
 
-        {descartes && descartes.remetentes.length > 0 && (
+        {descartes && descartes.remetentes.length > 0 && !avisoFechado && !avisoSilenciado && (
           <div className="border-destructive/40 bg-destructive/5 rounded-lg border p-4">
-            <h2 className="text-destructive text-sm font-semibold">
-              CT-e recebidos mas descartados: remetente não cadastrado
-            </h2>
+            <div className="flex items-start justify-between gap-2">
+              <h2 className="text-destructive text-sm font-semibold">
+                CT-e recebidos mas descartados: remetente não cadastrado
+              </h2>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2"
+                onClick={() => setAvisoFechado(true)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
             <p className="text-muted-foreground mt-1 text-xs">
               O robô enviou documentos, porém só são importados os CT-e cujo remetente é uma
               empresa cadastrada
