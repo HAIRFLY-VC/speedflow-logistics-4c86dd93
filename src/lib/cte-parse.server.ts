@@ -11,6 +11,7 @@ export type ParsedCte = {
   nome_emitente: string | null;
   cnpj_destinatario: string | null;
   cnpj_remetente: string | null;
+  nome_remetente: string | null;
   data_emissao: string | null;
   valor_total_frete: number;
   valor_mercadoria: number;
@@ -112,6 +113,7 @@ export function parseCteXml(xml: string): ParsedCte {
     nome_emitente: emit ? (tagValue(emit, "xNome") ?? "").trim() || null : null,
     cnpj_destinatario: dest ? onlyDigits(tagValue(dest, "CNPJ") ?? "") || null : null,
     cnpj_remetente: rem ? onlyDigits(tagValue(rem, "CNPJ") ?? "") || null : null,
+    nome_remetente: rem ? (tagValue(rem, "xNome") ?? "").trim() || null : null,
     data_emissao: dh ? new Date(dh).toISOString() : null,
     valor_total_frete: toNumber(tagValue(vPrest, "vTPrest") ?? tagValue(vPrest, "vRec")),
     valor_mercadoria: toNumber(tagValue(infCarga, "vCarga")),
