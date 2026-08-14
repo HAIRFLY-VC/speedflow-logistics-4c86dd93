@@ -72,7 +72,9 @@ export async function ingestCteXml(params: {
     }
   }
   if (!empresaRemetenteId) {
-    const msg = `CT-e ignorado: remetente ${parsed.cnpj_remetente ?? "não informado"} não é uma empresa cadastrada`;
+    const msg = `CT-e ignorado: remetente ${parsed.cnpj_remetente ?? "não informado"}${
+      parsed.nome_remetente ? ` (${parsed.nome_remetente})` : ""
+    } não é uma empresa cadastrada`;
     await logCteIngest({
       origem: params.origem,
       resultado: "IGNORADO",

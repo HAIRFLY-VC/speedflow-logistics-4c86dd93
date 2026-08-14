@@ -118,24 +118,27 @@ export const getRemetentesIgnorados = createServerFn({ method: "GET" })
       { cnpj: string; nome: string | null; total: number; ultimo: string }
     >();
     for (const l of logs ?? []) {
+      const msg = (l.mensagem as string | null) ?? "";
       const cnpj =
         (l.cnpj_remetente as string | null) ??
-        (l.mensagem as string | null)?.match(/remetente\s+(\d{11,14})/)?.[1] ??
+        msg.match(/remetente\s+(\d{11,14})/)?.[1] ??
         null;
       if (!cnpj || cadastrados.has(cnpj)) continue;
+      // A razão social vem do XML (tag xNome do remetente); logs antigos guardam
+      // apenas na mensagem, então também tentamos extrair de lá.
+      const nome =
+        (l.nome_remetente as string | null) ??
+        msg.match(/remetente\s+\d{11,14}\s+\(([^)]+)\)/)?.[1]?.trim() ??
+        null;
       const atual = mapa.get(cnpj);
       if (atual) {
         atual.total += 1;
-        if (!atual.nome && l.nome_remetente) atual.nome = l.nome_remetente as string;
+        if (!atual.nome && nome) atual.nome = nome;
       } else {
-        mapa.set(cnpj, {
-          cnpj,
-          nome: (l.nome_remetente as string | null) ?? null,
-          total: 1,
-          ultimo: l.created_at as string,
-        });
+        mapa.set(cnpj, { cnpj, nome, total: 1, ultimo: l.created_at as string });
       }
     }
+
 
     return {
       totalEmpresas: (empresas ?? []).length,
