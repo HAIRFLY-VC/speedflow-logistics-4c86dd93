@@ -234,16 +234,31 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     };
   }
 
-  const componentes = Array.isArray(cte.componentes)
-    ? (cte.componentes as { nome?: string; valor?: number }[])
-    : [];
+  const compsDe = (c: { componentes: unknown }) =>
+    Array.isArray(c.componentes) ? (c.componentes as { nome?: string; valor?: number }[]) : [];
+
+  const componentes = [
+    ...compsDe(cte),
+    ...complementos.flatMap((c) =>
+      compsDe(c).map((x) => ({
+        nome: `${x.nome ?? "COMPLEMENTO"} (compl. CT-e ${c.numero ?? "s/nº"})`,
+        valor: x.valor,
+      })),
+    ),
+  ];
+
+  // Complementos costumam não repetir peso/valor da carga: usa o maior do grupo.
+  const grupo = [cte, ...complementos];
+  const pesoGrupo = Math.max(...grupo.map((c) => Number(c.peso_taxado ?? 0)), 0);
+  const mercadoriaGrupo = Math.max(...grupo.map((c) => Number(c.valor_mercadoria ?? 0)), 0);
 
   const { itens, total, rota } = calcularEsperado(
     tabela,
-    Number(cte.peso_taxado ?? 0),
-    Number(cte.valor_mercadoria ?? 0),
+    pesoGrupo,
+    mercadoriaGrupo,
     cobrado,
   );
+
 
   const norm = (s: string) => s.toUpperCase().replace(/\s+/g, " ").trim();
   const usados = new Set<number>();
