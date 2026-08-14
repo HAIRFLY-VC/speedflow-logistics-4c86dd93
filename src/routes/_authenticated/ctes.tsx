@@ -559,9 +559,11 @@ function CtesPage() {
                   className="bg-background flex flex-wrap items-center justify-between gap-2 rounded-md border p-2"
                 >
                   <div>
-                    <div className="font-mono text-xs">{r.cnpj}</div>
-                    <div className="text-xs font-medium">
-                      {r.nome ?? "Nome não informado nos registros"}
+                    <div className="flex flex-wrap items-baseline gap-2">
+                      <span className="font-mono text-xs">{r.cnpj}</span>
+                      <span className="text-xs font-medium">
+                        {r.nome ?? "Nome não informado nos registros"}
+                      </span>
                     </div>
                     <div className="text-muted-foreground text-xs">
                       {r.total} documento(s) descartado(s)
