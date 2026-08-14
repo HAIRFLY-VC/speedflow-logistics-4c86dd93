@@ -55,10 +55,21 @@ export async function ingestCteXml(params: {
   if (parsed.cnpj_remetente) {
     const { data } = await supabaseAdmin
       .from("empresas")
-      .select("id")
+      .select("id, razao_social")
       .eq("cnpj", parsed.cnpj_remetente)
       .maybeSingle();
     empresaRemetenteId = data?.id ?? null;
+    // Completa a razão social quando ela foi cadastrada apenas com o CNPJ.
+    if (
+      data?.id &&
+      parsed.nome_remetente &&
+      (!data.razao_social || data.razao_social === `Empresa ${parsed.cnpj_remetente}`)
+    ) {
+      await supabaseAdmin
+        .from("empresas")
+        .update({ razao_social: parsed.nome_remetente })
+        .eq("id", data.id);
+    }
   }
   if (!empresaRemetenteId) {
     const msg = `CT-e ignorado: remetente ${parsed.cnpj_remetente ?? "não informado"} não é uma empresa cadastrada`;
