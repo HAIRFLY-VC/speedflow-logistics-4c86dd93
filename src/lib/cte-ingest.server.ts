@@ -17,6 +17,8 @@ type LogEntry = {
   chave_acesso?: string | null;
   cnpj_emitente?: string | null;
   cnpj_destinatario?: string | null;
+  cnpj_remetente?: string | null;
+  nome_remetente?: string | null;
   mensagem?: string | null;
   cte_id?: string | null;
 };
@@ -31,6 +33,8 @@ export async function logCteIngest(entry: LogEntry): Promise<void> {
       chave_acesso: entry.chave_acesso ?? null,
       cnpj_emitente: entry.cnpj_emitente ?? null,
       cnpj_destinatario: entry.cnpj_destinatario ?? null,
+      cnpj_remetente: entry.cnpj_remetente ?? null,
+      nome_remetente: entry.nome_remetente ?? null,
       mensagem: entry.mensagem ?? null,
       cte_id: entry.cte_id ?? null,
     });
