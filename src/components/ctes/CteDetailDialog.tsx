@@ -24,14 +24,24 @@ type Cte = Tables<"ctes">;
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-function Field({ label, value }: { label: string; value: React.ReactNode }) {
+function Field({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: React.ReactNode;
+  hint?: React.ReactNode;
+}) {
   return (
     <div className="space-y-0.5">
       <div className="text-muted-foreground text-xs">{label}</div>
       <div className="text-sm font-medium break-words">{value ?? "—"}</div>
+      {hint ? <div className="text-muted-foreground text-xs break-words">{hint}</div> : null}
     </div>
   );
 }
+
 
 export function CteDetailDialog({
   cte,
