@@ -18,6 +18,10 @@ export type ParsedCte = {
   uf_destino: string | null;
   componentes: CteComponente[];
   nfs_referenciadas: string[];
+  /** 0 = normal, 1 = complemento de valores, 2 = anulação, 3 = substituto */
+  tipo_cte: number;
+  /** Chave do CT-e original quando este é um complemento. */
+  chave_cte_complementado: string | null;
 };
 
 const onlyDigits = (v: string) => v.replace(/\D/g, "");
