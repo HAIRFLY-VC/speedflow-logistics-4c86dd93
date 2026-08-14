@@ -94,6 +94,23 @@ export function CteDetailDialog({
     },
   });
 
+  // CT-e original -> lista de complementos; CT-e complementar -> o original.
+  const { data: grupo } = useQuery({
+    queryKey: ["cte-grupo", cte?.id, cte?.chave_cte_complementado],
+    enabled: !!cte?.id && open,
+    queryFn: async () => {
+      const q = cte!.chave_cte_complementado
+        ? supabase.from("ctes").select("id, numero, chave_acesso, valor_total_frete").eq("chave_acesso", cte!.chave_cte_complementado)
+        : supabase
+            .from("ctes")
+            .select("id, numero, chave_acesso, valor_total_frete")
+            .eq("chave_cte_complementado", cte!.chave_acesso);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const qc = useQueryClient();
   const runAudit = useServerFn(auditarCte);
   const audit = useMutation({
