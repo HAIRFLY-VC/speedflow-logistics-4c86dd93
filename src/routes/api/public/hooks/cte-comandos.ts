@@ -29,7 +29,7 @@ export const Route = createFileRoute("/api/public/hooks/cte-comandos")({
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { data, error } = await supabaseAdmin
             .from("cte_captura_comandos")
-            .select("id")
+            .select("id, reiniciar_nsu")
             .eq("status", "PENDENTE")
             .order("created_at", { ascending: true })
             .limit(1)
@@ -42,7 +42,11 @@ export const Route = createFileRoute("/api/public/hooks/cte-comandos")({
             .update({ status: "PROCESSANDO", iniciado_em: new Date().toISOString() })
             .eq("id", data.id);
 
-          return Response.json({ forcar: true, comandoId: data.id });
+          return Response.json({
+            forcar: true,
+            comandoId: data.id,
+            reiniciarNsu: Boolean(data.reiniciar_nsu),
+          });
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           return Response.json({ ok: false, error: msg }, { status: 500 });
