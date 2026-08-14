@@ -397,6 +397,7 @@ export type Database = {
       ctes: {
         Row: {
           chave_acesso: string
+          chave_cte_complementado: string | null
           cnpj_destinatario: string | null
           cnpj_emitente: string | null
           componentes: Json
@@ -412,6 +413,7 @@ export type Database = {
           peso_taxado: number | null
           serie: string | null
           status: Database["public"]["Enums"]["cte_status"]
+          tipo_cte: number
           transportadora_id: string | null
           uf_destino: string | null
           updated_at: string
@@ -421,6 +423,7 @@ export type Database = {
         }
         Insert: {
           chave_acesso: string
+          chave_cte_complementado?: string | null
           cnpj_destinatario?: string | null
           cnpj_emitente?: string | null
           componentes?: Json
@@ -436,6 +439,7 @@ export type Database = {
           peso_taxado?: number | null
           serie?: string | null
           status?: Database["public"]["Enums"]["cte_status"]
+          tipo_cte?: number
           transportadora_id?: string | null
           uf_destino?: string | null
           updated_at?: string
@@ -445,6 +449,7 @@ export type Database = {
         }
         Update: {
           chave_acesso?: string
+          chave_cte_complementado?: string | null
           cnpj_destinatario?: string | null
           cnpj_emitente?: string | null
           componentes?: Json
@@ -460,6 +465,7 @@ export type Database = {
           peso_taxado?: number | null
           serie?: string | null
           status?: Database["public"]["Enums"]["cte_status"]
+          tipo_cte?: number
           transportadora_id?: string | null
           uf_destino?: string | null
           updated_at?: string

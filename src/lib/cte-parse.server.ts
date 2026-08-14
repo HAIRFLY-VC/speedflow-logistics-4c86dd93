@@ -18,6 +18,10 @@ export type ParsedCte = {
   uf_destino: string | null;
   componentes: CteComponente[];
   nfs_referenciadas: string[];
+  /** 0 = normal, 1 = complemento de valores, 2 = anulação, 3 = substituto */
+  tipo_cte: number;
+  /** Chave do CT-e original quando este é um complemento. */
+  chave_cte_complementado: string | null;
 };
 
 const onlyDigits = (v: string) => v.replace(/\D/g, "");
@@ -94,6 +98,12 @@ export function parseCteXml(xml: string): ParsedCte {
 
   const dh = tagValue(ide, "dhEmi") ?? tagValue(ide, "dEmi");
 
+  const tipoCte = Number(onlyDigits(tagValue(ide, "tpCTe") ?? "0") || 0);
+  const compSec = sectionOf(xml, "infCteComp");
+  let chaveComplementado = compSec ? onlyDigits(tagValue(compSec, "chCTe") ?? "") : "";
+  if (chaveComplementado.length !== 44) chaveComplementado = "";
+
+
   return {
     chave_acesso: chave,
     numero: tagValue(ide, "nCT"),
@@ -109,5 +119,7 @@ export function parseCteXml(xml: string): ParsedCte {
     uf_destino: tagValue(ide, "UFFim") ?? tagValue(ide, "UFEnv"),
     componentes,
     nfs_referenciadas: Array.from(nfs),
+    tipo_cte: tipoCte,
+    chave_cte_complementado: chaveComplementado || null,
   };
 }

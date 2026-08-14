@@ -156,20 +156,44 @@ function calcularEsperado(
   return { itens, total: round2(total), rota: rotaNome };
 }
 
-/** Executa a auditoria de um CT-e, grava o resultado e atualiza o status. */
+/** Executa a auditoria de um CT-e, grava o resultado e atualiza o status.
+ *  CT-e complementar (tpCTe = 1) é auditado em conjunto com o CT-e original:
+ *  o valor cobrado considera a soma do original + todos os complementos. */
 export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
-  const { data: cte, error } = await db
+  const { data: alvo, error } = await db
     .from("ctes")
     .select("*")
     .eq("id", cteId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!cte) throw new Error("CT-e não encontrado");
+  if (!alvo) throw new Error("CT-e não encontrado");
 
-  const cobrado = round2(Number(cte.valor_total_frete));
+  // Se for complemento, audita a partir do CT-e original.
+  let cte = alvo;
+  if (alvo.chave_cte_complementado) {
+    const { data: original } = await db
+      .from("ctes")
+      .select("*")
+      .eq("chave_acesso", alvo.chave_cte_complementado)
+      .maybeSingle();
+    if (original) cte = original;
+  }
+
+  const { data: comps } = await db
+    .from("ctes")
+    .select("*")
+    .eq("chave_cte_complementado", cte.chave_acesso);
+  const complementos = (comps ?? []).filter((c) => c.id !== cte.id);
+  const grupoIds = [cte.id, ...complementos.map((c) => c.id)];
+
+  const cobrado = round2(
+    Number(cte.valor_total_frete) +
+      complementos.reduce((s, c) => s + Number(c.valor_total_frete ?? 0), 0),
+  );
+
 
   if (!cte.transportadora_id) {
-    await db.from("ctes").update({ status: "PENDENTE_IDENTIFICACAO" }).eq("id", cte.id);
+    await db.from("ctes").update({ status: "PENDENTE_IDENTIFICACAO" }).in("id", grupoIds);
     return {
       cte_id: cte.id,
       chave_acesso: cte.chave_acesso,
@@ -194,8 +218,10 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
   const tolerancia = await getTolerancia(db);
 
   if (!tabela) {
-    await db.from("ctes").update({ status: "DIVERGENTE" }).eq("id", cte.id);
-    await registrarDivergencia(db, cte.id, "Sem tabela de preço vigente para a transportadora");
+    await db.from("ctes").update({ status: "DIVERGENTE" }).in("id", grupoIds);
+    for (const id of grupoIds) {
+      await registrarDivergencia(db, id, "Sem tabela de preço vigente para a transportadora");
+    }
     return {
       cte_id: cte.id,
       chave_acesso: cte.chave_acesso,
@@ -210,16 +236,31 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     };
   }
 
-  const componentes = Array.isArray(cte.componentes)
-    ? (cte.componentes as { nome?: string; valor?: number }[])
-    : [];
+  const compsDe = (c: { componentes: unknown }) =>
+    Array.isArray(c.componentes) ? (c.componentes as { nome?: string; valor?: number }[]) : [];
+
+  const componentes = [
+    ...compsDe(cte),
+    ...complementos.flatMap((c) =>
+      compsDe(c).map((x) => ({
+        nome: `${x.nome ?? "COMPLEMENTO"} (compl. CT-e ${c.numero ?? "s/nº"})`,
+        valor: x.valor,
+      })),
+    ),
+  ];
+
+  // Complementos costumam não repetir peso/valor da carga: usa o maior do grupo.
+  const grupo = [cte, ...complementos];
+  const pesoGrupo = Math.max(...grupo.map((c) => Number(c.peso_taxado ?? 0)), 0);
+  const mercadoriaGrupo = Math.max(...grupo.map((c) => Number(c.valor_mercadoria ?? 0)), 0);
 
   const { itens, total, rota } = calcularEsperado(
     tabela,
-    Number(cte.peso_taxado ?? 0),
-    Number(cte.valor_mercadoria ?? 0),
+    pesoGrupo,
+    mercadoriaGrupo,
     cobrado,
   );
+
 
   const norm = (s: string) => s.toUpperCase().replace(/\s+/g, " ").trim();
   const usados = new Set<number>();
@@ -259,40 +300,49 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     percentual <= tolerancia.tolerancia_percentual;
   const resultado: "OK" | "DIVERGENTE" = dentroTolerancia ? "OK" : "DIVERGENTE";
 
-  const { error: insErr } = await db.from("cte_auditorias").insert({
-    cte_id: cte.id,
-    tabela_preco_id: tabela.id,
-    valor_esperado_total: total,
-    valor_cobrado_total: cobrado,
-    diferenca,
-    percentual_diferenca: percentual,
-    detalhamento: detalhamento as unknown as Database["public"]["Tables"]["cte_auditorias"]["Insert"]["detalhamento"],
-    tolerancia_aplicada: tolerancia as unknown as Database["public"]["Tables"]["cte_auditorias"]["Insert"]["tolerancia_aplicada"],
-    resultado,
-  });
+  const { error: insErr } = await db.from("cte_auditorias").insert(
+    grupoIds.map((id) => ({
+      cte_id: id,
+      tabela_preco_id: tabela.id,
+      valor_esperado_total: total,
+      valor_cobrado_total: cobrado,
+      diferenca,
+      percentual_diferenca: percentual,
+      detalhamento: detalhamento as unknown as Database["public"]["Tables"]["cte_auditorias"]["Insert"]["detalhamento"],
+      tolerancia_aplicada: tolerancia as unknown as Database["public"]["Tables"]["cte_auditorias"]["Insert"]["tolerancia_aplicada"],
+      resultado,
+    })),
+  );
   if (insErr) throw new Error(insErr.message);
 
   await db
     .from("ctes")
     .update({ status: resultado === "OK" ? "APROVADO" : "DIVERGENTE" })
-    .eq("id", cte.id);
+    .in("id", grupoIds);
 
   const refTabela = rota ? `"${tabela.nome}" (rota ${rota})` : `"${tabela.nome}"`;
+  const refGrupo =
+    complementos.length > 0
+      ? ` (auditoria conjunta: CT-e original + ${complementos.length} complemento(s))`
+      : "";
 
   if (resultado === "DIVERGENTE") {
-    await registrarDivergencia(
-      db,
-      cte.id,
-      `Diferença de ${diferenca.toFixed(2)} (${percentual.toFixed(2)}%) em relação à tabela ${refTabela}`,
-    );
+    for (const id of grupoIds) {
+      await registrarDivergencia(
+        db,
+        id,
+        `Diferença de ${diferenca.toFixed(2)} (${percentual.toFixed(2)}%) em relação à tabela ${refTabela}${refGrupo}`,
+      );
+    }
   } else {
     // Auditoria bateu: encerra divergências abertas anteriores (ex.: "sem tabela vigente").
     await db
       .from("cte_divergencias")
       .update({ status: "RESOLVIDA", resolvido_em: new Date().toISOString() })
-      .eq("cte_id", cte.id)
+      .in("cte_id", grupoIds)
       .neq("status", "RESOLVIDA");
   }
+
 
   return {
     cte_id: cte.id,
@@ -304,7 +354,7 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     percentual_diferenca: percentual,
     tabela_preco_id: tabela.id,
     detalhamento,
-    motivo: `Tabela ${refTabela}`,
+    motivo: `Tabela ${refTabela}${refGrupo}`,
   };
 
 }

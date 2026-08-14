@@ -94,6 +94,23 @@ export function CteDetailDialog({
     },
   });
 
+  // CT-e original -> lista de complementos; CT-e complementar -> o original.
+  const { data: grupo } = useQuery({
+    queryKey: ["cte-grupo", cte?.id, cte?.chave_cte_complementado],
+    enabled: !!cte?.id && open,
+    queryFn: async () => {
+      const q = cte!.chave_cte_complementado
+        ? supabase.from("ctes").select("id, numero, chave_acesso, valor_total_frete").eq("chave_acesso", cte!.chave_cte_complementado)
+        : supabase
+            .from("ctes")
+            .select("id, numero, chave_acesso, valor_total_frete")
+            .eq("chave_cte_complementado", cte!.chave_acesso);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const qc = useQueryClient();
   const runAudit = useServerFn(auditarCte);
   const audit = useMutation({
@@ -187,7 +204,32 @@ export function CteDetailDialog({
             <Field label="Observação" value={cte.observacao ?? "—"} />
           </div>
 
+          {(cte.chave_cte_complementado || (grupo?.length ?? 0) > 0) && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+              {cte.chave_cte_complementado ? (
+                <>
+                  <strong>CT-e complementar.</strong> A auditoria é feita em conjunto com o
+                  CT-e original{" "}
+                  <span className="font-mono text-[11px] break-all">
+                    {cte.chave_cte_complementado}
+                  </span>
+                  {grupo && grupo.length > 0
+                    ? ` (nº ${grupo.map((g) => g.numero ?? "s/nº").join(", ")})`
+                    : ""}
+                  .
+                </>
+              ) : (
+                <>
+                  <strong>Possui {grupo!.length} complemento(s) de frete</strong> (CT-e{" "}
+                  {grupo!.map((g) => g.numero ?? "s/nº").join(", ")}). A auditoria soma o
+                  valor de todos eles.
+                </>
+              )}
+            </div>
+          )}
+
           <Separator />
+
 
           <section className="space-y-2">
             <h3 className="text-sm font-semibold">Componentes do frete</h3>
