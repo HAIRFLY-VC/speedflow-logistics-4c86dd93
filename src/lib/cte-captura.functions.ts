@@ -139,21 +139,6 @@ export const getRemetentesIgnorados = createServerFn({ method: "GET" })
       }
     }
 
-    // Fallback: nomes ainda desconhecidos são buscados nos CT-e já importados.
-    const semNome = Array.from(mapa.values()).filter((r) => !r.nome);
-    if (semNome.length) {
-      const { data: ctesRem } = await context.supabase
-        .from("ctes")
-        .select("cnpj_remetente, nome_remetente")
-        .in(
-          "cnpj_remetente",
-          semNome.map((r) => r.cnpj),
-        );
-      for (const c of ctesRem ?? []) {
-        const alvo = mapa.get((c.cnpj_remetente as string) ?? "");
-        if (alvo && !alvo.nome && c.nome_remetente) alvo.nome = c.nome_remetente as string;
-      }
-    }
 
     return {
       totalEmpresas: (empresas ?? []).length,
