@@ -142,6 +142,8 @@ export async function ingestCteXml(params: {
       uf_destino: parsed.uf_destino,
       componentes: parsed.componentes,
       nfs_referenciadas: parsed.nfs_referenciadas,
+      tipo_cte: parsed.tipo_cte,
+      chave_cte_complementado: parsed.chave_cte_complementado,
       xml_storage_path: storagePath,
       origem_captura: params.origem,
       status,
