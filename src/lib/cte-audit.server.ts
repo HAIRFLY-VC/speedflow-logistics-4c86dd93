@@ -156,17 +156,41 @@ function calcularEsperado(
   return { itens, total: round2(total), rota: rotaNome };
 }
 
-/** Executa a auditoria de um CT-e, grava o resultado e atualiza o status. */
+/** Executa a auditoria de um CT-e, grava o resultado e atualiza o status.
+ *  CT-e complementar (tpCTe = 1) é auditado em conjunto com o CT-e original:
+ *  o valor cobrado considera a soma do original + todos os complementos. */
 export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
-  const { data: cte, error } = await db
+  const { data: alvo, error } = await db
     .from("ctes")
     .select("*")
     .eq("id", cteId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!cte) throw new Error("CT-e não encontrado");
+  if (!alvo) throw new Error("CT-e não encontrado");
 
-  const cobrado = round2(Number(cte.valor_total_frete));
+  // Se for complemento, audita a partir do CT-e original.
+  let cte = alvo;
+  if (alvo.chave_cte_complementado) {
+    const { data: original } = await db
+      .from("ctes")
+      .select("*")
+      .eq("chave_acesso", alvo.chave_cte_complementado)
+      .maybeSingle();
+    if (original) cte = original;
+  }
+
+  const { data: comps } = await db
+    .from("ctes")
+    .select("*")
+    .eq("chave_cte_complementado", cte.chave_acesso);
+  const complementos = (comps ?? []).filter((c) => c.id !== cte.id);
+  const grupoIds = [cte.id, ...complementos.map((c) => c.id)];
+
+  const cobrado = round2(
+    Number(cte.valor_total_frete) +
+      complementos.reduce((s, c) => s + Number(c.valor_total_frete ?? 0), 0),
+  );
+
 
   if (!cte.transportadora_id) {
     await db.from("ctes").update({ status: "PENDENTE_IDENTIFICACAO" }).eq("id", cte.id);
