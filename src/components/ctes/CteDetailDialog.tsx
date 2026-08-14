@@ -121,6 +121,30 @@ export function CteDetailDialog({
     },
   });
 
+  // Razão social do destinatário: procura na NF-e referenciada e, se não achar, no cadastro de clientes.
+  const { data: nomeDestinatario } = useQuery({
+    queryKey: ["cte-nome-destinatario", cte?.cnpj_destinatario],
+    enabled: !!cte?.cnpj_destinatario && open,
+    queryFn: async () => {
+      const cnpj = cte!.cnpj_destinatario!;
+      const { data: nfe } = await supabase
+        .from("nfes")
+        .select("nome_destinatario")
+        .eq("cnpj_destinatario", cnpj)
+        .limit(1)
+        .maybeSingle();
+      if (nfe?.nome_destinatario) return nfe.nome_destinatario;
+      const { data: cli } = await supabase
+        .from("customers")
+        .select("legal_name")
+        .eq("cnpj", cnpj)
+        .limit(1)
+        .maybeSingle();
+      return cli?.legal_name ?? null;
+    },
+  });
+
+
   const qc = useQueryClient();
   const runAudit = useServerFn(auditarCte);
   const audit = useMutation({
