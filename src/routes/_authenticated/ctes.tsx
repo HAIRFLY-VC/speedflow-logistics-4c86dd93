@@ -66,7 +66,6 @@ function CtesPage() {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [selected, setSelected] = useState<Cte | null>(null);
   const upload = useServerFn(uploadCteXml);
   const signUrl = useServerFn(getCteXmlUrl);
   const solicitarCaptura = useServerFn(solicitarCapturaCte);
