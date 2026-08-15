@@ -53,6 +53,7 @@ export function CteDetailDialog({
   onDownloadXml,
   onReadXml,
   downloading,
+  onOpenCte,
 }: {
   cte: Cte | null;
   open: boolean;
@@ -62,6 +63,7 @@ export function CteDetailDialog({
   onDownloadXml: (cte: Cte) => void;
   onReadXml: (cte: Cte) => void;
   downloading: boolean;
+  onOpenCte?: (cteId: string) => void;
 }) {
   const { data: historico, isLoading: loadingHist } = useQuery({
     queryKey: ["cte-historico", cte?.id],
@@ -242,6 +244,30 @@ export function CteDetailDialog({
   const usandoNfsDoOriginal = nfsProprias.length === 0 && nfsDoOriginal.length > 0;
   const nfs = usandoNfsDoOriginal ? nfsDoOriginal : nfsProprias;
 
+  // Hiperlink para abrir o detalhamento do CT-e original (quando ele existe no app).
+  const podeAbrirOriginal = !!cteOriginal?.id && !!onOpenCte;
+  const LinkOriginal = ({
+    children,
+    className,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+  }) =>
+    podeAbrirOriginal ? (
+      <button
+        type="button"
+        onClick={() => onOpenCte!(cteOriginal!.id)}
+        title="Abrir detalhamento do CT-e original"
+        className={`cursor-pointer underline underline-offset-2 hover:opacity-80 ${className ?? ""}`}
+      >
+        {children}
+      </button>
+    ) : (
+      <span className={className}>{children}</span>
+    );
+
+
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
@@ -345,16 +371,21 @@ export function CteDetailDialog({
                   <strong>CT-e complementar</strong>
                   {cte.motivo_complemento ? ` — motivo: ${cte.motivo_complemento}` : ""}.
                   Vinculado ao CT-e original{" "}
-                  {cte.numero_cte_complementado ? `nº ${cte.numero_cte_complementado}` : ""}
+                  {cte.numero_cte_complementado ? (
+                    <LinkOriginal className="font-semibold">
+                      nº {cte.numero_cte_complementado}
+                    </LinkOriginal>
+                  ) : null}
                   {grupo && grupo.length > 0 ? " (encontrado no app)" : " (ainda não importado)"}
                   {cte.chave_cte_complementado ? (
                     <>
                       {" "}
-                      <span className="font-mono text-[11px] break-all">
+                      <LinkOriginal className="font-mono text-[11px] break-all">
                         {cte.chave_cte_complementado}
-                      </span>
+                      </LinkOriginal>
                     </>
                   ) : null}
+
                   . A auditoria é feita em conjunto com o original.
                 </>
               ) : (
@@ -420,7 +451,9 @@ export function CteDetailDialog({
                   variant="outline"
                   className="border-amber-300 bg-amber-50 text-[10px] text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
                 >
-                  Do CT-e original {cteOriginal?.numero ? `nº ${cteOriginal.numero}` : ""}
+                  Do CT-e original{" "}
+                  {cteOriginal?.numero ? <LinkOriginal>nº {cteOriginal.numero}</LinkOriginal> : ""}
+
                 </Badge>
               ) : null}
             </div>
