@@ -362,17 +362,19 @@ function CtesPage() {
         id: "tipo",
         header: "Tipo",
         align: "center",
-        accessor: (c) => c.tipo_cte,
-        render: (c) =>
-          c.tipo_cte === 1 ? (
-            <Badge variant="secondary" className="bg-amber-500/10 text-amber-600">
-              Complementar
-            </Badge>
-          ) : (
+        accessor: (c) => (Number(c.peso_taxado) > 0 ? "Normal" : "Complementar"),
+        render: (c) => {
+          const normal = Number(c.peso_taxado) > 0;
+          return normal ? (
             <Badge variant="secondary" className="bg-blue-500/10 text-blue-600">
               Normal
             </Badge>
-          ),
+          ) : (
+            <Badge variant="secondary" className="bg-amber-500/10 text-amber-600">
+              Complementar
+            </Badge>
+          );
+        },
       },
       { id: "uf", header: "UF", align: "center", accessor: (c) => c.uf_destino ?? "—" },
       {
