@@ -253,6 +253,67 @@ function requestJson(url, metodo, segredo, body, timeoutMs) {
   });
 }
 
+// ============ Sinal de vida (heartbeat) e watchdog ============
+
+let estadoAtual = "iniciando";
+let heartbeatTimer = null;
+
+function setEstado(estado) {
+  estadoAtual = estado;
+}
+
+// Envia o sinal de vida em um temporizador proprio, inclusive durante leituras
+// longas na SEFAZ, para o aplicativo distinguir "robo parado" de "robo ocupado".
+function iniciarHeartbeat(cfg) {
+  if (heartbeatTimer) return;
+  const enviar = async () => {
+    try {
+      const atual = readConfig();
+      await requestJson(
+        urlHook(atual.endpoint, "robo-heartbeat"),
+        "POST",
+        atual.segredoIngest,
+        { estado: estadoAtual },
+        Math.min(atual.timeoutMs || 60000, 20000)
+      );
+    } catch {
+      // heartbeat nunca deve interromper o robo
+    }
+  };
+  void enviar();
+  heartbeatTimer = setInterval(enviar, 60000);
+  if (typeof heartbeatTimer.unref === "function") heartbeatTimer.unref();
+  log("Heartbeat iniciado (a cada 60s)");
+  return cfg;
+}
+
+// Aborta operacoes que nunca retornam (ex.: SEFAZ sem resposta), para o robo
+// nao ficar preso e parar de atender a fila de comandos.
+async function withTimeout(promise, ms, descricao) {
+  let timer;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`Tempo limite excedido (${Math.round(ms / 1000)}s) em ${descricao}`)),
+          ms
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function limiteCicloMs(cfg) {
+  return Math.max(1, cfg.timeoutCicloMinutos || 15) * 60 * 1000;
+}
+
+function limiteConsultaMs(cfg) {
+  return Math.max(30, cfg.timeoutConsultaSegundos || 120) * 1000;
+}
+
 // Verifica se o aplicativo solicitou uma importacao forcada de CT-e.
 async function verificarComandoCaptura(cfg) {
   try {
@@ -270,6 +331,7 @@ async function verificarComandoCaptura(cfg) {
     return null;
   }
 }
+
 
 async function reportarComandoCaptura(cfg, comandoId, status, mensagem, novosCtes) {
   try {
