@@ -25,9 +25,11 @@ import {
   cancelarCapturaCte,
   getStatusRobo,
 } from "@/lib/cte-captura.functions";
+import { backfillNomeDestinatario } from "@/lib/cte-backfill.functions";
 
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
 import type { Tables } from "@/integrations/supabase/types";
+
 
 
 export const Route = createFileRoute("/_authenticated/ctes/")({
