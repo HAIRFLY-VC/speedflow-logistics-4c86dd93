@@ -542,12 +542,17 @@ export function CteDetailView({
                   <tr className="bg-muted/40 border-t font-semibold">
                     <td className="px-2 py-1.5" colSpan={2}>
                       Total ({nfs.length} nota{nfs.length === 1 ? "" : "s"})
+                      {usandoCargaDoCte ? (
+                        <span className="text-muted-foreground ml-1 font-normal">
+                          — dados do CT-e
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-2 py-1.5 text-right">
-                      {totalVolumes.toLocaleString("pt-BR")}
+                      {volumesExibidos.toLocaleString("pt-BR")}
                     </td>
                     <td className="px-2 py-1.5 text-right">
-                      {totalPesoBruto.toLocaleString("pt-BR", {
+                      {pesoExibido.toLocaleString("pt-BR", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
@@ -556,6 +561,27 @@ export function CteDetailView({
                 </tfoot>
               </table>
             </div>
+            {usandoCargaDoCte && carga ? (
+              <div className="text-muted-foreground rounded-md border border-dashed p-2 text-xs">
+                <p>
+                  Os XMLs das NF-es ainda não foram capturados na SEFAZ. Enquanto isso, os totais
+                  acima vêm da carga declarada no próprio CT-e.
+                </p>
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                  {carga.produto_predominante ? (
+                    <span>Produto predominante: {carga.produto_predominante}</span>
+                  ) : null}
+                  {carga.valor_carga > 0 ? <span>Valor da carga: {brl(carga.valor_carga)}</span> : null}
+                  {carga.medidas
+                    .filter((m) => m.quantidade > 0)
+                    .map((m) => (
+                      <span key={m.tipo}>
+                        {m.tipo}: {m.quantidade.toLocaleString("pt-BR")}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </section>
