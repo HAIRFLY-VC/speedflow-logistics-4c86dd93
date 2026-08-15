@@ -579,13 +579,7 @@ function CtesPage() {
           defaultSort={{ id: "emissao", dir: "desc" }}
           onRowClick={(c) => {
             const url = `${window.location.origin}/ctes/${c.id}`;
-            const features =
-              "width=" +
-              window.screen.availWidth +
-              ",height=" +
-              window.screen.availHeight +
-              ",top=0,left=0,menubar=no,toolbar=no,location=no,status=no";
-            window.open(url, `cte-${c.id}`, features);
+            window.open(url, "_blank");
           }}
         />
 
