@@ -716,28 +716,6 @@ export function CteDetailView({
         </>
       ) : null}
 
-      <section className="space-y-2">
-        <h3 className="text-sm font-semibold">Histórico de status</h3>
-        {loadingHist ? (
-          <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
-        ) : !historico?.length ? (
-          <p className="text-muted-foreground text-sm">Sem histórico.</p>
-        ) : (
-          <ol className="space-y-1.5">
-            {historico.map((h) => (
-              <li key={h.id} className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground text-xs tabular-nums">
-                  {new Date(h.alterado_em).toLocaleString("pt-BR")}
-                </span>
-                <span>
-                  {h.status_anterior ? `${h.status_anterior.replaceAll("_", " ")} → ` : ""}
-                  <span className="font-medium">{h.status_novo.replaceAll("_", " ")}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
 
       <div className="flex justify-end gap-2">
         <Button variant="outline" disabled={!cte.xml_storage_path} onClick={() => onReadXml(cte)}>
