@@ -79,20 +79,10 @@ export const getNfeXmlUrl = createServerFn({ method: "POST" })
   .inputValidator((input) => chaveSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertStaff(context);
-    const { data: nfe, error } = await centralDb
-      .from("nfes")
-      .select("xml_storage_path")
-      .eq("chave_acesso", data.chave)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!nfe?.xml_storage_path) throw new Error("XML não disponível para esta NF-e");
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: signed, error: signErr } = await supabaseAdmin.storage
-      .from("nfe-xml")
-      .createSignedUrl(nfe.xml_storage_path, 300);
-    if (signErr || !signed) throw new Error(signErr?.message ?? "Falha ao gerar link");
-    return { url: signed.signedUrl };
+    const { lerXml } = await import("./xml-store.server");
+    const xml = await lerXml("nfes", { coluna: "chave_acesso", valor: data.chave }, "nfe-xml");
+    if (!xml) throw new Error("XML não disponível para esta NF-e");
+    return { xml };
   });
 
 export const solicitarNfeXml = createServerFn({ method: "POST" })
