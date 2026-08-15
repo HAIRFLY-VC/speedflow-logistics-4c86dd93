@@ -25,8 +25,11 @@ export const Route = createFileRoute("/api/public/hooks/nfe-pendentes")({
           return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
         try {
+          const { registrarContatoRobo } = await import("@/lib/robo-heartbeat.server");
+          await registrarContatoRobo("nfe-pendentes");
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { data, error } = await supabaseAdmin
+
             .from("nfe_solicitacoes")
             .select("id, chave_acesso, tentativas")
             .in("status", ["PENDENTE", "PROCESSANDO"])
