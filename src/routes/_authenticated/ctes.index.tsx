@@ -298,7 +298,7 @@ function CtesPage() {
     errors.forEach((msg) => toast.error(msg));
   }
 
-  const columns = useMemo<ColumnDef<Cte>[]>(
+  const columns = useMemo<ColumnDef<CteRow>[]>(
     () => [
       {
         id: "numero",
@@ -366,6 +366,32 @@ function CtesPage() {
         },
       },
       {
+        id: "empresa",
+        header: "Empresa (A1)",
+        accessor: (c) => c.empresas?.razao_social ?? c.empresa_id ?? "",
+        render: (c) => (
+          <div>
+            <div className="font-mono text-xs">{c.empresas?.cnpj ?? c.cnpj_emitente ?? "—"}</div>
+            <div className="text-[11px] font-medium text-muted-foreground">
+              {c.empresas?.razao_social ?? "—"}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: "destinatario",
+        header: "Destinatário",
+        accessor: (c) => c.nome_destinatario ?? c.cnpj_destinatario ?? "",
+        render: (c) => (
+          <div>
+            <div className="font-mono text-xs">{c.cnpj_destinatario ?? "—"}</div>
+            <div className="text-[11px] font-medium text-muted-foreground">
+              {c.nome_destinatario ?? "—"}
+            </div>
+          </div>
+        ),
+      },
+      {
         id: "emissao",
         header: "Emissão",
         filterType: "date",
@@ -390,14 +416,28 @@ function CtesPage() {
         accessor: (c) => (Number(c.peso_taxado) > 0 ? "Normal" : "Complementar"),
         render: (c) => {
           const normal = Number(c.peso_taxado) > 0;
-          return normal ? (
-            <Badge variant="secondary" className="bg-blue-500/10 text-blue-600">
-              Normal
-            </Badge>
-          ) : (
-            <Badge variant="secondary" className="bg-amber-500/10 text-amber-600">
-              Complementar
-            </Badge>
+          const label = normal ? "N" : "C";
+          const tooltip = normal ? "Normal" : "Complementar";
+          return (
+            <TooltipProvider delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge
+                    variant="secondary"
+                    className={
+                      normal
+                        ? "bg-blue-500/10 text-blue-600 cursor-default"
+                        : "bg-amber-500/10 text-amber-600 cursor-default"
+                    }
+                  >
+                    {label}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{tooltip}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           );
         },
       },
@@ -409,7 +449,9 @@ function CtesPage() {
         filterType: "number",
         accessor: (c) => Number(c.peso_taxado ?? 0),
         render: (c) =>
-          c.peso_taxado == null ? "—" : `${Number(c.peso_taxado).toLocaleString("pt-BR")} kg`,
+          c.peso_taxado == null
+            ? "—"
+            : `${Number(c.peso_taxado).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`,
       },
       {
         id: "mercadoria",
@@ -501,6 +543,7 @@ function CtesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [nomeTransportadora, openXml.isPending, readXml.isPending],
   );
+
 
 
   return (
