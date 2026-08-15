@@ -106,7 +106,8 @@ export function CteDetailDialog({
   });
 
   // CT-e original -> lista de complementos; CT-e complementar -> o original.
-  const isComplementar = cte?.tipo_cte === 1;
+  // Regra do negócio: CT-e sem peso taxado é complementar (além do tipo_cte = 1 do XML).
+  const isComplementar = cte?.tipo_cte === 1 || (!!cte && !(Number(cte.peso_taxado) > 0));
   const { data: grupo } = useQuery({
     queryKey: [
       "cte-grupo",
