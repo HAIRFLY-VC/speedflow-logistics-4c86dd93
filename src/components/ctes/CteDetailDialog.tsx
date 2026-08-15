@@ -117,7 +117,8 @@ export function CteDetailDialog({
     ],
     enabled: !!cte?.id && open,
     queryFn: async () => {
-      const cols = "id, numero, chave_acesso, valor_total_frete, motivo_complemento";
+      const cols =
+        "id, numero, chave_acesso, valor_total_frete, motivo_complemento, nfs_referenciadas";
       let q;
       if (cte!.chave_cte_complementado) {
         q = supabase
