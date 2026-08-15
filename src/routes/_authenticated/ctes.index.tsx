@@ -578,9 +578,9 @@ function CtesPage() {
           emptyMessage="Nenhum CT-e importado."
           defaultSort={{ id: "emissao", dir: "desc" }}
           onRowClick={(c) => {
-            const url = `${window.location.origin}/ctes/${c.id}`;
-            window.open(url, "_blank");
+            openAppRoute(router, `/ctes/${c.id}`);
           }}
+
         />
 
         <XmlViewerDialog
