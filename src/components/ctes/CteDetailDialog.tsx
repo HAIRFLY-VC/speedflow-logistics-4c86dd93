@@ -244,6 +244,30 @@ export function CteDetailDialog({
   const usandoNfsDoOriginal = nfsProprias.length === 0 && nfsDoOriginal.length > 0;
   const nfs = usandoNfsDoOriginal ? nfsDoOriginal : nfsProprias;
 
+  // Hiperlink para abrir o detalhamento do CT-e original (quando ele existe no app).
+  const podeAbrirOriginal = !!cteOriginal?.id && !!onOpenCte;
+  const LinkOriginal = ({
+    children,
+    className,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+  }) =>
+    podeAbrirOriginal ? (
+      <button
+        type="button"
+        onClick={() => onOpenCte!(cteOriginal!.id)}
+        title="Abrir detalhamento do CT-e original"
+        className={`cursor-pointer underline underline-offset-2 hover:opacity-80 ${className ?? ""}`}
+      >
+        {children}
+      </button>
+    ) : (
+      <span className={className}>{children}</span>
+    );
+
+
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
