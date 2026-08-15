@@ -27,6 +27,9 @@ export type ParsedNfe = {
   valor_produtos: number;
   valor_frete: number;
   peso_bruto: number | null;
+  peso_liquido: number | null;
+  volumes: number | null;
+  especie_volumes: string | null;
   itens: NfeItem[];
 };
 
