@@ -590,7 +590,7 @@ function CtesPage() {
             <Button
               variant="outline"
               disabled={forcarImportacao.isPending || capturaEmAndamento}
-              onClick={() => forcarImportacao.mutate(false)}
+              onClick={() => solicitarComAviso(false)}
               title="Solicita ao robô a busca imediata de novos CT-e emitidos contra a empresa"
             >
               {forcarImportacao.isPending || capturaEmAndamento ? (
@@ -611,7 +611,7 @@ function CtesPage() {
                     "Reimportar todos os CT-e desde o início? O robô fará uma varredura completa na SEFAZ.",
                   )
                 )
-                  forcarImportacao.mutate(true);
+                  solicitarComAviso(true);
               }}
               title="Reprocessa todos os CT-e disponíveis na SEFAZ desde o primeiro documento"
             >
@@ -627,13 +627,30 @@ function CtesPage() {
                 Cancelar
               </Button>
             )}
-            <span className="text-muted-foreground text-xs">
-              {robo?.ultimoContatoFilaComandos
-                ? `Último contato do robô: ${new Date(
-                    robo.ultimoContatoFilaComandos,
-                  ).toLocaleString("pt-BR")}`
-                : "Robô ainda não consultou a fila de importação"}
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs ${
+                roboOnline
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
+                  : "border-destructive/30 bg-destructive/10 text-destructive"
+              }`}
+              title={
+                robo?.ultimoContato
+                  ? `Último contato: ${new Date(robo.ultimoContato).toLocaleString("pt-BR")}`
+                  : "O robô ainda não entrou em contato com o aplicativo"
+              }
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  roboOnline ? "bg-emerald-500" : "bg-destructive"
+                }`}
+              />
+              {roboOnline
+                ? `Robô ativo${robo?.estado ? ` — ${robo.estado}` : ""}`
+                : robo?.ultimoContato
+                  ? `Robô offline (sem contato há ${textoDesdeUltimoContato})`
+                  : "Robô nunca contatou o aplicativo"}
             </span>
+
 
 
 
