@@ -196,6 +196,17 @@ export async function ingestCteXml(params: {
     cte_id: inserted.id,
   });
 
+  // Solicita ao robô o XML das NF-es referenciadas (volumes / peso bruto).
+  if (parsed.tipo_cte !== 1 && Array.isArray(parsed.nfs_referenciadas)) {
+    try {
+      const { solicitarNfesDoCte } = await import("./nfe-volumes.server");
+      await solicitarNfesDoCte(parsed.nfs_referenciadas as string[]);
+    } catch {
+      // não bloqueia a ingestão do CT-e
+    }
+  }
+
+
   // Auditoria automática assim que o CT-e é identificado.
   if (transportadoraId && empresaId) {
     try {
