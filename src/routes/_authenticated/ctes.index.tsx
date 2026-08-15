@@ -132,6 +132,30 @@ function CtesPage() {
   const capturaEmAndamento =
     comando?.status === "PENDENTE" || comando?.status === "PROCESSANDO";
 
+  const roboOnline = Boolean(robo?.online);
+  const textoDesdeUltimoContato = robo?.ultimoContato
+    ? formatDistanceToNow(new Date(robo.ultimoContato), { locale: ptBR })
+    : "";
+
+  // Sem robô ativo o pedido só expira depois de 5 minutos: avisa antes de criar.
+  const solicitarComAviso = (reiniciarNsu: boolean) => {
+    if (!roboOnline) {
+      const detalhe = robo?.ultimoContato
+        ? `O robô está sem contato há ${textoDesdeUltimoContato} (último em ${new Date(
+            robo.ultimoContato,
+          ).toLocaleString("pt-BR")}).`
+        : "O robô nunca entrou em contato com o aplicativo.";
+      if (
+        !window.confirm(
+          `${detalhe}\n\nO pedido pode ficar aguardando e falhar em alguns minutos. Verifique se o serviço RoboCTeSpeedFlow está ativo no servidor.\n\nDeseja solicitar mesmo assim?`,
+        )
+      )
+        return;
+    }
+    forcarImportacao.mutate(reiniciarNsu);
+  };
+
+
 
 
   // Tempo decorrido desde a solicitação, para o usuário saber que está aguardando o robô.
