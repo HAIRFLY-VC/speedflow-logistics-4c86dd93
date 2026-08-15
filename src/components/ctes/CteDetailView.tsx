@@ -705,7 +705,11 @@ export function CteDetailView({
                         </span>
                         <span
                           className={`text-right font-medium tabular-nums ${
-                            Math.abs(diff) < 0.01 ? "text-emerald-600" : "text-destructive"
+                            Math.abs(diff) < 0.01
+                              ? "text-emerald-600"
+                              : diff > 0
+                                ? "text-destructive"
+                                : "text-emerald-600"
                           }`}
                         >
                           {Math.abs(diff) < 0.01 ? brl(0) : brl(diff)}
