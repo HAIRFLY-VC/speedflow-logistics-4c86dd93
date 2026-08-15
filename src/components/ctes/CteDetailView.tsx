@@ -19,8 +19,14 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Cte = Tables<"ctes">;
 
-function statusLabel(status: NfeVolumeInfo["status"] | undefined, loading: boolean) {
+function statusLabel(
+  status: NfeVolumeInfo["status"] | undefined,
+  loading: boolean,
+  mensagem?: string | null,
+) {
   if (loading && !status) return "...";
+  // 641 = nota emitida pela própria empresa: chega pela varredura por NSU do robô.
+  if (/\b641\b/.test(mensagem ?? "")) return "aguardando varredura";
   switch (status) {
     case "PENDENTE":
       return "aguardando XML";
@@ -510,7 +516,7 @@ export function CteDetailView({
                         <td className="px-2 py-1.5 text-right">
                           {info?.volumes != null
                             ? info.volumes.toLocaleString("pt-BR")
-                            : statusLabel(info?.status, volumesLoading)}
+                            : statusLabel(info?.status, volumesLoading, info?.mensagem)}
                         </td>
                         <td className="px-2 py-1.5 text-right">
                           {info?.peso_bruto != null
@@ -518,7 +524,7 @@ export function CteDetailView({
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
                               })
-                            : statusLabel(info?.status, volumesLoading)}
+                            : statusLabel(info?.status, volumesLoading, info?.mensagem)}
                         </td>
                       </tr>
                     );

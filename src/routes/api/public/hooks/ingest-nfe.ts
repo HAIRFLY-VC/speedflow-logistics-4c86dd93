@@ -37,7 +37,23 @@ export const Route = createFileRoute("/api/public/hooks/ingest-nfe")({
           const xml = typeof body.xml === "string" ? body.xml : "";
           const erro = typeof body.erro === "string" ? body.erro : "";
 
+          // cStat=641 significa que a empresa e a EMITENTE da nota: a consulta por chave
+          // nunca funciona nesse caso e a nota chega pela varredura por NSU. Mantemos a
+          // solicitacao aguardando em vez de marcar erro definitivo.
+          const aguardandoVarredura = /\b641\b/.test(erro);
+
           if (!xml) {
+            if (chave && aguardandoVarredura) {
+              await centralDb
+                .from("nfe_solicitacoes")
+                .update({
+                  status: "PENDENTE",
+                  mensagem:
+                    "Nota emitida pela própria empresa: aguardando a varredura da SEFAZ por NSU.",
+                })
+                .eq("chave_acesso", chave);
+              return Response.json({ ok: true, pendente: true });
+            }
             if (chave) {
               const { data: atual } = await centralDb
                 .from("nfe_solicitacoes")
