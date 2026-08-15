@@ -146,9 +146,8 @@ export async function ingestCteXml(params: {
 
   const status = transportadoraId && empresaId ? "RECEBIDO" : "PENDENTE_IDENTIFICACAO";
 
-  const { data: inserted, error } = await centralDb
-    .from("ctes")
-    .insert({
+  const { insertComFallback } = await import("./xml-store.server");
+  const { id: insertedId, error } = await insertComFallback("ctes", {
       chave_acesso: parsed.chave_acesso,
       numero: parsed.numero,
       serie: parsed.serie,
@@ -172,13 +171,13 @@ export async function ingestCteXml(params: {
       observacoes: parsed.observacoes,
 
       xml_storage_path: storagePath,
+      xml_conteudo: params.xml,
       origem_captura: params.origem,
       status,
-    })
-    .select("id")
-    .single();
+  });
 
   if (error) throw new Error(error.message);
+  const inserted = { id: insertedId as string };
 
   await logCteIngest({
     origem: params.origem,

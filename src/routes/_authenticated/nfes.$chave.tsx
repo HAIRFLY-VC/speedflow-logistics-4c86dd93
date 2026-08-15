@@ -130,10 +130,8 @@ function NfeDetailPage() {
 
   const readXml = useMutation({
     mutationFn: async () => {
-      const { url } = await signUrl({ data: { chave } });
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Falha ao carregar o XML");
-      return res.text();
+      const { xml } = await signUrl({ data: { chave } });
+      return xml;
     },
     onMutate: () => {
       setXmlContent(null);
@@ -148,10 +146,8 @@ function NfeDetailPage() {
 
   const downloadXml = useMutation({
     mutationFn: async () => {
-      const { url } = await signUrl({ data: { chave } });
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Falha ao baixar o XML");
-      const blob = await res.blob();
+      const { xml } = await signUrl({ data: { chave } });
+      const blob = new Blob([xml], { type: "application/xml" });
       const href = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = href;

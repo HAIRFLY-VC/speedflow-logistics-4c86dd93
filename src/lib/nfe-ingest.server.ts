@@ -1,21 +1,27 @@
-// Ingestão de NF-e: parse do XML, upload no storage e gravação do registro.
-import { centralDb } from "@/lib/central-db";
+// Ingestão de NF-e: parse do XML, gravação do XML completo no banco e das
+// colunas de conferência. O upload no bucket é mantido apenas por
+// compatibilidade — a leitura passa a ser sempre do banco.
 import { parseNfeXml } from "./nfe-parse.server";
+import { upsertComFallback } from "./xml-store.server";
 
-export async function ingestNfeXml(xml: string) {
+export async function ingestNfeXml(xml: string, nsu?: number | null) {
   const parsed = parseNfeXml(xml);
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const storagePath = `${parsed.chave_acesso}.xml`;
-  const { error: upErr } = await supabaseAdmin.storage
-    .from("nfe-xml")
-    .upload(storagePath, new Blob([xml], { type: "application/xml" }), {
-      upsert: true,
-      contentType: "application/xml",
-    });
-  if (upErr) throw new Error(`Falha ao armazenar o XML: ${upErr.message}`);
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.storage
+      .from("nfe-xml")
+      .upload(storagePath, new Blob([xml], { type: "application/xml" }), {
+        upsert: true,
+        contentType: "application/xml",
+      });
+  } catch {
+    // o XML fica guardado no banco de qualquer forma
+  }
 
-  const { error } = await centralDb.from("nfes").upsert(
+  const { error } = await upsertComFallback(
+    "nfes",
     {
       chave_acesso: parsed.chave_acesso,
       numero: parsed.numero,
@@ -31,10 +37,16 @@ export async function ingestNfeXml(xml: string) {
       valor_produtos: parsed.valor_produtos,
       valor_frete: parsed.valor_frete,
       peso_bruto: parsed.peso_bruto,
+      peso_liquido: parsed.peso_liquido,
+      volumes: parsed.volumes,
+      especie_volumes: parsed.especie_volumes,
       itens: parsed.itens,
       xml_storage_path: storagePath,
+      xml_conteudo: xml,
+      nsu: nsu ?? null,
+      xml_obtido_em: new Date().toISOString(),
     },
-    { onConflict: "chave_acesso" },
+    "chave_acesso",
   );
   if (error) throw new Error(error.message);
 

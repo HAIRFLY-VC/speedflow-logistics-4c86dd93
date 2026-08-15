@@ -29,20 +29,10 @@ export const getCteXmlUrl = createServerFn({ method: "POST" })
     });
     if (!isStaff) throw new Error("Sem permissão");
 
-    const { data: cte, error } = await centralDb
-      .from("ctes")
-      .select("xml_storage_path")
-      .eq("id", data.cteId)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!cte?.xml_storage_path) throw new Error("XML não disponível para este CT-e");
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: signed, error: signErr } = await supabaseAdmin.storage
-      .from("cte-xml")
-      .createSignedUrl(cte.xml_storage_path, 300);
-    if (signErr || !signed) throw new Error(signErr?.message ?? "Falha ao gerar link");
-    return { url: signed.signedUrl };
+    const { lerXml } = await import("./xml-store.server");
+    const xml = await lerXml("ctes", { coluna: "id", valor: data.cteId }, "cte-xml");
+    if (!xml) throw new Error("XML não disponível para este CT-e");
+    return { xml };
   });
 
 /** Volumes e peso bruto das NF-es referenciadas no CT-e. */
