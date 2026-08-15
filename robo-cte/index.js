@@ -513,7 +513,7 @@ async function processarNfesPorNsu(cfg, modoTeste, reiniciarNsu = false) {
               urlHook(cfg.endpoint, "ingest-nfe"),
               "POST",
               cfg.segredoIngest,
-              { xml: nota.xml },
+              { xml: nota.xml, nsu: nota.nsu },
               cfg.timeoutMs
             );
             enviados++;
