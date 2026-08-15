@@ -1,0 +1,1 @@
+ALTER TABLE public.ctes ADD COLUMN IF NOT EXISTS nome_destinatario text;

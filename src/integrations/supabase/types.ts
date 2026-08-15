@@ -416,6 +416,7 @@ export type Database = {
           id: string
           motivo_complemento: string | null
           nfs_referenciadas: Json
+          nome_destinatario: string | null
           nome_emitente: string | null
           numero: string | null
           numero_cte_complementado: string | null
@@ -445,6 +446,7 @@ export type Database = {
           id?: string
           motivo_complemento?: string | null
           nfs_referenciadas?: Json
+          nome_destinatario?: string | null
           nome_emitente?: string | null
           numero?: string | null
           numero_cte_complementado?: string | null
@@ -474,6 +476,7 @@ export type Database = {
           id?: string
           motivo_complemento?: string | null
           nfs_referenciadas?: Json
+          nome_destinatario?: string | null
           nome_emitente?: string | null
           numero?: string | null
           numero_cte_complementado?: string | null

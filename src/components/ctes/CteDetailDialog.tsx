@@ -5,6 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { auditarCte } from "@/lib/cte-audit.functions";
+import { resolverNomeDestinatario } from "@/lib/cte-backfill.functions";
 
 
 import { Badge } from "@/components/ui/badge";
@@ -146,12 +147,20 @@ export function CteDetailDialog({
   });
 
 
-  // Razão social do destinatário: procura na NF-e referenciada, depois no cadastro de clientes, empresas e transportadoras.
+  // Razão social do destinatário: usa o XML do CT-e e, se não houver, procura na NF-e,
+  // no cadastro de clientes, empresas e transportadoras.
+  const resolverNome = useServerFn(resolverNomeDestinatario);
   const { data: nomeDestinatario } = useQuery({
-    queryKey: ["cte-nome-destinatario", cte?.cnpj_destinatario],
-    enabled: !!cte?.cnpj_destinatario && open,
+    queryKey: ["cte-nome-destinatario", cte?.id, cte?.cnpj_destinatario],
+    enabled: !!cte?.cnpj_destinatario && !cte?.nome_destinatario && open,
     queryFn: async () => {
       const cnpj = cte!.cnpj_destinatario!;
+      try {
+        const res = await resolverNome({ data: { cteId: cte!.id } });
+        if (res?.nome) return res.nome;
+      } catch {
+        // segue para os cadastros locais
+      }
       const { data: nfe } = await supabase
         .from("nfes")
         .select("nome_destinatario")
@@ -243,7 +252,7 @@ export function CteDetailDialog({
             <Field
               label="CNPJ destinatário"
               value={cte.cnpj_destinatario ?? "—"}
-              hint={nomeDestinatario ?? undefined}
+              hint={cte.nome_destinatario ?? nomeDestinatario ?? undefined}
             />
 
             <Field
