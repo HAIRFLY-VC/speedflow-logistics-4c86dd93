@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { openAppRoute } from "@/lib/open-in-tab";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Upload, Loader2, FileDown, FileCode, UserPlus, RefreshCw } from "lucide-react";
@@ -63,6 +65,8 @@ const STATUS_TONE: Record<string, string> = {
 
 function CtesPage() {
   const qc = useQueryClient();
+  const router = useRouter();
+
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const upload = useServerFn(uploadCteXml);
@@ -578,9 +582,9 @@ function CtesPage() {
           emptyMessage="Nenhum CT-e importado."
           defaultSort={{ id: "emissao", dir: "desc" }}
           onRowClick={(c) => {
-            const url = `${window.location.origin}/ctes/${c.id}`;
-            window.open(url, "_blank");
+            openAppRoute(router, `/ctes/${c.id}`);
           }}
+
         />
 
         <XmlViewerDialog

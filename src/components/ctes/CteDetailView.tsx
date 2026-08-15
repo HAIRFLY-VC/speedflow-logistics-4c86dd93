@@ -1,7 +1,9 @@
 import { AlertTriangle, CheckCircle2, FileCode, FileDown, Loader2, ScanSearch } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
+import { openAppRoute, appLinkTarget } from "@/lib/open-in-tab";
+
 import { toast } from "sonner";
 
 import { auditarCte } from "@/lib/cte-audit.functions";
@@ -56,7 +58,9 @@ export function CteDetailView({
   onOpenCte?: (cteId: string) => void;
   linkMode?: CteLinkMode;
 }) {
+  const router = useRouter();
   const { data: historico, isLoading: loadingHist } = useQuery({
+
     queryKey: ["cte-historico", cte.id],
     enabled: !!cte.id,
     queryFn: async () => {
@@ -229,12 +233,12 @@ export function CteDetailView({
 
   const openCteLink = (cteId: string) => {
     if (linkMode === "window") {
-      const url = `${window.location.origin}/ctes/${cteId}`;
-      window.open(url, "_blank");
+      openAppRoute(router, `/ctes/${cteId}`);
     } else if (linkMode === "dialog") {
       onOpenCte?.(cteId);
     }
   };
+
 
   const LinkOriginal = ({
     children,
@@ -444,8 +448,13 @@ export function CteDetailView({
                   key={nf}
                   to="/nfes/$chave"
                   params={{ chave: nf }}
-                  target={linkMode === "window" ? "_blank" : undefined}
-                  rel={linkMode === "window" ? "noopener noreferrer" : undefined}
+                  target={linkMode === "window" ? appLinkTarget() : undefined}
+                  rel={
+                    linkMode === "window" && appLinkTarget()
+                      ? "noopener noreferrer"
+                      : undefined
+                  }
+
                 >
                   <Badge
                     variant="outline"

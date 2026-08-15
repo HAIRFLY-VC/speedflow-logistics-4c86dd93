@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { openAppRoute } from "@/lib/open-in-tab";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, FileCode, FileDown, Loader2 } from "lucide-react";
@@ -51,6 +53,8 @@ type Cte = Tables<"ctes">;
 export default function CteDetailPage() {
   const { cteId } = Route.useParams();
   const qc = useQueryClient();
+  const router = useRouter();
+
   const signUrl = useServerFn(getCteXmlUrl);
 
   const [xmlOpen, setXmlOpen] = useState(false);
@@ -127,9 +131,9 @@ export default function CteDetailPage() {
   };
 
   const openCteInWindow = (id: string) => {
-    const url = `${window.location.origin}/ctes/${id}`;
-    window.open(url, "_blank");
+    openAppRoute(router, `/ctes/${id}`);
   };
+
 
   return (
     <AppShell>
