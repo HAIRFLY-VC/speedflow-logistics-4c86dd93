@@ -187,17 +187,18 @@ function CtesPage() {
   });
 
   const backfillDestinatariosMutation = useMutation({
-    mutationFn: () => backfillDestinatarios(),
+    mutationFn: () => backfillDestinatarios({}),
     onSuccess: (r) => {
       if (r.atualizados > 0) {
         toast.success(`${r.atualizados} nomes de destinatários atualizados.`);
         void qc.invalidateQueries({ queryKey: ["ctes"] });
       }
     },
-    onError: () => {
-      // Silencioso: não impede a listagem de exibir os dados disponíveis.
+    onError: (err) => {
+      console.error("Backfill destinatários falhou:", err);
     },
   });
+
 
   useEffect(() => {
     if (!data) return;
