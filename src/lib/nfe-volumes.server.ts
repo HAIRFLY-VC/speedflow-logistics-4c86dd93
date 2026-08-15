@@ -51,11 +51,17 @@ export async function coletarVolumesNfes(chaves: string[]): Promise<NfeVolumeInf
   const alvos = Array.from(new Set(chaves.map(digits).filter((c) => c.length === 44)));
   if (alvos.length === 0) return [];
 
+  const colunasBase = "chave_acesso, numero, peso_bruto, xml_storage_path";
+  let nfesQuery = await centralDb
+    .from("nfes")
+    .select(`${colunasBase}, volumes, peso_liquido, especie_volumes, xml_conteudo` as any)
+    .in("chave_acesso", alvos);
+  if (nfesQuery.error) {
+    nfesQuery = await centralDb.from("nfes").select(colunasBase).in("chave_acesso", alvos);
+  }
+
   const [{ data: nfes }, { data: sols }] = await Promise.all([
-    centralDb
-      .from("nfes")
-      .select("chave_acesso, numero, peso_bruto, xml_storage_path")
-      .in("chave_acesso", alvos),
+    Promise.resolve(nfesQuery),
     centralDb
       .from("nfe_solicitacoes")
       .select("chave_acesso, status, mensagem")
