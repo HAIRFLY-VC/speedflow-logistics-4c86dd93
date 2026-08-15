@@ -194,13 +194,13 @@ function CtesPage() {
   const [xmlTitle, setXmlTitle] = useState("XML do CT-e");
 
   const readXml = useMutation({
-    mutationFn: async (cte: Cte) => {
+    mutationFn: async (cte: CteRow) => {
       const { url } = await signUrl({ data: { cteId: cte.id } });
       const res = await fetch(url);
       if (!res.ok) throw new Error("Falha ao carregar o XML");
       return { xml: await res.text(), cte };
     },
-    onMutate: (cte: Cte) => {
+    onMutate: (cte: CteRow) => {
       setXmlTitle(`XML do CT-e ${cte.numero ?? ""}`.trim());
       setXmlContent(null);
       setXmlOpen(true);
@@ -213,7 +213,7 @@ function CtesPage() {
   });
 
   const openXml = useMutation({
-    mutationFn: async (cte: Cte) => {
+    mutationFn: async (cte: CteRow) => {
       const { url } = await signUrl({ data: { cteId: cte.id } });
       const res = await fetch(url);
       if (!res.ok) throw new Error("Falha ao baixar o XML");
@@ -232,7 +232,7 @@ function CtesPage() {
 
 
   const cadastrarTransportadora = useMutation({
-    mutationFn: async (cte: Cte) => {
+    mutationFn: async (cte: CteRow) => {
       const cnpj = (cte.cnpj_emitente ?? "").replace(/\D/g, "");
       if (!cnpj) throw new Error("CT-e sem CNPJ do emitente");
       const razao = cte.nome_emitente?.trim() || `Transportadora ${cnpj}`;
@@ -271,6 +271,7 @@ function CtesPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   async function handleFiles(files: FileList | null) {
     if (!files?.length) return;
