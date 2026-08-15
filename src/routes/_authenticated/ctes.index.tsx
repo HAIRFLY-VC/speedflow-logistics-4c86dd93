@@ -53,6 +53,9 @@ export const Route = createFileRoute("/_authenticated/ctes/")({
 
 type Cte = Tables<"ctes">;
 type Transportadora = Tables<"transportadoras">;
+type Empresa = Tables<"empresas">;
+type CteRow = Cte & { empresas: Pick<Empresa, "id" | "cnpj" | "razao_social"> | null };
+
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
