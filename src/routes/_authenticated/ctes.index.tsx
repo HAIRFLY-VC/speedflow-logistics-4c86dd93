@@ -186,6 +186,28 @@ function CtesPage() {
     },
   });
 
+  const backfillDestinatariosMutation = useMutation({
+    mutationFn: () => backfillDestinatarios(),
+    onSuccess: (r) => {
+      if (r.atualizados > 0) {
+        toast.success(`${r.atualizados} nomes de destinatários atualizados.`);
+        void qc.invalidateQueries({ queryKey: ["ctes"] });
+      }
+    },
+    onError: () => {
+      // Silencioso: não impede a listagem de exibir os dados disponíveis.
+    },
+  });
+
+  useEffect(() => {
+    if (!data) return;
+    const faltantes = data.some((c) => !c.nome_destinatario && c.xml_storage_path);
+    if (faltantes) {
+      backfillDestinatariosMutation.mutate();
+    }
+  }, [data]);
+
+
 
   const nomeTransportadora = useMemo(() => {
     const map = new Map<string, string>();
