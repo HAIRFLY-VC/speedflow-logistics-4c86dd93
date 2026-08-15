@@ -132,5 +132,4 @@ export function parseNfeXml(xml: string): ParsedNfe {
     especie_volumes: especie,
     itens,
   };
-  };
 }
