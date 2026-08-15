@@ -51,17 +51,29 @@ export async function coletarVolumesNfes(chaves: string[]): Promise<NfeVolumeInf
   const alvos = Array.from(new Set(chaves.map(digits).filter((c) => c.length === 44)));
   if (alvos.length === 0) return [];
 
+  type NfeRow = {
+    chave_acesso: string;
+    numero: string | null;
+    peso_bruto: number | string | null;
+    xml_storage_path: string | null;
+    volumes?: number | string | null;
+    peso_liquido?: number | string | null;
+    especie_volumes?: string | null;
+    xml_conteudo?: string | null;
+  };
+
   const colunasBase = "chave_acesso, numero, peso_bruto, xml_storage_path";
-  let nfesQuery = await centralDb
-    .from("nfes")
-    .select(`${colunasBase}, volumes, peso_liquido, especie_volumes, xml_conteudo` as any)
-    .in("chave_acesso", alvos);
-  if (nfesQuery.error) {
-    nfesQuery = await centralDb.from("nfes").select(colunasBase).in("chave_acesso", alvos);
+  let nfesResp = (await (centralDb.from("nfes") as any)
+    .select(`${colunasBase}, volumes, peso_liquido, especie_volumes, xml_conteudo`)
+    .in("chave_acesso", alvos)) as { data: NfeRow[] | null; error: unknown };
+  if (nfesResp.error) {
+    nfesResp = (await (centralDb.from("nfes") as any)
+      .select(colunasBase)
+      .in("chave_acesso", alvos)) as { data: NfeRow[] | null; error: unknown };
   }
 
   const [{ data: nfes }, { data: sols }] = await Promise.all([
-    Promise.resolve(nfesQuery),
+    Promise.resolve(nfesResp),
     centralDb
       .from("nfe_solicitacoes")
       .select("chave_acesso, status, mensagem")
