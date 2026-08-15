@@ -102,6 +102,8 @@ export function CteDetailView({
     },
   });
 
+  const isComplemento =
+    cte.tipo_cte === 1 || !!cte.chave_cte_complementado || !!cte.numero_cte_complementado;
   const isComplementar = cte.tipo_cte === 1 || !(Number(cte.peso_taxado) > 0);
   const { data: grupo } = useQuery({
     queryKey: [
