@@ -4,6 +4,9 @@
   "intervaloNfeSegundos": 60,
   "retentativas": 3,
   "timeoutMs": 60000,
+  "timeoutConsultaSegundos": 120,
+  "timeoutCicloMinutos": 15,
+
   "endpoint": "https://project--0f575c65-0542-477f-8d03-b4c26e47b952.lovable.app/api/public/hooks/ingest-cte",
   "segredoIngest": "COLAR_AQUI_O_CTE_INGEST_SECRET",
   "empresas": [

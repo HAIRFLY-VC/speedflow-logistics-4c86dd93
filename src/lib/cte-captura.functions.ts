@@ -43,6 +43,8 @@ export const solicitarCapturaCte = createServerFn({ method: "POST" })
 const LIMITE_PENDENTE_MS = 5 * 60 * 1000;
 const LIMITE_PROCESSANDO_MS = 10 * 60 * 1000;
 
+const LIMITE_ROBO_ONLINE_MS = 3 * 60 * 1000;
+
 /** Último contato do robô local com o aplicativo (por rota consultada). */
 export const getStatusRobo = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -50,13 +52,26 @@ export const getStatusRobo = createServerFn({ method: "GET" })
     await assertStaff(context);
     const { data } = await centralDb
       .from("robo_heartbeats")
-      .select("origem, ultimo_contato")
+      .select("origem, ultimo_contato, detalhe")
       .order("ultimo_contato", { ascending: false });
-    const registros = (data ?? []) as { origem: string; ultimo_contato: string }[];
+    const registros = (data ?? []) as {
+      origem: string;
+      ultimo_contato: string;
+      detalhe: string | null;
+    }[];
     const ultimo = registros[0]?.ultimo_contato ?? null;
     const filaComandos =
       registros.find((r) => r.origem === "cte-comandos")?.ultimo_contato ?? null;
-    return { ultimoContato: ultimo, ultimoContatoFilaComandos: filaComandos };
+    const sinalVida = registros.find((r) => r.origem === "robo");
+    const online = ultimo
+      ? Date.now() - new Date(ultimo).getTime() < LIMITE_ROBO_ONLINE_MS
+      : false;
+    return {
+      ultimoContato: ultimo,
+      ultimoContatoFilaComandos: filaComandos,
+      estado: sinalVida?.detalhe ?? null,
+      online,
+    };
   });
 
 export const getUltimoComandoCaptura = createServerFn({ method: "GET" })
@@ -80,18 +95,35 @@ export const getUltimoComandoCaptura = createServerFn({ method: "GET" })
       (data.status === "PROCESSANDO" && decorrido > LIMITE_PROCESSANDO_MS);
 
     if (expirado) {
-      // Distingue "robô parado" de "robô ativo mas ocupado / aplicativo desatualizado".
-      const { data: hb } = await centralDb
+      // Distingue "robô parado" de "robô ativo, porém ocupado" pelo sinal de vida.
+      const { data: hbs } = await centralDb
         .from("robo_heartbeats")
-        .select("ultimo_contato")
-        .eq("origem", "cte-comandos")
-        .maybeSingle();
-      const ultimoContato = hb?.ultimo_contato as string | undefined;
-      const mensagem = ultimoContato
-        ? `O robô não assumiu o pedido a tempo. Último contato do robô: ${new Date(
-            ultimoContato,
-          ).toLocaleString("pt-BR")}. Ele pode estar no meio de uma leitura na SEFAZ — tente novamente em alguns minutos.`
-        : "O robô nunca consultou a fila de importação deste aplicativo. Verifique se o serviço local está ativo e se o aplicativo foi publicado com a rota de comandos.";
+        .select("origem, ultimo_contato, detalhe")
+        .order("ultimo_contato", { ascending: false });
+      const registros = (hbs ?? []) as {
+        origem: string;
+        ultimo_contato: string;
+        detalhe: string | null;
+      }[];
+      const ultimoContato = registros[0]?.ultimo_contato;
+      const estado = registros.find((r) => r.origem === "robo")?.detalhe ?? null;
+      const online = ultimoContato
+        ? Date.now() - new Date(ultimoContato).getTime() < LIMITE_ROBO_ONLINE_MS
+        : false;
+
+      let mensagem: string;
+      if (!ultimoContato) {
+        mensagem =
+          "O robô nunca consultou a fila de importação deste aplicativo. Verifique se o serviço local está ativo e configurado com o endereço correto.";
+      } else if (online) {
+        mensagem = `O robô está ativo${
+          estado ? ` (${estado})` : ""
+        }, porém ocupado e não assumiu o pedido a tempo. Tente novamente em alguns minutos.`;
+      } else {
+        mensagem = `O robô está sem contato desde ${new Date(ultimoContato).toLocaleString(
+          "pt-BR",
+        )} — o serviço local provavelmente está parado ou travado. Reinicie o serviço RoboCTeSpeedFlow no servidor.`;
+      }
       await centralDb
         .from("cte_captura_comandos")
         .update({ status: "ERRO", mensagem, concluido_em: new Date().toISOString() })
@@ -101,6 +133,7 @@ export const getUltimoComandoCaptura = createServerFn({ method: "GET" })
 
     return data;
   });
+
 
 
 export const cancelarCapturaCte = createServerFn({ method: "POST" })

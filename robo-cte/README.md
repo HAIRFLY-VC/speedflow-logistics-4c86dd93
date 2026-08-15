@@ -133,6 +133,13 @@ registra a solicitação numa fila. O robô, que possui o certificado A1, faz:
 A verificação acontece a cada ciclo e também durante a espera, no intervalo definido
 em `intervaloNfeSegundos` (padrão: 60 segundos).
 
+O robô envia um sinal de vida ao aplicativo a cada 60 segundos, mesmo durante
+leituras longas na SEFAZ, e aborta consultas travadas: `timeoutConsultaSegundos`
+(padrão 120s por consulta) e `timeoutCicloMinutos` (padrão 15min por ciclo).
+Assim a tela de CT-e mostra "Robô ativo" ou "Robô offline" antes de você pedir
+uma importação forçada.
+
+
 Observação: a SEFAZ só devolve o XML completo da NF-e quando o CNPJ consultante é o
 destinatário e a operação está manifestada. Caso contrário, o app mostra o motivo e
 permite importar o XML manualmente.

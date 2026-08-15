@@ -253,6 +253,67 @@ function requestJson(url, metodo, segredo, body, timeoutMs) {
   });
 }
 
+// ============ Sinal de vida (heartbeat) e watchdog ============
+
+let estadoAtual = "iniciando";
+let heartbeatTimer = null;
+
+function setEstado(estado) {
+  estadoAtual = estado;
+}
+
+// Envia o sinal de vida em um temporizador proprio, inclusive durante leituras
+// longas na SEFAZ, para o aplicativo distinguir "robo parado" de "robo ocupado".
+function iniciarHeartbeat(cfg) {
+  if (heartbeatTimer) return;
+  const enviar = async () => {
+    try {
+      const atual = readConfig();
+      await requestJson(
+        urlHook(atual.endpoint, "robo-heartbeat"),
+        "POST",
+        atual.segredoIngest,
+        { estado: estadoAtual },
+        Math.min(atual.timeoutMs || 60000, 20000)
+      );
+    } catch {
+      // heartbeat nunca deve interromper o robo
+    }
+  };
+  void enviar();
+  heartbeatTimer = setInterval(enviar, 60000);
+  if (typeof heartbeatTimer.unref === "function") heartbeatTimer.unref();
+  log("Heartbeat iniciado (a cada 60s)");
+  return cfg;
+}
+
+// Aborta operacoes que nunca retornam (ex.: SEFAZ sem resposta), para o robo
+// nao ficar preso e parar de atender a fila de comandos.
+async function withTimeout(promise, ms, descricao) {
+  let timer;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`Tempo limite excedido (${Math.round(ms / 1000)}s) em ${descricao}`)),
+          ms
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function limiteCicloMs(cfg) {
+  return Math.max(1, cfg.timeoutCicloMinutos || 15) * 60 * 1000;
+}
+
+function limiteConsultaMs(cfg) {
+  return Math.max(30, cfg.timeoutConsultaSegundos || 120) * 1000;
+}
+
 // Verifica se o aplicativo solicitou uma importacao forcada de CT-e.
 async function verificarComandoCaptura(cfg) {
   try {
@@ -271,6 +332,7 @@ async function verificarComandoCaptura(cfg) {
   }
 }
 
+
 async function reportarComandoCaptura(cfg, comandoId, status, mensagem, novosCtes) {
   try {
     await requestJson(
@@ -286,13 +348,25 @@ async function reportarComandoCaptura(cfg, comandoId, status, mensagem, novosCte
 }
 
 async function executarCicloEmpresas(cfg, modoTeste, reiniciarNsu = false) {
-  let total = 0;
-  for (let i = 0; i < cfg.empresas.length; i++) {
-    total += (await processarEmpresa(cfg, i, modoTeste, reiniciarNsu)) || 0;
-    await sleep(1000);
+  setEstado(reiniciarNsu ? "reimportacao total na SEFAZ" : "lendo SEFAZ");
+  try {
+    return await withTimeout(
+      (async () => {
+        let total = 0;
+        for (let i = 0; i < cfg.empresas.length; i++) {
+          total += (await processarEmpresa(cfg, i, modoTeste, reiniciarNsu)) || 0;
+          await sleep(1000);
+        }
+        return total;
+      })(),
+      limiteCicloMs(cfg),
+      "ciclo de leitura das empresas"
+    );
+  } finally {
+    setEstado("ocioso");
   }
-  return total;
 }
+
 
 async function processarNfesPendentes(cfg, modoTeste) {
   let pendentes = [];
@@ -381,7 +455,12 @@ async function processarEmpresa(cfg, empresaIndex, modoTeste, reiniciarNsu = fal
   while (totalCiclos < 200) {
     totalCiclos++;
     log(`Consultando NSU ${ultimoNsu} (ciclo ${totalCiclos})`);
-    const { xmls, maxNsu, ultNsu, cStat, xMotivo } = await client.consultar(ultimoNsu);
+    const { xmls, maxNsu, ultNsu, cStat, xMotivo } = await withTimeout(
+      client.consultar(ultimoNsu),
+      limiteConsultaMs(cfg),
+      `consulta a SEFAZ (NSU ${ultimoNsu})`
+    );
+
     log(`Retorno: cStat=${cStat}, ultNSU=${ultNsu}, maxNSU=${maxNsu}, documentos=${xmls.length}, motivo=${xMotivo || "ok"}`);
 
     if (!xmls.length) {
@@ -452,7 +531,11 @@ async function run() {
     throw e;
   }
 
+  if (!modoTeste) iniciarHeartbeat(readConfig());
+  setEstado("ocioso");
+
   do {
+
     try {
       const cfg = readConfig();
       await executarCicloEmpresas(cfg, modoTeste);

@@ -43,6 +43,7 @@ import { Route as ApiPublicHooksErpSyncRouteImport } from './routes/api/public/h
 import { Route as ApiPublicHooksIngestCteRouteImport } from './routes/api/public/hooks/ingest-cte'
 import { Route as ApiPublicHooksIngestNfeRouteImport } from './routes/api/public/hooks/ingest-nfe'
 import { Route as ApiPublicHooksNfePendentesRouteImport } from './routes/api/public/hooks/nfe-pendentes'
+import { Route as ApiPublicHooksRoboHeartbeatRouteImport } from './routes/api/public/hooks/robo-heartbeat'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -226,6 +227,12 @@ const ApiPublicHooksNfePendentesRoute =
     path: '/api/public/hooks/nfe-pendentes',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksRoboHeartbeatRoute =
+  ApiPublicHooksRoboHeartbeatRouteImport.update({
+    id: '/api/public/hooks/robo-heartbeat',
+    path: '/api/public/hooks/robo-heartbeat',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -261,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
   '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
   '/api/public/hooks/nfe-pendentes': typeof ApiPublicHooksNfePendentesRoute
+  '/api/public/hooks/robo-heartbeat': typeof ApiPublicHooksRoboHeartbeatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -295,6 +303,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
   '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
   '/api/public/hooks/nfe-pendentes': typeof ApiPublicHooksNfePendentesRoute
+  '/api/public/hooks/robo-heartbeat': typeof ApiPublicHooksRoboHeartbeatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -332,6 +341,7 @@ export interface FileRoutesById {
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
   '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
   '/api/public/hooks/nfe-pendentes': typeof ApiPublicHooksNfePendentesRoute
+  '/api/public/hooks/robo-heartbeat': typeof ApiPublicHooksRoboHeartbeatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -369,6 +379,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/ingest-cte'
     | '/api/public/hooks/ingest-nfe'
     | '/api/public/hooks/nfe-pendentes'
+    | '/api/public/hooks/robo-heartbeat'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -403,6 +414,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/ingest-cte'
     | '/api/public/hooks/ingest-nfe'
     | '/api/public/hooks/nfe-pendentes'
+    | '/api/public/hooks/robo-heartbeat'
   id:
     | '__root__'
     | '/'
@@ -439,6 +451,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/ingest-cte'
     | '/api/public/hooks/ingest-nfe'
     | '/api/public/hooks/nfe-pendentes'
+    | '/api/public/hooks/robo-heartbeat'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -451,6 +464,7 @@ export interface RootRouteChildren {
   ApiPublicHooksIngestCteRoute: typeof ApiPublicHooksIngestCteRoute
   ApiPublicHooksIngestNfeRoute: typeof ApiPublicHooksIngestNfeRoute
   ApiPublicHooksNfePendentesRoute: typeof ApiPublicHooksNfePendentesRoute
+  ApiPublicHooksRoboHeartbeatRoute: typeof ApiPublicHooksRoboHeartbeatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -693,6 +707,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksNfePendentesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/robo-heartbeat': {
+      id: '/api/public/hooks/robo-heartbeat'
+      path: '/api/public/hooks/robo-heartbeat'
+      fullPath: '/api/public/hooks/robo-heartbeat'
+      preLoaderRoute: typeof ApiPublicHooksRoboHeartbeatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -777,6 +798,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksIngestCteRoute: ApiPublicHooksIngestCteRoute,
   ApiPublicHooksIngestNfeRoute: ApiPublicHooksIngestNfeRoute,
   ApiPublicHooksNfePendentesRoute: ApiPublicHooksNfePendentesRoute,
+  ApiPublicHooksRoboHeartbeatRoute: ApiPublicHooksRoboHeartbeatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
