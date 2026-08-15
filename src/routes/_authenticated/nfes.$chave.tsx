@@ -248,20 +248,30 @@ function NfeDetailPage() {
             <CardHeader>
               <CardTitle>
                 {solicitacao?.status === "ERRO"
-                  ? "Não foi possível ler o XML na SEFAZ"
+                  ? aguardandoVarredura
+                    ? "Aguardando a varredura da SEFAZ"
+                    : "Não foi possível ler o XML na SEFAZ"
                   : "Lendo o XML da NF-e na SEFAZ…"}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-muted-foreground space-y-3 text-sm">
               {solicitacao?.status === "ERRO" ? (
                 <>
-                  <p>
-                    O robô de captura (certificado A1) não conseguiu obter esta nota:{" "}
-                    <span className="text-foreground font-medium">
-                      {solicitacao.mensagem ?? "erro não informado"}
-                    </span>
-                    . Tentativas: {solicitacao.tentativas}.
-                  </p>
+                  {aguardandoVarredura ? (
+                    <p>
+                      Esta nota foi emitida pela própria empresa, então a SEFAZ não a entrega
+                      pela consulta por chave. O robô vai trazê-la na varredura por NSU, que
+                      roda automaticamente. Tentativas: {solicitacao.tentativas}.
+                    </p>
+                  ) : (
+                    <p>
+                      O robô de captura (certificado A1) não conseguiu obter esta nota:{" "}
+                      <span className="text-foreground font-medium">
+                        {solicitacao.mensagem ?? "erro não informado"}
+                      </span>
+                      . Tentativas: {solicitacao.tentativas}.
+                    </p>
+                  )}
                   <p>
                     Você pode tentar novamente ou enviar o arquivo manualmente em “Importar
                     XML”.
