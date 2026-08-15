@@ -72,10 +72,11 @@ export default function CteDetailPage() {
     queryKey: ["transportadora", cte?.transportadora_id],
     enabled: !!cte?.transportadora_id,
     queryFn: async () => {
+      const id = cte!.transportadora_id!;
       const { data, error } = await supabase
         .from("transportadoras")
         .select("razao_social")
-        .eq("id", cte!.transportadora_id)
+        .eq("id", id)
         .maybeSingle();
       if (error) throw error;
       return data;
