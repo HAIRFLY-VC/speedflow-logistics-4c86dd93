@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Upload, Loader2, FileDown, FileCode, UserPlus, RefreshCw, X } from "lucide-react";
+import { Upload, Loader2, FileDown, FileCode, UserPlus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -15,8 +15,6 @@ import {
   solicitarCapturaCte,
   getUltimoComandoCaptura,
   cancelarCapturaCte,
-  getRemetentesIgnorados,
-  cadastrarEmpresaRemetente,
 } from "@/lib/cte-captura.functions";
 import { CteDetailDialog } from "@/components/ctes/CteDetailDialog";
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
@@ -108,34 +106,6 @@ function CtesPage() {
   const capturaEmAndamento =
     comando?.status === "PENDENTE" || comando?.status === "PROCESSANDO";
 
-  // Diagnóstico: CT-e descartados porque o remetente não é uma empresa cadastrada.
-  const remetentesIgnorados = useServerFn(getRemetentesIgnorados);
-  const cadastrarEmpresa = useServerFn(cadastrarEmpresaRemetente);
-  const { data: descartes } = useQuery({
-    queryKey: ["cte-remetentes-ignorados"],
-    queryFn: () => remetentesIgnorados(),
-  });
-
-  const registrarEmpresa = useMutation({
-    mutationFn: async (r: { cnpj: string; nome: string | null }) =>
-      cadastrarEmpresa({ data: { cnpj: r.cnpj, razaoSocial: r.nome ?? "" } }),
-    onSuccess: async () => {
-      toast.success("Empresa cadastrada. Reimporte os CT-e para trazer os documentos descartados.");
-      await qc.invalidateQueries({ queryKey: ["cte-remetentes-ignorados"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-  // Aviso de descartes: some ao fechar e pode ser silenciado definitivamente.
-  const AVISO_KEY = "cte-descartes-aviso-oculto";
-  const [avisoFechado, setAvisoFechado] = useState(false);
-  const [avisoSilenciado, setAvisoSilenciado] = useState(true);
-  useEffect(() => {
-    setAvisoSilenciado(localStorage.getItem(AVISO_KEY) === "1");
-  }, []);
-  const ocultarSempre = () => {
-    localStorage.setItem(AVISO_KEY, "1");
-    setAvisoSilenciado(true);
-  };
 
 
   // Tempo decorrido desde a solicitação, para o usuário saber que está aguardando o robô.
@@ -551,70 +521,6 @@ function CtesPage() {
           </div>
         </div>
 
-        {descartes && descartes.remetentes.length > 0 && !avisoFechado && !avisoSilenciado && (
-          <div className="border-destructive/40 bg-destructive/5 rounded-lg border p-4">
-            <div className="flex items-start justify-between gap-2">
-              <h2 className="text-destructive text-sm font-semibold">
-                CT-e recebidos mas descartados: remetente não cadastrado
-              </h2>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 px-2"
-                onClick={() => setAvisoFechado(true)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <p className="text-muted-foreground mt-1 text-xs">
-              O robô enviou documentos, porém só são importados os CT-e cujo remetente é uma
-              empresa cadastrada
-              {descartes.totalEmpresas === 0 ? " (nenhuma empresa cadastrada hoje)" : ""}. Cadastre
-              o remetente abaixo e use “Reimportar tudo”.
-            </p>
-            <ul className="mt-3 space-y-2">
-              {descartes.remetentes.slice(0, 10).map((r) => (
-                <li
-                  key={r.cnpj}
-                  className="bg-background flex flex-wrap items-center justify-between gap-2 rounded-md border p-2"
-                >
-                  <div>
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="font-mono text-xs">{r.cnpj}</span>
-                      <span className="text-xs font-medium">
-                        {r.nome ?? "Nome não informado nos registros"}
-                      </span>
-                    </div>
-                    <div className="text-muted-foreground text-xs">
-                      {r.total} documento(s) descartado(s)
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={registrarEmpresa.isPending}
-                    onClick={() => registrarEmpresa.mutate({ cnpj: r.cnpj, nome: r.nome })}
-                  >
-                    {registrarEmpresa.isPending &&
-                    registrarEmpresa.variables?.cnpj === r.cnpj ? (
-                      <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <UserPlus className="mr-1 h-3.5 w-3.5" />
-                    )}
-                    Cadastrar empresa
-                  </Button>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-3">
-              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={ocultarSempre}>
-                Não exibir novamente
-              </Button>
-            </div>
-          </div>
-
-        )}
 
 
 
