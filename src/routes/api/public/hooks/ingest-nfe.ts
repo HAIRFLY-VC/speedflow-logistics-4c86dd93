@@ -54,9 +54,11 @@ export const Route = createFileRoute("/api/public/hooks/ingest-nfe")({
               await centralDb
                 .from("nfe_solicitacoes")
                 .update({
-                  status: "PENDENTE",
+                  // ERRO mantém a nota fora da fila por chave (que nunca funcionaria);
+                  // a mensagem com 641 é traduzida na tela como "aguardando varredura".
+                  status: "ERRO",
                   mensagem:
-                    "Nota emitida pela própria empresa: aguardando a varredura da SEFAZ por NSU.",
+                    "cStat=641: nota emitida pela própria empresa — aguardando a varredura da SEFAZ por NSU.",
                 })
                 .eq("chave_acesso", chave);
               return Response.json({ ok: true, pendente: true });

@@ -32,9 +32,9 @@ export const Route = createFileRoute("/api/public/hooks/nfe-pendentes")({
 
             .from("nfe_solicitacoes")
             .select("id, chave_acesso, tentativas")
-            .or(
-              "status.in.(PENDENTE,PROCESSANDO),and(status.eq.ERRO,mensagem.ilike.*641*)",
-            )
+            // Notas emitidas pela própria empresa (cStat=641) nunca vêm pela consulta
+            // por chave: elas chegam pela varredura por NSU, então ficam fora desta fila.
+            .in("status", ["PENDENTE", "PROCESSANDO"])
             .lt("tentativas", 5)
             .order("created_at", { ascending: true })
             .limit(20);
