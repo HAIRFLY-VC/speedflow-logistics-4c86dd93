@@ -1,10 +1,18 @@
 import fs from "fs";
 import path from "path";
 import https from "https";
-import { SefazCteClient, SefazNfeClient, filtrarProcCte, extrairXmlProcCte } from "./sefaz.js";
+import {
+  SefazCteClient,
+  SefazNfeClient,
+  SefazNfeDistClient,
+  filtrarProcCte,
+  filtrarProcNfe,
+  extrairXmlProcCte,
+} from "./sefaz.js";
 
 const CONFIG_PATH = process.env.ROBO_CTE_CONFIG || "./config.json";
 const NSU_FILE = "./.ultimo-nsu";
+const NSU_NFE_FILE = "./.ultimo-nsu-nfe";
 
 function log(msg) {
   const line = `[${new Date().toISOString()}] ${msg}`;
@@ -95,6 +103,27 @@ function writeUltimoNsu(empresaIndex, nsu) {
     fs.writeFileSync(NSU_FILE, JSON.stringify(map, null, 2), "utf-8");
   } catch (e) {
     log(`Erro ao gravar ultimo NSU: ${e.message}`);
+  }
+}
+
+function readUltimoNsuNfe(empresaIndex) {
+  try {
+    if (!fs.existsSync(NSU_NFE_FILE)) return 0;
+    const map = JSON.parse(fs.readFileSync(NSU_NFE_FILE, "utf-8"));
+    return map[empresaIndex] ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeUltimoNsuNfe(empresaIndex, nsu) {
+  try {
+    let map = {};
+    if (fs.existsSync(NSU_NFE_FILE)) map = JSON.parse(fs.readFileSync(NSU_NFE_FILE, "utf-8"));
+    map[empresaIndex] = nsu;
+    fs.writeFileSync(NSU_NFE_FILE, JSON.stringify(map, null, 2), "utf-8");
+  } catch (e) {
+    log(`Erro ao gravar ultimo NSU de NF-e: ${e.message}`);
   }
 }
 
@@ -429,6 +458,87 @@ async function processarNfesPendentes(cfg, modoTeste) {
   }
 }
 
+// Varredura de NF-e por NSU: e a unica forma de a EMPRESA EMITENTE obter os proprios
+// XMLs (a consulta por chave responde cStat=641 para o emitente).
+async function processarNfesPorNsu(cfg, modoTeste, reiniciarNsu = false) {
+  setEstado("lendo NF-e na SEFAZ");
+  let enviados = 0;
+  try {
+    for (let i = 0; i < cfg.empresas.length; i++) {
+      const empresa = cfg.empresas[i];
+      if (!fs.existsSync(empresa.caminhoCertificado)) {
+        log(`NF-e: certificado nao encontrado para ${empresa.nome}, pulando`);
+        continue;
+      }
+      const client = new SefazNfeDistClient(empresa, cfg.ambiente);
+      let ultimoNsu = reiniciarNsu ? 0 : readUltimoNsuNfe(i);
+      if (reiniciarNsu && !modoTeste) writeUltimoNsuNfe(i, 0);
+      log(`NF-e: varredura de ${empresa.nome} a partir do NSU ${ultimoNsu}`);
+
+      let ciclos = 0;
+      while (ciclos < 200) {
+        ciclos++;
+        let retorno;
+        try {
+          retorno = await withTimeout(
+            client.consultar(ultimoNsu),
+            limiteConsultaMs(cfg),
+            `consulta de NF-e a SEFAZ (NSU ${ultimoNsu})`
+          );
+        } catch (e) {
+          log(`NF-e: erro na consulta (NSU ${ultimoNsu}): ${e.message}`);
+          break;
+        }
+        const { xmls, maxNsu, ultNsu, cStat, xMotivo } = retorno;
+        log(
+          `NF-e: cStat=${cStat}, ultNSU=${ultNsu}, maxNSU=${maxNsu}, documentos=${xmls.length}` +
+            `${xMotivo ? `, motivo=${xMotivo}` : ""}`
+        );
+
+        if (!xmls.length) {
+          ultimoNsu = Math.max(maxNsu || 0, ultimoNsu);
+          if (!modoTeste) writeUltimoNsuNfe(i, ultimoNsu);
+          break;
+        }
+
+        const notas = filtrarProcNfe(xmls);
+        log(`NF-e completas encontradas: ${notas.length}`);
+        for (const nota of notas) {
+          if (modoTeste) {
+            log(`[TESTE] NF-e no NSU ${nota.nsu} - nao enviada`);
+            continue;
+          }
+          try {
+            await requestJson(
+              urlHook(cfg.endpoint, "ingest-nfe"),
+              "POST",
+              cfg.segredoIngest,
+              { xml: nota.xml },
+              cfg.timeoutMs
+            );
+            enviados++;
+          } catch (e) {
+            log(`NF-e: erro ao enviar NSU ${nota.nsu}: ${e.message}`);
+          }
+          await sleep(200);
+        }
+
+        const proximoNsu = Math.max(ultNsu || 0, ...xmls.map((x) => x.nsu || 0), ultimoNsu);
+        const avancou = proximoNsu > ultimoNsu;
+        ultimoNsu = proximoNsu;
+        if (!modoTeste) writeUltimoNsuNfe(i, ultimoNsu);
+        if (!avancou || ultimoNsu >= maxNsu) break;
+        await sleep(500);
+      }
+      await sleep(500);
+    }
+  } finally {
+    setEstado("ocioso");
+  }
+  log(`NF-e: varredura concluida, ${enviados} notas enviadas ao aplicativo`);
+  return enviados;
+}
+
 async function processarEmpresa(cfg, empresaIndex, modoTeste, reiniciarNsu = false) {
   const empresa = cfg.empresas[empresaIndex];
   log(`Iniciando consulta para ${empresa.nome} (${empresa.cnpj})`);
@@ -539,6 +649,7 @@ async function run() {
     try {
       const cfg = readConfig();
       await executarCicloEmpresas(cfg, modoTeste);
+      await processarNfesPorNsu(cfg, modoTeste);
       await processarNfesPendentes(cfg, modoTeste);
     } catch (e) {
       if (e instanceof ConfigError) {
@@ -563,7 +674,9 @@ async function run() {
       await sleep(Math.min(intervaloNfe, intervalo - esperado));
       esperado += intervaloNfe;
       try {
-        await processarNfesPendentes(readConfig(), false);
+        const cfgNfe = readConfig();
+        await processarNfesPorNsu(cfgNfe, false);
+        await processarNfesPendentes(cfgNfe, false);
       } catch (e) {
         log(`Erro ao processar NF-e pendentes: ${e.message}`);
       }
@@ -583,6 +696,7 @@ async function run() {
       );
       try {
         const enviados = await executarCicloEmpresas(cfgAtual, false, reiniciarNsu);
+        await processarNfesPorNsu(cfgAtual, false, reiniciarNsu);
         await reportarComandoCaptura(
           cfgAtual,
           comandoId,
