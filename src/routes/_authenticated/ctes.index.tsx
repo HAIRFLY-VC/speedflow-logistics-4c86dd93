@@ -18,11 +18,10 @@ import {
   getStatusRobo,
 } from "@/lib/cte-captura.functions";
 
-import { CteDetailDialog } from "@/components/ctes/CteDetailDialog";
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
 import type { Tables } from "@/integrations/supabase/types";
 
-export const Route = createFileRoute("/_authenticated/ctes")({
+export const Route = createFileRoute("/_authenticated/ctes/")({
   component: CtesPage,
   head: () => ({
     meta: [
@@ -66,7 +65,6 @@ function CtesPage() {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [selected, setSelected] = useState<Cte | null>(null);
   const upload = useServerFn(uploadCteXml);
   const signUrl = useServerFn(getCteXmlUrl);
   const solicitarCaptura = useServerFn(solicitarCapturaCte);
@@ -579,35 +577,15 @@ function CtesPage() {
           rowKey={(c) => c.id}
           emptyMessage="Nenhum CT-e importado."
           defaultSort={{ id: "emissao", dir: "desc" }}
-          onRowClick={(c) => setSelected(c)}
-        />
-
-        <CteDetailDialog
-          cte={selected}
-          open={!!selected}
-          onOpenChange={(v) => !v && setSelected(null)}
-          transportadoraNome={
-            selected?.transportadora_id
-              ? nomeTransportadora.get(selected.transportadora_id)
-              : undefined
-          }
-          statusTone={selected ? STATUS_TONE[selected.status] : undefined}
-          onDownloadXml={(c) => openXml.mutate(c)}
-          onReadXml={(c) => readXml.mutate(c)}
-          downloading={openXml.isPending}
-          onOpenCte={async (cteId) => {
-            const local = (data ?? []).find((c) => c.id === cteId);
-            if (local) {
-              setSelected(local);
-              return;
-            }
-            const { data: found } = await supabase
-              .from("ctes")
-              .select("*")
-              .eq("id", cteId)
-              .maybeSingle();
-            if (found) setSelected(found as Cte);
-            else toast.error("CT-e original não encontrado.");
+          onRowClick={(c) => {
+            const url = `${window.location.origin}/ctes/${c.id}`;
+            const features =
+              "width=" +
+              window.screen.availWidth +
+              ",height=" +
+              window.screen.availHeight +
+              ",top=0,left=0,menubar=no,toolbar=no,location=no,status=no";
+            window.open(url, `cte-${c.id}`, features);
           }}
         />
 
