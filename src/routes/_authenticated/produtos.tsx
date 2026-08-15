@@ -1,176 +1,95 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Plus, Pencil, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { Database } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import { formatCurrency } from "@/lib/orderStatus";
-import type { Tables } from "@/integrations/supabase/types";
+import { listProdutosExternos } from "@/lib/external-catalog.functions";
+import type { ExternalProduto } from "@/lib/external-catalog.types";
 
 export const Route = createFileRoute("/_authenticated/produtos")({
   component: ProdutosPage,
 });
 
-type Product = Tables<"products">;
-
-const productSchema = z.object({
-  sku: z.string().trim().min(1, "SKU é obrigatório").max(60),
-  name: z.string().trim().min(2, "Mínimo 2 caracteres").max(200),
-  description: z.string().trim().max(1000).optional().or(z.literal("")),
-  unit_price: z.coerce.number().min(0, "Não pode ser negativo"),
-  weight_kg: z
-    .union([z.coerce.number().min(0), z.literal("")])
-    .optional(),
-  stock_qty: z.coerce.number().min(0, "Não pode ser negativo"),
-  is_active: z.boolean(),
-});
-type ProductInput = z.infer<typeof productSchema>;
+function isAtivo(v: string | null) {
+  if (!v) return false;
+  const s = v.trim().toUpperCase();
+  return s === "S" || s === "A" || s === "SIM" || s === "ATIVO" || s === "1";
+}
 
 function ProdutosPage() {
-  const qc = useQueryClient();
-  const [editing, setEditing] = useState<Product | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["products"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("products").select("*").order("name");
-      if (error) throw error;
-      return data as Product[];
-    },
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["produtos-externos"],
+    queryFn: () => listProdutosExternos(),
   });
 
-  const upsertMutation = useMutation({
-    mutationFn: async (input: ProductInput) => {
-      const payload = {
-        ...input,
-        description: input.description || null,
-        weight_kg: input.weight_kg === "" || input.weight_kg === undefined ? null : input.weight_kg,
-      } as never;
-      if (editing) {
-        const { error } = await supabase.from("products").update(payload).eq("id", editing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("products").insert(payload);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["products"] });
-      toast.success(editing ? "Produto atualizado" : "Produto criado");
-      setDialogOpen(false);
-      setEditing(null);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const toggleActive = useMutation({
-    mutationFn: async (p: Product) => {
-      const { error } = await supabase
-        .from("products")
-        .update({ is_active: !p.is_active })
-        .eq("id", p.id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["products"] }),
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const columns = useMemo<ColumnDef<Product>[]>(
+  const columns = useMemo<ColumnDef<ExternalProduto>[]>(
     () => [
       {
-        id: "sku",
-        header: "SKU",
-        accessor: (p) => p.sku,
+        id: "cod_produto",
+        header: "Código",
+        accessor: (p) => p.cod_produto,
         className: "font-mono text-xs",
       },
       {
-        id: "name",
+        id: "descricao",
         header: "Produto",
-        accessor: (p) => p.name,
-        render: (p) => (
-          <div>
-            <div className="font-medium">{p.name}</div>
-            {p.description ? (
-              <div className="text-xs text-muted-foreground line-clamp-1">
-                {p.description}
-              </div>
-            ) : null}
-          </div>
-        ),
+        accessor: (p) => p.descricao ?? "",
+        render: (p) => <div className="font-medium">{p.descricao || "—"}</div>,
       },
       {
-        id: "unit_price",
-        header: "Preço",
+        id: "marca",
+        header: "Marca",
+        accessor: (p) => p.marca ?? "",
+      },
+      {
+        id: "unidade_medida",
+        header: "UN",
+        align: "center",
+        accessor: (p) => p.unidade_medida ?? "",
+      },
+      {
+        id: "qt_por_caixa",
+        header: "Qtd/caixa",
         align: "right",
-        accessor: (p) => Number(p.unit_price ?? 0),
-        render: (p) => formatCurrency(Number(p.unit_price ?? 0)),
+        accessor: (p) => Number(p.qt_por_caixa ?? 0),
+        render: (p) => (p.qt_por_caixa ? Number(p.qt_por_caixa).toLocaleString("pt-BR") : "—"),
         className: "tabular-nums",
       },
       {
-        id: "weight_kg",
+        id: "peso_liquido_kg",
         header: "Peso (kg)",
         align: "right",
-        accessor: (p) => Number(p.weight_kg ?? 0),
-        render: (p) => (p.weight_kg ? Number(p.weight_kg).toFixed(2) : "—"),
+        accessor: (p) => Number(p.peso_liquido_kg ?? 0),
+        render: (p) => (p.peso_liquido_kg ? Number(p.peso_liquido_kg).toFixed(3) : "—"),
         className: "tabular-nums",
       },
       {
-        id: "stock_qty",
-        header: "Estoque",
+        id: "custo",
+        header: "Custo ref.",
         align: "right",
-        accessor: (p) => Number(p.stock_qty ?? 0),
+        accessor: (p) => Number(p.custo_unitario_referencia ?? 0),
+        render: (p) =>
+          p.custo_unitario_referencia
+            ? formatCurrency(Number(p.custo_unitario_referencia))
+            : "—",
         className: "tabular-nums",
       },
       {
-        id: "active",
+        id: "ativo",
         header: "Ativo",
         align: "center",
-        accessor: (p) => (p.is_active ? "sim" : "não"),
+        accessor: (p) => (isAtivo(p.ativo) ? "sim" : "não"),
         render: (p) => (
-          <Switch checked={p.is_active} onCheckedChange={() => toggleActive.mutate(p)} />
-        ),
-      },
-      {
-        id: "actions",
-        header: "",
-        sortable: false,
-        filterable: false,
-        accessor: () => "",
-        render: (p) => (
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => {
-              setEditing(p);
-              setDialogOpen(true);
-            }}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
+          <Badge variant={isAtivo(p.ativo) ? "default" : "secondary"}>
+            {isAtivo(p.ativo) ? "Sim" : "Não"}
+          </Badge>
         ),
       },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
@@ -181,141 +100,32 @@ function ProdutosPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Produtos</h1>
             <p className="text-muted-foreground text-sm">
-              Catálogo de produtos disponíveis para venda.
+              Catálogo lido diretamente do banco central. Somente leitura.
             </p>
           </div>
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setDialogOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Novo produto
-          </Button>
+          <Badge variant="outline" className="gap-1">
+            <Database className="h-3 w-3" />
+            Banco central
+            {data ? ` · ${data.total.toLocaleString("pt-BR")} produtos` : ""}
+          </Badge>
         </div>
+
+        {error ? (
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+            {(error as Error).message}
+          </div>
+        ) : null}
 
         <DataTable
           tableKey="produtos"
           columns={columns}
-          data={data}
+          data={data?.rows}
           isLoading={isLoading}
-          rowKey={(p) => p.id}
+          rowKey={(p) => p.cod_produto}
           emptyMessage="Nenhum produto encontrado."
-          defaultSort={{ id: "name", dir: "asc" }}
+          defaultSort={{ id: "descricao", dir: "asc" }}
         />
       </div>
-
-      <ProductDialog
-        key={editing?.id ?? "new"}
-        open={dialogOpen}
-        onOpenChange={(o) => {
-          setDialogOpen(o);
-          if (!o) setEditing(null);
-        }}
-        editing={editing}
-        onSubmit={(v) => upsertMutation.mutate(v)}
-        submitting={upsertMutation.isPending}
-      />
     </AppShell>
-  );
-}
-
-function ProductDialog({
-  open,
-  onOpenChange,
-  editing,
-  onSubmit,
-  submitting,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  editing: Product | null;
-  onSubmit: (v: ProductInput) => void;
-  submitting: boolean;
-}) {
-  const form = useForm<ProductInput>({
-    resolver: zodResolver(productSchema),
-    defaultValues: {
-      sku: editing?.sku ?? "",
-      name: editing?.name ?? "",
-      description: editing?.description ?? "",
-      unit_price: Number(editing?.unit_price ?? 0),
-      weight_kg: editing?.weight_kg != null ? Number(editing.weight_kg) : "",
-      stock_qty: Number(editing?.stock_qty ?? 0),
-      is_active: editing?.is_active ?? true,
-    },
-  });
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{editing ? "Editar produto" : "Novo produto"}</DialogTitle>
-          <DialogDescription>Informações do item no catálogo.</DialogDescription>
-        </DialogHeader>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
-        >
-          <Field label="SKU *" error={form.formState.errors.sku?.message}>
-            <Input {...form.register("sku")} />
-          </Field>
-          <Field label="Nome *" error={form.formState.errors.name?.message}>
-            <Input {...form.register("name")} />
-          </Field>
-          <div className="md:col-span-2">
-            <Field label="Descrição">
-              <Textarea rows={3} {...form.register("description")} />
-            </Field>
-          </div>
-          <Field label="Preço unitário (R$) *" error={form.formState.errors.unit_price?.message}>
-            <Input type="number" step="0.01" min="0" {...form.register("unit_price")} />
-          </Field>
-          <Field label="Peso (kg)">
-            <Input type="number" step="0.001" min="0" {...form.register("weight_kg")} />
-          </Field>
-          <Field label="Estoque *" error={form.formState.errors.stock_qty?.message}>
-            <Input type="number" step="1" min="0" {...form.register("stock_qty")} />
-          </Field>
-          <div className="flex items-center gap-3">
-            <Switch
-              checked={form.watch("is_active")}
-              onCheckedChange={(v) => form.setValue("is_active", v)}
-              id="p_is_active"
-            />
-            <Label htmlFor="p_is_active">Produto ativo</Label>
-          </div>
-
-          <DialogFooter className="md:col-span-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {editing ? "Salvar" : "Criar"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-xs">{label}</Label>
-      {children}
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
-    </div>
   );
 }
