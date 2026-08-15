@@ -414,10 +414,13 @@ export type Database = {
           data_emissao: string | null
           empresa_id: string | null
           id: string
+          motivo_complemento: string | null
           nfs_referenciadas: Json
           nome_emitente: string | null
           numero: string | null
+          numero_cte_complementado: string | null
           observacao: string | null
+          observacoes: Json
           origem_captura: Database["public"]["Enums"]["cte_origem_captura"]
           peso_taxado: number | null
           serie: string | null
@@ -440,10 +443,13 @@ export type Database = {
           data_emissao?: string | null
           empresa_id?: string | null
           id?: string
+          motivo_complemento?: string | null
           nfs_referenciadas?: Json
           nome_emitente?: string | null
           numero?: string | null
+          numero_cte_complementado?: string | null
           observacao?: string | null
+          observacoes?: Json
           origem_captura?: Database["public"]["Enums"]["cte_origem_captura"]
           peso_taxado?: number | null
           serie?: string | null
@@ -466,10 +472,13 @@ export type Database = {
           data_emissao?: string | null
           empresa_id?: string | null
           id?: string
+          motivo_complemento?: string | null
           nfs_referenciadas?: Json
           nome_emitente?: string | null
           numero?: string | null
+          numero_cte_complementado?: string | null
           observacao?: string | null
+          observacoes?: Json
           origem_captura?: Database["public"]["Enums"]["cte_origem_captura"]
           peso_taxado?: number | null
           serie?: string | null
