@@ -37,6 +37,7 @@ import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedPedidosOrderIdRouteImport } from './routes/_authenticated/pedidos.$orderId'
 import { Route as AuthenticatedRotasIndexRouteImport } from './routes/_authenticated/rotas.index'
 import { Route as AuthenticatedRotasRouteIdRouteImport } from './routes/_authenticated/rotas.$routeId'
+import { Route as ApiCentralSplatRouteImport } from './routes/api/central/$'
 import { Route as ApiPublicHooksCteComandosRouteImport } from './routes/api/public/hooks/cte-comandos'
 import { Route as ApiPublicHooksErpSyncRouteImport } from './routes/api/public/hooks/erp-sync'
 import { Route as ApiPublicHooksIngestCteRouteImport } from './routes/api/public/hooks/ingest-cte'
@@ -193,6 +194,11 @@ const AuthenticatedRotasRouteIdRoute =
     path: '/rotas/$routeId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiCentralSplatRoute = ApiCentralSplatRouteImport.update({
+  id: '/api/central/$',
+  path: '/api/central/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksCteComandosRoute =
   ApiPublicHooksCteComandosRouteImport.update({
     id: '/api/public/hooks/cte-comandos',
@@ -246,6 +252,7 @@ export interface FileRoutesByFullPath {
   '/nfes/$chave': typeof AuthenticatedNfesChaveRoute
   '/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
+  '/api/central/$': typeof ApiCentralSplatRoute
   '/ctes/': typeof AuthenticatedCtesIndexRoute
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
   '/rotas/': typeof AuthenticatedRotasIndexRoute
@@ -279,6 +286,7 @@ export interface FileRoutesByTo {
   '/nfes/$chave': typeof AuthenticatedNfesChaveRoute
   '/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
+  '/api/central/$': typeof ApiCentralSplatRoute
   '/ctes': typeof AuthenticatedCtesIndexRoute
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
   '/rotas': typeof AuthenticatedRotasIndexRoute
@@ -315,6 +323,7 @@ export interface FileRoutesById {
   '/_authenticated/nfes/$chave': typeof AuthenticatedNfesChaveRoute
   '/_authenticated/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/_authenticated/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
+  '/api/central/$': typeof ApiCentralSplatRoute
   '/_authenticated/ctes/': typeof AuthenticatedCtesIndexRoute
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
   '/_authenticated/rotas/': typeof AuthenticatedRotasIndexRoute
@@ -351,6 +360,7 @@ export interface FileRouteTypes {
     | '/nfes/$chave'
     | '/pedidos/$orderId'
     | '/rotas/$routeId'
+    | '/api/central/$'
     | '/ctes/'
     | '/pedidos/'
     | '/rotas/'
@@ -384,6 +394,7 @@ export interface FileRouteTypes {
     | '/nfes/$chave'
     | '/pedidos/$orderId'
     | '/rotas/$routeId'
+    | '/api/central/$'
     | '/ctes'
     | '/pedidos'
     | '/rotas'
@@ -419,6 +430,7 @@ export interface FileRouteTypes {
     | '/_authenticated/nfes/$chave'
     | '/_authenticated/pedidos/$orderId'
     | '/_authenticated/rotas/$routeId'
+    | '/api/central/$'
     | '/_authenticated/ctes/'
     | '/_authenticated/pedidos/'
     | '/_authenticated/rotas/'
@@ -433,6 +445,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiCentralSplatRoute: typeof ApiCentralSplatRoute
   ApiPublicHooksCteComandosRoute: typeof ApiPublicHooksCteComandosRoute
   ApiPublicHooksErpSyncRoute: typeof ApiPublicHooksErpSyncRoute
   ApiPublicHooksIngestCteRoute: typeof ApiPublicHooksIngestCteRoute
@@ -638,6 +651,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRotasRouteIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/central/$': {
+      id: '/api/central/$'
+      path: '/api/central/$'
+      fullPath: '/api/central/$'
+      preLoaderRoute: typeof ApiCentralSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/cte-comandos': {
       id: '/api/public/hooks/cte-comandos'
       path: '/api/public/hooks/cte-comandos'
@@ -751,6 +771,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiCentralSplatRoute: ApiCentralSplatRoute,
   ApiPublicHooksCteComandosRoute: ApiPublicHooksCteComandosRoute,
   ApiPublicHooksErpSyncRoute: ApiPublicHooksErpSyncRoute,
   ApiPublicHooksIngestCteRoute: ApiPublicHooksIngestCteRoute,
