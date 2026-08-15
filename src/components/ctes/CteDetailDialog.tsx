@@ -413,11 +413,33 @@ export function CteDetailDialog({
           </section>
 
           <section className="space-y-2">
-            <h3 className="text-sm font-semibold">Notas fiscais referenciadas</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-sm font-semibold">Notas fiscais referenciadas</h3>
+              {usandoNfsDoOriginal ? (
+                <Badge
+                  variant="outline"
+                  className="border-amber-300 bg-amber-50 text-[10px] text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                >
+                  Do CT-e original {cteOriginal?.numero ? `nº ${cteOriginal.numero}` : ""}
+                </Badge>
+              ) : null}
+            </div>
+            {usandoNfsDoOriginal ? (
+              <p className="text-muted-foreground text-xs">
+                Este CT-e é complementar e não possui NF-e própria; as notas abaixo são as
+                referenciadas no CT-e original.
+              </p>
+            ) : null}
             {nfs.length === 0 ? (
               <p className="text-muted-foreground text-sm">Nenhuma NF-e vinculada.</p>
             ) : (
-              <div className="flex flex-wrap gap-1.5">
+              <div
+                className={
+                  usandoNfsDoOriginal
+                    ? "flex flex-wrap gap-1.5 rounded-md border border-amber-200 bg-amber-50/50 p-2 dark:border-amber-900 dark:bg-amber-950/30"
+                    : "flex flex-wrap gap-1.5"
+                }
+              >
                 {nfs.map((nf) =>
                   /^\d{44}$/.test(nf) ? (
                     <Link
