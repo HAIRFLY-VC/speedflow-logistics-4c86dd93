@@ -448,8 +448,13 @@ export function CteDetailView({
                   key={nf}
                   to="/nfes/$chave"
                   params={{ chave: nf }}
-                  target={linkMode === "window" ? "_blank" : undefined}
-                  rel={linkMode === "window" ? "noopener noreferrer" : undefined}
+                  target={linkMode === "window" ? appLinkTarget() : undefined}
+                  rel={
+                    linkMode === "window" && appLinkTarget()
+                      ? "noopener noreferrer"
+                      : undefined
+                  }
+
                 >
                   <Badge
                     variant="outline"
