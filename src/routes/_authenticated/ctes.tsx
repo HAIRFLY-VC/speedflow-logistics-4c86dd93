@@ -539,6 +539,15 @@ function CtesPage() {
                 Cancelar
               </Button>
             )}
+            <span className="text-muted-foreground text-xs">
+              {robo?.ultimoContatoFilaComandos
+                ? `Último contato do robô: ${new Date(
+                    robo.ultimoContatoFilaComandos,
+                  ).toLocaleString("pt-BR")}`
+                : "Robô ainda não consultou a fila de importação"}
+            </span>
+
+
 
             <input
               ref={inputRef}
