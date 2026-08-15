@@ -174,13 +174,14 @@ function CtesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ctes")
-        .select("*")
+        .select("*, empresas:empresa_id (id, cnpj, razao_social)")
         .order("created_at", { ascending: false })
         .limit(1000);
       if (error) throw error;
-      return data as Cte[];
+      return data as CteRow[];
     },
   });
+
 
   const nomeTransportadora = useMemo(() => {
     const map = new Map<string, string>();
