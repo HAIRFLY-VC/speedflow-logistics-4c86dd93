@@ -1,3 +1,4 @@
+import { centralDb } from "@/lib/central-db";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -30,7 +31,7 @@ export const autorizarPagamentoFrete = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertPodeAutorizar(context);
 
-    const { data: cte, error } = await context.supabase
+    const { data: cte, error } = await centralDb
       .from("ctes")
       .select("id, status, valor_total_frete")
       .eq("id", data.cteId)
@@ -41,7 +42,7 @@ export const autorizarPagamentoFrete = createServerFn({ method: "POST" })
       throw new Error("Somente CT-e aprovado ou com divergência resolvida pode ser autorizado");
     }
 
-    const { data: divergencia } = await context.supabase
+    const { data: divergencia } = await centralDb
       .from("cte_divergencias")
       .select("valor_acordado")
       .eq("cte_id", cte.id)
@@ -54,7 +55,7 @@ export const autorizarPagamentoFrete = createServerFn({ method: "POST" })
       data.valorAutorizado ??
       Number(divergencia?.valor_acordado ?? cte.valor_total_frete);
 
-    const { data: ordem, error: insErr } = await context.supabase
+    const { data: ordem, error: insErr } = await centralDb
       .from("ordens_pagamento_frete")
       .insert({
         cte_id: cte.id,
@@ -67,7 +68,7 @@ export const autorizarPagamentoFrete = createServerFn({ method: "POST" })
       .single();
     if (insErr) throw new Error(insErr.message);
 
-    await context.supabase.from("ctes").update({ status: "AUTORIZADO" }).eq("id", cte.id);
+    await centralDb.from("ctes").update({ status: "AUTORIZADO" }).eq("id", cte.id);
 
     return { ok: true, ordem_id: ordem.id, valor_autorizado: valor };
   });
@@ -82,7 +83,7 @@ export const rejeitarCte = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertPodeAutorizar(context);
-    const { error } = await context.supabase
+    const { error } = await centralDb
       .from("ctes")
       .update({ status: "REJEITADO", observacao: data.motivo })
       .eq("id", data.cteId);
@@ -97,7 +98,7 @@ export const lancarOrdemNoErp = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertPodeAutorizar(context);
 
-    const { data: ordem, error } = await context.supabase
+    const { data: ordem, error } = await centralDb
       .from("ordens_pagamento_frete")
       .select("id, valor_autorizado, status, cte_id")
       .eq("id", data.ordemId)
@@ -106,7 +107,7 @@ export const lancarOrdemNoErp = createServerFn({ method: "POST" })
     if (!ordem) throw new Error("Ordem não encontrada");
     if (ordem.status === "LANCADO_ERP") throw new Error("Ordem já lançada no ERP");
 
-    const { data: cte } = await context.supabase
+    const { data: cte } = await centralDb
       .from("ctes")
       .select("chave_acesso, numero, data_emissao, nfs_referenciadas, transportadora_id")
       .eq("id", ordem.cte_id)
@@ -115,7 +116,7 @@ export const lancarOrdemNoErp = createServerFn({ method: "POST" })
     let transportadora: { razao_social: string; cnpj: string; pix: string | null } | null =
       null;
     if (cte?.transportadora_id) {
-      const { data: t } = await context.supabase
+      const { data: t } = await centralDb
         .from("transportadoras")
         .select("razao_social, cnpj, pix")
         .eq("id", cte.transportadora_id)
@@ -123,13 +124,13 @@ export const lancarOrdemNoErp = createServerFn({ method: "POST" })
       transportadora = t ?? null;
     }
 
-    await context.supabase
+    await centralDb
       .from("ordens_pagamento_frete")
       .update({ status: "AGUARDANDO_INTEGRACAO_ERP" })
       .eq("id", ordem.id);
 
     const { enviarOrdemParaErp } = await import("./frete-erp.server");
-    const result = await enviarOrdemParaErp(context.supabase, {
+    const result = await enviarOrdemParaErp(centralDb, {
       ordem_id: ordem.id,
       cte_chave: cte?.chave_acesso ?? "",
       cte_numero: cte?.numero ?? null,
@@ -139,7 +140,7 @@ export const lancarOrdemNoErp = createServerFn({ method: "POST" })
       nfs_referenciadas: cte?.nfs_referenciadas ?? [],
     });
 
-    await context.supabase
+    await centralDb
       .from("ordens_pagamento_frete")
       .update({
         status: result.ok ? "LANCADO_ERP" : "ERRO_ERP",
@@ -149,7 +150,7 @@ export const lancarOrdemNoErp = createServerFn({ method: "POST" })
       })
       .eq("id", ordem.id);
 
-    await context.supabase
+    await centralDb
       .from("ctes")
       .update({ status: result.ok ? "LANCADO_ERP" : "ERRO_ERP" })
       .eq("id", ordem.cte_id);
@@ -171,7 +172,7 @@ export const salvarToleranciasAuditoria = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertStaff(context);
-    const { error } = await context.supabase
+    const { error } = await centralDb
       .from("configuracoes_auditoria_frete")
       .update({
         tolerancia_valor: data.toleranciaValor,

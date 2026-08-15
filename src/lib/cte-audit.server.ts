@@ -1,9 +1,10 @@
 // Motor de auditoria de fretes: recalcula o valor esperado do CT-e a partir da
 // tabela de preço vigente da transportadora e compara com o valor cobrado.
+import type { CentralDatabase } from "@/integrations/central/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
-type Db = SupabaseClient<Database>;
+type Db = SupabaseClient<CentralDatabase>;
 
 export type AuditItem = { nome: string; esperado: number; cobrado: number | null };
 

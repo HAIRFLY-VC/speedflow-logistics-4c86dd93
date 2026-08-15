@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import type { CentralDatabase } from "@/integrations/central/types";
 import { supabase as authClient } from "@/integrations/supabase/client";
 
 /**
@@ -27,7 +27,7 @@ const proxyFetch: typeof fetch = async (input, init) => {
   return fetch(input, { ...init, headers });
 };
 
-export const centralDb = createClient<Database>(baseUrl(), "central-proxy", {
+export const centralDb = createClient<CentralDatabase>(baseUrl(), "central-proxy", {
   auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
   global: { fetch: proxyFetch },
 });

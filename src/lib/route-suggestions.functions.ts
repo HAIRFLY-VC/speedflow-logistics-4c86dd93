@@ -1,3 +1,4 @@
+import { centralDb } from "@/lib/central-db";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -69,7 +70,7 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await ensureStaff(context);
-    const { supabase } = context;
+    const supabase = centralDb;
 
     const seen = new Set<string>();
     const targets: { id: string; query: string }[] = [];
@@ -233,7 +234,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await ensureStaff(context);
-    const { supabase } = context;
+    const supabase = centralDb;
 
     const { data: cfg } = await supabase
       .from("company_settings")
@@ -550,7 +551,7 @@ export const confirmRouteSuggestion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data, context }) => {
     await ensureStaff(context);
-    const { supabase } = context;
+    const supabase = centralDb;
     const s = data.suggestion;
     if (!s.orderIds.length) throw new Error("Sugestão sem pedidos");
 

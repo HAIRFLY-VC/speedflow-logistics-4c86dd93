@@ -1,4 +1,5 @@
 // Fila de comandos de captura forçada de CT-e; consumida pelo robô local com certificado A1.
+import { centralDb } from "@/lib/central-db";
 import { createFileRoute } from "@tanstack/react-router";
 
 function safeEqual(a: string, b: string): boolean {
@@ -28,8 +29,7 @@ export const Route = createFileRoute("/api/public/hooks/cte-comandos")({
         try {
           const { registrarContatoRobo } = await import("@/lib/robo-heartbeat.server");
           await registrarContatoRobo("cte-comandos");
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const { data, error } = await supabaseAdmin
+          const { data, error } = await centralDb
             .from("cte_captura_comandos")
 
             .select("id, reiniciar_nsu")
@@ -40,7 +40,7 @@ export const Route = createFileRoute("/api/public/hooks/cte-comandos")({
           if (error) throw new Error(error.message);
           if (!data) return Response.json({ forcar: false });
 
-          await supabaseAdmin
+          await centralDb
             .from("cte_captura_comandos")
             .update({ status: "PROCESSANDO", iniciado_em: new Date().toISOString() })
             .eq("id", data.id);
@@ -71,8 +71,7 @@ export const Route = createFileRoute("/api/public/hooks/cte-comandos")({
             return Response.json({ error: "comandoId obrigatório" }, { status: 400 });
           }
           const status = body.status === "ERRO" ? "ERRO" : "CONCLUIDO";
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const { error } = await supabaseAdmin
+          const { error } = await centralDb
             .from("cte_captura_comandos")
             .update({
               status,

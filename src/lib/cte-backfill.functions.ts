@@ -1,3 +1,4 @@
+import { centralDb } from "@/lib/central-db";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -18,7 +19,7 @@ export const backfillNomeDestinatario = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { parseCteXml } = await import("./cte-parse.server");
 
-    const { data: ctes, error } = await supabaseAdmin
+    const { data: ctes, error } = await centralDb
       .from("ctes")
       .select("id, xml_storage_path")
       .is("nome_destinatario", null)
@@ -37,7 +38,7 @@ export const backfillNomeDestinatario = createServerFn({ method: "POST" })
         if (dlErr || !file) throw new Error(dlErr?.message ?? "XML não encontrado");
         const parsed = parseCteXml(await file.text());
         if (!parsed.nome_destinatario) continue;
-        const { error: upErr } = await supabaseAdmin
+        const { error: upErr } = await centralDb
           .from("ctes")
           .update({ nome_destinatario: parsed.nome_destinatario })
           .eq("id", c.id);
@@ -64,7 +65,7 @@ export const resolverNomeDestinatario = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { parseCteXml } = await import("./cte-parse.server");
 
-    const { data: cte, error } = await supabaseAdmin
+    const { data: cte, error } = await centralDb
       .from("ctes")
       .select("id, nome_destinatario, xml_storage_path")
       .eq("id", data.cteId)
@@ -82,7 +83,7 @@ export const resolverNomeDestinatario = createServerFn({ method: "POST" })
     const parsed = parseCteXml(await file.text());
     if (!parsed.nome_destinatario) return { nome: null as string | null };
 
-    await supabaseAdmin
+    await centralDb
       .from("ctes")
       .update({ nome_destinatario: parsed.nome_destinatario })
       .eq("id", cte.id);
@@ -103,7 +104,7 @@ export const obterEnderecoEntregaCte = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { parseEnderecoDestinatario } = await import("./cte-parse.server");
 
-    const { data: cte, error } = await supabaseAdmin
+    const { data: cte, error } = await centralDb
       .from("ctes")
       .select("id, xml_storage_path")
       .eq("id", data.cteId)

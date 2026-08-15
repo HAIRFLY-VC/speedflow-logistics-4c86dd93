@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/central/client";
+import { supabase as storageClient } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,7 +57,7 @@ export function DeliveryActions({
   });
 
   const signedUrl = async (path: string) => {
-    const { data } = await supabase.storage
+    const { data } = await storageClient.storage
       .from("delivery-receipts")
       .createSignedUrl(path, 3600);
     return data?.signedUrl ?? null;
@@ -78,7 +79,7 @@ export function DeliveryActions({
   const upload = async (file: File, kind: "photo" | "sig") => {
     const ext = file.name.split(".").pop() || "jpg";
     const path = `${user!.id}/${orderId}/${kind}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage
+    const { error } = await storageClient.storage
       .from("delivery-receipts")
       .upload(path, file, { upsert: false, contentType: file.type });
     if (error) throw error;

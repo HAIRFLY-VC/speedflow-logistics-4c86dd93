@@ -1,7 +1,7 @@
 // Server-only helper: importa pedidos pendentes de expedição do ERP Oracle (Hairfly).
 // API: POST {ERP_API_BASE_URL}/v1/query com { sql, binds, limit } e header X-API-Key.
 
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { centralDb } from "@/lib/central-db";
 
 
 type ErpColumn = { name: string; type: string };
@@ -152,7 +152,7 @@ export async function syncErpOrders(opts: {
   triggeredBy: string | null;
 }): Promise<SyncResult> {
   // 1) Abre execução
-  const { data: run, error: runErr } = await supabaseAdmin
+  const { data: run, error: runErr } = await centralDb
     .from("erp_sync_runs")
     .insert({
       trigger: opts.trigger,
@@ -220,81 +220,11 @@ export async function syncErpOrders(opts: {
 
   async function processRow(row: ErpOrderRow) {
     const codCliente = String(row.COD_CLIENTE);
-    const legalName = row.CLIENTE_RS ?? row.CLIENTE_NF ?? `Cliente ${codCliente}`;
-    const customerPayload = {
-      erp_id: codCliente,
-      legal_name: legalName,
-      trade_name: row.CLIENTE_NF,
-      city: row.CIDADE,
-      state: row.UF,
-      address_line: row.BAIRRO,
-      zip_code: row.CEP,
-    };
+    // O cadastro de clientes é do banco central (public.clientes). Aqui apenas
+    // referenciamos o código do ERP; nada é duplicado no app.
+    const customerId = codCliente;
+    const customerCreated = false;
 
-    const { data: existingCustomer } = await supabaseAdmin
-      .from("customers")
-      .select("id")
-      .eq("erp_id", codCliente)
-      .maybeSingle();
-
-    let customerId: string;
-    let customerCreated = false;
-    if (existingCustomer) {
-      customerId = existingCustomer.id;
-      const { error } = await supabaseAdmin
-        .from("customers")
-        .update({
-          legal_name: customerPayload.legal_name,
-          trade_name: customerPayload.trade_name,
-          city: customerPayload.city,
-          state: customerPayload.state,
-          address_line: customerPayload.address_line,
-          zip_code: customerPayload.zip_code,
-        })
-        .eq("id", customerId);
-      if (error) throw error;
-    } else {
-      // upsert idempotente: evita 23505 quando o mesmo cliente aparece em vários
-      // pedidos processados em paralelo na mesma leva.
-      const { data: ups, error } = await supabaseAdmin
-        .from("customers")
-        .upsert(customerPayload, { onConflict: "erp_id" })
-        .select("id")
-        .maybeSingle();
-      if (ups?.id) {
-        customerId = ups.id;
-        customerCreated = true;
-      } else {
-        // Fallback: se o upsert falhar (corrida ou índice indisponível para ON CONFLICT),
-        // procura o cliente pelo código do ERP e, se ainda não existir, insere direto.
-        const { data: again } = await supabaseAdmin
-          .from("customers")
-          .select("id")
-          .eq("erp_id", codCliente)
-          .maybeSingle();
-        if (again?.id) {
-          customerId = again.id;
-        } else {
-          const { data: ins, error: insErr } = await supabaseAdmin
-            .from("customers")
-            .insert(customerPayload)
-            .select("id")
-            .maybeSingle();
-          if (ins?.id) {
-            customerId = ins.id;
-            customerCreated = true;
-          } else {
-            const { data: last } = await supabaseAdmin
-              .from("customers")
-              .select("id")
-              .eq("erp_id", codCliente)
-              .maybeSingle();
-            if (!last) throw insErr ?? error ?? new Error("insert customer falhou");
-            customerId = last.id;
-          }
-        }
-      }
-    }
 
 
 
@@ -312,7 +242,7 @@ export async function syncErpOrders(opts: {
     const qtdDias = parseErpInteger(getErpField(row as unknown as Record<string, unknown>, "QTD_DIAS"));
     const deliveryAddress = parseDeliveryOverride(row.OBS_LOGIST);
 
-    const { data: existingOrder } = await supabaseAdmin
+    const { data: existingOrder } = await centralDb
       .from("orders")
       .select("id, delivery_address")
       .eq("erp_id", pedidoStr)
@@ -322,7 +252,7 @@ export async function syncErpOrders(opts: {
       const prevAddr = (existingOrder as { delivery_address: string | null }).delivery_address ?? null;
       const addrChanged = (deliveryAddress ?? null) !== prevAddr;
       const updatePayload = {
-        customer_id: customerId,
+        erp_cod_cliente: customerId,
         total_amount: totalAmount,
         weight: row.PESO,
         cod_agenda: row.COD_AGENDA,
@@ -340,7 +270,7 @@ export async function syncErpOrders(opts: {
             }
           : {}),
       };
-      const { error } = await supabaseAdmin
+      const { error } = await centralDb
         .from("orders")
         .update(updatePayload)
         .eq("id", existingOrder.id);
@@ -348,10 +278,10 @@ export async function syncErpOrders(opts: {
       return { customerCreated, outcome: "updated" as const };
     }
 
-    const { error } = await supabaseAdmin.from("orders").insert({
+    const { error } = await centralDb.from("orders").insert({
       order_number: pedidoStr,
       erp_id: pedidoStr,
-      customer_id: customerId,
+      erp_cod_cliente: customerId,
       total_amount: totalAmount,
       weight: row.PESO,
       cod_agenda: row.COD_AGENDA,
@@ -406,7 +336,7 @@ export async function syncErpOrders(opts: {
         new Set(rows.map((r) => String(r.PEDIDO)).filter((s) => s && s !== "null")),
       );
       const EXPEDIDO = "11-EXPEDIDO";
-      let query = supabaseAdmin
+      let query = centralDb
         .from("orders")
         .update({ erp_status: EXPEDIDO })
         .neq("erp_status", EXPEDIDO)
@@ -460,7 +390,7 @@ export async function syncErpOrders(opts: {
 
         let existing: { id: string } | null = null;
         if (g.erpRouteId) {
-          const { data } = await supabaseAdmin
+          const { data } = await centralDb
             .from("routes")
             .select("id")
             .eq("erp_route_id", g.erpRouteId)
@@ -470,7 +400,7 @@ export async function syncErpOrders(opts: {
         if (!existing) {
           // Tenta achar por código erp-* (caso erp_route_id ainda não esteja preenchido)
           if (g.erpRouteId) {
-            const { data } = await supabaseAdmin
+            const { data } = await centralDb
               .from("routes")
               .select("id")
               .eq("code", `erp-${g.erpRouteId}`)
@@ -481,7 +411,7 @@ export async function syncErpOrders(opts: {
         if (!existing) {
           // Fallback: rota slug-based pré-existente (criada antes do ERP retornar ID_ROTA)
           const slugCode = `${slugify(g.nome)}-${g.date.replace(/-/g, "")}`;
-          const { data } = await supabaseAdmin
+          const { data } = await centralDb
             .from("routes")
             .select("id")
             .eq("code", slugCode)
@@ -493,7 +423,7 @@ export async function syncErpOrders(opts: {
         let routeId: string;
         if (existing) {
           routeId = existing.id;
-          await supabaseAdmin
+          await centralDb
             .from("routes")
             .update({
               driver_name: g.driver,
@@ -504,7 +434,7 @@ export async function syncErpOrders(opts: {
             .eq("id", routeId);
 
         } else {
-          const { data: ins, error } = await supabaseAdmin
+          const { data: ins, error } = await centralDb
             .from("routes")
             .insert({
               code,
@@ -520,7 +450,7 @@ export async function syncErpOrders(opts: {
           routes_created++;
         }
 
-        const { data: orderRows } = await supabaseAdmin
+        const { data: orderRows } = await centralDb
           .from("orders")
           .select("id,erp_id")
           .in("erp_id", g.pedidos);
@@ -528,7 +458,7 @@ export async function syncErpOrders(opts: {
         if (orderRows && orderRows.length > 0) {
           const orderIds = orderRows.map((o) => o.id);
           // Remove vínculos antigos em outras rotas (pedido só pode estar em 1 rota)
-          const { error: delErr } = await supabaseAdmin
+          const { error: delErr } = await centralDb
             .from("route_orders")
             .delete()
             .in("order_id", orderIds)
@@ -540,7 +470,7 @@ export async function syncErpOrders(opts: {
             order_id: o.id,
             stop_order: idx + 1,
           }));
-          const { error: linkErr, count } = await supabaseAdmin
+          const { error: linkErr, count } = await centralDb
             .from("route_orders")
             .upsert(links, { onConflict: "order_id", ignoreDuplicates: true, count: "exact" });
           if (linkErr) throw linkErr;
@@ -556,7 +486,7 @@ export async function syncErpOrders(opts: {
 
   } catch (e) {
     const msg = describeError(e);
-    await supabaseAdmin
+    await centralDb
       .from("erp_sync_runs")
       .update({
         finished_at: new Date().toISOString(),
@@ -582,11 +512,22 @@ export async function syncErpOrders(opts: {
     const lovableKey = process.env.LOVABLE_API_KEY;
     const gmKey = process.env.GOOGLE_MAPS_API_KEY;
     if (lovableKey && gmKey) {
-      const { data: pending } = await supabaseAdmin
-        .from("customers")
-        .select("id, address_line, city, state, zip_code")
-        .or("latitude.is.null,longitude.is.null")
-        .limit(200);
+      const { data: comPedido } = await centralDb
+        .from("orders")
+        .select("erp_cod_cliente")
+        .not("erp_cod_cliente", "is", null)
+        .limit(5000);
+      const codigos = Array.from(
+        new Set((comPedido ?? []).map((o) => String(o.erp_cod_cliente))),
+      );
+      const { data: pending } = codigos.length
+        ? await centralDb
+            .from("customers")
+            .select("id, address_line, city, state, zip_code")
+            .in("id", codigos)
+            .or("latitude.is.null,longitude.is.null")
+            .limit(200)
+        : { data: [] };
       for (const c of pending ?? []) {
         const q = [c.address_line, c.city, c.state, c.zip_code, "Brasil"]
           .filter((p) => p && String(p).trim())
@@ -605,11 +546,22 @@ export async function syncErpOrders(opts: {
           if (json.status !== "OK" || !json.results?.length) continue;
           const loc = json.results[0].geometry?.location;
           if (!loc) continue;
-          const { error: upErr } = await supabaseAdmin
-            .from("customers")
-            .update({ latitude: loc.lat, longitude: loc.lng })
-            .eq("id", c.id);
+          // As coordenadas ficam no cache do banco central (customer_geo);
+          // o cadastro do cliente permanece sendo o do ERP.
+          const { error: upErr } = await centralDb
+            .from("customer_geo")
+            .upsert(
+              {
+                cod_cliente: String(c.id),
+                latitude: loc.lat,
+                longitude: loc.lng,
+                endereco_usado: q,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "cod_cliente" },
+            );
           if (!upErr) geocoded_customers++;
+
         } catch (err) {
           console.warn("[erp-sync] geocode falhou para cliente", c.id, err);
         }
@@ -628,7 +580,7 @@ export async function syncErpOrders(opts: {
     const lovableKey = process.env.LOVABLE_API_KEY;
     const gmKey = process.env.GOOGLE_MAPS_API_KEY;
     if (lovableKey && gmKey) {
-      const { data: pendingOrders } = await supabaseAdmin
+      const { data: pendingOrders } = await centralDb
         .from("orders")
         .select("id, delivery_address")
         .not("delivery_address", "is", null)
@@ -651,7 +603,7 @@ export async function syncErpOrders(opts: {
           if (json.status !== "OK" || !json.results?.length) continue;
           const loc = json.results[0].geometry?.location;
           if (!loc) continue;
-          const { error: upErr } = await supabaseAdmin
+          const { error: upErr } = await centralDb
             .from("orders")
             .update({ delivery_latitude: loc.lat, delivery_longitude: loc.lng })
             .eq("id", o.id);
@@ -673,7 +625,7 @@ export async function syncErpOrders(opts: {
   const status: SyncResult["status"] =
     errors.length === 0 ? "success" : errors.length === fetched ? "failed" : "partial";
 
-  await supabaseAdmin
+  await centralDb
     .from("erp_sync_runs")
     .update({
       finished_at: new Date().toISOString(),

@@ -1,3 +1,4 @@
+import { centralDb } from "@/lib/central-db";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -16,7 +17,7 @@ export const auditarCte = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertStaff(context);
     const { auditCte } = await import("./cte-audit.server");
-    return auditCte(context.supabase, data.cteId);
+    return auditCte(centralDb, data.cteId);
   });
 
 /** Roda a auditoria de todos os CT-e ainda não auditados. */
@@ -26,7 +27,7 @@ export const auditarPendentes = createServerFn({ method: "POST" })
     await assertStaff(context);
     const { auditCte } = await import("./cte-audit.server");
 
-    const { data: ctes, error } = await context.supabase
+    const { data: ctes, error } = await centralDb
       .from("ctes")
       .select("id")
       .in("status", ["RECEBIDO", "EM_AUDITORIA"])
@@ -38,7 +39,7 @@ export const auditarPendentes = createServerFn({ method: "POST" })
     const erros: string[] = [];
     for (const c of ctes ?? []) {
       try {
-        const res = await auditCte(context.supabase, c.id);
+        const res = await auditCte(centralDb, c.id);
         if (res.resultado === "OK") ok += 1;
         else divergentes += 1;
       } catch (e) {
@@ -64,7 +65,7 @@ export const resolverDivergencia = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertStaff(context);
 
-    const { data: div, error } = await context.supabase
+    const { data: div, error } = await centralDb
       .from("cte_divergencias")
       .update({
         status: data.status,
@@ -78,7 +79,7 @@ export const resolverDivergencia = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    await context.supabase
+    await centralDb
       .from("ctes")
       .update({ status: data.status === "RESOLVIDA" ? "RESOLVIDO" : "EM_RESOLUCAO" })
       .eq("id", div.cte_id);

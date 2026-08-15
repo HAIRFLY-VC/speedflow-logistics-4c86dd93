@@ -1,3 +1,4 @@
+import { centralDb } from "@/lib/central-db";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -28,7 +29,7 @@ export const getCteXmlUrl = createServerFn({ method: "POST" })
     });
     if (!isStaff) throw new Error("Sem permissão");
 
-    const { data: cte, error } = await context.supabase
+    const { data: cte, error } = await centralDb
       .from("ctes")
       .select("xml_storage_path")
       .eq("id", data.cteId)

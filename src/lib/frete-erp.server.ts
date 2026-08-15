@@ -1,3 +1,4 @@
+import type { CentralDatabase } from "@/integrations/central/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -22,7 +23,7 @@ export type EnvioResult = {
   payload: OrdemPayload;
 };
 
-async function getErpConfig(db: SupabaseClient<Database>) {
+async function getErpConfig(db: SupabaseClient<CentralDatabase>) {
   const { data, error } = await db
     .from("configuracoes_erp")
     .select("url_base, api_key")
@@ -36,7 +37,7 @@ async function getErpConfig(db: SupabaseClient<Database>) {
 }
 
 export async function enviarOrdemParaErp(
-  db: SupabaseClient<Database>,
+  db: SupabaseClient<CentralDatabase>,
   payload: OrdemPayload,
 ): Promise<EnvioResult> {
   const { base, key } = await getErpConfig(db);

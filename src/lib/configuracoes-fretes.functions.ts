@@ -1,3 +1,4 @@
+import { centralDb } from "@/lib/central-db";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -23,18 +24,18 @@ export const getConfiguracoesFretes = createServerFn({ method: "GET" })
 
     const [{ count: transpCount }, { count: tabelasCount }, { data: tol }, { data: erp }, { data: usuarios }] =
       await Promise.all([
-        context.supabase.from("transportadoras").select("id", { count: "exact", head: true }),
-        context.supabase
+        centralDb.from("transportadoras").select("id", { count: "exact", head: true }),
+        centralDb
           .from("tabelas_preco_frete")
           .select("id", { count: "exact", head: true })
           .eq("ativo", true),
-        context.supabase
+        centralDb
           .from("configuracoes_auditoria_frete")
           .select("tolerancia_valor, tolerancia_percentual")
           .eq("id", 1)
           .maybeSingle(),
-        context.supabase.from("configuracoes_erp").select("url_base, api_key").eq("id", 1).maybeSingle(),
-        context.supabase
+        centralDb.from("configuracoes_erp").select("url_base, api_key").eq("id", 1).maybeSingle(),
+        centralDb
           .from("profiles")
           .select("id, full_name, phone, pode_autorizar_pagamento_frete")
           .order("full_name"),
@@ -68,7 +69,7 @@ export const criarTransportadoraRapida = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
-    const { error } = await context.supabase.from("transportadoras").insert({
+    const { error } = await centralDb.from("transportadoras").insert({
       razao_social: data.razao_social,
       cnpj: data.cnpj.replace(/\D/g, ""),
       ativo: true,
@@ -131,7 +132,7 @@ export const criarTabelaPrecoRapida = createServerFn({ method: "POST" })
       ativo: true,
     };
 
-    const { data: inserted, error } = await context.supabase
+    const { data: inserted, error } = await centralDb
       .from("tabelas_preco_frete")
       .insert(payload)
       .select("id")
@@ -149,7 +150,7 @@ export const criarTabelaPrecoRapida = createServerFn({ method: "POST" })
       }));
 
     if (faixas.length) {
-      const { error: faixaErr } = await context.supabase.from("tabelas_preco_frete_faixas").insert(faixas);
+      const { error: faixaErr } = await centralDb.from("tabelas_preco_frete_faixas").insert(faixas);
       if (faixaErr) throw new Error(faixaErr.message);
     }
 
@@ -169,7 +170,7 @@ export const salvarToleranciasFretes = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
-    const { error } = await context.supabase
+    const { error } = await centralDb
       .from("configuracoes_auditoria_frete")
       .update({
         tolerancia_valor: data.toleranciaValor,
@@ -194,7 +195,7 @@ export const salvarConfiguracaoErp = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
 
-    const { error } = await context.supabase
+    const { error } = await centralDb
       .from("configuracoes_erp")
       .upsert(
         {
@@ -221,7 +222,7 @@ export const toggleAutorizacaoPagamento = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
-    const { error } = await context.supabase
+    const { error } = await centralDb
       .from("profiles")
       .update({ pode_autorizar_pagamento_frete: data.podeAutorizar })
       .eq("id", data.userId);
@@ -241,25 +242,25 @@ export const getCapturaCteStatus = createServerFn({ method: "GET" })
 
     const [{ data: logs }, { count: total24h }, { count: total7d }, { count: erros7d }, { data: pendentes }] =
       await Promise.all([
-        context.supabase
+        centralDb
           .from("cte_ingest_logs")
           .select("id, origem, resultado, chave_acesso, cnpj_emitente, cnpj_destinatario, mensagem, created_at")
           .order("created_at", { ascending: false })
           .limit(50),
-        context.supabase
+        centralDb
           .from("cte_ingest_logs")
           .select("id", { count: "exact", head: true })
           .gte("created_at", h24),
-        context.supabase
+        centralDb
           .from("cte_ingest_logs")
           .select("id", { count: "exact", head: true })
           .gte("created_at", d7),
-        context.supabase
+        centralDb
           .from("cte_ingest_logs")
           .select("id", { count: "exact", head: true })
           .eq("resultado", "ERRO")
           .gte("created_at", d7),
-        context.supabase
+        centralDb
           .from("ctes")
           .select("id, chave_acesso, cnpj_emitente, cnpj_destinatario, created_at")
           .eq("status", "PENDENTE_IDENTIFICACAO")
@@ -267,7 +268,7 @@ export const getCapturaCteStatus = createServerFn({ method: "GET" })
           .limit(20),
       ]);
 
-    const { data: ultimoAuto } = await context.supabase
+    const { data: ultimoAuto } = await centralDb
       .from("cte_ingest_logs")
       .select("created_at")
       .eq("origem", "SEFAZ_AUTO")
