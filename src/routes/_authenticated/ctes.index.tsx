@@ -87,8 +87,10 @@ function CtesPage() {
   const ultimoComando = useServerFn(getUltimoComandoCaptura);
   const cancelarCaptura = useServerFn(cancelarCapturaCte);
   const statusRobo = useServerFn(getStatusRobo);
+  const backfillDestinatarios = useServerFn(backfillNomeDestinatario);
 
   const { data: robo } = useQuery({
+
     queryKey: ["robo-status"],
     queryFn: () => statusRobo(),
     refetchInterval: 30_000,
