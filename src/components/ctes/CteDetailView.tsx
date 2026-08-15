@@ -705,7 +705,11 @@ export function CteDetailView({
                         </span>
                         <span
                           className={`text-right font-medium tabular-nums ${
-                            Math.abs(diff) < 0.01 ? "text-emerald-600" : "text-destructive"
+                            Math.abs(diff) < 0.01
+                              ? "text-emerald-600"
+                              : diff > 0
+                                ? "text-destructive"
+                                : "text-emerald-600"
                           }`}
                         >
                           {Math.abs(diff) < 0.01 ? brl(0) : brl(diff)}
@@ -721,24 +725,12 @@ export function CteDetailView({
                       className={`text-right tabular-nums ${
                         Math.abs(somaCobrado - somaEsperado) < 0.01
                           ? "text-emerald-600"
-                          : "text-destructive"
+                          : somaCobrado - somaEsperado > 0
+                            ? "text-destructive"
+                            : "text-emerald-600"
                       }`}
                     >
                       {brl(somaCobrado - somaEsperado)}
-                    </span>
-                  </div>
-                  <div className="text-muted-foreground grid grid-cols-[1.6fr_1fr_1fr_1fr] gap-2 border-t px-3 py-1.5 text-[11px]">
-                    <span>Total do CT-e</span>
-                    <span />
-                    <span className="text-right tabular-nums">{brl(totalCte)}</span>
-                    <span
-                      className={`text-right tabular-nums ${
-                        Math.abs(naoConciliado) < 0.01 ? "" : "text-amber-600"
-                      }`}
-                    >
-                      {Math.abs(naoConciliado) < 0.01
-                        ? "conciliado"
-                        : `${brl(naoConciliado)} não conciliado`}
                     </span>
                   </div>
                 </div>
