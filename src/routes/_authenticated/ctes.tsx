@@ -595,6 +595,20 @@ function CtesPage() {
           onDownloadXml={(c) => openXml.mutate(c)}
           onReadXml={(c) => readXml.mutate(c)}
           downloading={openXml.isPending}
+          onOpenCte={async (cteId) => {
+            const local = (data ?? []).find((c) => c.id === cteId);
+            if (local) {
+              setSelected(local);
+              return;
+            }
+            const { data: found } = await supabase
+              .from("ctes")
+              .select("*")
+              .eq("id", cteId)
+              .maybeSingle();
+            if (found) setSelected(found as Cte);
+            else toast.error("CT-e original não encontrado.");
+          }}
         />
 
         <XmlViewerDialog
