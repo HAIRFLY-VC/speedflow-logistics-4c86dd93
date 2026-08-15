@@ -140,11 +140,11 @@ function calcularEsperado(
 
   const gris = (Number(tabela.gris_percentual) / 100) * valorMercadoria;
   const adv = (Number(tabela.ad_valorem_percentual) / 100) * valorMercadoria;
-  const pedagio = Number(tabela.pedagio_valor);
+  // Pedágio não é provisionado por padrão: só é considerado quando cobrado no CT-e.
+  const pedagio = 0;
   const tas = Number(tabela.tas_valor);
   if (gris) itens.push({ nome: "GRIS", esperado: round2(gris), cobrado: null });
   if (adv) itens.push({ nome: "AD VALOREM", esperado: round2(adv), cobrado: null });
-  if (pedagio) itens.push({ nome: "PEDAGIO", esperado: round2(pedagio), cobrado: null });
   if (tas) itens.push({ nome: "TAS", esperado: round2(tas), cobrado: null });
 
   const subtotal = base + gris + adv + pedagio + tas;
