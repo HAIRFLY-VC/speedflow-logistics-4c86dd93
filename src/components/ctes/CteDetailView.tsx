@@ -58,7 +58,9 @@ export function CteDetailView({
   onOpenCte?: (cteId: string) => void;
   linkMode?: CteLinkMode;
 }) {
+  const router = useRouter();
   const { data: historico, isLoading: loadingHist } = useQuery({
+
     queryKey: ["cte-historico", cte.id],
     enabled: !!cte.id,
     queryFn: async () => {
