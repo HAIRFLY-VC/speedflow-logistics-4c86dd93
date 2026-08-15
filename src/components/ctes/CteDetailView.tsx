@@ -231,6 +231,18 @@ export function CteDetailView({
   const usandoNfsDoOriginal = nfsProprias.length === 0 && nfsDoOriginal.length > 0;
   const nfs = usandoNfsDoOriginal ? nfsDoOriginal : nfsProprias;
 
+  const buscarVolumes = useServerFn(getVolumesNfesDoCte);
+  const { data: volumesData, isFetching: volumesLoading } = useQuery({
+    queryKey: ["cte-nfes-volumes", cte.id, nfs.join(",")],
+    enabled: nfs.length > 0,
+    queryFn: async () => (await buscarVolumes({ data: { chaves: nfs } })).notas,
+    refetchInterval: (q) =>
+      (q.state.data ?? []).some((n) => n.status !== "DISPONIVEL") ? 20_000 : false,
+  });
+  const volumesMap = new Map((volumesData ?? []).map((n) => [n.chave, n]));
+  const totalVolumes = (volumesData ?? []).reduce((s, n) => s + (n.volumes ?? 0), 0);
+  const totalPesoBruto = (volumesData ?? []).reduce((s, n) => s + (n.peso_bruto ?? 0), 0);
+
   const podeAbrirOriginal = !!cteOriginal?.id && (linkMode !== "same" || !!onOpenCte);
 
   const openCteLink = (cteId: string) => {
