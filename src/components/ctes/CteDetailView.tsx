@@ -81,20 +81,6 @@ export function CteDetailView({
   linkMode?: CteLinkMode;
 }) {
   const router = useRouter();
-  const { data: historico, isLoading: loadingHist } = useQuery({
-
-    queryKey: ["cte-historico", cte.id],
-    enabled: !!cte.id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cte_status_historico")
-        .select("*")
-        .eq("cte_id", cte.id)
-        .order("alterado_em", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const { data: auditorias } = useQuery({
     queryKey: ["cte-auditorias", cte.id],
