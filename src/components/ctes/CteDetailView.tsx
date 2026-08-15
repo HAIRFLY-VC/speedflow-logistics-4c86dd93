@@ -81,20 +81,6 @@ export function CteDetailView({
   linkMode?: CteLinkMode;
 }) {
   const router = useRouter();
-  const { data: historico, isLoading: loadingHist } = useQuery({
-
-    queryKey: ["cte-historico", cte.id],
-    enabled: !!cte.id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cte_status_historico")
-        .select("*")
-        .eq("cte_id", cte.id)
-        .order("alterado_em", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const { data: auditorias } = useQuery({
     queryKey: ["cte-auditorias", cte.id],
@@ -110,19 +96,6 @@ export function CteDetailView({
     },
   });
 
-  const { data: divergencias } = useQuery({
-    queryKey: ["cte-divergencias", cte.id],
-    enabled: !!cte.id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cte_divergencias")
-        .select("*")
-        .eq("cte_id", cte.id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const isComplemento =
     cte.tipo_cte === 1 || !!cte.chave_cte_complementado || !!cte.numero_cte_complementado;
@@ -226,8 +199,6 @@ export function CteDetailView({
     mutationFn: (cteId: string) => runAudit({ data: { cteId } }),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["cte-auditorias", cte.id] });
-      qc.invalidateQueries({ queryKey: ["cte-divergencias", cte.id] });
-      qc.invalidateQueries({ queryKey: ["cte-historico", cte.id] });
       qc.invalidateQueries({ queryKey: ["ctes"] });
       if (res.resultado === "OK") toast.success("Auditoria OK: cobrança bate com a tabela.");
       else
@@ -239,7 +210,7 @@ export function CteDetailView({
   });
 
   const ultimaAuditoria = auditorias?.[0];
-  const divergenciasAbertas = (divergencias ?? []).filter((d) => d.status !== "RESOLVIDA");
+
 
   const componentes = (Array.isArray(cte.componentes) ? cte.componentes : []) as {
     nome?: string;
@@ -738,87 +709,12 @@ export function CteDetailView({
             })()}
           </div>
         )}
-
-        {divergenciasAbertas.length > 0 ? (
-          <div className="space-y-1.5">
-            <h4 className="text-sm font-medium">Divergências em aberto</h4>
-            <div className="rounded-md border">
-              {divergenciasAbertas.map((d) => (
-                <div key={d.id} className="border-b px-3 py-2 text-sm last:border-b-0">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-destructive">{d.motivo}</span>
-                    <Badge variant="outline" className="text-[10px]">
-                      {d.status.replaceAll("_", " ")}
-                    </Badge>
-                  </div>
-                  {d.observacao_operador ? (
-                    <div className="text-muted-foreground mt-1 text-xs">
-                      {d.observacao_operador}
-                    </div>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </section>
 
-      {auditorias && auditorias.length > 0 ? (
-        <section className="space-y-2">
-          <h3 className="text-sm font-semibold">Histórico de auditorias</h3>
-          <div className="rounded-md border">
-            {auditorias.map((a) => (
-              <div key={a.id} className="border-b px-3 py-2 text-sm last:border-b-0">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <Badge
-                    variant="secondary"
-                    className={
-                      a.resultado === "OK"
-                        ? "bg-emerald-500/10 text-emerald-600"
-                        : "bg-destructive/10 text-destructive"
-                    }
-                  >
-                    {a.resultado}
-                  </Badge>
-                  <span className="text-muted-foreground text-xs">
-                    {new Date(a.created_at).toLocaleString("pt-BR")}
-                  </span>
-                </div>
-                <div className="text-muted-foreground mt-1 text-xs">
-                  Esperado {brl(Number(a.valor_esperado_total))} · Cobrado{" "}
-                  {brl(Number(a.valor_cobrado_total))} · Diferença{" "}
-                  {brl(Number(a.diferenca))} ({Number(a.percentual_diferenca).toFixed(2)}%)
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
         </>
       ) : null}
 
-      <section className="space-y-2">
-        <h3 className="text-sm font-semibold">Histórico de status</h3>
-        {loadingHist ? (
-          <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
-        ) : !historico?.length ? (
-          <p className="text-muted-foreground text-sm">Sem histórico.</p>
-        ) : (
-          <ol className="space-y-1.5">
-            {historico.map((h) => (
-              <li key={h.id} className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground text-xs tabular-nums">
-                  {new Date(h.alterado_em).toLocaleString("pt-BR")}
-                </span>
-                <span>
-                  {h.status_anterior ? `${h.status_anterior.replaceAll("_", " ")} → ` : ""}
-                  <span className="font-medium">{h.status_novo.replaceAll("_", " ")}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
+
 
       <div className="flex justify-end gap-2">
         <Button variant="outline" disabled={!cte.xml_storage_path} onClick={() => onReadXml(cte)}>
