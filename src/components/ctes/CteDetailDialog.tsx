@@ -5,7 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { auditarCte } from "@/lib/cte-audit.functions";
-import { resolverNomeDestinatario } from "@/lib/cte-backfill.functions";
+import { obterEnderecoEntregaCte, resolverNomeDestinatario } from "@/lib/cte-backfill.functions";
 
 
 import { Badge } from "@/components/ui/badge";
