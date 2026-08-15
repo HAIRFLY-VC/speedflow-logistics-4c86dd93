@@ -112,25 +112,37 @@ export async function coletarVolumesNfes(chaves: string[]): Promise<NfeVolumeInf
       continue;
     }
 
-    let volumes: number | null = null;
-    let pesoLiquido: number | null = null;
-    let especie: string | null = null;
+    let volumes = nfe.volumes == null ? null : Number(nfe.volumes);
+    let pesoLiquido = nfe.peso_liquido == null ? null : Number(nfe.peso_liquido);
+    let especie = nfe.especie_volumes ?? null;
     let pesoBruto = nfe.peso_bruto == null ? null : Number(nfe.peso_bruto);
 
-    if (nfe.xml_storage_path) {
-      try {
-        const { data: file } = await supabaseAdmin.storage
-          .from("nfe-xml")
-          .download(nfe.xml_storage_path);
-        if (file) {
-          const parsed = parseNfeXml(await file.text());
+    // Só relê o XML quando as colunas ainda não estão preenchidas.
+    if (volumes == null && pesoLiquido == null) {
+      let xml: string | null =
+        typeof nfe.xml_conteudo === "string" && nfe.xml_conteudo.length > 50
+          ? nfe.xml_conteudo
+          : null;
+      if (!xml && nfe.xml_storage_path) {
+        try {
+          const { data: file } = await supabaseAdmin.storage
+            .from("nfe-xml")
+            .download(nfe.xml_storage_path);
+          xml = file ? await file.text() : null;
+        } catch {
+          xml = null;
+        }
+      }
+      if (xml) {
+        try {
+          const parsed = parseNfeXml(xml);
           volumes = parsed.volumes;
           pesoLiquido = parsed.peso_liquido;
           especie = parsed.especie_volumes;
           if (parsed.peso_bruto != null) pesoBruto = parsed.peso_bruto;
+        } catch {
+          // mantém o que já está gravado na NF-e
         }
-      } catch {
-        // mantém o que já está gravado na NF-e
       }
     }
 
