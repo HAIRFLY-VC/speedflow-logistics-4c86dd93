@@ -139,13 +139,15 @@ export function parseCteXml(xml: string): ParsedCte {
     }
   }
 
-  // Número do CT-e original: "COMPL. DO JAB015270-6" -> 15270
+  // Número do CT-e original: a chave do <infCteComp> tem prioridade sobre as observações.
   let numeroComplementado: string | null = null;
-  const complDo = obsTexto.match(/COMPL\.?\s*(?:DO|DA|DE)?\s*[A-Z]*0*(\d{3,9})/);
-  if (complDo) numeroComplementado = String(Number(complDo[1]));
-  if (!numeroComplementado && chaveComplementado) {
+  if (chaveComplementado) {
     numeroComplementado = String(Number(chaveComplementado.slice(25, 34)));
+  } else {
+    const complDo = obsTexto.match(/COMPL\.?\s*(?:DO|DA|DE)?\s*[A-Z]*0*(\d{3,9})/);
+    if (complDo) numeroComplementado = String(Number(complDo[1]));
   }
+
 
   // Motivo do complemento
   const MOTIVOS = [
