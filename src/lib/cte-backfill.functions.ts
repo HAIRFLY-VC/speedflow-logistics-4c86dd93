@@ -50,3 +50,42 @@ export const backfillNomeDestinatario = createServerFn({ method: "POST" })
 
     return { total: ctes?.length ?? 0, atualizados, erros };
   });
+
+/** Resolve o nome do destinatário de um CT-e específico a partir do XML armazenado. */
+export const resolverNomeDestinatario = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => {
+    const v = input as { cteId?: string };
+    if (!v?.cteId) throw new Error("cteId obrigatório");
+    return { cteId: v.cteId };
+  })
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { parseCteXml } = await import("./cte-parse.server");
+
+    const { data: cte, error } = await supabaseAdmin
+      .from("ctes")
+      .select("id, nome_destinatario, xml_storage_path")
+      .eq("id", data.cteId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!cte) return { nome: null as string | null };
+    if (cte.nome_destinatario) return { nome: cte.nome_destinatario };
+    if (!cte.xml_storage_path) return { nome: null as string | null };
+
+    const { data: file, error: dlErr } = await supabaseAdmin.storage
+      .from("cte-xml")
+      .download(cte.xml_storage_path);
+    if (dlErr || !file) return { nome: null as string | null };
+
+    const parsed = parseCteXml(await file.text());
+    if (!parsed.nome_destinatario) return { nome: null as string | null };
+
+    await supabaseAdmin
+      .from("ctes")
+      .update({ nome_destinatario: parsed.nome_destinatario })
+      .eq("id", cte.id);
+
+    return { nome: parsed.nome_destinatario };
+  });
