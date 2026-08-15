@@ -39,8 +39,24 @@ export const solicitarCapturaCte = createServerFn({ method: "POST" })
   });
 
 
-const LIMITE_PENDENTE_MS = 3 * 60 * 1000;
+const LIMITE_PENDENTE_MS = 5 * 60 * 1000;
 const LIMITE_PROCESSANDO_MS = 10 * 60 * 1000;
+
+/** Último contato do robô local com o aplicativo (por rota consultada). */
+export const getStatusRobo = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context);
+    const { data } = await context.supabase
+      .from("robo_heartbeats")
+      .select("origem, ultimo_contato")
+      .order("ultimo_contato", { ascending: false });
+    const registros = (data ?? []) as { origem: string; ultimo_contato: string }[];
+    const ultimo = registros[0]?.ultimo_contato ?? null;
+    const filaComandos =
+      registros.find((r) => r.origem === "cte-comandos")?.ultimo_contato ?? null;
+    return { ultimoContato: ultimo, ultimoContatoFilaComandos: filaComandos };
+  });
 
 export const getUltimoComandoCaptura = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -63,8 +79,18 @@ export const getUltimoComandoCaptura = createServerFn({ method: "GET" })
       (data.status === "PROCESSANDO" && decorrido > LIMITE_PROCESSANDO_MS);
 
     if (expirado) {
-      const mensagem =
-        "Robô não respondeu — verifique se o serviço local está atualizado e ativo.";
+      // Distingue "robô parado" de "robô ativo mas ocupado / aplicativo desatualizado".
+      const { data: hb } = await context.supabase
+        .from("robo_heartbeats")
+        .select("ultimo_contato")
+        .eq("origem", "cte-comandos")
+        .maybeSingle();
+      const ultimoContato = hb?.ultimo_contato as string | undefined;
+      const mensagem = ultimoContato
+        ? `O robô não assumiu o pedido a tempo. Último contato do robô: ${new Date(
+            ultimoContato,
+          ).toLocaleString("pt-BR")}. Ele pode estar no meio de uma leitura na SEFAZ — tente novamente em alguns minutos.`
+        : "O robô nunca consultou a fila de importação deste aplicativo. Verifique se o serviço local está ativo e se o aplicativo foi publicado com a rota de comandos.";
       await context.supabase
         .from("cte_captura_comandos")
         .update({ status: "ERRO", mensagem, concluido_em: new Date().toISOString() })
@@ -74,6 +100,7 @@ export const getUltimoComandoCaptura = createServerFn({ method: "GET" })
 
     return data;
   });
+
 
 export const cancelarCapturaCte = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

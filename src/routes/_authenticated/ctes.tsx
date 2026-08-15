@@ -15,7 +15,9 @@ import {
   solicitarCapturaCte,
   getUltimoComandoCaptura,
   cancelarCapturaCte,
+  getStatusRobo,
 } from "@/lib/cte-captura.functions";
+
 import { CteDetailDialog } from "@/components/ctes/CteDetailDialog";
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
 import type { Tables } from "@/integrations/supabase/types";
@@ -70,6 +72,14 @@ function CtesPage() {
   const solicitarCaptura = useServerFn(solicitarCapturaCte);
   const ultimoComando = useServerFn(getUltimoComandoCaptura);
   const cancelarCaptura = useServerFn(cancelarCapturaCte);
+  const statusRobo = useServerFn(getStatusRobo);
+
+  const { data: robo } = useQuery({
+    queryKey: ["robo-status"],
+    queryFn: () => statusRobo(),
+    refetchInterval: 30_000,
+  });
+
 
   const { data: comando } = useQuery({
     queryKey: ["cte-captura-comando"],
@@ -529,6 +539,15 @@ function CtesPage() {
                 Cancelar
               </Button>
             )}
+            <span className="text-muted-foreground text-xs">
+              {robo?.ultimoContatoFilaComandos
+                ? `Último contato do robô: ${new Date(
+                    robo.ultimoContatoFilaComandos,
+                  ).toLocaleString("pt-BR")}`
+                : "Robô ainda não consultou a fila de importação"}
+            </span>
+
+
 
             <input
               ref={inputRef}

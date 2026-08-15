@@ -1282,6 +1282,30 @@ export type Database = {
         }
         Relationships: []
       }
+      robo_heartbeats: {
+        Row: {
+          created_at: string
+          detalhe: string | null
+          origem: string
+          ultimo_contato: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          detalhe?: string | null
+          origem: string
+          ultimo_contato?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          detalhe?: string | null
+          origem?: string
+          ultimo_contato?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       route_orders: {
         Row: {
           created_at: string
