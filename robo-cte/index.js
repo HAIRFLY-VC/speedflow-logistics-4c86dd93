@@ -348,13 +348,25 @@ async function reportarComandoCaptura(cfg, comandoId, status, mensagem, novosCte
 }
 
 async function executarCicloEmpresas(cfg, modoTeste, reiniciarNsu = false) {
-  let total = 0;
-  for (let i = 0; i < cfg.empresas.length; i++) {
-    total += (await processarEmpresa(cfg, i, modoTeste, reiniciarNsu)) || 0;
-    await sleep(1000);
+  setEstado(reiniciarNsu ? "reimportacao total na SEFAZ" : "lendo SEFAZ");
+  try {
+    return await withTimeout(
+      (async () => {
+        let total = 0;
+        for (let i = 0; i < cfg.empresas.length; i++) {
+          total += (await processarEmpresa(cfg, i, modoTeste, reiniciarNsu)) || 0;
+          await sleep(1000);
+        }
+        return total;
+      })(),
+      limiteCicloMs(cfg),
+      "ciclo de leitura das empresas"
+    );
+  } finally {
+    setEstado("ocioso");
   }
-  return total;
 }
+
 
 async function processarNfesPendentes(cfg, modoTeste) {
   let pendentes = [];
