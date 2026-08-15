@@ -89,3 +89,32 @@ export const resolverNomeDestinatario = createServerFn({ method: "POST" })
 
     return { nome: parsed.nome_destinatario };
   });
+
+/** Lê o endereço de entrega (enderDest) do XML armazenado de um CT-e. */
+export const obterEnderecoEntregaCte = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => {
+    const v = input as { cteId?: string };
+    if (!v?.cteId) throw new Error("cteId obrigatório");
+    return { cteId: v.cteId };
+  })
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { parseEnderecoDestinatario } = await import("./cte-parse.server");
+
+    const { data: cte, error } = await supabaseAdmin
+      .from("ctes")
+      .select("id, xml_storage_path")
+      .eq("id", data.cteId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!cte?.xml_storage_path) return { endereco: null };
+
+    const { data: file, error: dlErr } = await supabaseAdmin.storage
+      .from("cte-xml")
+      .download(cte.xml_storage_path);
+    if (dlErr || !file) return { endereco: null };
+
+    return { endereco: parseEnderecoDestinatario(await file.text()) };
+  });

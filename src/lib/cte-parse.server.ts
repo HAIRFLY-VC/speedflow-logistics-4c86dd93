@@ -203,3 +203,48 @@ export function parseCteXml(xml: string): ParsedCte {
   };
 
 }
+
+export type CteEnderecoDest = {
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  municipio: string | null;
+  uf: string | null;
+  cep: string | null;
+  pais: string | null;
+  /** Endereço formatado em uma linha. */
+  formatado: string | null;
+};
+
+/** Extrai o endereço de entrega (enderDest) do XML do CT-e. */
+export function parseEnderecoDestinatario(xml: string): CteEnderecoDest | null {
+  const sec = sectionOf(xml, "enderDest");
+  if (!sec) return null;
+  const get = (t: string) => {
+    const v = tagValue(sec, t);
+    return v && v.trim() ? v.trim() : null;
+  };
+  const cepRaw = get("CEP");
+  const cep = cepRaw ? onlyDigits(cepRaw).replace(/^(\d{5})(\d{3})$/, "$1-$2") : null;
+  const e: CteEnderecoDest = {
+    logradouro: get("xLgr"),
+    numero: get("nro"),
+    complemento: get("xCpl"),
+    bairro: get("xBairro"),
+    municipio: get("xMun"),
+    uf: get("UF"),
+    cep,
+    pais: get("xPais"),
+    formatado: null,
+  };
+  const linha1 = [e.logradouro, e.numero].filter(Boolean).join(", ");
+  const partes = [
+    [linha1, e.complemento].filter(Boolean).join(" - "),
+    e.bairro,
+    [e.municipio, e.uf].filter(Boolean).join("/"),
+    e.cep ? `CEP ${e.cep}` : null,
+  ].filter((p) => p && p.length);
+  e.formatado = partes.length ? partes.join(", ") : null;
+  return e.formatado ? e : null;
+}
