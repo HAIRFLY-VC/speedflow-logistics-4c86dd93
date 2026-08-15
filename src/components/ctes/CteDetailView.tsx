@@ -725,29 +725,6 @@ export function CteDetailView({
           </div>
         )}
 
-        {divergenciasAbertas.length > 0 ? (
-          <div className="space-y-1.5">
-            <h4 className="text-sm font-medium">Divergências em aberto</h4>
-            <div className="rounded-md border">
-              {divergenciasAbertas.map((d) => (
-                <div key={d.id} className="border-b px-3 py-2 text-sm last:border-b-0">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-destructive">{d.motivo}</span>
-                    <Badge variant="outline" className="text-[10px]">
-                      {d.status.replaceAll("_", " ")}
-                    </Badge>
-                  </div>
-                  {d.observacao_operador ? (
-                    <div className="text-muted-foreground mt-1 text-xs">
-                      {d.observacao_operador}
-                    </div>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </section>
 
       {auditorias && auditorias.length > 0 ? (
         <section className="space-y-2">
