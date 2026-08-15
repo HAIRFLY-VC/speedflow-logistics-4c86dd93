@@ -243,7 +243,7 @@ export function CteDetailDialog({
             <Field
               label="CNPJ destinatário"
               value={cte.cnpj_destinatario ?? "—"}
-              hint={nomeDestinatario ?? undefined}
+              hint={cte.nome_destinatario ?? nomeDestinatario ?? undefined}
             />
 
             <Field
