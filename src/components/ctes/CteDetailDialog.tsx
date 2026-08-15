@@ -146,7 +146,7 @@ export function CteDetailDialog({
   });
 
 
-  // Razão social do destinatário: procura na NF-e referenciada e, se não achar, no cadastro de clientes.
+  // Razão social do destinatário: procura na NF-e referenciada, depois no cadastro de clientes, empresas e transportadoras.
   const { data: nomeDestinatario } = useQuery({
     queryKey: ["cte-nome-destinatario", cte?.cnpj_destinatario],
     enabled: !!cte?.cnpj_destinatario && open,
@@ -165,7 +165,21 @@ export function CteDetailDialog({
         .eq("cnpj", cnpj)
         .limit(1)
         .maybeSingle();
-      return cli?.legal_name ?? null;
+      if (cli?.legal_name) return cli.legal_name;
+      const { data: emp } = await supabase
+        .from("empresas")
+        .select("razao_social")
+        .eq("cnpj", cnpj)
+        .limit(1)
+        .maybeSingle();
+      if (emp?.razao_social) return emp.razao_social;
+      const { data: tra } = await supabase
+        .from("transportadoras")
+        .select("razao_social")
+        .eq("cnpj", cnpj)
+        .limit(1)
+        .maybeSingle();
+      return tra?.razao_social ?? null;
     },
   });
 
