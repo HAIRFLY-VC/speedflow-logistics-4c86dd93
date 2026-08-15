@@ -105,21 +105,46 @@ export function CteDetailDialog({
   });
 
   // CT-e original -> lista de complementos; CT-e complementar -> o original.
+  const isComplementar = cte?.tipo_cte === 1;
   const { data: grupo } = useQuery({
-    queryKey: ["cte-grupo", cte?.id, cte?.chave_cte_complementado],
+    queryKey: [
+      "cte-grupo",
+      cte?.id,
+      cte?.chave_cte_complementado,
+      cte?.numero_cte_complementado,
+    ],
     enabled: !!cte?.id && open,
     queryFn: async () => {
-      const q = cte!.chave_cte_complementado
-        ? supabase.from("ctes").select("id, numero, chave_acesso, valor_total_frete").eq("chave_acesso", cte!.chave_cte_complementado)
-        : supabase
-            .from("ctes")
-            .select("id, numero, chave_acesso, valor_total_frete")
-            .eq("chave_cte_complementado", cte!.chave_acesso);
+      const cols = "id, numero, chave_acesso, valor_total_frete, motivo_complemento";
+      let q;
+      if (cte!.chave_cte_complementado) {
+        q = supabase
+          .from("ctes")
+          .select(cols)
+          .eq("chave_acesso", cte!.chave_cte_complementado);
+      } else if (isComplementar && cte!.numero_cte_complementado && cte!.cnpj_emitente) {
+        q = supabase
+          .from("ctes")
+          .select(cols)
+          .eq("cnpj_emitente", cte!.cnpj_emitente)
+          .eq("numero", cte!.numero_cte_complementado);
+      } else if (cte!.numero && cte!.cnpj_emitente) {
+        q = supabase
+          .from("ctes")
+          .select(cols)
+          .eq("cnpj_emitente", cte!.cnpj_emitente)
+          .or(
+            `chave_cte_complementado.eq.${cte!.chave_acesso},numero_cte_complementado.eq.${cte!.numero}`,
+          );
+      } else {
+        q = supabase.from("ctes").select(cols).eq("chave_cte_complementado", cte!.chave_acesso);
+      }
       const { data, error } = await q;
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).filter((g) => g.id !== cte!.id);
     },
   });
+
 
   // Razão social do destinatário: procura na NF-e referenciada e, se não achar, no cadastro de clientes.
   const { data: nomeDestinatario } = useQuery({
