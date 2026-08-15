@@ -128,13 +128,7 @@ export default function CteDetailPage() {
 
   const openCteInWindow = (id: string) => {
     const url = `${window.location.origin}/ctes/${id}`;
-    const features =
-      "width=" +
-      window.screen.availWidth +
-      ",height=" +
-      window.screen.availHeight +
-      ",top=0,left=0,menubar=no,toolbar=no,location=no,status=no";
-    window.open(url, `cte-${id}`, features);
+    window.open(url, "_blank");
   };
 
   return (

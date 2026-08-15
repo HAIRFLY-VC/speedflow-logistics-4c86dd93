@@ -230,13 +230,7 @@ export function CteDetailView({
   const openCteLink = (cteId: string) => {
     if (linkMode === "window") {
       const url = `${window.location.origin}/ctes/${cteId}`;
-      const features =
-        "width=" +
-        window.screen.availWidth +
-        ",height=" +
-        window.screen.availHeight +
-        ",top=0,left=0,menubar=no,toolbar=no,location=no,status=no,noopener,noreferrer";
-      window.open(url, `cte-${cteId}`, features);
+      window.open(url, "_blank");
     } else if (linkMode === "dialog") {
       onOpenCte?.(cteId);
     }
