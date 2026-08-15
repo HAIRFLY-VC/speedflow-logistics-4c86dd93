@@ -26,9 +26,12 @@ export const Route = createFileRoute("/api/public/hooks/cte-comandos")({
           return Response.json({ error: "Unauthorized" }, { status: 401 });
         }
         try {
+          const { registrarContatoRobo } = await import("@/lib/robo-heartbeat.server");
+          await registrarContatoRobo("cte-comandos");
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { data, error } = await supabaseAdmin
             .from("cte_captura_comandos")
+
             .select("id, reiniciar_nsu")
             .eq("status", "PENDENTE")
             .order("created_at", { ascending: true })
