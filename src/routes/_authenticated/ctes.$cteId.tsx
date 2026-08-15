@@ -53,6 +53,8 @@ type Cte = Tables<"ctes">;
 export default function CteDetailPage() {
   const { cteId } = Route.useParams();
   const qc = useQueryClient();
+  const router = useRouter();
+
   const signUrl = useServerFn(getCteXmlUrl);
 
   const [xmlOpen, setXmlOpen] = useState(false);
