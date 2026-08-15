@@ -531,7 +531,11 @@ async function run() {
     throw e;
   }
 
+  if (!modoTeste) iniciarHeartbeat(readConfig());
+  setEstado("ocioso");
+
   do {
+
     try {
       const cfg = readConfig();
       await executarCicloEmpresas(cfg, modoTeste);
