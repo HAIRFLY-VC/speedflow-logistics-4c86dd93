@@ -110,6 +110,10 @@ function NfeDetailPage() {
     | { status: string; mensagem: string | null; tentativas: number }
     | null
     | undefined;
+  // 641 = nota emitida pela própria empresa; ela chega pela varredura por NSU do robô.
+  const aguardandoVarredura = /\b641\b/.test(solicitacao?.mensagem ?? "");
+
+
 
   const retentar = useMutation({
     mutationFn: async () => {
