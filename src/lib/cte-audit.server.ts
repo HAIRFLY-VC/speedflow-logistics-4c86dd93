@@ -177,14 +177,33 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
       .eq("chave_acesso", alvo.chave_cte_complementado)
       .maybeSingle();
     if (original) cte = original;
+  } else if (alvo.tipo_cte === 1 && alvo.numero_cte_complementado && alvo.cnpj_emitente) {
+    // Sem a chave no XML: liga pelo número do CT-e original do mesmo emitente.
+    const { data: original } = await db
+      .from("ctes")
+      .select("*")
+      .eq("cnpj_emitente", alvo.cnpj_emitente)
+      .eq("numero", alvo.numero_cte_complementado)
+      .maybeSingle();
+    if (original) cte = original;
   }
 
-  const { data: comps } = await db
+  const { data: porChave } = await db
     .from("ctes")
     .select("*")
     .eq("chave_cte_complementado", cte.chave_acesso);
-  const complementos = (comps ?? []).filter((c) => c.id !== cte.id);
+  const { data: porNumero } = cte.numero && cte.cnpj_emitente
+    ? await db
+        .from("ctes")
+        .select("*")
+        .eq("cnpj_emitente", cte.cnpj_emitente)
+        .eq("numero_cte_complementado", cte.numero)
+    : { data: [] as typeof porChave };
+  const complementos = [...(porChave ?? []), ...(porNumero ?? [])].filter(
+    (c, i, arr) => c.id !== cte.id && arr.findIndex((x) => x.id === c.id) === i,
+  );
   const grupoIds = [cte.id, ...complementos.map((c) => c.id)];
+
 
   const cobrado = round2(
     Number(cte.valor_total_frete) +
