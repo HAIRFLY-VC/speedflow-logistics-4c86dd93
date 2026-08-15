@@ -371,16 +371,21 @@ export function CteDetailDialog({
                   <strong>CT-e complementar</strong>
                   {cte.motivo_complemento ? ` — motivo: ${cte.motivo_complemento}` : ""}.
                   Vinculado ao CT-e original{" "}
-                  {cte.numero_cte_complementado ? `nº ${cte.numero_cte_complementado}` : ""}
+                  {cte.numero_cte_complementado ? (
+                    <LinkOriginal className="font-semibold">
+                      nº {cte.numero_cte_complementado}
+                    </LinkOriginal>
+                  ) : null}
                   {grupo && grupo.length > 0 ? " (encontrado no app)" : " (ainda não importado)"}
                   {cte.chave_cte_complementado ? (
                     <>
                       {" "}
-                      <span className="font-mono text-[11px] break-all">
+                      <LinkOriginal className="font-mono text-[11px] break-all">
                         {cte.chave_cte_complementado}
-                      </span>
+                      </LinkOriginal>
                     </>
                   ) : null}
+
                   . A auditoria é feita em conjunto com o original.
                 </>
               ) : (
