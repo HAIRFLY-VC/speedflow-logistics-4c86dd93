@@ -32,10 +32,17 @@ export const Route = createFileRoute("/api/public/hooks/ingest-nfe")({
             chave?: unknown;
             xml?: unknown;
             erro?: unknown;
+            nsu?: unknown;
           };
           chave = typeof body.chave === "string" ? body.chave.replace(/\D/g, "") : "";
           const xml = typeof body.xml === "string" ? body.xml : "";
           const erro = typeof body.erro === "string" ? body.erro : "";
+          const nsu =
+            typeof body.nsu === "number"
+              ? body.nsu
+              : typeof body.nsu === "string" && /^\d+$/.test(body.nsu)
+                ? Number(body.nsu)
+                : null;
 
           // cStat=641 significa que a empresa e a EMITENTE da nota: a consulta por chave
           // nunca funciona nesse caso e a nota chega pela varredura por NSU. Mantemos a
