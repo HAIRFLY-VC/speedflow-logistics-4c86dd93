@@ -1,0 +1,52 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+async function assertStaff(context: { supabase: any; userId: string }) {
+  const { data: isStaff } = await context.supabase.rpc("is_staff", {
+    _user_id: context.userId,
+  });
+  if (!isStaff) throw new Error("Sem permissão para esta operação");
+}
+
+/**
+ * Preenche `nome_destinatario` dos CT-e já importados, lendo o XML armazenado.
+ */
+export const backfillNomeDestinatario = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { parseCteXml } = await import("./cte-parse.server");
+
+    const { data: ctes, error } = await supabaseAdmin
+      .from("ctes")
+      .select("id, xml_storage_path")
+      .is("nome_destinatario", null)
+      .not("xml_storage_path", "is", null)
+      .limit(500);
+    if (error) throw new Error(error.message);
+
+    let atualizados = 0;
+    const erros: string[] = [];
+
+    for (const c of ctes ?? []) {
+      try {
+        const { data: file, error: dlErr } = await supabaseAdmin.storage
+          .from("cte-xml")
+          .download(c.xml_storage_path as string);
+        if (dlErr || !file) throw new Error(dlErr?.message ?? "XML não encontrado");
+        const parsed = parseCteXml(await file.text());
+        if (!parsed.nome_destinatario) continue;
+        const { error: upErr } = await supabaseAdmin
+          .from("ctes")
+          .update({ nome_destinatario: parsed.nome_destinatario })
+          .eq("id", c.id);
+        if (upErr) throw new Error(upErr.message);
+        atualizados++;
+      } catch (e) {
+        erros.push(`${c.id}: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+
+    return { total: ctes?.length ?? 0, atualizados, erros };
+  });
