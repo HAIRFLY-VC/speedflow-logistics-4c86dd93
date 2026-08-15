@@ -252,10 +252,8 @@ function CtesPage() {
 
   const readXml = useMutation({
     mutationFn: async (cte: Cte) => {
-      const { url } = await signUrl({ data: { cteId: cte.id } });
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Falha ao carregar o XML");
-      return { xml: await res.text(), cte };
+      const { xml } = await signUrl({ data: { cteId: cte.id } });
+      return { xml, cte };
     },
     onMutate: (cte: Cte) => {
       setXmlTitle(`XML do CT-e ${cte.numero ?? ""}`.trim());
@@ -271,10 +269,8 @@ function CtesPage() {
 
   const openXml = useMutation({
     mutationFn: async (cte: Cte) => {
-      const { url } = await signUrl({ data: { cteId: cte.id } });
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Falha ao baixar o XML");
-      const blob = await res.blob();
+      const { xml } = await signUrl({ data: { cteId: cte.id } });
+      const blob = new Blob([xml], { type: "application/xml" });
       const href = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = href;

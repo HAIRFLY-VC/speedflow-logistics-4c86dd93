@@ -99,10 +99,8 @@ export default function CteDetailPage() {
     setXmlOpen(true);
     setXmlLoading(true);
     try {
-      const { url } = await signUrl({ data: { cteId: c.id } });
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Falha ao carregar o XML");
-      setXmlContent(await res.text());
+      const { xml } = await signUrl({ data: { cteId: c.id } });
+      setXmlContent(xml);
     } catch (e) {
       setXmlOpen(false);
       toast.error(e instanceof Error ? e.message : "Erro ao carregar XML");
@@ -113,10 +111,8 @@ export default function CteDetailPage() {
 
   const handleDownloadXml = async (c: Cte) => {
     try {
-      const { url } = await signUrl({ data: { cteId: c.id } });
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Falha ao baixar o XML");
-      const blob = await res.blob();
+      const { xml } = await signUrl({ data: { cteId: c.id } });
+      const blob = new Blob([xml], { type: "application/xml" });
       const href = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = href;
