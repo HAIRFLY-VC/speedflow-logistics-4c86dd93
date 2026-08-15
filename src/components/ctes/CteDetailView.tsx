@@ -473,6 +473,8 @@ export function CteDetailView({
         )}
       </section>
 
+      {!isComplemento ? (
+        <>
       <Separator />
 
       <section className="space-y-3">
