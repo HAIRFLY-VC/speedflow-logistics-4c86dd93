@@ -7,6 +7,8 @@ import { openAppRoute, appLinkTarget } from "@/lib/open-in-tab";
 import { toast } from "sonner";
 
 import { auditarCte } from "@/lib/cte-audit.functions";
+import { getVolumesNfesDoCte } from "@/lib/cte.functions";
+import type { NfeVolumeInfo } from "@/lib/nfe-volumes.types";
 import { obterEnderecoEntregaCte, resolverNomeDestinatario } from "@/lib/cte-backfill.functions";
 
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +18,20 @@ import { supabase } from "@/integrations/central/client";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Cte = Tables<"ctes">;
+
+function statusLabel(status: NfeVolumeInfo["status"] | undefined, loading: boolean) {
+  if (loading && !status) return "...";
+  switch (status) {
+    case "PENDENTE":
+      return "aguardando XML";
+    case "PROCESSANDO":
+      return "baixando...";
+    case "ERRO":
+      return "erro no download";
+    default:
+      return "—";
+  }
+}
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -239,7 +255,7 @@ export function CteDetailView({
     refetchInterval: (q) =>
       (q.state.data ?? []).some((n) => n.status !== "DISPONIVEL") ? 20_000 : false,
   });
-  const volumesMap = new Map((volumesData ?? []).map((n) => [n.chave, n]));
+  const volumesMap = new Map<string, NfeVolumeInfo>((volumesData ?? []).map((n) => [n.chave, n]));
   const totalVolumes = (volumesData ?? []).reduce((s, n) => s + (n.volumes ?? 0), 0);
   const totalPesoBruto = (volumesData ?? []).reduce((s, n) => s + (n.peso_bruto ?? 0), 0);
 

@@ -4,16 +4,8 @@
 // solicitação para o robô buscá-la na SEFAZ.
 import { centralDb } from "@/lib/central-db";
 
-export type NfeVolumeInfo = {
-  chave: string;
-  numero: string | null;
-  volumes: number | null;
-  peso_bruto: number | null;
-  peso_liquido: number | null;
-  especie: string | null;
-  status: "DISPONIVEL" | "PENDENTE" | "PROCESSANDO" | "ERRO" | "AUSENTE";
-  mensagem: string | null;
-};
+import type { NfeVolumeInfo } from "@/lib/nfe-volumes.types";
+export type { NfeVolumeInfo };
 
 const digits = (v: string) => v.replace(/\D/g, "");
 
