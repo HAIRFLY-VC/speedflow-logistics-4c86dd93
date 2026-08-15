@@ -352,7 +352,7 @@ function CtesPage() {
             <div>
               <div>{d.toLocaleDateString("pt-BR")}</div>
               <div className="text-[11px] text-muted-foreground">
-                {d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                {d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
               </div>
             </div>
           );
