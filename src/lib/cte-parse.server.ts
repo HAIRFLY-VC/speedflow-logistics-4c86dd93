@@ -23,7 +23,16 @@ export type ParsedCte = {
   tipo_cte: number;
   /** Chave do CT-e original quando este é um complemento. */
   chave_cte_complementado: string | null;
+  /** Número do CT-e original quando este é um complemento. */
+  numero_cte_complementado: string | null;
+  /** Motivo do complemento (ex.: DESCARGA, ESTADIA). */
+  motivo_complemento: string | null;
+  /** Observações do documento (xObs e ObsCont). */
+  observacoes: CteObservacao[];
 };
+
+export type CteObservacao = { campo: string; texto: string };
+
 
 const onlyDigits = (v: string) => v.replace(/\D/g, "");
 
