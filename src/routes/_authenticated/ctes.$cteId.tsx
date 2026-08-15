@@ -127,9 +127,9 @@ export default function CteDetailPage() {
   };
 
   const openCteInWindow = (id: string) => {
-    const url = `${window.location.origin}/ctes/${id}`;
-    window.open(url, "_blank");
+    openAppRoute(router, `/ctes/${id}`);
   };
+
 
   return (
     <AppShell>
