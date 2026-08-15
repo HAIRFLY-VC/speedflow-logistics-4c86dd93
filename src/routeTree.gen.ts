@@ -30,6 +30,7 @@ import { Route as AuthenticatedSugestaoRotasRouteImport } from './routes/_authen
 import { Route as AuthenticatedTabelasFreteRouteImport } from './routes/_authenticated/tabelas-frete'
 import { Route as AuthenticatedTransportadorasRouteImport } from './routes/_authenticated/transportadoras'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
+import { Route as AuthenticatedCtesCteIdRouteImport } from './routes/_authenticated/ctes.$cteId'
 import { Route as AuthenticatedNfesChaveRouteImport } from './routes/_authenticated/nfes.$chave'
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosOrderIdRouteImport } from './routes/_authenticated/pedidos.$orderId'
@@ -153,6 +154,11 @@ const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   path: '/usuarios',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCtesCteIdRoute = AuthenticatedCtesCteIdRouteImport.update({
+  id: '/$cteId',
+  path: '/$cteId',
+  getParentRoute: () => AuthenticatedCtesRoute,
+} as any)
 const AuthenticatedNfesChaveRoute = AuthenticatedNfesChaveRouteImport.update({
   id: '/nfes/$chave',
   path: '/nfes/$chave',
@@ -218,7 +224,7 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-fretes': typeof AuthenticatedConfiguracoesFretesRoute
-  '/ctes': typeof AuthenticatedCtesRoute
+  '/ctes': typeof AuthenticatedCtesRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
   '/fretistas': typeof AuthenticatedFretistasRoute
@@ -230,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
   '/transportadoras': typeof AuthenticatedTransportadorasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/ctes/$cteId': typeof AuthenticatedCtesCteIdRoute
   '/nfes/$chave': typeof AuthenticatedNfesChaveRoute
   '/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
@@ -250,7 +257,7 @@ export interface FileRoutesByTo {
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-fretes': typeof AuthenticatedConfiguracoesFretesRoute
-  '/ctes': typeof AuthenticatedCtesRoute
+  '/ctes': typeof AuthenticatedCtesRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
   '/fretistas': typeof AuthenticatedFretistasRoute
@@ -262,6 +269,7 @@ export interface FileRoutesByTo {
   '/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
   '/transportadoras': typeof AuthenticatedTransportadorasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/ctes/$cteId': typeof AuthenticatedCtesCteIdRoute
   '/nfes/$chave': typeof AuthenticatedNfesChaveRoute
   '/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
@@ -284,7 +292,7 @@ export interface FileRoutesById {
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/configuracoes-fretes': typeof AuthenticatedConfiguracoesFretesRoute
-  '/_authenticated/ctes': typeof AuthenticatedCtesRoute
+  '/_authenticated/ctes': typeof AuthenticatedCtesRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/empresas': typeof AuthenticatedEmpresasRoute
   '/_authenticated/fretistas': typeof AuthenticatedFretistasRoute
@@ -296,6 +304,7 @@ export interface FileRoutesById {
   '/_authenticated/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
   '/_authenticated/transportadoras': typeof AuthenticatedTransportadorasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
+  '/_authenticated/ctes/$cteId': typeof AuthenticatedCtesCteIdRoute
   '/_authenticated/nfes/$chave': typeof AuthenticatedNfesChaveRoute
   '/_authenticated/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/_authenticated/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
@@ -330,6 +339,7 @@ export interface FileRouteTypes {
     | '/tabelas-frete'
     | '/transportadoras'
     | '/usuarios'
+    | '/ctes/$cteId'
     | '/nfes/$chave'
     | '/pedidos/$orderId'
     | '/rotas/$routeId'
@@ -362,6 +372,7 @@ export interface FileRouteTypes {
     | '/tabelas-frete'
     | '/transportadoras'
     | '/usuarios'
+    | '/ctes/$cteId'
     | '/nfes/$chave'
     | '/pedidos/$orderId'
     | '/rotas/$routeId'
@@ -395,6 +406,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tabelas-frete'
     | '/_authenticated/transportadoras'
     | '/_authenticated/usuarios'
+    | '/_authenticated/ctes/$cteId'
     | '/_authenticated/nfes/$chave'
     | '/_authenticated/pedidos/$orderId'
     | '/_authenticated/rotas/$routeId'
@@ -567,6 +579,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ctes/$cteId': {
+      id: '/_authenticated/ctes/$cteId'
+      path: '/$cteId'
+      fullPath: '/ctes/$cteId'
+      preLoaderRoute: typeof AuthenticatedCtesCteIdRouteImport
+      parentRoute: typeof AuthenticatedCtesRoute
+    }
     '/_authenticated/nfes/$chave': {
       id: '/_authenticated/nfes/$chave'
       path: '/nfes/$chave'
@@ -640,6 +659,17 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedCtesRouteChildren {
+  AuthenticatedCtesCteIdRoute: typeof AuthenticatedCtesCteIdRoute
+}
+
+const AuthenticatedCtesRouteChildren: AuthenticatedCtesRouteChildren = {
+  AuthenticatedCtesCteIdRoute: AuthenticatedCtesCteIdRoute,
+}
+
+const AuthenticatedCtesRouteWithChildren =
+  AuthenticatedCtesRoute._addFileChildren(AuthenticatedCtesRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAuditoriaFretesRoute: typeof AuthenticatedAuditoriaFretesRoute
   AuthenticatedBorderosRoute: typeof AuthenticatedBorderosRoute
@@ -647,7 +677,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConfiguracoesFretesRoute: typeof AuthenticatedConfiguracoesFretesRoute
-  AuthenticatedCtesRoute: typeof AuthenticatedCtesRoute
+  AuthenticatedCtesRoute: typeof AuthenticatedCtesRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEmpresasRoute: typeof AuthenticatedEmpresasRoute
   AuthenticatedFretistasRoute: typeof AuthenticatedFretistasRoute
@@ -673,7 +703,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConfiguracoesFretesRoute: AuthenticatedConfiguracoesFretesRoute,
-  AuthenticatedCtesRoute: AuthenticatedCtesRoute,
+  AuthenticatedCtesRoute: AuthenticatedCtesRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEmpresasRoute: AuthenticatedEmpresasRoute,
   AuthenticatedFretistasRoute: AuthenticatedFretistasRoute,
