@@ -2,19 +2,20 @@
 
 ## O problema
 
-Hoje, clicar em uma linha da lista de CT-e chama `window.open` para uma nova janela do navegador. No ambiente de preview (e em qualquer caso em que o app roda dentro de um iframe), a origem usada nessa nova janela não é a mesma origem em que a sessão do usuário está guardada. Resultado: a nova janela abre sem sessão e o app redireciona para a tela de login em vez do detalhamento.
+Hoje, clicar em uma linha da lista de CT-e chama `window.open` para uma nova janela do navegador. No ambiente de preview, a nova janela perde a sessão do usuário e cai na tela de autenticação em vez de exibir o detalhamento.
 
 ## Correção proposta
 
-Abrir o detalhamento dentro da própria aplicação, em tela cheia, mantendo a sessão:
+Abrir o detalhamento em uma nova aba do navegador (não uma nova janela), mantendo a origem atual e, portanto, a sessão do Supabase:
 
-- Trocar o `window.open` da lista de CT-e por navegação normal do app para `/ctes/{id}` (mesma aba), usando o roteador.
-- A página de detalhamento já existe e ocupa a tela inteira; ela ganha um botão "Voltar" claro para a listagem.
-- Suporte a Ctrl/Cmd+clique e clique do meio continua funcionando como link normal do navegador (abre em nova aba já autenticada quando a origem for a mesma), sem forçar `window.open`.
-- Os hiperlinks internos do detalhamento (CT-e original, NF-e) passam a usar o mesmo modo de navegação, sem abrir janelas novas.
+- Substituir o `window.open` atual — que calcula tamanho e posição de uma nova janela — por `window.open(url, '_blank')` na listagem de CT-e.
+- Manter a nova aba apontando para `/ctes/{id}` na mesma origem, para que o `localStorage` da sessão seja compartilhado.
+- Garantir que os hiperlinks internos do detalhamento (CT-e original, NF-e) também usem a mesma abordagem ou navegação normal do app.
+- A página de detalhamento `/ctes/$cteId.tsx` já possui botão de retorno para `/ctes`; não haverá alterações estruturais nela.
 
 ## Detalhes técnicos
 
-- `src/routes/_authenticated/ctes.index.tsx`: substituir o handler `onRowClick` que usa `window.open`/`window.screen` por `navigate({ to: "/ctes/$cteId", params: { cteId: c.id } })`.
-- `src/routes/_authenticated/ctes.$cteId.tsx`: garantir botão de retorno para `/ctes` e verificar o estado de carregamento.
-- `src/components/ctes/CteDetailView.tsx`: ajustar o `linkMode` para navegação no app (sem `window.open`) quando renderizado na rota de detalhamento.
+- `src/routes/_authenticated/ctes.index.tsx`: substituir o handler `onRowClick` que usa `window.open` com `features` baseados em `window.screen` por `window.open(url, '_blank')`.
+- `src/routes/_authenticated/ctes.$cteId.tsx`: sem alterações necessárias.
+- `src/components/ctes/CteDetailView.tsx`: sem alterações necessárias.
+
