@@ -171,13 +171,13 @@ export async function ingestCteXml(params: {
       observacoes: parsed.observacoes,
 
       xml_storage_path: storagePath,
+      xml_conteudo: params.xml,
       origem_captura: params.origem,
       status,
-    })
-    .select("id")
-    .single();
+  });
 
   if (error) throw new Error(error.message);
+  const inserted = { id: insertedId as string };
 
   await logCteIngest({
     origem: params.origem,
