@@ -19,8 +19,14 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Cte = Tables<"ctes">;
 
-function statusLabel(status: NfeVolumeInfo["status"] | undefined, loading: boolean) {
+function statusLabel(
+  status: NfeVolumeInfo["status"] | undefined,
+  loading: boolean,
+  mensagem?: string | null,
+) {
   if (loading && !status) return "...";
+  // 641 = nota emitida pela própria empresa: chega pela varredura por NSU do robô.
+  if (/\b641\b/.test(mensagem ?? "")) return "aguardando varredura";
   switch (status) {
     case "PENDENTE":
       return "aguardando XML";
