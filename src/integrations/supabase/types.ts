@@ -432,6 +432,7 @@ export type Database = {
           updated_at: string
           valor_mercadoria: number
           valor_total_frete: number
+          xml_conteudo: string | null
           xml_storage_path: string | null
         }
         Insert: {
@@ -462,6 +463,7 @@ export type Database = {
           updated_at?: string
           valor_mercadoria?: number
           valor_total_frete?: number
+          xml_conteudo?: string | null
           xml_storage_path?: string | null
         }
         Update: {
@@ -492,6 +494,7 @@ export type Database = {
           updated_at?: string
           valor_mercadoria?: number
           valor_total_frete?: number
+          xml_conteudo?: string | null
           xml_storage_path?: string | null
         }
         Relationships: [
@@ -891,19 +894,25 @@ export type Database = {
           cnpj_emitente: string | null
           created_at: string
           data_emissao: string | null
+          especie_volumes: string | null
           id: string
           itens: Json
           natureza_operacao: string | null
           nome_destinatario: string | null
           nome_emitente: string | null
+          nsu: number | null
           numero: string | null
           peso_bruto: number | null
+          peso_liquido: number | null
           serie: string | null
           uf_destino: string | null
           updated_at: string
           valor_frete: number
           valor_produtos: number
           valor_total: number
+          volumes: number | null
+          xml_conteudo: string | null
+          xml_obtido_em: string | null
           xml_storage_path: string | null
         }
         Insert: {
@@ -912,19 +921,25 @@ export type Database = {
           cnpj_emitente?: string | null
           created_at?: string
           data_emissao?: string | null
+          especie_volumes?: string | null
           id?: string
           itens?: Json
           natureza_operacao?: string | null
           nome_destinatario?: string | null
           nome_emitente?: string | null
+          nsu?: number | null
           numero?: string | null
           peso_bruto?: number | null
+          peso_liquido?: number | null
           serie?: string | null
           uf_destino?: string | null
           updated_at?: string
           valor_frete?: number
           valor_produtos?: number
           valor_total?: number
+          volumes?: number | null
+          xml_conteudo?: string | null
+          xml_obtido_em?: string | null
           xml_storage_path?: string | null
         }
         Update: {
@@ -933,19 +948,25 @@ export type Database = {
           cnpj_emitente?: string | null
           created_at?: string
           data_emissao?: string | null
+          especie_volumes?: string | null
           id?: string
           itens?: Json
           natureza_operacao?: string | null
           nome_destinatario?: string | null
           nome_emitente?: string | null
+          nsu?: number | null
           numero?: string | null
           peso_bruto?: number | null
+          peso_liquido?: number | null
           serie?: string | null
           uf_destino?: string | null
           updated_at?: string
           valor_frete?: number
           valor_produtos?: number
           valor_total?: number
+          volumes?: number | null
+          xml_conteudo?: string | null
+          xml_obtido_em?: string | null
           xml_storage_path?: string | null
         }
         Relationships: []
