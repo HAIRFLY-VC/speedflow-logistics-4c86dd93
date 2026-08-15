@@ -21,7 +21,7 @@ import {
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
 import type { Tables } from "@/integrations/supabase/types";
 
-export const Route = createFileRoute("/_authenticated/ctes")({
+export const Route = createFileRoute("/_authenticated/ctes/")({
   component: CtesPage,
   head: () => ({
     meta: [
