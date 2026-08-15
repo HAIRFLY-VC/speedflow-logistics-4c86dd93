@@ -53,6 +53,7 @@ export function CteDetailDialog({
   onDownloadXml,
   onReadXml,
   downloading,
+  onOpenCte,
 }: {
   cte: Cte | null;
   open: boolean;
@@ -62,6 +63,7 @@ export function CteDetailDialog({
   onDownloadXml: (cte: Cte) => void;
   onReadXml: (cte: Cte) => void;
   downloading: boolean;
+  onOpenCte?: (cteId: string) => void;
 }) {
   const { data: historico, isLoading: loadingHist } = useQuery({
     queryKey: ["cte-historico", cte?.id],
