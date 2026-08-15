@@ -233,7 +233,14 @@ export function CteDetailDialog({
     nome?: string;
     valor?: number;
   }[];
-  const nfs = (Array.isArray(cte.nfs_referenciadas) ? cte.nfs_referenciadas : []) as string[];
+  const nfsProprias = (Array.isArray(cte.nfs_referenciadas) ? cte.nfs_referenciadas : []) as string[];
+  // CT-e complementar normalmente não traz NF-es: usa as do CT-e original vinculado.
+  const cteOriginal = isComplementar ? (grupo?.[0] ?? null) : null;
+  const nfsDoOriginal = (
+    Array.isArray(cteOriginal?.nfs_referenciadas) ? cteOriginal!.nfs_referenciadas : []
+  ) as string[];
+  const usandoNfsDoOriginal = nfsProprias.length === 0 && nfsDoOriginal.length > 0;
+  const nfs = usandoNfsDoOriginal ? nfsDoOriginal : nfsProprias;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
