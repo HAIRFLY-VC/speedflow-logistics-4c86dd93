@@ -199,8 +199,6 @@ export function CteDetailView({
     mutationFn: (cteId: string) => runAudit({ data: { cteId } }),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["cte-auditorias", cte.id] });
-      qc.invalidateQueries({ queryKey: ["cte-divergencias", cte.id] });
-      qc.invalidateQueries({ queryKey: ["cte-historico", cte.id] });
       qc.invalidateQueries({ queryKey: ["ctes"] });
       if (res.resultado === "OK") toast.success("Auditoria OK: cobrança bate com a tabela.");
       else
