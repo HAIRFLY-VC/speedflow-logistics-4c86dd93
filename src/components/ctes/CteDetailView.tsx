@@ -713,37 +713,6 @@ export function CteDetailView({
         )}
 
 
-      {auditorias && auditorias.length > 0 ? (
-        <section className="space-y-2">
-          <h3 className="text-sm font-semibold">Histórico de auditorias</h3>
-          <div className="rounded-md border">
-            {auditorias.map((a) => (
-              <div key={a.id} className="border-b px-3 py-2 text-sm last:border-b-0">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <Badge
-                    variant="secondary"
-                    className={
-                      a.resultado === "OK"
-                        ? "bg-emerald-500/10 text-emerald-600"
-                        : "bg-destructive/10 text-destructive"
-                    }
-                  >
-                    {a.resultado}
-                  </Badge>
-                  <span className="text-muted-foreground text-xs">
-                    {new Date(a.created_at).toLocaleString("pt-BR")}
-                  </span>
-                </div>
-                <div className="text-muted-foreground mt-1 text-xs">
-                  Esperado {brl(Number(a.valor_esperado_total))} · Cobrado{" "}
-                  {brl(Number(a.valor_cobrado_total))} · Diferença{" "}
-                  {brl(Number(a.diferenca))} ({Number(a.percentual_diferenca).toFixed(2)}%)
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
         </>
       ) : null}
 
