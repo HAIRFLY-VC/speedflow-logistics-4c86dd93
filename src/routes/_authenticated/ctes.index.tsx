@@ -65,6 +65,8 @@ const STATUS_TONE: Record<string, string> = {
 
 function CtesPage() {
   const qc = useQueryClient();
+  const router = useRouter();
+
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const upload = useServerFn(uploadCteXml);
