@@ -8,20 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import { listClientesExternos } from "@/lib/external-catalog.functions";
-import type { ExternalCliente } from "@/lib/external-db.server";
+import type { ExternalCliente } from "@/lib/external-catalog.types";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
   component: ClientesPage,
 });
 
-function useDebounced<T>(value: T, delay = 400) {
-  const [debounced, setDebounced] = useState(value);
-  useMemo(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
-}
+
 
 function formatCnpj(v: string | null) {
   if (!v) return "—";
