@@ -192,6 +192,17 @@ export function CteDetailDialog({
     },
   });
 
+  // Endereço de entrega (enderDest) lido do XML do CT-e.
+  const obterEndereco = useServerFn(obterEnderecoEntregaCte);
+  const { data: enderecoEntrega } = useQuery({
+    queryKey: ["cte-endereco-entrega", cte?.id],
+    enabled: !!cte?.id && !!cte?.xml_storage_path && open,
+    queryFn: async () => {
+      const res = await obterEndereco({ data: { cteId: cte!.id } });
+      return res?.endereco ?? null;
+    },
+  });
+
 
   const qc = useQueryClient();
   const runAudit = useServerFn(auditarCte);
