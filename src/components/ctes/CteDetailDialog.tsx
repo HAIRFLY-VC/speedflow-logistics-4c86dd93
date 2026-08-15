@@ -315,7 +315,19 @@ export function CteDetailDialog({
               />
             )}
             <Field label="Observação" value={cte.observacao ?? "—"} />
+            <div className="col-span-2 sm:col-span-3">
+              <Field
+                label="Endereço de entrega"
+                value={enderecoEntrega?.formatado ?? "—"}
+                hint={
+                  enderecoEntrega?.pais && enderecoEntrega.pais.toUpperCase() !== "BRASIL"
+                    ? enderecoEntrega.pais
+                    : undefined
+                }
+              />
+            </div>
           </div>
+
 
           {(isComplementar || (grupo?.length ?? 0) > 0) && (
             <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
