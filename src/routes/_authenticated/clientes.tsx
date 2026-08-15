@@ -28,7 +28,7 @@ function ClientesPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   // debounce simples
-  useMemo(() => {
+  useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 400);
     return () => clearTimeout(t);
   }, [search]);
