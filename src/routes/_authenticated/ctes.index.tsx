@@ -203,10 +203,12 @@ function CtesPage() {
   useEffect(() => {
     if (!data) return;
     const faltantes = data.some((c) => !c.nome_destinatario && c.xml_storage_path);
+    console.log("CT-e faltantes nome_destinatario:", faltantes, data.length);
     if (faltantes) {
       backfillDestinatariosMutation.mutate();
     }
   }, [data]);
+
 
 
 
