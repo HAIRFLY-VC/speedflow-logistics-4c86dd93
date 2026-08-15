@@ -269,32 +269,67 @@ export function CteDetailDialog({
               label="Atualizado em"
               value={new Date(cte.updated_at).toLocaleString("pt-BR")}
             />
+            <Field
+              label="Tipo do CT-e"
+              value={isComplementar ? "Complementar" : cte.tipo_cte === 2 ? "Anulação" : cte.tipo_cte === 3 ? "Substituto" : "Normal"}
+              hint={isComplementar ? (cte.motivo_complemento ?? undefined) : undefined}
+            />
+            {isComplementar && (
+              <Field
+                label="Motivo do complemento"
+                value={cte.motivo_complemento ?? "Não identificado"}
+              />
+            )}
             <Field label="Observação" value={cte.observacao ?? "—"} />
           </div>
 
-          {(cte.chave_cte_complementado || (grupo?.length ?? 0) > 0) && (
+          {(isComplementar || (grupo?.length ?? 0) > 0) && (
             <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-              {cte.chave_cte_complementado ? (
+              {isComplementar ? (
                 <>
-                  <strong>CT-e complementar.</strong> A auditoria é feita em conjunto com o
-                  CT-e original{" "}
-                  <span className="font-mono text-[11px] break-all">
-                    {cte.chave_cte_complementado}
-                  </span>
-                  {grupo && grupo.length > 0
-                    ? ` (nº ${grupo.map((g) => g.numero ?? "s/nº").join(", ")})`
-                    : ""}
-                  .
+                  <strong>CT-e complementar</strong>
+                  {cte.motivo_complemento ? ` — motivo: ${cte.motivo_complemento}` : ""}.
+                  Vinculado ao CT-e original{" "}
+                  {cte.numero_cte_complementado ? `nº ${cte.numero_cte_complementado}` : ""}
+                  {grupo && grupo.length > 0 ? " (encontrado no app)" : " (ainda não importado)"}
+                  {cte.chave_cte_complementado ? (
+                    <>
+                      {" "}
+                      <span className="font-mono text-[11px] break-all">
+                        {cte.chave_cte_complementado}
+                      </span>
+                    </>
+                  ) : null}
+                  . A auditoria é feita em conjunto com o original.
                 </>
               ) : (
                 <>
                   <strong>Possui {grupo!.length} complemento(s) de frete</strong> (CT-e{" "}
-                  {grupo!.map((g) => g.numero ?? "s/nº").join(", ")}). A auditoria soma o
-                  valor de todos eles.
+                  {grupo!
+                    .map((g) => `${g.numero ?? "s/nº"}${g.motivo_complemento ? ` – ${g.motivo_complemento}` : ""}`)
+                    .join(", ")}
+                  ). A auditoria soma o valor de todos eles.
                 </>
               )}
             </div>
           )}
+
+          {Array.isArray(cte.observacoes) && cte.observacoes.length > 0 && (
+            <section className="space-y-2">
+              <h3 className="text-sm font-semibold">Observações do CT-e</h3>
+              <div className="rounded-md border">
+                {(cte.observacoes as { campo?: string; texto?: string }[]).map((o, i) => (
+                  <div key={i} className="border-b px-3 py-2 text-sm last:border-b-0">
+                    <p className="text-muted-foreground text-xs">
+                      {o.campo === "xObs" ? "Observação geral" : `Campo ${o.campo}`}
+                    </p>
+                    <p className="break-words">{o.texto}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
 
           <Separator />
 
