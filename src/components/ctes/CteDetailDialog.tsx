@@ -451,7 +451,9 @@ export function CteDetailDialog({
                   variant="outline"
                   className="border-amber-300 bg-amber-50 text-[10px] text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
                 >
-                  Do CT-e original {cteOriginal?.numero ? `nº ${cteOriginal.numero}` : ""}
+                  Do CT-e original{" "}
+                  {cteOriginal?.numero ? <LinkOriginal>nº {cteOriginal.numero}</LinkOriginal> : ""}
+
                 </Badge>
               ) : null}
             </div>
