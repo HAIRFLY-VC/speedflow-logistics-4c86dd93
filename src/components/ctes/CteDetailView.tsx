@@ -689,6 +689,8 @@ export function CteDetailView({
           </div>
         </section>
       ) : null}
+        </>
+      ) : null}
 
       <section className="space-y-2">
         <h3 className="text-sm font-semibold">Histórico de status</h3>
