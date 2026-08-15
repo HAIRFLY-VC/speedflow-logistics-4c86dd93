@@ -1,20 +1,14 @@
 # Centralizar os dados num banco só
 
-## Um ponto importante antes de tudo
+## Abordagem escolhida: Opção A — Federação
 
-Este app roda no banco gerenciado pelo Lovable Cloud, e esse vínculo não pode ser trocado por outro projeto Supabase depois de criado. Ou seja: literalmente apontar o SpeedFlow para o banco do print não é possível.
+O banco externo continua sendo a fonte única de clientes, produtos, vendedores e vendas. O SpeedFlow lê essas tabelas em tempo real, sem cópia local, através de uma conexão de leitura direta. Nada é duplicado e os outros projetos Lovable não mudam nada.
 
-Confirmei também, consultando o banco atual, que `clientes`, `produtos`, `vendas`, `vendedores` e `ger_expedicao` não existem aqui — são mesmo de outro banco.
+Dois pontos de contexto que sustentam essa escolha:
 
-Então "um banco só" pode ser feito de duas formas, e as duas eliminam a redundância. Preciso que você escolha uma:
+- Este app roda no banco gerenciado pelo Lovable Cloud, e esse vínculo não pode ser trocado por outro projeto Supabase depois de criado — então a federação é justamente o caminho que mantém o banco externo como central.
+- Confirmei, consultando o banco atual, que `clientes`, `produtos`, `vendas`, `vendedores` e `ger_expedicao` não existem aqui — são mesmo de outro banco, e a sobreposição com `customers`/`products` é real.
 
-**Opção A — Federação (recomendada, mantém o banco externo como central)**
-O banco externo continua sendo a fonte única de clientes, produtos, vendas e vendedores. O SpeedFlow lê essas tabelas em tempo real, sem cópia local, através de uma conexão de leitura direta. Nada é duplicado, e os outros projetos Lovable não mudam nada.
-
-**Opção B — Consolidação neste banco**
-Trazemos as tabelas do banco externo para cá e os outros projetos passam a apontar para este banco. Fica tudo fisicamente junto, mas exige alterar os outros projetos.
-
-O restante deste plano descreve a Opção A, que é a que respeita sua escolha de manter o banco externo como central.
 
 ## Etapa 1 — Acesso e mapeamento
 
@@ -51,8 +45,9 @@ Se algum dado do SpeedFlow precisar ficar visível para os outros projetos, cria
 - Acesso ao banco externo pelo servidor via server functions do TanStack Start, com a string de conexão guardada como segredo; alternativamente por Postgres FDW, se preferir enxergar as tabelas externas como se fossem locais.
 - Nenhuma credencial do banco externo vai para o código do navegador.
 - As tabelas do print aparecem como `UNRESTRICTED`, ou seja, sem RLS. Antes de qualquer acesso do app, precisamos definir se elas serão lidas apenas pelo servidor (com credencial protegida) ou se será necessário ativar controle de acesso lá.
-- Migração de dados só acontece se escolhermos a Opção B; na Opção A não há migração, apenas leitura.
+- Não há migração de dados nesta abordagem, apenas leitura do banco externo.
 
 ## O que eu preciso de você para começar
 
-A escolha entre Opção A e Opção B, e a string de conexão de leitura do banco externo.
+A string de conexão de leitura do banco externo. Assim que você aprovar, abro o formulário seguro para você salvá-la.
+
