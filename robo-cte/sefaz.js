@@ -296,3 +296,95 @@ export class SefazNfeClient {
     throw new Error(`XML da NF-e nao disponivel para o CNPJ consultado (${xMotivo || "sem retorno"})`);
   }
 }
+
+// ============ NF-e: varredura por NSU (unica forma de o EMITENTE obter os proprios XMLs) ============
+
+function buildEnvelopeNfeNsu(cnpj, ufAutor, ultimoNsu, ambiente) {
+  const nsu = String(ultimoNsu).padStart(15, "0");
+  const tpAmb = ambiente === "homologacao" ? "2" : "1";
+  const uf = String(ufAutor || 35).padStart(2, "0");
+  return `<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <nfeDistDFeInteresse xmlns="http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe">
+      <nfeDadosMsg>
+        <distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01">
+          <tpAmb>${tpAmb}</tpAmb>
+          <cUFAutor>${uf}</cUFAutor>
+          <CNPJ>${cnpj}</CNPJ>
+          <distNSU>
+            <ultNSU>${nsu}</ultNSU>
+          </distNSU>
+        </distDFeInt>
+      </nfeDadosMsg>
+    </nfeDistDFeInteresse>
+  </soap12:Body>
+</soap12:Envelope>`;
+}
+
+export class SefazNfeDistClient {
+  constructor(empresa, ambiente) {
+    this.empresa = empresa;
+    this.ambiente = ambiente || "producao";
+    this.url = URLS_NFE[this.ambiente] || URLS_NFE.producao;
+    const pfx = readFileSync(empresa.caminhoCertificado);
+    this.agent = new https.Agent({
+      pfx,
+      passphrase: empresa.senhaCertificado,
+      rejectUnauthorized: true,
+    });
+  }
+
+  async consultar(ultimoNsu) {
+    const envelope = buildEnvelopeNfeNsu(
+      this.empresa.cnpj,
+      this.empresa.ufAutor,
+      ultimoNsu,
+      this.ambiente
+    );
+    const response = await postXmlAction(this.url, envelope, this.agent, SOAP_ACTION_NFE);
+
+    const fault = extractSoapFault(response);
+    if (fault) throw new Error(`SEFAZ recusou a requisicao (SOAP Fault): ${fault}`);
+
+    const result = decodeEntities(extractText(response, "nfeDistDFeInteresseResult") || response);
+
+    const cStat = extractText(result, "cStat");
+    const xMotivo = extractText(result, "xMotivo") || "";
+    if (cStat && cStat !== "138") {
+      if (cStat === "137" || cStat === "656") {
+        return { xmls: [], maxNsu: ultimoNsu, ultNsu: ultimoNsu, cStat, xMotivo };
+      }
+      throw new Error(`SEFAZ retornou cStat=${cStat}: ${xMotivo}`);
+    }
+
+    const maxNsu = parseInt(extractText(result, "maxNSU") || String(ultimoNsu), 10);
+    const ultNsu = parseInt(extractText(result, "ultNSU") || String(ultimoNsu), 10);
+    const docs = extractDocZips(result);
+
+    const xmls = [];
+    for (const doc of docs) {
+      if (!doc.base64) continue;
+      try {
+        const xmlDoc = zlib.gunzipSync(Buffer.from(doc.base64, "base64")).toString("utf-8");
+        xmls.push({ nsu: parseInt(doc.nsu, 10) || 0, schema: doc.schema, xml: xmlDoc });
+      } catch {
+        // ignora documentos que nao conseguir descompactar
+      }
+    }
+
+    return { xmls, maxNsu, ultNsu, cStat, xMotivo };
+  }
+}
+
+// Mantem apenas as NF-e completas e autorizadas (resumos resNFe nao trazem volumes/peso).
+export function filtrarProcNfe(xmls) {
+  return xmls.filter((item) => {
+    const schema = (item.schema || "").toLowerCase();
+    const xml = (item.xml || "").toLowerCase();
+    if (schema.includes("resnfe") || schema.includes("resevento") || schema.includes("procevento"))
+      return false;
+    if (schema.includes("procnfe") || schema.includes("nfeproc")) return true;
+    return (xml.includes("<nfeproc") || xml.includes("<procnfe")) && xml.includes("<infnfe");
+  });
+}
