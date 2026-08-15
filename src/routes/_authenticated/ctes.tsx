@@ -15,7 +15,9 @@ import {
   solicitarCapturaCte,
   getUltimoComandoCaptura,
   cancelarCapturaCte,
+  getStatusRobo,
 } from "@/lib/cte-captura.functions";
+
 import { CteDetailDialog } from "@/components/ctes/CteDetailDialog";
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
 import type { Tables } from "@/integrations/supabase/types";
