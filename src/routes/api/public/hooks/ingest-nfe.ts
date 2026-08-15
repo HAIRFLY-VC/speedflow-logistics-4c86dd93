@@ -84,7 +84,7 @@ export const Route = createFileRoute("/api/public/hooks/ingest-nfe")({
           }
 
           const { ingestNfeXml } = await import("@/lib/nfe-ingest.server");
-          const result = await ingestNfeXml(xml);
+          const result = await ingestNfeXml(xml, nsu);
 
           await centralDb
             .from("nfe_solicitacoes")
