@@ -229,12 +229,12 @@ export function CteDetailView({
 
   const openCteLink = (cteId: string) => {
     if (linkMode === "window") {
-      const url = `${window.location.origin}/ctes/${cteId}`;
-      window.open(url, "_blank");
+      openAppRoute(router, `/ctes/${cteId}`);
     } else if (linkMode === "dialog") {
       onOpenCte?.(cteId);
     }
   };
+
 
   const LinkOriginal = ({
     children,
