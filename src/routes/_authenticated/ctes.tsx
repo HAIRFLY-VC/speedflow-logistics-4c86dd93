@@ -308,8 +308,8 @@ function CtesPage() {
                 <span
                   className={
                     cadastrada
-                      ? "text-xs font-medium text-emerald-600"
-                      : "text-xs font-medium text-destructive"
+                      ? "text-[11px] font-medium text-emerald-600"
+                      : "text-[11px] font-medium text-destructive"
                   }
                 >
                   {nome}
@@ -345,8 +345,34 @@ function CtesPage() {
         header: "Emissão",
         filterType: "date",
         accessor: (c) => c.data_emissao ?? "",
+        render: (c) => {
+          if (!c.data_emissao) return "—";
+          const d = new Date(c.data_emissao);
+          return (
+            <div>
+              <div>{d.toLocaleDateString("pt-BR")}</div>
+              <div className="text-[11px] text-muted-foreground">
+                {d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        id: "tipo",
+        header: "Tipo",
+        align: "center",
+        accessor: (c) => c.tipo_cte,
         render: (c) =>
-          c.data_emissao ? new Date(c.data_emissao).toLocaleDateString("pt-BR") : "—",
+          c.tipo_cte === 1 ? (
+            <Badge variant="secondary" className="bg-amber-500/10 text-amber-600">
+              Complementar
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="bg-blue-500/10 text-blue-600">
+              Normal
+            </Badge>
+          ),
       },
       { id: "uf", header: "UF", align: "center", accessor: (c) => c.uf_destino ?? "—" },
       {
