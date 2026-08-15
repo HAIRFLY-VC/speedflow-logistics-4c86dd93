@@ -39,17 +39,20 @@ export function getCentralServiceKey(): string {
   return key;
 }
 
-/** Cabeçalhos que não devem ser repassados adiante. */
-const STRIPPED = new Set([
-  "host",
-  "connection",
-  "content-length",
-  "authorization",
-  "apikey",
-  "cookie",
-  "origin",
-  "referer",
-  "accept-encoding",
+/**
+ * Só estes cabeçalhos são repassados. A API do central bloqueia chamadas que
+ * "parecem" vir de um navegador quando usam a chave de serviço, então nada de
+ * user-agent, sec-fetch-* ou x-client-info.
+ */
+const ALLOWED = new Set([
+  "accept",
+  "content-type",
+  "prefer",
+  "range",
+  "range-unit",
+  "accept-profile",
+  "content-profile",
+  "x-upsert",
 ]);
 
 /**
@@ -67,16 +70,19 @@ export async function forwardToCentral(
 
   const headers = new Headers();
   request.headers.forEach((value, name) => {
-    if (!STRIPPED.has(name.toLowerCase())) headers.set(name, value);
+    if (ALLOWED.has(name.toLowerCase())) headers.set(name, value);
   });
   headers.set("apikey", key);
+  // Um user-agent de navegador faz a API central recusar a chave de serviço.
+  headers.set("user-agent", "speedflow-server/1.0");
   headers.set("Authorization", `Bearer ${key}`);
-  // Todo o app trabalha no esquema speedflow do banco central.
-  if (!headers.has("Accept-Profile") && (request.method === "GET" || request.method === "HEAD")) {
+  // Todo o app trabalha no esquema speedflow do banco central (o cliente
+  // sempre envia "public"; aqui o valor é sobrescrito).
+  if (request.method === "GET" || request.method === "HEAD") {
     headers.set("Accept-Profile", "speedflow");
-  }
-  if (!headers.has("Content-Profile") && request.method !== "GET" && request.method !== "HEAD") {
+  } else {
     headers.set("Content-Profile", "speedflow");
+    headers.set("Accept-Profile", "speedflow");
   }
 
   const body =

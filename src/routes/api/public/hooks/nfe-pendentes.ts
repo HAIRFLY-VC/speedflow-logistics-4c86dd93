@@ -1,4 +1,5 @@
 // Fila de NF-e solicitadas pelo app; consumida pelo robô local que possui o certificado A1.
+import { centralDb } from "@/lib/central-db";
 import { createFileRoute } from "@tanstack/react-router";
 
 function safeEqual(a: string, b: string): boolean {
@@ -27,8 +28,7 @@ export const Route = createFileRoute("/api/public/hooks/nfe-pendentes")({
         try {
           const { registrarContatoRobo } = await import("@/lib/robo-heartbeat.server");
           await registrarContatoRobo("nfe-pendentes");
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const { data, error } = await supabaseAdmin
+          const { data, error } = await centralDb
 
             .from("nfe_solicitacoes")
             .select("id, chave_acesso, tentativas")
@@ -40,7 +40,7 @@ export const Route = createFileRoute("/api/public/hooks/nfe-pendentes")({
 
           const ids = (data ?? []).map((r) => r.id);
           if (ids.length) {
-            await supabaseAdmin
+            await centralDb
               .from("nfe_solicitacoes")
               .update({ status: "PROCESSANDO" })
               .in("id", ids);

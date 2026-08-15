@@ -1,3 +1,4 @@
+import { centralDb } from "@/lib/central-db";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -16,7 +17,7 @@ export const getNfe = createServerFn({ method: "POST" })
   .inputValidator((input) => chaveSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertStaff(context);
-    const { data: nfe, error } = await context.supabase
+    const { data: nfe, error } = await centralDb
       .from("nfes")
       .select("*")
       .eq("chave_acesso", data.chave)
@@ -45,7 +46,7 @@ export const uploadNfeXml = createServerFn({ method: "POST" })
       });
     if (upErr) throw new Error(`Falha ao armazenar o XML: ${upErr.message}`);
 
-    const { error } = await supabaseAdmin
+    const { error } = await centralDb
       .from("nfes")
       .upsert(
         {
@@ -78,7 +79,7 @@ export const getNfeXmlUrl = createServerFn({ method: "POST" })
   .inputValidator((input) => chaveSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertStaff(context);
-    const { data: nfe, error } = await context.supabase
+    const { data: nfe, error } = await centralDb
       .from("nfes")
       .select("xml_storage_path")
       .eq("chave_acesso", data.chave)
@@ -100,7 +101,7 @@ export const solicitarNfeXml = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertStaff(context);
 
-    const { data: existente } = await context.supabase
+    const { data: existente } = await centralDb
       .from("nfes")
       .select("chave_acesso")
       .eq("chave_acesso", data.chave)
@@ -108,14 +109,14 @@ export const solicitarNfeXml = createServerFn({ method: "POST" })
     if (existente) return { status: "CONCLUIDA" as const, mensagem: null as string | null };
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: sol } = await supabaseAdmin
+    const { data: sol } = await centralDb
       .from("nfe_solicitacoes")
       .select("id, status")
       .eq("chave_acesso", data.chave)
       .maybeSingle();
 
     if (!sol) {
-      const { error } = await supabaseAdmin.from("nfe_solicitacoes").insert({
+      const { error } = await centralDb.from("nfe_solicitacoes").insert({
         chave_acesso: data.chave,
         solicitado_por: context.userId,
         status: "PENDENTE",
@@ -125,7 +126,7 @@ export const solicitarNfeXml = createServerFn({ method: "POST" })
     }
 
     if (sol.status === "ERRO") {
-      await supabaseAdmin
+      await centralDb
         .from("nfe_solicitacoes")
         .update({ status: "PENDENTE", mensagem: null })
         .eq("id", sol.id);
@@ -140,7 +141,7 @@ export const getNfeSolicitacao = createServerFn({ method: "POST" })
   .inputValidator((input) => chaveSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertStaff(context);
-    const { data: sol, error } = await context.supabase
+    const { data: sol, error } = await centralDb
       .from("nfe_solicitacoes")
       .select("status, mensagem, tentativas, updated_at")
       .eq("chave_acesso", data.chave)

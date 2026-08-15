@@ -1,5 +1,6 @@
 // Ingestão de CT-e: parse do XML, upload do arquivo e gravação do registro.
 // Usado tanto pela server function autenticada quanto pela rota pública de captura.
+import { centralDb } from "@/lib/central-db";
 import { parseCteXml, type ParsedCte } from "./cte-parse.server";
 
 export type IngestResult = {
@@ -27,7 +28,7 @@ type LogEntry = {
 export async function logCteIngest(entry: LogEntry): Promise<void> {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("cte_ingest_logs").insert({
+    await centralDb.from("cte_ingest_logs").insert({
       origem: entry.origem,
       resultado: entry.resultado,
       chave_acesso: entry.chave_acesso ?? null,
@@ -53,7 +54,7 @@ export async function ingestCteXml(params: {
   // Só importa CT-e cujo REMETENTE seja uma das empresas cadastradas (detentoras do certificado A1).
   let empresaRemetenteId: string | null = null;
   if (parsed.cnpj_remetente) {
-    const { data } = await supabaseAdmin
+    const { data } = await centralDb
       .from("empresas")
       .select("id, razao_social")
       .eq("cnpj", parsed.cnpj_remetente)
@@ -65,7 +66,7 @@ export async function ingestCteXml(params: {
       parsed.nome_remetente &&
       (!data.razao_social || data.razao_social === `Empresa ${parsed.cnpj_remetente}`)
     ) {
-      await supabaseAdmin
+      await centralDb
         .from("empresas")
         .update({ razao_social: parsed.nome_remetente })
         .eq("id", data.id);
@@ -94,7 +95,7 @@ export async function ingestCteXml(params: {
   }
 
 
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await centralDb
     .from("ctes")
     .select("id, status")
     .eq("chave_acesso", parsed.chave_acesso)
@@ -124,7 +125,7 @@ export async function ingestCteXml(params: {
 
   let transportadoraId: string | null = null;
   if (parsed.cnpj_emitente) {
-    const { data } = await supabaseAdmin
+    const { data } = await centralDb
       .from("transportadoras")
       .select("id")
       .eq("cnpj", parsed.cnpj_emitente)
@@ -145,7 +146,7 @@ export async function ingestCteXml(params: {
 
   const status = transportadoraId && empresaId ? "RECEBIDO" : "PENDENTE_IDENTIFICACAO";
 
-  const { data: inserted, error } = await supabaseAdmin
+  const { data: inserted, error } = await centralDb
     .from("ctes")
     .insert({
       chave_acesso: parsed.chave_acesso,
@@ -199,7 +200,7 @@ export async function ingestCteXml(params: {
   if (transportadoraId && empresaId) {
     try {
       const { auditCte } = await import("./cte-audit.server");
-      const outcome = await auditCte(supabaseAdmin, inserted.id);
+      const outcome = await auditCte(centralDb, inserted.id);
       return {
         ok: true,
         cte_id: inserted.id,

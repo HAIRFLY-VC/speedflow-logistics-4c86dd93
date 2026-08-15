@@ -6,7 +6,7 @@ import { FulfillmentActions } from "@/components/orders/FulfillmentActions";
 import { DeliveryActions } from "@/components/orders/DeliveryActions";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/central/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";

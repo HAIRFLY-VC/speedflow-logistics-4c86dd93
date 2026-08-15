@@ -5,7 +5,8 @@ import { Plus, Pencil, Loader2, Trash2, FileText, Upload, Download, X } from "lu
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/central/client";
+import { supabase as storageClient } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -123,7 +124,7 @@ const brl = (v: number) =>
 const BUCKET = "tabelas-frete";
 
 async function signedUrl(path: string, download?: string) {
-  const { data, error } = await supabase.storage
+  const { data, error } = await storageClient.storage
     .from(BUCKET)
     .createSignedUrl(path, 300, download ? { download } : undefined);
   if (error) throw error;
@@ -612,7 +613,7 @@ function TabelaDialog({
       if (arquivo) {
         const ext = arquivo.name.split(".").pop()?.toLowerCase() ?? "bin";
         const path = `${tabelaId}/${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage
+        const { error: upErr } = await storageClient.storage
           .from(BUCKET)
           .upload(path, arquivo, { contentType: arquivo.type || undefined, upsert: false });
         if (upErr) throw upErr;
@@ -626,7 +627,7 @@ function TabelaDialog({
           .eq("id", tabelaId);
         if (metaErr) throw metaErr;
         if (arquivoAtual?.path) {
-          await supabase.storage.from(BUCKET).remove([arquivoAtual.path]);
+          await storageClient.storage.from(BUCKET).remove([arquivoAtual.path]);
         }
       } else if (!arquivoAtual && editing?.arquivo_path) {
         const { error: metaErr } = await supabase
@@ -634,7 +635,7 @@ function TabelaDialog({
           .update({ arquivo_path: null, arquivo_nome: null, arquivo_tipo: null })
           .eq("id", tabelaId);
         if (metaErr) throw metaErr;
-        await supabase.storage.from(BUCKET).remove([editing.arquivo_path]);
+        await storageClient.storage.from(BUCKET).remove([editing.arquivo_path]);
       }
 
 

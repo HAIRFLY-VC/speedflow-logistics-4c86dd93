@@ -1,3 +1,4 @@
+import { centralDb } from "@/lib/central-db";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -16,7 +17,7 @@ export const solicitarCapturaCte = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertStaff(context);
 
-    const { data: pendente } = await context.supabase
+    const { data: pendente } = await centralDb
       .from("cte_captura_comandos")
       .select("id, status, created_at")
       .in("status", ["PENDENTE", "PROCESSANDO"])
@@ -28,7 +29,7 @@ export const solicitarCapturaCte = createServerFn({ method: "POST" })
       return { id: pendente.id as string, jaSolicitado: true };
     }
 
-    const { data: novo, error } = await context.supabase
+    const { data: novo, error } = await centralDb
       .from("cte_captura_comandos")
       .insert({ solicitado_por: context.userId, reiniciar_nsu: data.reiniciarNsu })
       .select("id")
@@ -47,7 +48,7 @@ export const getStatusRobo = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertStaff(context);
-    const { data } = await context.supabase
+    const { data } = await centralDb
       .from("robo_heartbeats")
       .select("origem, ultimo_contato")
       .order("ultimo_contato", { ascending: false });
@@ -62,7 +63,7 @@ export const getUltimoComandoCaptura = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertStaff(context);
-    const { data, error } = await context.supabase
+    const { data, error } = await centralDb
       .from("cte_captura_comandos")
       .select("id, status, mensagem, novos_ctes, created_at, iniciado_em, concluido_em")
       .order("created_at", { ascending: false })
@@ -80,7 +81,7 @@ export const getUltimoComandoCaptura = createServerFn({ method: "GET" })
 
     if (expirado) {
       // Distingue "robô parado" de "robô ativo mas ocupado / aplicativo desatualizado".
-      const { data: hb } = await context.supabase
+      const { data: hb } = await centralDb
         .from("robo_heartbeats")
         .select("ultimo_contato")
         .eq("origem", "cte-comandos")
@@ -91,7 +92,7 @@ export const getUltimoComandoCaptura = createServerFn({ method: "GET" })
             ultimoContato,
           ).toLocaleString("pt-BR")}. Ele pode estar no meio de uma leitura na SEFAZ — tente novamente em alguns minutos.`
         : "O robô nunca consultou a fila de importação deste aplicativo. Verifique se o serviço local está ativo e se o aplicativo foi publicado com a rota de comandos.";
-      await context.supabase
+      await centralDb
         .from("cte_captura_comandos")
         .update({ status: "ERRO", mensagem, concluido_em: new Date().toISOString() })
         .eq("id", data.id);
@@ -106,7 +107,7 @@ export const cancelarCapturaCte = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertStaff(context);
-    const { error } = await context.supabase
+    const { error } = await centralDb
       .from("cte_captura_comandos")
       .update({
         status: "ERRO",
@@ -128,7 +129,7 @@ export const getRemetentesIgnorados = createServerFn({ method: "GET" })
     await assertStaff(context);
 
     const desde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: logs, error } = await context.supabase
+    const { data: logs, error } = await centralDb
       .from("cte_ingest_logs")
       .select("cnpj_remetente, nome_remetente, mensagem, created_at")
       .eq("resultado", "IGNORADO")
@@ -137,7 +138,7 @@ export const getRemetentesIgnorados = createServerFn({ method: "GET" })
       .limit(2000);
     if (error) throw new Error(error.message);
 
-    const { data: empresas } = await context.supabase.from("empresas").select("cnpj");
+    const { data: empresas } = await centralDb.from("empresas").select("cnpj");
     const cadastrados = new Set((empresas ?? []).map((e: { cnpj: string }) => e.cnpj));
 
     const mapa = new Map<
@@ -184,7 +185,7 @@ export const cadastrarEmpresaRemetente = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertStaff(context);
 
-    const { data: existente } = await context.supabase
+    const { data: existente } = await centralDb
       .from("empresas")
       .select("id")
       .eq("cnpj", data.cnpj)
@@ -192,7 +193,7 @@ export const cadastrarEmpresaRemetente = createServerFn({ method: "POST" })
     if (existente) return { id: existente.id as string, jaExistia: true };
 
     const razao = data.razaoSocial || `Empresa ${data.cnpj}`;
-    const { data: nova, error } = await context.supabase
+    const { data: nova, error } = await centralDb
       .from("empresas")
       .insert({ cnpj: data.cnpj, razao_social: razao, ativo: true })
       .select("id")

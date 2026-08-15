@@ -1,8 +1,8 @@
+import { centralDb } from "@/lib/central-db";
 // Registra o último contato do robô local com o aplicativo, para diagnóstico.
 export async function registrarContatoRobo(origem: string, detalhe?: string): Promise<void> {
   try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("robo_heartbeats").upsert(
+    await centralDb.from("robo_heartbeats").upsert(
       {
         origem,
         ultimo_contato: new Date().toISOString(),

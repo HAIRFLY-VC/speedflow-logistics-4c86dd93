@@ -1,4 +1,5 @@
 // Ingestão de NF-e: parse do XML, upload no storage e gravação do registro.
+import { centralDb } from "@/lib/central-db";
 import { parseNfeXml } from "./nfe-parse.server";
 
 export async function ingestNfeXml(xml: string) {
@@ -14,7 +15,7 @@ export async function ingestNfeXml(xml: string) {
     });
   if (upErr) throw new Error(`Falha ao armazenar o XML: ${upErr.message}`);
 
-  const { error } = await supabaseAdmin.from("nfes").upsert(
+  const { error } = await centralDb.from("nfes").upsert(
     {
       chave_acesso: parsed.chave_acesso,
       numero: parsed.numero,

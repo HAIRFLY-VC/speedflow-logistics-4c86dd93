@@ -12,7 +12,7 @@ import { obterEnderecoEntregaCte, resolverNomeDestinatario } from "@/lib/cte-bac
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/central/client";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Cte = Tables<"ctes">;

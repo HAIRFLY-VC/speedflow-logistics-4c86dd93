@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 
 import { AppShell } from "@/components/layout/AppShell";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/central/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -576,7 +576,7 @@ function NewOrderDialog({
         .from("orders")
         .insert({
           order_number,
-          customer_id: customerId,
+          erp_cod_cliente: customerId,
           freight_amount: Number(freight || 0),
           total_amount: total,
           sla_deliver_by: sla ? new Date(sla).toISOString() : null,

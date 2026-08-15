@@ -1,4 +1,5 @@
 // Recebe o XML da NF-e capturado pelo robô local (certificado A1) e grava o detalhamento.
+import { centralDb } from "@/lib/central-db";
 import { createFileRoute } from "@tanstack/react-router";
 
 function safeEqual(a: string, b: string): boolean {
@@ -36,16 +37,14 @@ export const Route = createFileRoute("/api/public/hooks/ingest-nfe")({
           const xml = typeof body.xml === "string" ? body.xml : "";
           const erro = typeof body.erro === "string" ? body.erro : "";
 
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
           if (!xml) {
             if (chave) {
-              const { data: atual } = await supabaseAdmin
+              const { data: atual } = await centralDb
                 .from("nfe_solicitacoes")
                 .select("tentativas")
                 .eq("chave_acesso", chave)
                 .maybeSingle();
-              await supabaseAdmin
+              await centralDb
                 .from("nfe_solicitacoes")
                 .update({
                   status: "ERRO",
@@ -64,7 +63,7 @@ export const Route = createFileRoute("/api/public/hooks/ingest-nfe")({
           const { ingestNfeXml } = await import("@/lib/nfe-ingest.server");
           const result = await ingestNfeXml(xml);
 
-          await supabaseAdmin
+          await centralDb
             .from("nfe_solicitacoes")
             .update({ status: "CONCLUIDA", mensagem: null })
             .eq("chave_acesso", result.chave_acesso);
@@ -74,15 +73,12 @@ export const Route = createFileRoute("/api/public/hooks/ingest-nfe")({
           const msg = e instanceof Error ? e.message : String(e);
           try {
             if (chave) {
-              const { supabaseAdmin } = await import(
-                "@/integrations/supabase/client.server"
-              );
-              const { data: atual } = await supabaseAdmin
+              const { data: atual } = await centralDb
                 .from("nfe_solicitacoes")
                 .select("tentativas")
                 .eq("chave_acesso", chave)
                 .maybeSingle();
-              await supabaseAdmin
+              await centralDb
                 .from("nfe_solicitacoes")
                 .update({
                   status: "ERRO",
