@@ -709,10 +709,11 @@ export function CteDetailView({
             })()}
           </div>
         )}
-
+      </section>
 
         </>
       ) : null}
+
 
 
       <div className="flex justify-end gap-2">
