@@ -95,7 +95,20 @@ export function parseNfeXml(xml: string): ParsedNfe {
   });
 
   const dh = tagValue(ide, "dhEmi") ?? tagValue(ide, "dEmi");
-  const pesoBruto = toNumber(tagValue(vol, "pesoB"));
+
+  // A NF-e pode ter vários blocos <vol>; somamos volumes e pesos.
+  const blocosVol = allTags(transp, "vol");
+  const fonteVol = blocosVol.length > 0 ? blocosVol.map((b) => b.body) : vol ? [vol] : [];
+  let volumes = 0;
+  let pesoBruto = 0;
+  let pesoLiquido = 0;
+  let especie: string | null = null;
+  for (const b of fonteVol) {
+    volumes += toNumber(tagValue(b, "qVol"));
+    pesoBruto += toNumber(tagValue(b, "pesoB"));
+    pesoLiquido += toNumber(tagValue(b, "pesoL"));
+    especie = especie ?? tagValue(b, "esp");
+  }
 
   return {
     chave_acesso: chave,
@@ -114,6 +127,10 @@ export function parseNfeXml(xml: string): ParsedNfe {
     valor_produtos: toNumber(tagValue(total, "vProd")),
     valor_frete: toNumber(tagValue(total, "vFrete")),
     peso_bruto: pesoBruto > 0 ? pesoBruto : null,
+    peso_liquido: pesoLiquido > 0 ? pesoLiquido : null,
+    volumes: volumes > 0 ? volumes : null,
+    especie_volumes: especie,
     itens,
+  };
   };
 }
