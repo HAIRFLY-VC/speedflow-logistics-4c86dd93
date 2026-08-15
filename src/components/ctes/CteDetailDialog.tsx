@@ -5,7 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { auditarCte } from "@/lib/cte-audit.functions";
-import { resolverNomeDestinatario } from "@/lib/cte-backfill.functions";
+import { obterEnderecoEntregaCte, resolverNomeDestinatario } from "@/lib/cte-backfill.functions";
 
 
 import { Badge } from "@/components/ui/badge";
@@ -192,6 +192,17 @@ export function CteDetailDialog({
     },
   });
 
+  // Endereço de entrega (enderDest) lido do XML do CT-e.
+  const obterEndereco = useServerFn(obterEnderecoEntregaCte);
+  const { data: enderecoEntrega } = useQuery({
+    queryKey: ["cte-endereco-entrega", cte?.id],
+    enabled: !!cte?.id && !!cte?.xml_storage_path && open,
+    queryFn: async () => {
+      const res = await obterEndereco({ data: { cteId: cte!.id } });
+      return res?.endereco ?? null;
+    },
+  });
+
 
   const qc = useQueryClient();
   const runAudit = useServerFn(auditarCte);
@@ -304,7 +315,19 @@ export function CteDetailDialog({
               />
             )}
             <Field label="Observação" value={cte.observacao ?? "—"} />
+            <div className="col-span-2 sm:col-span-3">
+              <Field
+                label="Endereço de entrega"
+                value={enderecoEntrega?.formatado ?? "—"}
+                hint={
+                  enderecoEntrega?.pais && enderecoEntrega.pais.toUpperCase() !== "BRASIL"
+                    ? enderecoEntrega.pais
+                    : undefined
+                }
+              />
+            </div>
           </div>
+
 
           {(isComplementar || (grupo?.length ?? 0) > 0) && (
             <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
