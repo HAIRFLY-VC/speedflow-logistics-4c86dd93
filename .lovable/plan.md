@@ -1,34 +1,33 @@
-# Ajustes na listagem de CT-e e abertura do detalhamento
+# Abrir telas em nova aba sem perder a sessão
 
-## 1. Abrir o detalhamento sem pedir login de novo
+## Por que a autenticação é pedida de novo
 
-Hoje o clique na linha usa `window.open(url, "_blank")`. No preview, a nova aba abre em um domínio diferente do que está autenticado, então a sessão não é encontrada e o app cai na tela de login.
+Quando o app roda dentro do preview do Lovable, ele fica em um iframe. O navegador isola (particiona) o armazenamento desse iframe: a sessão gravada lá não é visível para uma aba de nível superior aberta com o mesmo endereço. Resultado: a nova aba não encontra a sessão e cai em `/auth`.
 
-Correção: navegar dentro da própria aba, usando a navegação interna do app para `/ctes/{id}` (a página de detalhamento já existe e já tem botão "Voltar para CT-e"). Sem nova aba, a sessão é preservada em qualquer ambiente.
+No app publicado (aberto direto no navegador, sem iframe) o armazenamento é o mesmo, e a nova aba mantém a sessão normalmente.
 
-## 2. Coluna "Tipo" compacta
+## Solução
 
-- Exibir apenas "C" (complementar) ou "N" (normal), mantendo as cores atuais (âmbar para complementar, azul para normal).
-- Ao passar o mouse, mostrar o texto completo "Complementar" ou "Normal".
+Criar um utilitário único de "abrir em nova aba" usado por todo o app, com comportamento adaptado ao contexto:
 
-## 3. Peso taxado com duas casas decimais
+- **App em aba normal (publicado ou aberto fora do preview):** abre em nova aba, como hoje.
+- **App dentro do preview (iframe):** navega na própria tela do app, sem nova aba — assim a sessão é sempre preservada e o usuário nunca vê a tela de login.
 
-Formatar sempre com exatamente 2 casas decimais no padrão pt-BR (ex.: `1.234,50 kg`).
+Aplicar esse utilitário em todos os pontos que hoje abrem novas janelas/abas de telas internas do app:
 
-## 4. Nova coluna: empresa detentora do certificado A1
+- Lista de CT-e (clique na linha para o detalhamento)
+- Detalhamento do CT-e (links para o CT-e original e para NF-e)
+- Qualquer outra navegação interna futura que precise de nova aba
 
-Exibir o CNPJ do destinatário/empresa vinculada ao CT-e (campo de empresa do registro) com a razão social abaixo, no mesmo estilo já usado na coluna de transportadora.
-
-## 5. Nova coluna: destinatário
-
-Exibir o CNPJ do destinatário com a razão social abaixo, usando o mesmo dado já mostrado no detalhamento do CT-e.
+Links para arquivos/URLs externas (por exemplo, download de arquivo de tabela de frete assinado, comprovantes de entrega, mapas) continuam abrindo em nova aba normalmente, pois não dependem da sessão do app.
 
 ## Detalhes técnicos
 
-- `src/routes/_authenticated/ctes.index.tsx`
-  - `onRowClick`: trocar `window.open` por `navigate({ to: "/ctes/$cteId", params: { cteId: c.id } })` via `useNavigate` do TanStack Router.
-  - Coluna `tipo`: `<Badge title="Complementar|Normal">C|N</Badge>`, mantendo as classes de cor atuais.
-  - Coluna `peso`: `toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })`.
-  - Nova coluna `empresa`: query em `empresas` (id, cnpj, razao_social) mapeada por `cte.empresa_id`; fallback para "—" quando não vinculada.
-  - Nova coluna `destinatario`: `c.cnpj_destinatario` + `c.nome_destinatario` (mesma fonte usada no detalhamento).
-- Colunas novas entram no mesmo `ColumnDef[]`, portanto ficam disponíveis no gerenciador de colunas/filtros da tabela.
+- Novo `src/lib/open-in-tab.ts`:
+  - `isEmbeddedPreview()` → `window.self !== window.top`.
+  - `openAppRoute(router, path)` → se embutido, `router.navigate({ href: path })`; caso contrário, `window.open(origin + path, "_blank", "noopener,noreferrer")`.
+- Substituir os `window.open` de rotas internas por esse helper em:
+  - `src/routes/_authenticated/ctes.index.tsx` (`onRowClick`)
+  - `src/routes/_authenticated/ctes.$cteId.tsx` (`openCteInWindow`)
+  - `src/components/ctes/CteDetailView.tsx` (links internos de CT-e/NF-e)
+- `src/routes/_authenticated/tabelas-frete.tsx` (URL assinada de arquivo) permanece com `window.open` — é conteúdo externo ao roteador.
