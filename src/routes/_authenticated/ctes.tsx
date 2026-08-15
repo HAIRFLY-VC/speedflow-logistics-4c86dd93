@@ -106,34 +106,6 @@ function CtesPage() {
   const capturaEmAndamento =
     comando?.status === "PENDENTE" || comando?.status === "PROCESSANDO";
 
-  // Diagnóstico: CT-e descartados porque o remetente não é uma empresa cadastrada.
-  const remetentesIgnorados = useServerFn(getRemetentesIgnorados);
-  const cadastrarEmpresa = useServerFn(cadastrarEmpresaRemetente);
-  const { data: descartes } = useQuery({
-    queryKey: ["cte-remetentes-ignorados"],
-    queryFn: () => remetentesIgnorados(),
-  });
-
-  const registrarEmpresa = useMutation({
-    mutationFn: async (r: { cnpj: string; nome: string | null }) =>
-      cadastrarEmpresa({ data: { cnpj: r.cnpj, razaoSocial: r.nome ?? "" } }),
-    onSuccess: async () => {
-      toast.success("Empresa cadastrada. Reimporte os CT-e para trazer os documentos descartados.");
-      await qc.invalidateQueries({ queryKey: ["cte-remetentes-ignorados"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-  // Aviso de descartes: some ao fechar e pode ser silenciado definitivamente.
-  const AVISO_KEY = "cte-descartes-aviso-oculto";
-  const [avisoFechado, setAvisoFechado] = useState(false);
-  const [avisoSilenciado, setAvisoSilenciado] = useState(true);
-  useEffect(() => {
-    setAvisoSilenciado(localStorage.getItem(AVISO_KEY) === "1");
-  }, []);
-  const ocultarSempre = () => {
-    localStorage.setItem(AVISO_KEY, "1");
-    setAvisoSilenciado(true);
-  };
 
 
   // Tempo decorrido desde a solicitação, para o usuário saber que está aguardando o robô.
