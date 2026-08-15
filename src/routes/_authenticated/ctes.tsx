@@ -308,8 +308,8 @@ function CtesPage() {
                 <span
                   className={
                     cadastrada
-                      ? "text-xs font-medium text-emerald-600"
-                      : "text-xs font-medium text-destructive"
+                      ? "text-[11px] font-medium text-emerald-600"
+                      : "text-[11px] font-medium text-destructive"
                   }
                 >
                   {nome}
