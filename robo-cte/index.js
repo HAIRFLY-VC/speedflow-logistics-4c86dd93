@@ -455,7 +455,12 @@ async function processarEmpresa(cfg, empresaIndex, modoTeste, reiniciarNsu = fal
   while (totalCiclos < 200) {
     totalCiclos++;
     log(`Consultando NSU ${ultimoNsu} (ciclo ${totalCiclos})`);
-    const { xmls, maxNsu, ultNsu, cStat, xMotivo } = await client.consultar(ultimoNsu);
+    const { xmls, maxNsu, ultNsu, cStat, xMotivo } = await withTimeout(
+      client.consultar(ultimoNsu),
+      limiteConsultaMs(cfg),
+      `consulta a SEFAZ (NSU ${ultimoNsu})`
+    );
+
     log(`Retorno: cStat=${cStat}, ultNSU=${ultNsu}, maxNSU=${maxNsu}, documentos=${xmls.length}, motivo=${xMotivo || "ok"}`);
 
     if (!xmls.length) {
