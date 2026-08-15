@@ -254,16 +254,24 @@ export function CteDetailView({
   const nfs = usandoNfsDoOriginal ? nfsDoOriginal : nfsProprias;
 
   const buscarVolumes = useServerFn(getVolumesNfesDoCte);
-  const { data: volumesData, isFetching: volumesLoading } = useQuery({
+  const { data: volumesResp, isFetching: volumesLoading } = useQuery({
     queryKey: ["cte-nfes-volumes", cte.id, nfs.join(",")],
     enabled: nfs.length > 0,
-    queryFn: async () => (await buscarVolumes({ data: { chaves: nfs } })).notas,
+    queryFn: async () => await buscarVolumes({ data: { chaves: nfs, cteId: cte.id } }),
     refetchInterval: (q) =>
-      (q.state.data ?? []).some((n) => n.status !== "DISPONIVEL") ? 20_000 : false,
+      (q.state.data?.notas ?? []).some((n) => n.status !== "DISPONIVEL") ? 60_000 : false,
   });
-  const volumesMap = new Map<string, NfeVolumeInfo>((volumesData ?? []).map((n) => [n.chave, n]));
-  const totalVolumes = (volumesData ?? []).reduce((s, n) => s + (n.volumes ?? 0), 0);
-  const totalPesoBruto = (volumesData ?? []).reduce((s, n) => s + (n.peso_bruto ?? 0), 0);
+  const volumesData = volumesResp?.notas ?? [];
+  const carga = volumesResp?.carga ?? null;
+  const volumesMap = new Map<string, NfeVolumeInfo>(volumesData.map((n) => [n.chave, n]));
+  const totalVolumes = volumesData.reduce((s, n) => s + (n.volumes ?? 0), 0);
+  const totalPesoBruto = volumesData.reduce((s, n) => s + (n.peso_bruto ?? 0), 0);
+  // Sem XML das notas, exibimos os totais declarados no próprio CT-e.
+  const usandoCargaDoCte = totalVolumes === 0 && totalPesoBruto === 0 && !!carga;
+  const volumesExibidos = usandoCargaDoCte ? (carga?.volumes ?? 0) : totalVolumes;
+  const pesoExibido = usandoCargaDoCte
+    ? (carga?.peso_real ?? Number(cte.peso_taxado ?? 0) ?? 0)
+    : totalPesoBruto;
 
   const podeAbrirOriginal = !!cteOriginal?.id && (linkMode !== "same" || !!onOpenCte);
 
@@ -534,12 +542,17 @@ export function CteDetailView({
                   <tr className="bg-muted/40 border-t font-semibold">
                     <td className="px-2 py-1.5" colSpan={2}>
                       Total ({nfs.length} nota{nfs.length === 1 ? "" : "s"})
+                      {usandoCargaDoCte ? (
+                        <span className="text-muted-foreground ml-1 font-normal">
+                          — dados do CT-e
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-2 py-1.5 text-right">
-                      {totalVolumes.toLocaleString("pt-BR")}
+                      {volumesExibidos.toLocaleString("pt-BR")}
                     </td>
                     <td className="px-2 py-1.5 text-right">
-                      {totalPesoBruto.toLocaleString("pt-BR", {
+                      {pesoExibido.toLocaleString("pt-BR", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
@@ -548,6 +561,27 @@ export function CteDetailView({
                 </tfoot>
               </table>
             </div>
+            {usandoCargaDoCte && carga ? (
+              <div className="text-muted-foreground rounded-md border border-dashed p-2 text-xs">
+                <p>
+                  Os XMLs das NF-es ainda não foram capturados na SEFAZ. Enquanto isso, os totais
+                  acima vêm da carga declarada no próprio CT-e.
+                </p>
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                  {carga.produto_predominante ? (
+                    <span>Produto predominante: {carga.produto_predominante}</span>
+                  ) : null}
+                  {carga.valor_carga > 0 ? <span>Valor da carga: {brl(carga.valor_carga)}</span> : null}
+                  {carga.medidas
+                    .filter((m) => m.quantidade > 0)
+                    .map((m) => (
+                      <span key={m.tipo}>
+                        {m.tipo}: {m.quantidade.toLocaleString("pt-BR")}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </section>

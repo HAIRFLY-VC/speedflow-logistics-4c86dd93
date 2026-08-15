@@ -23,15 +23,17 @@ async function registrar(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
   let estado = "ocioso";
+  let origem = "robo";
   try {
-    const body = (await request.json()) as { estado?: string };
-    if (body?.estado) estado = String(body.estado).slice(0, 60);
+    const body = (await request.json()) as { estado?: string; origem?: string };
+    if (body?.estado) estado = String(body.estado).slice(0, 200);
+    if (body?.origem) origem = String(body.origem).slice(0, 40);
   } catch {
     // GET ou corpo vazio: mantém o estado padrão
   }
   try {
     const { registrarContatoRobo } = await import("@/lib/robo-heartbeat.server");
-    await registrarContatoRobo("robo", estado);
+    await registrarContatoRobo(origem, estado);
     return Response.json({ ok: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

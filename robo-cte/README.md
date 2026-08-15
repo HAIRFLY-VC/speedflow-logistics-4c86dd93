@@ -143,3 +143,20 @@ uma importação forçada.
 Observação: a SEFAZ só devolve o XML completo da NF-e quando o CNPJ consultante é o
 destinatário e a operação está manifestada. Caso contrário, o app mostra o motivo e
 permite importar o XML manualmente.
+
+## Atualizar o robô (necessário para capturar as NF-es)
+
+As notas emitidas pela própria empresa nunca são devolvidas pela consulta por
+chave (a SEFAZ responde `cStat=641`). Elas só chegam pela **varredura de NF-e
+por NSU**, disponível a partir desta versão. Para atualizar:
+
+1. No servidor onde está o certificado A1, pare o serviço:
+   `sc stop RoboCTeSpeedFlow` (Windows) ou `sudo systemctl stop robo-cte` (Linux).
+2. Substitua os arquivos `index.js`, `sefaz.js` e `package.json` pela versão nova
+   (mantenha `config.json`, os arquivos `.ultimo-nsu*` e o certificado).
+3. Inicie o serviço: `sc start RoboCTeSpeedFlow` ou `sudo systemctl start robo-cte`.
+4. Na tela de CT-e do aplicativo, confira o indicador **"Varredura NF-e"**: ele
+   deve mostrar o último NSU lido e a quantidade de notas enviadas.
+
+Para reprocessar todas as notas desde o início, apague o arquivo
+`.ultimo-nsu-nfe` antes de iniciar o serviço.
