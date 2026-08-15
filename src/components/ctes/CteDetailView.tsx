@@ -7,6 +7,8 @@ import { openAppRoute, appLinkTarget } from "@/lib/open-in-tab";
 import { toast } from "sonner";
 
 import { auditarCte } from "@/lib/cte-audit.functions";
+import { getVolumesNfesDoCte } from "@/lib/cte.functions";
+import type { NfeVolumeInfo } from "@/lib/nfe-volumes.types";
 import { obterEnderecoEntregaCte, resolverNomeDestinatario } from "@/lib/cte-backfill.functions";
 
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +18,20 @@ import { supabase } from "@/integrations/central/client";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Cte = Tables<"ctes">;
+
+function statusLabel(status: NfeVolumeInfo["status"] | undefined, loading: boolean) {
+  if (loading && !status) return "...";
+  switch (status) {
+    case "PENDENTE":
+      return "aguardando XML";
+    case "PROCESSANDO":
+      return "baixando...";
+    case "ERRO":
+      return "erro no download";
+    default:
+      return "—";
+  }
+}
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -231,6 +247,18 @@ export function CteDetailView({
   const usandoNfsDoOriginal = nfsProprias.length === 0 && nfsDoOriginal.length > 0;
   const nfs = usandoNfsDoOriginal ? nfsDoOriginal : nfsProprias;
 
+  const buscarVolumes = useServerFn(getVolumesNfesDoCte);
+  const { data: volumesData, isFetching: volumesLoading } = useQuery({
+    queryKey: ["cte-nfes-volumes", cte.id, nfs.join(",")],
+    enabled: nfs.length > 0,
+    queryFn: async () => (await buscarVolumes({ data: { chaves: nfs } })).notas,
+    refetchInterval: (q) =>
+      (q.state.data ?? []).some((n) => n.status !== "DISPONIVEL") ? 20_000 : false,
+  });
+  const volumesMap = new Map<string, NfeVolumeInfo>((volumesData ?? []).map((n) => [n.chave, n]));
+  const totalVolumes = (volumesData ?? []).reduce((s, n) => s + (n.volumes ?? 0), 0);
+  const totalPesoBruto = (volumesData ?? []).reduce((s, n) => s + (n.peso_bruto ?? 0), 0);
+
   const podeAbrirOriginal = !!cteOriginal?.id && (linkMode !== "same" || !!onOpenCte);
 
   const openCteLink = (cteId: string) => {
@@ -440,37 +468,80 @@ export function CteDetailView({
           <div
             className={
               usandoNfsDoOriginal
-                ? "flex flex-wrap gap-1.5 rounded-md border border-amber-200 bg-amber-50/50 p-2 dark:border-amber-900 dark:bg-amber-950/30"
-                : "flex flex-wrap gap-1.5"
+                ? "space-y-2 rounded-md border border-amber-200 bg-amber-50/50 p-2 dark:border-amber-900 dark:bg-amber-950/30"
+                : "space-y-2"
             }
           >
-            {nfs.map((nf) =>
-              /^\d{44}$/.test(nf) ? (
-                <Link
-                  key={nf}
-                  to="/nfes/$chave"
-                  params={{ chave: nf }}
-                  target={linkMode === "window" ? appLinkTarget() : undefined}
-                  rel={
-                    linkMode === "window" && appLinkTarget()
-                      ? "noopener noreferrer"
-                      : undefined
-                  }
-
-                >
-                  <Badge
-                    variant="outline"
-                    className="hover:bg-muted cursor-pointer font-mono text-[10px]"
-                  >
-                    {nf}
-                  </Badge>
-                </Link>
-              ) : (
-                <Badge key={nf} variant="outline" className="font-mono text-[10px]">
-                  {nf}
-                </Badge>
-              ),
-            )}
+            <div className="overflow-hidden rounded-md border">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/40 text-muted-foreground">
+                  <tr>
+                    <th className="px-2 py-1.5 text-left font-medium">Chave</th>
+                    <th className="px-2 py-1.5 text-left font-medium">Nº</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Volumes</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Peso bruto (kg)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nfs.map((nf) => {
+                    const info = volumesMap.get(nf.replace(/\D/g, ""));
+                    return (
+                      <tr key={nf} className="border-t">
+                        <td className="px-2 py-1.5 font-mono">
+                          {/^\d{44}$/.test(nf) ? (
+                            <Link
+                              to="/nfes/$chave"
+                              params={{ chave: nf }}
+                              target={linkMode === "window" ? appLinkTarget() : undefined}
+                              rel={
+                                linkMode === "window" && appLinkTarget()
+                                  ? "noopener noreferrer"
+                                  : undefined
+                              }
+                              className="underline underline-offset-2 hover:opacity-80"
+                            >
+                              {nf}
+                            </Link>
+                          ) : (
+                            nf
+                          )}
+                        </td>
+                        <td className="px-2 py-1.5">{info?.numero ?? "—"}</td>
+                        <td className="px-2 py-1.5 text-right">
+                          {info?.volumes != null
+                            ? info.volumes.toLocaleString("pt-BR")
+                            : statusLabel(info?.status, volumesLoading)}
+                        </td>
+                        <td className="px-2 py-1.5 text-right">
+                          {info?.peso_bruto != null
+                            ? info.peso_bruto.toLocaleString("pt-BR", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })
+                            : statusLabel(info?.status, volumesLoading)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-muted/40 border-t font-semibold">
+                    <td className="px-2 py-1.5" colSpan={2}>
+                      Total ({nfs.length} nota{nfs.length === 1 ? "" : "s"})
+                    </td>
+                    <td className="px-2 py-1.5 text-right">
+                      {totalVolumes.toLocaleString("pt-BR")}
+                    </td>
+                    <td className="px-2 py-1.5 text-right">
+                      {totalPesoBruto.toLocaleString("pt-BR", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         )}
       </section>

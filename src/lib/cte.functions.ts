@@ -44,3 +44,20 @@ export const getCteXmlUrl = createServerFn({ method: "POST" })
     if (signErr || !signed) throw new Error(signErr?.message ?? "Falha ao gerar link");
     return { url: signed.signedUrl };
   });
+
+/** Volumes e peso bruto das NF-es referenciadas no CT-e. */
+export const getVolumesNfesDoCte = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ chaves: z.array(z.string()).max(200) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: isStaff } = await context.supabase.rpc("is_staff", {
+      _user_id: context.userId,
+    });
+    if (!isStaff) throw new Error("Sem permissão");
+
+    const { coletarVolumesNfes, solicitarNfesDoCte } = await import("./nfe-volumes.server");
+    await solicitarNfesDoCte(data.chaves, context.userId);
+    return { notas: await coletarVolumesNfes(data.chaves) };
+  });
