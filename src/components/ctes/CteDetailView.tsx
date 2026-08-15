@@ -210,7 +210,7 @@ export function CteDetailView({
   });
 
   const ultimaAuditoria = auditorias?.[0];
-  const divergenciasAbertas = (divergencias ?? []).filter((d) => d.status !== "RESOLVIDA");
+
 
   const componentes = (Array.isArray(cte.componentes) ? cte.componentes : []) as {
     nome?: string;
