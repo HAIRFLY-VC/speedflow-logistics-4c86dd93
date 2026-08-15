@@ -254,16 +254,24 @@ export function CteDetailView({
   const nfs = usandoNfsDoOriginal ? nfsDoOriginal : nfsProprias;
 
   const buscarVolumes = useServerFn(getVolumesNfesDoCte);
-  const { data: volumesData, isFetching: volumesLoading } = useQuery({
+  const { data: volumesResp, isFetching: volumesLoading } = useQuery({
     queryKey: ["cte-nfes-volumes", cte.id, nfs.join(",")],
     enabled: nfs.length > 0,
-    queryFn: async () => (await buscarVolumes({ data: { chaves: nfs } })).notas,
+    queryFn: async () => await buscarVolumes({ data: { chaves: nfs, cteId: cte.id } }),
     refetchInterval: (q) =>
-      (q.state.data ?? []).some((n) => n.status !== "DISPONIVEL") ? 20_000 : false,
+      (q.state.data?.notas ?? []).some((n) => n.status !== "DISPONIVEL") ? 60_000 : false,
   });
-  const volumesMap = new Map<string, NfeVolumeInfo>((volumesData ?? []).map((n) => [n.chave, n]));
-  const totalVolumes = (volumesData ?? []).reduce((s, n) => s + (n.volumes ?? 0), 0);
-  const totalPesoBruto = (volumesData ?? []).reduce((s, n) => s + (n.peso_bruto ?? 0), 0);
+  const volumesData = volumesResp?.notas ?? [];
+  const carga = volumesResp?.carga ?? null;
+  const volumesMap = new Map<string, NfeVolumeInfo>(volumesData.map((n) => [n.chave, n]));
+  const totalVolumes = volumesData.reduce((s, n) => s + (n.volumes ?? 0), 0);
+  const totalPesoBruto = volumesData.reduce((s, n) => s + (n.peso_bruto ?? 0), 0);
+  // Sem XML das notas, exibimos os totais declarados no próprio CT-e.
+  const usandoCargaDoCte = totalVolumes === 0 && totalPesoBruto === 0 && !!carga;
+  const volumesExibidos = usandoCargaDoCte ? (carga?.volumes ?? 0) : totalVolumes;
+  const pesoExibido = usandoCargaDoCte
+    ? (carga?.peso_real ?? Number(cte.peso_taxado ?? 0) ?? 0)
+    : totalPesoBruto;
 
   const podeAbrirOriginal = !!cteOriginal?.id && (linkMode !== "same" || !!onOpenCte);
 
