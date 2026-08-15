@@ -45,8 +45,9 @@ Se algum dado do SpeedFlow precisar ficar visível para os outros projetos, cria
 - Acesso ao banco externo pelo servidor via server functions do TanStack Start, com a string de conexão guardada como segredo; alternativamente por Postgres FDW, se preferir enxergar as tabelas externas como se fossem locais.
 - Nenhuma credencial do banco externo vai para o código do navegador.
 - As tabelas do print aparecem como `UNRESTRICTED`, ou seja, sem RLS. Antes de qualquer acesso do app, precisamos definir se elas serão lidas apenas pelo servidor (com credencial protegida) ou se será necessário ativar controle de acesso lá.
-- Migração de dados só acontece se escolhermos a Opção B; na Opção A não há migração, apenas leitura.
+- Não há migração de dados nesta abordagem, apenas leitura do banco externo.
 
 ## O que eu preciso de você para começar
 
-A escolha entre Opção A e Opção B, e a string de conexão de leitura do banco externo.
+A string de conexão de leitura do banco externo. Assim que você aprovar, abro o formulário seguro para você salvá-la.
+
