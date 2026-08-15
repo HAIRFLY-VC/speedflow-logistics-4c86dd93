@@ -96,19 +96,6 @@ export function CteDetailView({
     },
   });
 
-  const { data: divergencias } = useQuery({
-    queryKey: ["cte-divergencias", cte.id],
-    enabled: !!cte.id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cte_divergencias")
-        .select("*")
-        .eq("cte_id", cte.id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const isComplemento =
     cte.tipo_cte === 1 || !!cte.chave_cte_complementado || !!cte.numero_cte_complementado;
