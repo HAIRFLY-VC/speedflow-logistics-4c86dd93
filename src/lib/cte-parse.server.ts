@@ -195,5 +195,9 @@ export function parseCteXml(xml: string): ParsedCte {
     nfs_referenciadas: Array.from(nfs),
     tipo_cte: tipoCte,
     chave_cte_complementado: chaveComplementado || null,
+    numero_cte_complementado: tipoCte === 1 ? numeroComplementado : null,
+    motivo_complemento: motivo,
+    observacoes,
   };
+
 }
