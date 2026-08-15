@@ -63,6 +63,7 @@ export const getStatusRobo = createServerFn({ method: "GET" })
     const filaComandos =
       registros.find((r) => r.origem === "cte-comandos")?.ultimo_contato ?? null;
     const sinalVida = registros.find((r) => r.origem === "robo");
+    const varreduraNfe = registros.find((r) => r.origem === "nfe-nsu") ?? null;
     const online = ultimo
       ? Date.now() - new Date(ultimo).getTime() < LIMITE_ROBO_ONLINE_MS
       : false;
@@ -70,6 +71,9 @@ export const getStatusRobo = createServerFn({ method: "GET" })
       ultimoContato: ultimo,
       ultimoContatoFilaComandos: filaComandos,
       estado: sinalVida?.detalhe ?? null,
+      varreduraNfe: varreduraNfe
+        ? { ultimoContato: varreduraNfe.ultimo_contato, detalhe: varreduraNfe.detalhe }
+        : null,
       online,
     };
   });

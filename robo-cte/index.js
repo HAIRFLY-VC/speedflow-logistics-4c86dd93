@@ -536,6 +536,18 @@ async function processarNfesPorNsu(cfg, modoTeste, reiniciarNsu = false) {
     setEstado("ocioso");
   }
   log(`NF-e: varredura concluida, ${enviados} notas enviadas ao aplicativo`);
+  try {
+    const ultimos = cfg.empresas.map((_, i) => readUltimoNsuNfe(i)).join(", ");
+    await requestJson(
+      urlHook(cfg.endpoint, "robo-heartbeat"),
+      "POST",
+      cfg.segredoIngest,
+      { origem: "nfe-nsu", estado: `NSU ${ultimos || "-"} | ${enviados} nota(s) enviada(s)` },
+      Math.min(cfg.timeoutMs || 60000, 20000)
+    );
+  } catch {
+    // diagnostico nunca deve interromper o robo
+  }
   return enviados;
 }
 
