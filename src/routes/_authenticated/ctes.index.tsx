@@ -674,6 +674,30 @@ function CtesPage() {
                   : "Robô nunca contatou o aplicativo"}
             </span>
 
+            <span
+              className="text-muted-foreground inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs"
+              title={
+                robo?.varreduraNfe?.ultimoContato
+                  ? `Última varredura: ${new Date(
+                      robo.varreduraNfe.ultimoContato,
+                    ).toLocaleString("pt-BR")}`
+                  : "A versão instalada do robô ainda não executa a varredura de NF-e por NSU"
+              }
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  robo?.varreduraNfe ? "bg-emerald-500" : "bg-amber-500"
+                }`}
+              />
+              {robo?.varreduraNfe
+                ? `Varredura NF-e${
+                    robo.varreduraNfe.detalhe ? ` — ${robo.varreduraNfe.detalhe}` : ""
+                  }`
+                : "Varredura NF-e não executada (atualize o robô)"}
+            </span>
+
+
+
 
 
 
