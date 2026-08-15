@@ -5,7 +5,7 @@ import type {
   ExternalCliente,
   ExternalProduto,
   ExternalVendedor,
-} from "@/lib/external-db.server";
+} from "@/lib/external-catalog.types";
 
 const searchInput = z.object({
   search: z.string().trim().max(120).optional().default(""),
