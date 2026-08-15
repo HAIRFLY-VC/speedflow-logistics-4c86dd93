@@ -250,3 +250,40 @@ export function parseEnderecoDestinatario(xml: string): CteEnderecoDest | null {
   e.formatado = partes.length ? partes.join(", ") : null;
   return e.formatado ? e : null;
 }
+
+export type CteCargaMedida = { tipo: string; quantidade: number; unidade: string | null };
+
+export type CteCarga = {
+  valor_carga: number;
+  produto_predominante: string | null;
+  medidas: CteCargaMedida[];
+  /** Quantidade de volumes/unidades declarada no CT-e (tpMed UNIDADE/VOLUME). */
+  volumes: number | null;
+  /** Peso real informado no CT-e (kg). */
+  peso_real: number | null;
+};
+
+/** Totais de carga declarados no próprio CT-e (bloco infCarga). */
+export function parseCteCarga(xml: string): CteCarga | null {
+  const infCarga = sectionOf(xml, "infCarga");
+  if (!infCarga) return null;
+
+  const medidas: CteCargaMedida[] = [];
+  for (const q of allSections(infCarga, "infQ")) {
+    const tipo = (tagValue(q, "tpMed") ?? "").trim();
+    const quantidade = toNumber(tagValue(q, "qCarga"));
+    const unidade = tagValue(q, "cUnid");
+    if (tipo) medidas.push({ tipo, quantidade, unidade });
+  }
+
+  const acha = (re: RegExp) =>
+    medidas.find((m) => re.test(m.tipo.toUpperCase()) && m.quantidade > 0)?.quantidade ?? null;
+
+  return {
+    valor_carga: toNumber(tagValue(infCarga, "vCarga")),
+    produto_predominante: tagValue(infCarga, "proPred"),
+    medidas,
+    volumes: acha(/UNIDADE|VOLUME|CAIXA|PACOTE/),
+    peso_real: acha(/PESO\s*REAL/) ?? acha(/PESO/),
+  };
+}
