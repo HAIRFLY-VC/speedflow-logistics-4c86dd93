@@ -360,11 +360,11 @@ export function CteDetailView({
         </div>
       </div>
 
-      {(isComplementar || (grupo?.length ?? 0) > 0) && (
+      {(isVinculado || (grupo?.length ?? 0) > 0) && (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-          {isComplementar ? (
+          {isVinculado ? (
             <>
-              <strong>CT-e complementar</strong>
+              <strong>{isReentrega ? "CT-e de reentrega" : "CT-e complementar"}</strong>
               {cte.motivo_complemento ? ` — motivo: ${cte.motivo_complemento}` : ""}.
               Vinculado ao CT-e original{" "}
               {cte.numero_cte_complementado ? (
@@ -385,7 +385,7 @@ export function CteDetailView({
             </>
           ) : (
             <>
-              <strong>Possui {grupo!.length} complemento(s) de frete</strong> (CT-e{" "}
+              <strong>Possui {grupo!.length} cobrança(s) vinculada(s)</strong> (CT-e{" "}
               {grupo!
                 .map((g) => `${g.numero ?? "s/nº"}${g.motivo_complemento ? ` – ${g.motivo_complemento}` : ""}`)
                 .join(", ")}
