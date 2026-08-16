@@ -7,7 +7,7 @@ import {
   Kanban,
   Users,
   Building2,
-  Package,
+  
   ShoppingCart,
   Truck,
   Route as RouteIcon,
