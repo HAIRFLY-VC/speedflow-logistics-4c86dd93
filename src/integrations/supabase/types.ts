@@ -1431,6 +1431,7 @@ export type Database = {
           data_inicio: string
           descricao: string | null
           frete_minimo: number
+          gris_minimo: number
           gris_percentual: number
           icms_percentual: number
           id: string
@@ -1454,6 +1455,7 @@ export type Database = {
           data_inicio: string
           descricao?: string | null
           frete_minimo?: number
+          gris_minimo?: number
           gris_percentual?: number
           icms_percentual?: number
           id?: string
@@ -1477,6 +1479,7 @@ export type Database = {
           data_inicio?: string
           descricao?: string | null
           frete_minimo?: number
+          gris_minimo?: number
           gris_percentual?: number
           icms_percentual?: number
           id?: string
