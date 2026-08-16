@@ -57,7 +57,7 @@ async function getTolerancia(db: Db) {
 /** Seleciona a tabela vigente mais específica (UF do CT-e antes da genérica).
  *  Se nenhuma tabela estiver vigente na data de emissão (ex.: tabela cadastrada
  *  depois), usa a vigente hoje / a mais recente cadastrada da transportadora. */
-async function pickTabela(
+export async function pickTabela(
   db: Db,
   transportadoraId: string,
   ufDestino: string | null,
