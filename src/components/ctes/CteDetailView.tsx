@@ -383,7 +383,10 @@ export function CteDetailView({
                   </LinkOriginal>
                 </>
               ) : null}
-              . A auditoria é feita em conjunto com o original.
+              .{" "}
+              {isReentrega
+                ? "A auditoria considera apenas este CT-e."
+                : "A auditoria é feita em conjunto com o original."}
             </>
           ) : (
             <>
