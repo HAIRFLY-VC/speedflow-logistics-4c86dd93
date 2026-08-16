@@ -692,6 +692,19 @@ function CtesPage() {
               <RefreshCw className="h-4 w-4 mr-1" />
               Reimportar tudo
             </Button>
+            <Button
+              variant="outline"
+              disabled={reprocessarTomadores.isPending}
+              onClick={() => reprocessarTomadores.mutate(false)}
+              title="Relê os XML já armazenados e identifica o tomador do serviço de cada CT-e"
+            >
+              {reprocessarTomadores.isPending ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <UserPlus className="h-4 w-4 mr-1" />
+              )}
+              Reprocessar tomadores
+            </Button>
             {capturaEmAndamento && (
               <Button
                 variant="ghost"
