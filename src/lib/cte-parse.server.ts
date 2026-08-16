@@ -3,6 +3,14 @@
 
 export type CteComponente = { nome: string; valor: number };
 
+export type TomadorPapel =
+  | "REMETENTE"
+  | "EXPEDIDOR"
+  | "RECEBEDOR"
+  | "DESTINATARIO"
+  | "OUTROS";
+
+
 export type ParsedCte = {
   chave_acesso: string;
   numero: string | null;
