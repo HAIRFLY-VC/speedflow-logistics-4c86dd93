@@ -7,7 +7,7 @@ import { openAppRoute, appLinkTarget } from "@/lib/open-in-tab";
 import { toast } from "sonner";
 
 import { auditarCte } from "@/lib/cte-audit.functions";
-import { criterioFreteCte, definirPracaMunicipio } from "@/lib/frete-area.functions";
+
 import { PracaOverrideDialog } from "@/components/ctes/PracaOverrideDialog";
 import { getVolumesNfesDoCte } from "@/lib/cte.functions";
 import type { NfeVolumeInfo } from "@/lib/nfe-volumes.types";
