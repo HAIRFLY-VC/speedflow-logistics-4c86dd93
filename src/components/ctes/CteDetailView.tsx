@@ -250,13 +250,15 @@ export function CteDetailView({
     ? (carga?.peso_real ?? Number(cte.peso_taxado ?? 0) ?? 0)
     : totalPesoBruto;
 
-  const podeAbrirOriginal = !!cteOriginal?.id && (linkMode !== "same" || !!onOpenCte);
+  const podeAbrirOriginal = !!cteOriginal?.id;
 
   const openCteLink = (cteId: string) => {
     if (linkMode === "window") {
       openAppRoute(router, `/ctes/${cteId}`);
-    } else if (linkMode === "dialog") {
-      onOpenCte?.(cteId);
+    } else if (linkMode === "dialog" && onOpenCte) {
+      onOpenCte(cteId);
+    } else {
+      void router.navigate({ to: "/ctes/$cteId", params: { cteId } });
     }
   };
 
