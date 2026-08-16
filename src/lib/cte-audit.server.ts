@@ -8,7 +8,13 @@ import { parseEnderecoDestinatario } from "@/lib/cte-parse.server";
 
 type Db = SupabaseClient<CentralDatabase>;
 
-export type AuditItem = { nome: string; esperado: number; cobrado: number | null };
+export type AuditItem = {
+  nome: string;
+  esperado: number;
+  cobrado: number | null;
+  /** Explicação de como o valor esperado foi calculado. */
+  criterio?: string;
+};
 
 export type AuditOutcome = {
   cte_id: string;
