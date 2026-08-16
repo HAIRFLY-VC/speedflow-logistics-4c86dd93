@@ -262,7 +262,8 @@ function calcularEsperado(
     }
     if (isReentrega) {
       const perc = percentualReentrega(tabela, tabela.uf_destino);
-      base = base * (perc / 100);
+      fatorReentrega = perc / 100;
+      base = base * fatorReentrega;
       criterio = `${criterio} · reentrega: ${num(perc)}% da tabela`;
     }
     itens.push({ nome: "FRETE", esperado: round2(base), cobrado: null, criterio });
