@@ -61,7 +61,46 @@ function toNumber(v: string | null): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/**
+ * Resolve o tomador do serviço (responsável financeiro pelo frete).
+ *
+ * `ide/toma3/toma`: 0 = remetente, 1 = expedidor, 2 = recebedor, 3 = destinatário.
+ * Quando existe `ide/toma4`, o tomador é um terceiro e seus dados vêm do próprio grupo.
+ */
+function resolverTomador(p: {
+  ide: string;
+  xml: string;
+  rem: string;
+  exped: string;
+  receb: string;
+  dest: string;
+}): { cnpj: string | null; nome: string | null; papel: TomadorPapel | null } {
+  const doc = (sec: string) =>
+    sec ? onlyDigits(tagValue(sec, "CNPJ") ?? tagValue(sec, "CPF") ?? "") || null : null;
+  const nome = (sec: string) => (sec ? (tagValue(sec, "xNome") ?? "").trim() || null : null);
+
+  const toma4 = sectionOf(p.ide, "toma4") ?? sectionOf(p.xml, "toma4");
+  if (toma4) {
+    return { cnpj: doc(toma4), nome: nome(toma4), papel: "OUTROS" };
+  }
+
+  const toma3 = sectionOf(p.ide, "toma3") ?? sectionOf(p.xml, "toma3");
+  const raw = toma3 ? tagValue(toma3, "toma") : (tagValue(p.ide, "toma") ?? null);
+  if (raw === null) return { cnpj: null, nome: null, papel: null };
+
+  const map: Record<string, { sec: string; papel: TomadorPapel }> = {
+    "0": { sec: p.rem, papel: "REMETENTE" },
+    "1": { sec: p.exped, papel: "EXPEDIDOR" },
+    "2": { sec: p.receb, papel: "RECEBEDOR" },
+    "3": { sec: p.dest, papel: "DESTINATARIO" },
+  };
+  const hit = map[raw.trim()];
+  if (!hit) return { cnpj: null, nome: null, papel: null };
+  return { cnpj: doc(hit.sec), nome: nome(hit.sec), papel: hit.papel };
+}
+
 export function parseCteXml(xml: string): ParsedCte {
+
   if (!xml || !/<(?:\w+:)?(CTe|cteProc|infCte)\b/i.test(xml)) {
     throw new Error("Arquivo não parece ser um XML de CT-e");
   }
