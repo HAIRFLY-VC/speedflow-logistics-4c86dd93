@@ -223,7 +223,7 @@ export function CteDetailView({
     valor?: number;
   }[];
   const nfsProprias = (Array.isArray(cte.nfs_referenciadas) ? cte.nfs_referenciadas : []) as string[];
-  const cteOriginal = isComplementar ? (grupo?.[0] ?? null) : null;
+  const cteOriginal = isVinculado ? (grupo?.[0] ?? null) : null;
   const nfsDoOriginal = (
     Array.isArray(cteOriginal?.nfs_referenciadas) ? cteOriginal!.nfs_referenciadas : []
   ) as string[];
