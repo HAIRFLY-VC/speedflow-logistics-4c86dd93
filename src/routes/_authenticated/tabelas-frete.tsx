@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useState, useMemo, useEffect } from "react";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Loader2, Trash2, FileText, Upload, Download, X } from "lucide-react";
 import { toast } from "sonner";
