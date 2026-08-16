@@ -675,7 +675,7 @@ export function CteDetailView({
             </div>
 
             <div className="mt-2">
-              <PracaOverrideDialog cteId={cte.id} onSaved={() => refetchAuditorias()} />
+              <PracaOverrideDialog cteId={cte.id} onSaved={() => qc.invalidateQueries({ queryKey: ["cte-auditorias", cte.id] })} />
             </div>
 
             {(() => {
