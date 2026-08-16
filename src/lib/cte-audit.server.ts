@@ -178,7 +178,11 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
       .eq("chave_acesso", alvo.chave_cte_complementado)
       .maybeSingle();
     if (original) cte = original;
-  } else if (alvo.tipo_cte === 1 && alvo.numero_cte_complementado && alvo.cnpj_emitente) {
+  } else if (
+    (alvo.tipo_cte === 1 || alvo.tipo_cte === 4) &&
+    alvo.numero_cte_complementado &&
+    alvo.cnpj_emitente
+  ) {
     // Sem a chave no XML: liga pelo número do CT-e original do mesmo emitente.
     const { data: original } = await db
       .from("ctes")

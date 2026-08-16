@@ -97,9 +97,15 @@ export function CteDetailView({
   });
 
 
+  const isReentrega = cte.tipo_cte === 4;
   const isComplemento =
-    cte.tipo_cte === 1 || !!cte.chave_cte_complementado || !!cte.numero_cte_complementado;
-  const isComplementar = cte.tipo_cte === 1 || !(Number(cte.peso_taxado) > 0);
+    cte.tipo_cte === 1 ||
+    isReentrega ||
+    !!cte.chave_cte_complementado ||
+    !!cte.numero_cte_complementado;
+  const isComplementar =
+    cte.tipo_cte === 1 || (!isReentrega && !(Number(cte.peso_taxado) > 0));
+  const isVinculado = isComplementar || isReentrega;
   const { data: grupo } = useQuery({
     queryKey: [
       "cte-grupo",
@@ -117,7 +123,7 @@ export function CteDetailView({
           .from("ctes")
           .select(cols)
           .eq("chave_acesso", cte.chave_cte_complementado);
-      } else if (isComplementar && cte.numero_cte_complementado && cte.cnpj_emitente) {
+      } else if (isVinculado && cte.numero_cte_complementado && cte.cnpj_emitente) {
         q = supabase
           .from("ctes")
           .select(cols)
@@ -322,19 +328,21 @@ export function CteDetailView({
         <Field
           label="Tipo do CT-e"
           value={
-            isComplementar
-              ? "Complementar"
-              : cte.tipo_cte === 2
-                ? "Anulação"
-                : cte.tipo_cte === 3
-                  ? "Substituto"
-                  : "Normal"
+            isReentrega
+              ? "Reentrega"
+              : isComplementar
+                ? "Complementar"
+                : cte.tipo_cte === 2
+                  ? "Anulação"
+                  : cte.tipo_cte === 3
+                    ? "Substituto"
+                    : "Normal"
           }
-          hint={isComplementar ? (cte.motivo_complemento ?? undefined) : undefined}
+          hint={isVinculado ? (cte.motivo_complemento ?? undefined) : undefined}
         />
-        {isComplementar && (
+        {isVinculado && (
           <Field
-            label="Motivo do complemento"
+            label={isReentrega ? "Motivo" : "Motivo do complemento"}
             value={cte.motivo_complemento ?? "Não identificado"}
           />
         )}
@@ -352,11 +360,11 @@ export function CteDetailView({
         </div>
       </div>
 
-      {(isComplementar || (grupo?.length ?? 0) > 0) && (
+      {(isVinculado || (grupo?.length ?? 0) > 0) && (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-          {isComplementar ? (
+          {isVinculado ? (
             <>
-              <strong>CT-e complementar</strong>
+              <strong>{isReentrega ? "CT-e de reentrega" : "CT-e complementar"}</strong>
               {cte.motivo_complemento ? ` — motivo: ${cte.motivo_complemento}` : ""}.
               Vinculado ao CT-e original{" "}
               {cte.numero_cte_complementado ? (
@@ -377,7 +385,7 @@ export function CteDetailView({
             </>
           ) : (
             <>
-              <strong>Possui {grupo!.length} complemento(s) de frete</strong> (CT-e{" "}
+              <strong>Possui {grupo!.length} cobrança(s) vinculada(s)</strong> (CT-e{" "}
               {grupo!
                 .map((g) => `${g.numero ?? "s/nº"}${g.motivo_complemento ? ` – ${g.motivo_complemento}` : ""}`)
                 .join(", ")}
