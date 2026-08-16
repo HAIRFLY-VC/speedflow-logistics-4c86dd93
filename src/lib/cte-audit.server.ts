@@ -81,6 +81,7 @@ function calcularEsperado(
   peso: number,
   valorMercadoria: number,
   cobradoTotal = 0,
+  municipioDestino?: string | null,
 ): { itens: AuditItem[]; total: number; rota?: string } {
   const itens: AuditItem[] = [];
   const rotas = tabela.tabelas_preco_frete_rotas ?? [];
@@ -89,8 +90,9 @@ function calcularEsperado(
   let rotaNome: string | undefined;
 
   if (rotas.length > 0) {
-    // Tabela por origem/destino: escolhe a rota cujo valor calculado mais se
-    // aproxima do frete cobrado (o CT-e não traz o nome da praça da tabela).
+    // Tabela por origem/destino: quando o município de entrega é conhecido,
+    // usa a praça correspondente; senão, escolhe a rota cujo valor calculado
+    // mais se aproxima do frete cobrado.
     const candidatas = rotas.map((r) => {
       const pesoCob = Math.max(peso, Number(r.peso_minimo_kg ?? 0));
       const fretePeso = pesoCob * Number(r.tarifa_frete_peso ?? 0);
@@ -107,9 +109,13 @@ function calcularEsperado(
         total: sub + despacho,
       };
     });
-    const escolhida = candidatas.sort(
-      (a, b) => Math.abs(a.total - cobradoTotal) - Math.abs(b.total - cobradoTotal),
-    )[0]!;
+    const idxMunicipio = acharRotaPorMunicipio(rotas, municipioDestino);
+    const escolhida =
+      idxMunicipio >= 0
+        ? candidatas[idxMunicipio]!
+        : candidatas.sort(
+            (a, b) => Math.abs(a.total - cobradoTotal) - Math.abs(b.total - cobradoTotal),
+          )[0]!;
     rotaNome = escolhida.rota;
     itens.push({ nome: "FRETE PESO", esperado: round2(escolhida.fretePeso), cobrado: null });
     itens.push({ nome: "FRETE VALOR", esperado: round2(escolhida.freteValor), cobrado: null });
