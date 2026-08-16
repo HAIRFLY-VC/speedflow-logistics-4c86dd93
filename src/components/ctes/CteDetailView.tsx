@@ -7,6 +7,8 @@ import { openAppRoute, appLinkTarget } from "@/lib/open-in-tab";
 import { toast } from "sonner";
 
 import { auditarCte } from "@/lib/cte-audit.functions";
+import { criterioFreteCte, definirPracaMunicipio } from "@/lib/frete-area.functions";
+import { PracaOverrideDialog } from "@/components/ctes/PracaOverrideDialog";
 import { getVolumesNfesDoCte } from "@/lib/cte.functions";
 import type { NfeVolumeInfo } from "@/lib/nfe-volumes.types";
 import { obterEnderecoEntregaCte, resolverNomeDestinatario } from "@/lib/cte-backfill.functions";
@@ -672,6 +674,10 @@ export function CteDetailView({
               )}
             </div>
 
+            <div className="mt-2">
+              <PracaOverrideDialog cteId={cte.id} onSaved={() => refetchAuditorias()} />
+            </div>
+
             {(() => {
               const linhas = (
                 Array.isArray(ultimaAuditoria.detalhamento)
@@ -679,12 +685,14 @@ export function CteDetailView({
                       nome?: string;
                       esperado?: number;
                       cobrado?: number | null;
+                      criterio?: string | null;
                     }[])
                   : []
               ).map((d) => ({
                 nome: d.nome ?? "—",
                 esperado: Number(d.esperado ?? 0),
                 cobrado: d.cobrado == null ? null : Number(d.cobrado),
+                criterio: d.criterio ?? null,
               }));
               if (linhas.length === 0) return null;
 
@@ -729,7 +737,14 @@ export function CteDetailView({
                             </Badge>
                           ) : null}
                         </span>
-                        <span className="text-right tabular-nums">{brl(l.esperado)}</span>
+                        <span className="text-right">
+                          <span className="tabular-nums">{brl(l.esperado)}</span>
+                          {l.criterio ? (
+                            <span className="text-muted-foreground block text-[10px] leading-tight font-normal">
+                              {l.criterio}
+                            </span>
+                          ) : null}
+                        </span>
                         <span className="text-right tabular-nums">
                           {l.cobrado == null ? "—" : brl(l.cobrado)}
                         </span>
