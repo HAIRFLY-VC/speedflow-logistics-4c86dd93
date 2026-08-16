@@ -8,7 +8,13 @@ import { parseEnderecoDestinatario } from "@/lib/cte-parse.server";
 
 type Db = SupabaseClient<CentralDatabase>;
 
-export type AuditItem = { nome: string; esperado: number; cobrado: number | null };
+export type AuditItem = {
+  nome: string;
+  esperado: number;
+  cobrado: number | null;
+  /** Explicação de como o valor esperado foi calculado. */
+  criterio?: string;
+};
 
 export type AuditOutcome = {
   cte_id: string;
@@ -25,6 +31,17 @@ export type AuditOutcome = {
 
 const round2 = (n: number) => Math.round((Number.isFinite(n) ? n : 0) * 100) / 100;
 
+/** Formata moeda para os textos de critério. */
+const brl = (n: number) =>
+  (Number.isFinite(n) ? n : 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+
+/** Formata número solto (peso, percentual) para os textos de critério. */
+const num = (n: number) =>
+  (Number.isFinite(n) ? n : 0).toLocaleString("pt-BR", { maximumFractionDigits: 4 });
+
 async function getTolerancia(db: Db) {
   const { data } = await db
     .from("configuracoes_auditoria_frete")
@@ -40,7 +57,7 @@ async function getTolerancia(db: Db) {
 /** Seleciona a tabela vigente mais específica (UF do CT-e antes da genérica).
  *  Se nenhuma tabela estiver vigente na data de emissão (ex.: tabela cadastrada
  *  depois), usa a vigente hoje / a mais recente cadastrada da transportadora. */
-async function pickTabela(
+export async function pickTabela(
   db: Db,
   transportadoraId: string,
   ufDestino: string | null,
@@ -84,48 +101,104 @@ function calcularEsperado(
   valorMercadoria: number,
   cobradoTotal = 0,
   municipioDestino?: string | null,
-): { itens: AuditItem[]; total: number; rota?: string } {
+): { itens: AuditItem[]; total: number; rota?: string; rotaId?: string; origemRota?: string } {
   const itens: AuditItem[] = [];
   const rotas = tabela.tabelas_preco_frete_rotas ?? [];
 
   let base = 0;
   let rotaNome: string | undefined;
+  let rotaId: string | undefined;
+  let origemRota: string | undefined;
 
   if (rotas.length > 0) {
     // Tabela por origem/destino: quando o município de entrega é conhecido,
     // usa a praça correspondente; senão, escolhe a rota cujo valor calculado
     // mais se aproxima do frete cobrado.
     const candidatas = rotas.map((r) => {
-      const pesoCob = Math.max(peso, Number(r.peso_minimo_kg ?? 0));
-      const fretePeso = pesoCob * Number(r.tarifa_frete_peso ?? 0);
-      const freteValor = (Number(r.frete_valor_percentual ?? 0) / 100) * valorMercadoria;
+      const pesoMin = Number(r.peso_minimo_kg ?? 0);
+      const pesoCob = Math.max(peso, pesoMin);
+      const tarifa = Number(r.tarifa_frete_peso ?? 0);
+      const percValor = Number(r.frete_valor_percentual ?? 0);
+      const fretePeso = pesoCob * tarifa;
+      const freteValor = (percValor / 100) * valorMercadoria;
       let sub = fretePeso + freteValor;
       const min = Number(r.frete_minimo ?? 0);
-      if (min > 0 && sub < min) sub = min;
+      const aplicouMinimo = min > 0 && sub < min;
+      if (aplicouMinimo) sub = min;
       const despacho = Number(r.taxa_despacho ?? 0);
       return {
+        id: r.id as string,
         rota: `${r.origem} → ${r.destino}`,
+        destino: r.destino,
+        pesoCob,
+        pesoMin,
+        tarifa,
+        percValor,
         fretePeso,
         freteValor,
         despacho,
+        aplicouMinimo,
+        freteMinimo: min,
         total: sub + despacho,
       };
     });
-    const idxMunicipio = acharRotaPorMunicipio(rotas, municipioDestino);
+    const achado = acharRotaPorMunicipio(rotas, municipioDestino);
     const escolhida =
-      idxMunicipio >= 0
-        ? candidatas[idxMunicipio]!
-        : candidatas.sort(
+      achado.index >= 0
+        ? candidatas[achado.index]!
+        : [...candidatas].sort(
             (a, b) => Math.abs(a.total - cobradoTotal) - Math.abs(b.total - cobradoTotal),
           )[0]!;
     rotaNome = escolhida.rota;
-    itens.push({ nome: "FRETE PESO", esperado: round2(escolhida.fretePeso), cobrado: null });
-    itens.push({ nome: "FRETE VALOR", esperado: round2(escolhida.freteValor), cobrado: null });
+    rotaId = escolhida.id;
+    origemRota = achado.index >= 0 ? (achado.origem ?? "mapa") : "aproximacao";
+
+    const comoEscolheu =
+      origemRota === "aprendido"
+        ? `praça definida pelo usuário para ${municipioDestino}`
+        : origemRota === "mapa"
+          ? `praça do município ${municipioDestino}`
+          : origemRota === "nome"
+            ? `praça com o nome do município ${municipioDestino}`
+            : "praça estimada pelo valor cobrado (município não identificado)";
+    const pesoTxt =
+      escolhida.pesoCob > peso
+        ? `${num(escolhida.pesoCob)} kg (peso mínimo da praça)`
+        : `${num(peso)} kg`;
+
+    itens.push({
+      nome: "FRETE PESO",
+      esperado: round2(escolhida.fretePeso),
+      cobrado: null,
+      criterio: `${pesoTxt} × ${brl(escolhida.tarifa)}/kg · ${escolhida.destino} — ${comoEscolheu}`,
+    });
+    itens.push({
+      nome: "FRETE VALOR",
+      esperado: round2(escolhida.freteValor),
+      cobrado: null,
+      criterio: `${num(escolhida.percValor)}% sobre mercadoria de ${brl(valorMercadoria)} · ${escolhida.destino}`,
+    });
+    if (escolhida.aplicouMinimo) {
+      itens.push({
+        nome: "AJUSTE FRETE MÍNIMO",
+        esperado: round2(
+          escolhida.freteMinimo - (escolhida.fretePeso + escolhida.freteValor),
+        ),
+        cobrado: null,
+        criterio: `frete mínimo da praça ${escolhida.destino}: ${brl(escolhida.freteMinimo)}`,
+      });
+    }
     if (escolhida.despacho) {
-      itens.push({ nome: "DESPACHO", esperado: round2(escolhida.despacho), cobrado: null });
+      itens.push({
+        nome: "DESPACHO",
+        esperado: round2(escolhida.despacho),
+        cobrado: null,
+        criterio: `taxa de despacho fixa da praça ${escolhida.destino}`,
+      });
     }
     base = escolhida.total;
   } else {
+    let criterio = "";
     if (tabela.tipo_calculo === "peso") {
       const faixas = [...(tabela.tabelas_preco_frete_faixas ?? [])].sort(
         (a, b) => Number(a.peso_de) - Number(b.peso_de),
@@ -135,14 +208,23 @@ function calcularEsperado(
           (f) =>
             peso >= Number(f.peso_de) && (f.peso_ate == null || peso <= Number(f.peso_ate)),
         ) ?? faixas[faixas.length - 1];
-      if (faixa) base = Number(faixa.valor_fixo_faixa) + Number(faixa.valor_por_kg) * peso;
+      if (faixa) {
+        base = Number(faixa.valor_fixo_faixa) + Number(faixa.valor_por_kg) * peso;
+        criterio = `faixa de peso ${num(Number(faixa.peso_de))}–${
+          faixa.peso_ate == null ? "acima" : `${num(Number(faixa.peso_ate))} kg`
+        }: ${brl(Number(faixa.valor_fixo_faixa))} + ${brl(Number(faixa.valor_por_kg))}/kg × ${num(peso)} kg`;
+      }
     } else {
       base = (Number(tabela.percentual_valor) / 100) * valorMercadoria;
+      criterio = `${num(Number(tabela.percentual_valor))}% sobre mercadoria de ${brl(valorMercadoria)}`;
     }
 
     const minimo = Number(tabela.frete_minimo);
-    if (minimo > 0 && base < minimo) base = minimo;
-    itens.push({ nome: "FRETE", esperado: round2(base), cobrado: null });
+    if (minimo > 0 && base < minimo) {
+      base = minimo;
+      criterio = `frete mínimo da tabela: ${brl(minimo)}`;
+    }
+    itens.push({ nome: "FRETE", esperado: round2(base), cobrado: null, criterio });
   }
 
 
@@ -150,24 +232,54 @@ function calcularEsperado(
   const grisPerc = Number(tabela.gris_percentual) / 100;
   const grisMin = Number((tabela as { gris_minimo?: number | string }).gris_minimo ?? 0);
   let gris = grisPerc * valorMercadoria;
-  if (grisPerc > 0 && grisMin > 0 && gris < grisMin) gris = grisMin;
+  const grisNoMinimo = grisPerc > 0 && grisMin > 0 && gris < grisMin;
+  if (grisNoMinimo) gris = grisMin;
   const adv = (Number(tabela.ad_valorem_percentual) / 100) * valorMercadoria;
   // Pedágio não é provisionado por padrão: só é considerado quando cobrado no CT-e.
   const pedagio = 0;
   const tas = Number(tabela.tas_valor);
-  if (gris) itens.push({ nome: "GRIS", esperado: round2(gris), cobrado: null });
-  if (adv) itens.push({ nome: "AD VALOREM", esperado: round2(adv), cobrado: null });
-  if (tas) itens.push({ nome: "TAS", esperado: round2(tas), cobrado: null });
+  if (gris) {
+    itens.push({
+      nome: "GRIS",
+      esperado: round2(gris),
+      cobrado: null,
+      criterio: grisNoMinimo
+        ? `valor mínimo de GRIS da tabela (${brl(grisMin)}); ${num(Number(tabela.gris_percentual))}% de ${brl(valorMercadoria)} daria ${brl(grisPerc * valorMercadoria)}`
+        : `${num(Number(tabela.gris_percentual))}% sobre mercadoria de ${brl(valorMercadoria)}${grisMin > 0 ? ` (mínimo ${brl(grisMin)})` : ""}`,
+    });
+  }
+  if (adv) {
+    itens.push({
+      nome: "AD VALOREM",
+      esperado: round2(adv),
+      cobrado: null,
+      criterio: `${num(Number(tabela.ad_valorem_percentual))}% sobre mercadoria de ${brl(valorMercadoria)}`,
+    });
+  }
+  if (tas) {
+    itens.push({
+      nome: "TAS",
+      esperado: round2(tas),
+      cobrado: null,
+      criterio: `valor fixo da tabela: ${brl(tas)}`,
+    });
+  }
 
   const subtotal = base + gris + adv + pedagio + tas;
   const icms = Number(tabela.icms_percentual) / 100;
   const total = icms > 0 && icms < 1 ? subtotal / (1 - icms) : subtotal;
   if (icms > 0) {
-    itens.push({ nome: "ICMS", esperado: round2(total - subtotal), cobrado: null });
+    itens.push({
+      nome: "ICMS",
+      esperado: round2(total - subtotal),
+      cobrado: null,
+      criterio: `ICMS de ${num(Number(tabela.icms_percentual))}% embutido: ${brl(subtotal)} ÷ (1 − ${num(Number(tabela.icms_percentual))}%)`,
+    });
   }
 
-  return { itens, total: round2(total), rota: rotaNome };
+  return { itens, total: round2(total), rota: rotaNome, rotaId, origemRota };
 }
+
 
 /** Executa a auditoria de um CT-e, grava o resultado e atualiza o status.
  *  CT-e complementar (tpCTe = 1) é auditado em conjunto com o CT-e original:
@@ -310,6 +422,7 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
   );
 
 
+
   const norm = (s: string) => s.toUpperCase().replace(/\s+/g, " ").trim();
   const usados = new Set<number>();
   const detalhamento: AuditItem[] = itens.map((item) => {
@@ -335,6 +448,7 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
       nome: norm(c.nome ?? "") || "OUTROS",
       esperado: 0,
       cobrado: round2(Number(c.valor ?? 0)),
+      criterio: "componente cobrado no CT-e que não existe na tabela de frete",
     });
   });
 
