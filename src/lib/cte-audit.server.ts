@@ -95,15 +95,34 @@ export async function pickTabela(
 
 type Tabela = NonNullable<Awaited<ReturnType<typeof pickTabela>>>;
 
+/** Percentual da tabela aplicado em reentrega.
+ *  Regra padrão da tabela: região metropolitana e zona da mata = 100% do frete
+ *  original; demais regiões = 50%. O valor pode ser configurado por praça
+ *  (coluna `percentual_reentrega` da rota) ou na tabela. */
+function percentualReentrega(
+  tabela: Tabela,
+  destino?: string | null,
+  rotaPerc?: number | string | null,
+): number {
+  const daRota = Number(rotaPerc);
+  if (Number.isFinite(daRota) && daRota > 0) return daRota;
+  const daTabela = Number((tabela as { percentual_reentrega?: number | string }).percentual_reentrega);
+  if (Number.isFinite(daTabela) && daTabela > 0) return daTabela;
+  const d = (destino ?? "").toUpperCase();
+  return /METROPOLITAN|ZONA DA MATA/.test(d) ? 100 : 50;
+}
+
 function calcularEsperado(
   tabela: Tabela,
   peso: number,
   valorMercadoria: number,
   cobradoTotal = 0,
   municipioDestino?: string | null,
+  isReentrega = false,
 ): { itens: AuditItem[]; total: number; rota?: string; rotaId?: string; origemRota?: string } {
   const itens: AuditItem[] = [];
   const rotas = tabela.tabelas_preco_frete_rotas ?? [];
+
 
   let base = 0;
   let rotaNome: string | undefined;
@@ -119,13 +138,21 @@ function calcularEsperado(
       const pesoCob = Math.max(peso, pesoMin);
       const tarifa = Number(r.tarifa_frete_peso ?? 0);
       const percValor = Number(r.frete_valor_percentual ?? 0);
-      const fretePeso = pesoCob * tarifa;
-      const freteValor = (percValor / 100) * valorMercadoria;
+      // Reentrega paga um percentual da tabela normal (padrão 50%; 100% na
+      // região metropolitana e zona da mata).
+      const perc = percentualReentrega(
+        tabela,
+        r.destino,
+        (r as { percentual_reentrega?: number | string | null }).percentual_reentrega,
+      );
+      const fator = isReentrega ? perc / 100 : 1;
+      const fretePeso = pesoCob * tarifa * fator;
+      const freteValor = (percValor / 100) * valorMercadoria * fator;
       let sub = fretePeso + freteValor;
-      const min = Number(r.frete_minimo ?? 0);
+      const min = Number(r.frete_minimo ?? 0) * fator;
       const aplicouMinimo = min > 0 && sub < min;
       if (aplicouMinimo) sub = min;
-      const despacho = Number(r.taxa_despacho ?? 0);
+      const despacho = Number(r.taxa_despacho ?? 0) * fator;
       return {
         id: r.id as string,
         rota: `${r.origem} → ${r.destino}`,
@@ -139,6 +166,7 @@ function calcularEsperado(
         despacho,
         aplicouMinimo,
         freteMinimo: min,
+        percReentrega: perc,
         total: sub + despacho,
       };
     });
@@ -161,6 +189,9 @@ function calcularEsperado(
           : origemRota === "nome"
             ? `praça com o nome do município ${municipioDestino}`
             : "praça estimada pelo valor cobrado (município não identificado)";
+    const reentregaTxt = isReentrega
+      ? ` · reentrega: ${num(escolhida.percReentrega)}% da tabela`
+      : "";
     const pesoTxt =
       escolhida.pesoCob > peso
         ? `${num(escolhida.pesoCob)} kg (peso mínimo da praça)`
@@ -170,13 +201,13 @@ function calcularEsperado(
       nome: "FRETE PESO",
       esperado: round2(escolhida.fretePeso),
       cobrado: null,
-      criterio: `${pesoTxt} × ${brl(escolhida.tarifa)}/kg · ${escolhida.destino} — ${comoEscolheu}`,
+      criterio: `${pesoTxt} × ${brl(escolhida.tarifa)}/kg · ${escolhida.destino} — ${comoEscolheu}${reentregaTxt}`,
     });
     itens.push({
       nome: "FRETE VALOR",
       esperado: round2(escolhida.freteValor),
       cobrado: null,
-      criterio: `${num(escolhida.percValor)}% sobre mercadoria de ${brl(valorMercadoria)} · ${escolhida.destino}`,
+      criterio: `${num(escolhida.percValor)}% sobre mercadoria de ${brl(valorMercadoria)} · ${escolhida.destino}${reentregaTxt}`,
     });
     if (escolhida.aplicouMinimo) {
       itens.push({
@@ -185,7 +216,7 @@ function calcularEsperado(
           escolhida.freteMinimo - (escolhida.fretePeso + escolhida.freteValor),
         ),
         cobrado: null,
-        criterio: `frete mínimo da praça ${escolhida.destino}: ${brl(escolhida.freteMinimo)}`,
+        criterio: `frete mínimo da praça ${escolhida.destino}: ${brl(escolhida.freteMinimo)}${reentregaTxt}`,
       });
     }
     if (escolhida.despacho) {
@@ -193,10 +224,11 @@ function calcularEsperado(
         nome: "DESPACHO",
         esperado: round2(escolhida.despacho),
         cobrado: null,
-        criterio: `taxa de despacho fixa da praça ${escolhida.destino}`,
+        criterio: `taxa de despacho fixa da praça ${escolhida.destino}${reentregaTxt}`,
       });
     }
     base = escolhida.total;
+
   } else {
     let criterio = "";
     if (tabela.tipo_calculo === "peso") {
@@ -224,7 +256,13 @@ function calcularEsperado(
       base = minimo;
       criterio = `frete mínimo da tabela: ${brl(minimo)}`;
     }
+    if (isReentrega) {
+      const perc = percentualReentrega(tabela, tabela.uf_destino);
+      base = base * (perc / 100);
+      criterio = `${criterio} · reentrega: ${num(perc)}% da tabela`;
+    }
     itens.push({ nome: "FRETE", esperado: round2(base), cobrado: null, criterio });
+
   }
 
 
@@ -419,7 +457,9 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     mercadoriaGrupo,
     cobrado,
     municipioDestino,
+    isReentrega,
   );
+
 
 
 

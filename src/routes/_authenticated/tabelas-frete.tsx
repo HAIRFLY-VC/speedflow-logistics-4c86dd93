@@ -81,6 +81,7 @@ type RotaDraft = {
   taxa_despacho: string;
   frete_minimo: string;
   peso_minimo_kg: string;
+  percentual_reentrega: string;
   prazo_entrega_min_dias: string;
   prazo_entrega_max_dias: string;
 };
@@ -93,6 +94,7 @@ const ROTA_VAZIA: RotaDraft = {
   taxa_despacho: "0",
   frete_minimo: "0",
   peso_minimo_kg: "0",
+  percentual_reentrega: "50",
   prazo_entrega_min_dias: "",
   prazo_entrega_max_dias: "",
 };
@@ -462,6 +464,9 @@ function TabelaDialog({
           taxa_despacho: String(r.taxa_despacho),
           frete_minimo: String(r.frete_minimo),
           peso_minimo_kg: String(r.peso_minimo_kg),
+          percentual_reentrega: String(
+            (r as { percentual_reentrega?: number | null }).percentual_reentrega ?? 50,
+          ),
           prazo_entrega_min_dias:
             r.prazo_entrega_min_dias == null ? "" : String(r.prazo_entrega_min_dias),
           prazo_entrega_max_dias:
@@ -567,6 +572,11 @@ function TabelaDialog({
             destino: (ro.destino ?? "").trim(),
             tarifa_frete_peso: String(ro.tarifa_frete_peso ?? 0),
             frete_valor_percentual: String(ro.frete_valor_percentual ?? 0),
+            percentual_reentrega: /METROPOLITAN|ZONA DA MATA/.test(
+              (ro.destino ?? "").toUpperCase(),
+            )
+              ? "100"
+              : "50",
             taxa_despacho: String(despacho),
             frete_minimo: String(ro.frete_minimo ?? 0),
             peso_minimo_kg: String(pesoMin),
@@ -695,13 +705,16 @@ function TabelaDialog({
           taxa_despacho: num(r.taxa_despacho),
           frete_minimo: num(r.frete_minimo),
           peso_minimo_kg: num(r.peso_minimo_kg),
+          percentual_reentrega: num(r.percentual_reentrega || "50"),
           prazo_entrega_min_dias:
             r.prazo_entrega_min_dias === "" ? null : Math.round(num(r.prazo_entrega_min_dias)),
           prazo_entrega_max_dias:
             r.prazo_entrega_max_dias === "" ? null : Math.round(num(r.prazo_entrega_max_dias)),
         }));
       if (rotaRows.length) {
-        const { error } = await supabase.from("tabelas_preco_frete_rotas").insert(rotaRows);
+        const { error } = await supabase
+          .from("tabelas_preco_frete_rotas")
+          .insert(rotaRows as never);
         if (error) throw error;
       }
     },
@@ -937,7 +950,7 @@ function TabelaDialog({
             </p>
           ) : (
             <div className="space-y-2 overflow-x-auto">
-              <div className="grid min-w-[900px] grid-cols-[1.2fr_1.6fr_0.9fr_0.8fr_0.9fr_0.9fr_0.8fr_0.7fr_0.7fr_auto] gap-2 text-xs text-muted-foreground">
+              <div className="grid min-w-[900px] grid-cols-[1.2fr_1.6fr_0.9fr_0.8fr_0.9fr_0.9fr_0.8fr_0.8fr_0.7fr_0.7fr_auto] gap-2 text-xs text-muted-foreground">
                 <span>Origem</span>
                 <span>Destino</span>
                 <span>Tarifa/kg</span>
@@ -945,6 +958,7 @@ function TabelaDialog({
                 <span>Despacho</span>
                 <span>Frete mín.</span>
                 <span>Peso mín. (kg)</span>
+                <span>% Reentrega</span>
                 <span>Prazo de</span>
                 <span>Prazo até</span>
                 <span />
@@ -952,7 +966,7 @@ function TabelaDialog({
               {rotas.map((r, i) => (
                 <div
                   key={i}
-                  className="grid min-w-[900px] grid-cols-[1.2fr_1.6fr_0.9fr_0.8fr_0.9fr_0.9fr_0.8fr_0.7fr_0.7fr_auto] gap-2 items-center"
+                  className="grid min-w-[900px] grid-cols-[1.2fr_1.6fr_0.9fr_0.8fr_0.9fr_0.9fr_0.8fr_0.8fr_0.7fr_0.7fr_auto] gap-2 items-center"
                 >
                   {(
                     [
@@ -963,6 +977,7 @@ function TabelaDialog({
                       "taxa_despacho",
                       "frete_minimo",
                       "peso_minimo_kg",
+                      "percentual_reentrega",
                       "prazo_entrega_min_dias",
                       "prazo_entrega_max_dias",
                     ] as (keyof RotaDraft)[]
