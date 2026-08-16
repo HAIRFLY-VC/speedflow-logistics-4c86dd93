@@ -138,13 +138,21 @@ function calcularEsperado(
       const pesoCob = Math.max(peso, pesoMin);
       const tarifa = Number(r.tarifa_frete_peso ?? 0);
       const percValor = Number(r.frete_valor_percentual ?? 0);
-      const fretePeso = pesoCob * tarifa;
-      const freteValor = (percValor / 100) * valorMercadoria;
+      // Reentrega paga um percentual da tabela normal (padrão 50%; 100% na
+      // região metropolitana e zona da mata).
+      const perc = percentualReentrega(
+        tabela,
+        r.destino,
+        (r as { percentual_reentrega?: number | string | null }).percentual_reentrega,
+      );
+      const fator = isReentrega ? perc / 100 : 1;
+      const fretePeso = pesoCob * tarifa * fator;
+      const freteValor = (percValor / 100) * valorMercadoria * fator;
       let sub = fretePeso + freteValor;
-      const min = Number(r.frete_minimo ?? 0);
+      const min = Number(r.frete_minimo ?? 0) * fator;
       const aplicouMinimo = min > 0 && sub < min;
       if (aplicouMinimo) sub = min;
-      const despacho = Number(r.taxa_despacho ?? 0);
+      const despacho = Number(r.taxa_despacho ?? 0) * fator;
       return {
         id: r.id as string,
         rota: `${r.origem} → ${r.destino}`,
@@ -158,6 +166,7 @@ function calcularEsperado(
         despacho,
         aplicouMinimo,
         freteMinimo: min,
+        percReentrega: perc,
         total: sub + despacho,
       };
     });
@@ -180,6 +189,9 @@ function calcularEsperado(
           : origemRota === "nome"
             ? `praça com o nome do município ${municipioDestino}`
             : "praça estimada pelo valor cobrado (município não identificado)";
+    const reentregaTxt = isReentrega
+      ? ` · reentrega: ${num(escolhida.percReentrega)}% da tabela`
+      : "";
     const pesoTxt =
       escolhida.pesoCob > peso
         ? `${num(escolhida.pesoCob)} kg (peso mínimo da praça)`
@@ -189,13 +201,13 @@ function calcularEsperado(
       nome: "FRETE PESO",
       esperado: round2(escolhida.fretePeso),
       cobrado: null,
-      criterio: `${pesoTxt} × ${brl(escolhida.tarifa)}/kg · ${escolhida.destino} — ${comoEscolheu}`,
+      criterio: `${pesoTxt} × ${brl(escolhida.tarifa)}/kg · ${escolhida.destino} — ${comoEscolheu}${reentregaTxt}`,
     });
     itens.push({
       nome: "FRETE VALOR",
       esperado: round2(escolhida.freteValor),
       cobrado: null,
-      criterio: `${num(escolhida.percValor)}% sobre mercadoria de ${brl(valorMercadoria)} · ${escolhida.destino}`,
+      criterio: `${num(escolhida.percValor)}% sobre mercadoria de ${brl(valorMercadoria)} · ${escolhida.destino}${reentregaTxt}`,
     });
     if (escolhida.aplicouMinimo) {
       itens.push({
@@ -204,7 +216,7 @@ function calcularEsperado(
           escolhida.freteMinimo - (escolhida.fretePeso + escolhida.freteValor),
         ),
         cobrado: null,
-        criterio: `frete mínimo da praça ${escolhida.destino}: ${brl(escolhida.freteMinimo)}`,
+        criterio: `frete mínimo da praça ${escolhida.destino}: ${brl(escolhida.freteMinimo)}${reentregaTxt}`,
       });
     }
     if (escolhida.despacho) {
@@ -212,10 +224,11 @@ function calcularEsperado(
         nome: "DESPACHO",
         esperado: round2(escolhida.despacho),
         cobrado: null,
-        criterio: `taxa de despacho fixa da praça ${escolhida.destino}`,
+        criterio: `taxa de despacho fixa da praça ${escolhida.destino}${reentregaTxt}`,
       });
     }
     base = escolhida.total;
+
   } else {
     let criterio = "";
     if (tabela.tipo_calculo === "peso") {
