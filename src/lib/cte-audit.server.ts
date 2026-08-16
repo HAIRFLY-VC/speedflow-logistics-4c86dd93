@@ -169,9 +169,12 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
   if (error) throw new Error(error.message);
   if (!alvo) throw new Error("CT-e não encontrado");
 
+  // Reentrega (tipo 4) é um serviço à parte: audita sozinha, sem o original.
+  const isReentrega = alvo.tipo_cte === 4;
+
   // Se for complemento, audita a partir do CT-e original.
   let cte = alvo;
-  if (alvo.chave_cte_complementado) {
+  if (!isReentrega && alvo.chave_cte_complementado) {
     const { data: original } = await db
       .from("ctes")
       .select("*")
@@ -179,7 +182,8 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
       .maybeSingle();
     if (original) cte = original;
   } else if (
-    (alvo.tipo_cte === 1 || alvo.tipo_cte === 4) &&
+    !isReentrega &&
+    alvo.tipo_cte === 1 &&
     alvo.numero_cte_complementado &&
     alvo.cnpj_emitente
   ) {
@@ -193,19 +197,20 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     if (original) cte = original;
   }
 
-  const { data: porChave } = await db
-    .from("ctes")
-    .select("*")
-    .eq("chave_cte_complementado", cte.chave_acesso);
-  const { data: porNumero } = cte.numero && cte.cnpj_emitente
+  const { data: porChave } = isReentrega
+    ? { data: [] as Row[] }
+    : await db.from("ctes").select("*").eq("chave_cte_complementado", cte.chave_acesso);
+  const { data: porNumero } = !isReentrega && cte.numero && cte.cnpj_emitente
     ? await db
         .from("ctes")
         .select("*")
         .eq("cnpj_emitente", cte.cnpj_emitente)
         .eq("numero_cte_complementado", cte.numero)
     : { data: [] as typeof porChave };
+  // Reentregas nunca entram na soma do CT-e original.
   const complementos = [...(porChave ?? []), ...(porNumero ?? [])].filter(
-    (c, i, arr) => c.id !== cte.id && arr.findIndex((x) => x.id === c.id) === i,
+    (c, i, arr) =>
+      c.id !== cte.id && c.tipo_cte !== 4 && arr.findIndex((x) => x.id === c.id) === i,
   );
   const grupoIds = [cte.id, ...complementos.map((c) => c.id)];
 
