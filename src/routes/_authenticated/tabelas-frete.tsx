@@ -106,6 +106,7 @@ type TabelaForm = {
   tipo_calculo: "peso" | "valor";
   percentual_valor: string;
   gris_percentual: string;
+  gris_minimo: string;
   ad_valorem_percentual: string;
   pedagio_valor: string;
   tas_valor: string;
@@ -152,6 +153,7 @@ function emptyForm(): TabelaForm {
     tipo_calculo: "peso",
     percentual_valor: "0",
     gris_percentual: "0",
+    gris_minimo: "0",
     ad_valorem_percentual: "0",
     pedagio_valor: "0",
     tas_valor: "0",
@@ -398,6 +400,7 @@ function TabelaDialog({
           tipo_calculo: editing.tipo_calculo,
           percentual_valor: String(editing.percentual_valor),
           gris_percentual: String(editing.gris_percentual),
+          gris_minimo: String(editing.gris_minimo ?? 0),
           ad_valorem_percentual: String(editing.ad_valorem_percentual),
           pedagio_valor: String(editing.pedagio_valor),
           tas_valor: String(editing.tas_valor),
@@ -524,6 +527,7 @@ function TabelaDialog({
         tipo_calculo: r.tipo_calculo ?? f.tipo_calculo,
         percentual_valor: s(r.percentual_valor) ?? f.percentual_valor,
         gris_percentual: s(r.gris_percentual) ?? f.gris_percentual,
+        gris_minimo: s(r.gris_minimo) ?? f.gris_minimo,
         ad_valorem_percentual: s(r.ad_valorem_percentual) ?? f.ad_valorem_percentual,
         pedagio_valor: s(r.pedagio_valor) ?? f.pedagio_valor,
         tas_valor: s(r.tas_valor) ?? f.tas_valor,
@@ -595,6 +599,7 @@ function TabelaDialog({
         tipo_calculo: form.tipo_calculo,
         percentual_valor: num(form.percentual_valor),
         gris_percentual: num(form.gris_percentual),
+        gris_minimo: num(form.gris_minimo),
         ad_valorem_percentual: num(form.ad_valorem_percentual),
         pedagio_valor: num(form.pedagio_valor),
         tas_valor: num(form.tas_valor),
@@ -878,6 +883,7 @@ function TabelaDialog({
             [
               ["percentual_valor", "% sobre valor"],
               ["gris_percentual", "GRIS %"],
+              ["gris_minimo", "GRIS mínimo (R$)"],
               ["ad_valorem_percentual", "Ad valorem %"],
               ["pedagio_valor", "Pedágio (R$)"],
               ["tas_valor", "TAS (R$)"],

@@ -138,7 +138,11 @@ function calcularEsperado(
   }
 
 
-  const gris = (Number(tabela.gris_percentual) / 100) * valorMercadoria;
+  // GRIS: percentual sobre o valor da mercadoria, respeitando o valor mínimo da tabela.
+  const grisPerc = Number(tabela.gris_percentual) / 100;
+  const grisMin = Number((tabela as { gris_minimo?: number | string }).gris_minimo ?? 0);
+  let gris = grisPerc * valorMercadoria;
+  if (grisPerc > 0 && grisMin > 0 && gris < grisMin) gris = grisMin;
   const adv = (Number(tabela.ad_valorem_percentual) / 100) * valorMercadoria;
   // Pedágio não é provisionado por padrão: só é considerado quando cobrado no CT-e.
   const pedagio = 0;

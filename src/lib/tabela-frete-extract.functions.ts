@@ -17,6 +17,7 @@ export type ExtractedTabela = {
   tipo_calculo?: "peso" | "valor" | null;
   percentual_valor?: number | null;
   gris_percentual?: number | null;
+  gris_minimo?: number | null;
   ad_valorem_percentual?: number | null;
   pedagio_valor?: number | null;
   tas_valor?: number | null;
@@ -56,6 +57,7 @@ const SCHEMA = {
     tipo_calculo: { type: "string", enum: ["peso", "valor"] },
     percentual_valor: { type: "number" },
     gris_percentual: { type: "number" },
+    gris_minimo: { type: "number" },
     ad_valorem_percentual: { type: "number" },
     pedagio_valor: { type: "number" },
     tas_valor: { type: "number" },
