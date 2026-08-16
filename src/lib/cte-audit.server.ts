@@ -31,6 +31,17 @@ export type AuditOutcome = {
 
 const round2 = (n: number) => Math.round((Number.isFinite(n) ? n : 0) * 100) / 100;
 
+/** Formata moeda para os textos de critério. */
+const brl = (n: number) =>
+  (Number.isFinite(n) ? n : 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+
+/** Formata número solto (peso, percentual) para os textos de critério. */
+const num = (n: number) =>
+  (Number.isFinite(n) ? n : 0).toLocaleString("pt-BR", { maximumFractionDigits: 4 });
+
 async function getTolerancia(db: Db) {
   const { data } = await db
     .from("configuracoes_auditoria_frete")
