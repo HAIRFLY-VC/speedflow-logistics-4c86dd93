@@ -198,7 +198,7 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
   }
 
   const { data: porChave } = isReentrega
-    ? { data: [] as Row[] }
+    ? { data: null }
     : await db.from("ctes").select("*").eq("chave_cte_complementado", cte.chave_acesso);
   const { data: porNumero } = !isReentrega && cte.numero && cte.cnpj_emitente
     ? await db
