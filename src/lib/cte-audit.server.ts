@@ -422,6 +422,7 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
   );
 
 
+
   const norm = (s: string) => s.toUpperCase().replace(/\s+/g, " ").trim();
   const usados = new Set<number>();
   const detalhamento: AuditItem[] = itens.map((item) => {
