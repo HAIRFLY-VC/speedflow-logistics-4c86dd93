@@ -230,6 +230,18 @@ function CtesPage() {
     },
   });
 
+  const reprocessarTomadores = useMutation({
+    mutationFn: (somentePendentes: boolean) =>
+      reprocessarIdentificacao({ data: { somentePendentes } }),
+    onSuccess: (r) => {
+      toast.success(
+        `${r.processados} CT-e reprocessados — ${r.identificados} com empresa identificada, ${r.pendentes} pendentes.`,
+      );
+      void qc.invalidateQueries({ queryKey: ["ctes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   useEffect(() => {
     if (!data) return;
