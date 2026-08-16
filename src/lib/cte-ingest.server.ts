@@ -44,7 +44,30 @@ export async function logCteIngest(entry: LogEntry): Promise<void> {
   }
 }
 
+/**
+ * Encontra a empresa cadastrada correspondente ao tomador do serviço do CT-e.
+ * Completa a razão social quando a empresa foi cadastrada apenas com o CNPJ.
+ */
+export async function resolverEmpresaDoTomador(
+  parsed: Pick<ParsedCte, "tomador_cnpj" | "tomador_nome">,
+): Promise<string | null> {
+  const cnpj = parsed.tomador_cnpj;
+  if (!cnpj) return null;
+  const { data } = await centralDb
+    .from("empresas")
+    .select("id, razao_social")
+    .eq("cnpj", cnpj)
+    .maybeSingle();
+  if (!data?.id) return null;
+  const nome = parsed.tomador_nome;
+  if (nome && (!data.razao_social || data.razao_social === `Empresa ${cnpj}`)) {
+    await centralDb.from("empresas").update({ razao_social: nome }).eq("id", data.id);
+  }
+  return data.id;
+}
+
 export async function ingestCteXml(params: {
+
   xml: string;
   origem: "MANUAL" | "SEFAZ_AUTO";
 }): Promise<IngestResult> {
