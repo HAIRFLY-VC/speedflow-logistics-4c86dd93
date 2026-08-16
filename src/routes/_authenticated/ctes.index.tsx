@@ -94,6 +94,7 @@ function CtesPage() {
   const cancelarCaptura = useServerFn(cancelarCapturaCte);
   const statusRobo = useServerFn(getStatusRobo);
   const backfillDestinatarios = useServerFn(backfillNomeDestinatario);
+  const reprocessarIdentificacao = useServerFn(reprocessarIdentificacaoCtes);
 
   const { data: robo } = useQuery({
 
