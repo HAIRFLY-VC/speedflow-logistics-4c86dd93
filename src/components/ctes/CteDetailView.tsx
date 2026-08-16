@@ -589,7 +589,8 @@ export function CteDetailView({
         )}
       </section>
 
-      {!isComplemento ? (
+      {/* Reentrega é um serviço próprio: audita normalmente. Só o complementar não audita. */}
+      {!isComplemento || isReentrega ? (
         <>
       <Separator />
 
