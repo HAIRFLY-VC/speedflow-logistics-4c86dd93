@@ -448,6 +448,36 @@ function CtesPage() {
         ),
       },
       {
+        id: "tomador",
+        header: "Tomador",
+        accessor: (c) => c.tomador_nome ?? c.tomador_cnpj ?? "",
+        render: (c) => {
+          if (!c.tomador_cnpj && !c.tomador_nome) {
+            return (
+              <Badge variant="secondary" className="bg-amber-500/10 text-amber-600">
+                Tomador não identificado
+              </Badge>
+            );
+          }
+          return (
+            <div>
+              <div className="font-mono text-xs">{c.tomador_cnpj ?? "—"}</div>
+              <div className="text-[11px] font-medium">
+                <span className={c.empresa_id ? "text-emerald-600" : "text-destructive"}>
+                  {c.tomador_nome ?? "—"}
+                </span>
+                {c.tomador_papel ? (
+                  <span className="text-muted-foreground">
+                    {" "}
+                    ({PAPEL_LABEL[c.tomador_papel] ?? c.tomador_papel})
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          );
+        },
+      },
+      {
         id: "destinatario",
         header: "Destinatário",
         accessor: (c) => c.nome_destinatario ?? c.cnpj_destinatario ?? "",
