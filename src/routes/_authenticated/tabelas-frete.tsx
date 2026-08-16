@@ -192,6 +192,16 @@ function TabelasFretePage() {
     },
   });
 
+  // Abre direto a tabela indicada na URL (ex.: link vindo da auditoria do CT-e).
+  useEffect(() => {
+    if (!tabelaParam || !data) return;
+    const alvo = data.find((t) => t.id === tabelaParam);
+    if (alvo) {
+      setEditing(alvo);
+      setOpen(true);
+    }
+  }, [tabelaParam, data]);
+
   const nomeTransportadora = useMemo(() => {
     const map = new Map<string, string>();
     (transportadoras ?? []).forEach((t) => map.set(t.id, t.razao_social));
