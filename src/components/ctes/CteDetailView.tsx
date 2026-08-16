@@ -271,6 +271,10 @@ export function CteDetailView({
     ? (carga?.peso_real ?? Number(cte.peso_taxado ?? 0) ?? 0)
     : totalPesoBruto;
 
+  // Complemento por descarga: exibimos o rateio referencial por volume e por kg.
+  const isDescarga =
+    isComplemento && /DESCARG/i.test(cte.motivo_complemento ?? "");
+
   const podeAbrirOriginal = !!cteOriginal?.id;
 
   const openCteLink = (cteId: string) => {
