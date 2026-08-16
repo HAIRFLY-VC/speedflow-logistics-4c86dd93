@@ -223,7 +223,7 @@ export function CteDetailView({
     valor?: number;
   }[];
   const nfsProprias = (Array.isArray(cte.nfs_referenciadas) ? cte.nfs_referenciadas : []) as string[];
-  const cteOriginal = isComplementar ? (grupo?.[0] ?? null) : null;
+  const cteOriginal = isVinculado ? (grupo?.[0] ?? null) : null;
   const nfsDoOriginal = (
     Array.isArray(cteOriginal?.nfs_referenciadas) ? cteOriginal!.nfs_referenciadas : []
   ) as string[];
@@ -250,13 +250,15 @@ export function CteDetailView({
     ? (carga?.peso_real ?? Number(cte.peso_taxado ?? 0) ?? 0)
     : totalPesoBruto;
 
-  const podeAbrirOriginal = !!cteOriginal?.id && (linkMode !== "same" || !!onOpenCte);
+  const podeAbrirOriginal = !!cteOriginal?.id;
 
   const openCteLink = (cteId: string) => {
     if (linkMode === "window") {
       openAppRoute(router, `/ctes/${cteId}`);
-    } else if (linkMode === "dialog") {
-      onOpenCte?.(cteId);
+    } else if (linkMode === "dialog" && onOpenCte) {
+      onOpenCte(cteId);
+    } else {
+      void router.navigate({ to: "/ctes/$cteId", params: { cteId } });
     }
   };
 
