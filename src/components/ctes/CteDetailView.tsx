@@ -142,7 +142,10 @@ export function CteDetailView({
       }
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []).filter((g) => g.id !== cte.id);
+      // Reentregas são auditadas isoladamente: não entram no grupo do original.
+      return (data ?? []).filter(
+        (g) => g.id !== cte.id && (isVinculado || g.tipo_cte !== 4),
+      );
     },
   });
 
