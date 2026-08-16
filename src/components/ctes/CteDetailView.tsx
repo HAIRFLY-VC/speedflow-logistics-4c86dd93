@@ -250,10 +250,12 @@ export function CteDetailView({
   const nfs = usandoNfsDoOriginal ? nfsDoOriginal : nfsProprias;
 
   const buscarVolumes = useServerFn(getVolumesNfesDoCte);
+  // Complementar/reentrega não tem carga própria: os totais vêm do CT-e original.
+  const cteIdCarga = usandoNfsDoOriginal && cteOriginal?.id ? cteOriginal.id : cte.id;
   const { data: volumesResp, isFetching: volumesLoading } = useQuery({
-    queryKey: ["cte-nfes-volumes", cte.id, nfs.join(",")],
+    queryKey: ["cte-nfes-volumes", cteIdCarga, nfs.join(",")],
     enabled: nfs.length > 0,
-    queryFn: async () => await buscarVolumes({ data: { chaves: nfs, cteId: cte.id } }),
+    queryFn: async () => await buscarVolumes({ data: { chaves: nfs, cteId: cteIdCarga } }),
     refetchInterval: (q) =>
       (q.state.data?.notas ?? []).some((n) => n.status !== "DISPONIVEL") ? 60_000 : false,
   });
