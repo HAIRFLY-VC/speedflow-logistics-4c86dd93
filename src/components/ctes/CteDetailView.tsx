@@ -328,19 +328,21 @@ export function CteDetailView({
         <Field
           label="Tipo do CT-e"
           value={
-            isComplementar
-              ? "Complementar"
-              : cte.tipo_cte === 2
-                ? "Anulação"
-                : cte.tipo_cte === 3
-                  ? "Substituto"
-                  : "Normal"
+            isReentrega
+              ? "Reentrega"
+              : isComplementar
+                ? "Complementar"
+                : cte.tipo_cte === 2
+                  ? "Anulação"
+                  : cte.tipo_cte === 3
+                    ? "Substituto"
+                    : "Normal"
           }
-          hint={isComplementar ? (cte.motivo_complemento ?? undefined) : undefined}
+          hint={isVinculado ? (cte.motivo_complemento ?? undefined) : undefined}
         />
-        {isComplementar && (
+        {isVinculado && (
           <Field
-            label="Motivo do complemento"
+            label={isReentrega ? "Motivo" : "Motivo do complemento"}
             value={cte.motivo_complemento ?? "Não identificado"}
           />
         )}
