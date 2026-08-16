@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/central/client";
+import { PAPEL_LABEL } from "@/lib/cte-tomador";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Cte = Tables<"ctes">;
