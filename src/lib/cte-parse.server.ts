@@ -21,6 +21,11 @@ export type ParsedCte = {
   nome_destinatario: string | null;
   cnpj_remetente: string | null;
   nome_remetente: string | null;
+  /** Tomador do serviço (quem paga o frete). */
+  tomador_cnpj: string | null;
+  tomador_nome: string | null;
+  tomador_papel: TomadorPapel | null;
+
   data_emissao: string | null;
   valor_total_frete: number;
   valor_mercadoria: number;
