@@ -76,8 +76,13 @@ export function parseCteXml(xml: string): ParsedCte {
   const emit = sectionOf(xml, "emit") ?? "";
   const dest = sectionOf(xml, "dest") ?? "";
   const rem = sectionOf(xml, "rem") ?? "";
+  const exped = sectionOf(xml, "exped") ?? "";
+  const receb = sectionOf(xml, "receb") ?? "";
   const vPrest = sectionOf(xml, "vPrest") ?? "";
   const infCarga = sectionOf(xml, "infCarga") ?? "";
+
+  const tomador = resolverTomador({ ide, xml, rem, exped, receb, dest });
+
 
   const componentes: CteComponente[] = allSections(vPrest, "Comp")
     .map((c) => ({
