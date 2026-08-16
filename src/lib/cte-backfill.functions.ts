@@ -119,3 +119,82 @@ export const obterEnderecoEntregaCte = createServerFn({ method: "POST" })
 
     return { endereco: parseEnderecoDestinatario(await file.text()) };
   });
+
+/** Lê o XML de um CT-e (coluna `xml_conteudo` com fallback no arquivo armazenado). */
+async function lerXmlCte(cte: { xml_conteudo?: string | null; xml_storage_path?: string | null }) {
+  if (cte.xml_conteudo && cte.xml_conteudo.includes("<")) return cte.xml_conteudo;
+  if (!cte.xml_storage_path) return null;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: file } = await supabaseAdmin.storage.from("cte-xml").download(cte.xml_storage_path);
+  return file ? await file.text() : null;
+}
+
+/**
+ * Recalcula o tomador do serviço (e a empresa responsável) de CT-e já
+ * capturados, relendo o XML armazenado — sem precisar reenviar o arquivo.
+ */
+export const reprocessarIdentificacaoCtes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => {
+    const v = (input ?? {}) as { cteIds?: string[]; somentePendentes?: boolean };
+    return {
+      cteIds: Array.isArray(v.cteIds) ? v.cteIds.filter((i) => typeof i === "string") : null,
+      somentePendentes: !!v.somentePendentes,
+    };
+  })
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { parseCteXml } = await import("./cte-parse.server");
+    const { resolverEmpresaDoTomador } = await import("./cte-ingest.server");
+
+    let q = centralDb
+      .from("ctes")
+      .select("id, status, transportadora_id, xml_conteudo, xml_storage_path")
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    if (data.cteIds?.length) q = q.in("id", data.cteIds);
+    else if (data.somentePendentes) q = q.is("tomador_cnpj", null);
+
+    const { data: ctes, error } = await q;
+    if (error) throw new Error(error.message);
+
+    let processados = 0;
+    let identificados = 0;
+    let pendentes = 0;
+    const erros: string[] = [];
+
+    for (const c of ctes ?? []) {
+      try {
+        const xml = await lerXmlCte(c as { xml_conteudo?: string | null; xml_storage_path?: string | null });
+        if (!xml) continue;
+        const parsed = parseCteXml(xml);
+        const empresaId = await resolverEmpresaDoTomador(parsed);
+        const status =
+          (c as { transportadora_id: string | null }).transportadora_id && empresaId
+            ? undefined
+            : ("PENDENTE_IDENTIFICACAO" as const);
+
+        const patch: Record<string, unknown> = {
+          tomador_cnpj: parsed.tomador_cnpj,
+          tomador_nome: parsed.tomador_nome,
+          tomador_papel: parsed.tomador_papel,
+          empresa_id: empresaId,
+        };
+        if (status) patch["status"] = status;
+
+        const { error: upErr } = await centralDb
+          .from("ctes")
+          .update(patch as never)
+          .eq("id", (c as { id: string }).id);
+        if (upErr) throw new Error(upErr.message);
+
+        processados++;
+        if (empresaId) identificados++;
+        else pendentes++;
+      } catch (e) {
+        erros.push(`${(c as { id: string }).id}: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+
+    return { total: ctes?.length ?? 0, processados, identificados, pendentes, erros };
+  });

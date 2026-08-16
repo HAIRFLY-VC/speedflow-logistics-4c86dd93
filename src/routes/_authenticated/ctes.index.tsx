@@ -28,9 +28,13 @@ import {
   cancelarCapturaCte,
   getStatusRobo,
 } from "@/lib/cte-captura.functions";
-import { backfillNomeDestinatario } from "@/lib/cte-backfill.functions";
+import {
+  backfillNomeDestinatario,
+  reprocessarIdentificacaoCtes,
+} from "@/lib/cte-backfill.functions";
 
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
+import { PAPEL_LABEL } from "@/lib/cte-tomador";
 import type { Tables } from "@/integrations/supabase/types";
 
 
@@ -91,6 +95,7 @@ function CtesPage() {
   const cancelarCaptura = useServerFn(cancelarCapturaCte);
   const statusRobo = useServerFn(getStatusRobo);
   const backfillDestinatarios = useServerFn(backfillNomeDestinatario);
+  const reprocessarIdentificacao = useServerFn(reprocessarIdentificacaoCtes);
 
   const { data: robo } = useQuery({
 
@@ -224,6 +229,18 @@ function CtesPage() {
     onError: (err) => {
       console.error("Backfill destinatários falhou:", err);
     },
+  });
+
+  const reprocessarTomadores = useMutation({
+    mutationFn: (somentePendentes: boolean) =>
+      reprocessarIdentificacao({ data: { somentePendentes } }),
+    onSuccess: (r) => {
+      toast.success(
+        `${r.processados} CT-e reprocessados — ${r.identificados} com empresa identificada, ${r.pendentes} pendentes.`,
+      );
+      void qc.invalidateQueries({ queryKey: ["ctes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
 
@@ -430,6 +447,36 @@ function CtesPage() {
             </div>
           </div>
         ),
+      },
+      {
+        id: "tomador",
+        header: "Tomador",
+        accessor: (c) => c.tomador_nome ?? c.tomador_cnpj ?? "",
+        render: (c) => {
+          if (!c.tomador_cnpj && !c.tomador_nome) {
+            return (
+              <Badge variant="secondary" className="bg-amber-500/10 text-amber-600">
+                Tomador não identificado
+              </Badge>
+            );
+          }
+          return (
+            <div>
+              <div className="font-mono text-xs">{c.tomador_cnpj ?? "—"}</div>
+              <div className="text-[11px] font-medium">
+                <span className={c.empresa_id ? "text-emerald-600" : "text-destructive"}>
+                  {c.tomador_nome ?? "—"}
+                </span>
+                {c.tomador_papel ? (
+                  <span className="text-muted-foreground">
+                    {" "}
+                    ({PAPEL_LABEL[c.tomador_papel] ?? c.tomador_papel})
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          );
+        },
       },
       {
         id: "destinatario",
@@ -644,6 +691,19 @@ function CtesPage() {
             >
               <RefreshCw className="h-4 w-4 mr-1" />
               Reimportar tudo
+            </Button>
+            <Button
+              variant="outline"
+              disabled={reprocessarTomadores.isPending}
+              onClick={() => reprocessarTomadores.mutate(false)}
+              title="Relê os XML já armazenados e identifica o tomador do serviço de cada CT-e"
+            >
+              {reprocessarTomadores.isPending ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <UserPlus className="h-4 w-4 mr-1" />
+              )}
+              Reprocessar tomadores
             </Button>
             {capturaEmAndamento && (
               <Button

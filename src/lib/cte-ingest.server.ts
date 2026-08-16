@@ -44,34 +44,40 @@ export async function logCteIngest(entry: LogEntry): Promise<void> {
   }
 }
 
+/**
+ * Encontra a empresa cadastrada correspondente ao tomador do serviço do CT-e.
+ * Completa a razão social quando a empresa foi cadastrada apenas com o CNPJ.
+ */
+export async function resolverEmpresaDoTomador(
+  parsed: Pick<ParsedCte, "tomador_cnpj" | "tomador_nome">,
+): Promise<string | null> {
+  const cnpj = parsed.tomador_cnpj;
+  if (!cnpj) return null;
+  const { data } = await centralDb
+    .from("empresas")
+    .select("id, razao_social")
+    .eq("cnpj", cnpj)
+    .maybeSingle();
+  if (!data?.id) return null;
+  const nome = parsed.tomador_nome;
+  if (nome && (!data.razao_social || data.razao_social === `Empresa ${cnpj}`)) {
+    await centralDb.from("empresas").update({ razao_social: nome }).eq("id", data.id);
+  }
+  return data.id;
+}
+
 export async function ingestCteXml(params: {
+
   xml: string;
   origem: "MANUAL" | "SEFAZ_AUTO";
 }): Promise<IngestResult> {
   const parsed: ParsedCte = parseCteXml(params.xml);
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  // Importa todo CT-e capturado. A empresa (detentora do certificado A1) é
-  // identificada pelo remetente ou pelo destinatário, sem descartar nada.
-  let empresaRemetenteId: string | null = null;
-  const cnpjsEmpresa = [parsed.cnpj_remetente, parsed.cnpj_destinatario].filter(
-    (c): c is string => !!c,
-  );
-  for (const cnpj of cnpjsEmpresa) {
-    const { data } = await centralDb
-      .from("empresas")
-      .select("id, razao_social")
-      .eq("cnpj", cnpj)
-      .maybeSingle();
-    if (!data?.id) continue;
-    empresaRemetenteId = data.id;
-    const nome = cnpj === parsed.cnpj_remetente ? parsed.nome_remetente : parsed.nome_destinatario;
-    // Completa a razão social quando ela foi cadastrada apenas com o CNPJ.
-    if (nome && (!data.razao_social || data.razao_social === `Empresa ${cnpj}`)) {
-      await centralDb.from("empresas").update({ razao_social: nome }).eq("id", data.id);
-    }
-    break;
-  }
+  // A empresa responsável é a TOMADORA do serviço (quem paga o frete),
+  // declarada em ide/toma3 ou ide/toma4 — não necessariamente o destinatário.
+  const empresaRemetenteId = await resolverEmpresaDoTomador(parsed);
+
 
 
 
@@ -138,6 +144,10 @@ export async function ingestCteXml(params: {
       nome_emitente: parsed.nome_emitente,
       cnpj_destinatario: parsed.cnpj_destinatario,
       nome_destinatario: parsed.nome_destinatario,
+      tomador_cnpj: parsed.tomador_cnpj,
+      tomador_nome: parsed.tomador_nome,
+      tomador_papel: parsed.tomador_papel,
+
       data_emissao: parsed.data_emissao,
       valor_total_frete: parsed.valor_total_frete,
       valor_mercadoria: parsed.valor_mercadoria,
@@ -171,7 +181,7 @@ export async function ingestCteXml(params: {
     mensagem: transportadoraId
       ? empresaId
         ? null
-        : "Empresa remetente não cadastrada"
+        : "Tomador do serviço não cadastrado como empresa"
       : "Transportadora emitente não cadastrada",
     cte_id: inserted.id,
   });
