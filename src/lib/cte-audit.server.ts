@@ -3,6 +3,8 @@
 import type { CentralDatabase } from "@/integrations/central/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { acharRotaPorMunicipio } from "@/lib/frete-area";
+import { parseEnderecoDestinatario } from "@/lib/cte-parse.server";
 
 type Db = SupabaseClient<CentralDatabase>;
 
