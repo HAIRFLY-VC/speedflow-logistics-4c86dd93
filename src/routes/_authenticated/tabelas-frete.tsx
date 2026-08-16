@@ -527,6 +527,7 @@ function TabelaDialog({
         tipo_calculo: r.tipo_calculo ?? f.tipo_calculo,
         percentual_valor: s(r.percentual_valor) ?? f.percentual_valor,
         gris_percentual: s(r.gris_percentual) ?? f.gris_percentual,
+        gris_minimo: s(r.gris_minimo) ?? f.gris_minimo,
         ad_valorem_percentual: s(r.ad_valorem_percentual) ?? f.ad_valorem_percentual,
         pedagio_valor: s(r.pedagio_valor) ?? f.pedagio_valor,
         tas_valor: s(r.tas_valor) ?? f.tas_valor,
