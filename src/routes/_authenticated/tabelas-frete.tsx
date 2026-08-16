@@ -38,6 +38,9 @@ import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/tabelas-frete")({
   component: TabelasFretePage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    tabela: typeof search.tabela === "string" ? search.tabela : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Tabelas de preço de frete | SpeedFlow Logistics" },
