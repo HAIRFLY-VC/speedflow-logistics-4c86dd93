@@ -271,6 +271,10 @@ export function CteDetailView({
     ? (carga?.peso_real ?? Number(cte.peso_taxado ?? 0) ?? 0)
     : totalPesoBruto;
 
+  // Complemento por descarga: exibimos o rateio referencial por volume e por kg.
+  const isDescarga =
+    isComplemento && /DESCARG/i.test(cte.motivo_complemento ?? "");
+
   const podeAbrirOriginal = !!cteOriginal?.id;
 
   const openCteLink = (cteId: string) => {
@@ -445,15 +449,31 @@ export function CteDetailView({
           <p className="text-muted-foreground text-sm">Nenhum componente informado.</p>
         ) : (
           <div className="rounded-md border">
-            {componentes.map((c, i) => (
-              <div
-                key={`${c.nome}-${i}`}
-                className="flex items-center justify-between border-b px-3 py-2 text-sm last:border-b-0"
-              >
-                <span>{c.nome || "—"}</span>
-                <span className="font-medium">{brl(Number(c.valor ?? 0))}</span>
-              </div>
-            ))}
+            {componentes.map((c, i) => {
+              const valor = Number(c.valor ?? 0);
+              return (
+                <div
+                  key={`${c.nome}-${i}`}
+                  className="flex items-start justify-between gap-3 border-b px-3 py-2 text-sm last:border-b-0"
+                >
+                  <span>{isDescarga ? "DESCARGA" : c.nome || "—"}</span>
+                  <div className="text-right">
+                    <div className="font-medium">{brl(valor)}</div>
+                    {isDescarga ? (
+                      <div className="text-muted-foreground text-xs">
+                        {volumesExibidos > 0
+                          ? `${brl(valor)} ÷ ${volumesExibidos.toLocaleString("pt-BR")} volumes = ${brl(valor / volumesExibidos)}/volume`
+                          : "volumes não disponíveis"}
+                        <br />
+                        {pesoExibido > 0
+                          ? `${brl(valor)} ÷ ${pesoExibido.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg = ${brl(valor / pesoExibido)}/kg`
+                          : "peso não disponível"}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
             <div className="bg-muted/40 flex items-center justify-between px-3 py-2 text-sm font-semibold">
               <span>Total</span>
               <span>{brl(Number(cte.valor_total_frete))}</span>
