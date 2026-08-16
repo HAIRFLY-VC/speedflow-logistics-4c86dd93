@@ -95,15 +95,34 @@ export async function pickTabela(
 
 type Tabela = NonNullable<Awaited<ReturnType<typeof pickTabela>>>;
 
+/** Percentual da tabela aplicado em reentrega.
+ *  Regra padrão da tabela: região metropolitana e zona da mata = 100% do frete
+ *  original; demais regiões = 50%. O valor pode ser configurado por praça
+ *  (coluna `percentual_reentrega` da rota) ou na tabela. */
+function percentualReentrega(
+  tabela: Tabela,
+  destino?: string | null,
+  rotaPerc?: number | string | null,
+): number {
+  const daRota = Number(rotaPerc);
+  if (Number.isFinite(daRota) && daRota > 0) return daRota;
+  const daTabela = Number((tabela as { percentual_reentrega?: number | string }).percentual_reentrega);
+  if (Number.isFinite(daTabela) && daTabela > 0) return daTabela;
+  const d = (destino ?? "").toUpperCase();
+  return /METROPOLITAN|ZONA DA MATA/.test(d) ? 100 : 50;
+}
+
 function calcularEsperado(
   tabela: Tabela,
   peso: number,
   valorMercadoria: number,
   cobradoTotal = 0,
   municipioDestino?: string | null,
+  isReentrega = false,
 ): { itens: AuditItem[]; total: number; rota?: string; rotaId?: string; origemRota?: string } {
   const itens: AuditItem[] = [];
   const rotas = tabela.tabelas_preco_frete_rotas ?? [];
+
 
   let base = 0;
   let rotaNome: string | undefined;
