@@ -572,6 +572,11 @@ function TabelaDialog({
             destino: (ro.destino ?? "").trim(),
             tarifa_frete_peso: String(ro.tarifa_frete_peso ?? 0),
             frete_valor_percentual: String(ro.frete_valor_percentual ?? 0),
+            percentual_reentrega: /METROPOLITAN|ZONA DA MATA/.test(
+              (ro.destino ?? "").toUpperCase(),
+            )
+              ? "100"
+              : "50",
             taxa_despacho: String(despacho),
             frete_minimo: String(ro.frete_minimo ?? 0),
             peso_minimo_kg: String(pesoMin),
@@ -707,7 +712,9 @@ function TabelaDialog({
             r.prazo_entrega_max_dias === "" ? null : Math.round(num(r.prazo_entrega_max_dias)),
         }));
       if (rotaRows.length) {
-        const { error } = await supabase.from("tabelas_preco_frete_rotas").insert(rotaRows);
+        const { error } = await supabase
+          .from("tabelas_preco_frete_rotas")
+          .insert(rotaRows as never);
         if (error) throw error;
       }
     },
