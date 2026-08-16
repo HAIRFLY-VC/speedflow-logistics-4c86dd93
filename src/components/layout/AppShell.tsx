@@ -7,7 +7,7 @@ import {
   Kanban,
   Users,
   Building2,
-  Package,
+  
   ShoppingCart,
   Truck,
   Route as RouteIcon,
@@ -54,7 +54,7 @@ const NAV: NavItem[] = [
   { title: "Pedidos", url: "/pedidos", icon: ShoppingCart, roles: ["adm", "gestor", "operador"] },
   { title: "Clientes", url: "/clientes", icon: Users, roles: ["adm", "gestor", "operador"] },
   { title: "Empresas", url: "/empresas", icon: Building2, roles: ["adm"] },
-  { title: "Produtos", url: "/produtos", icon: Package, roles: ["adm", "gestor", "operador"] },
+  
   { title: "Fretistas", url: "/fretistas", icon: Truck, roles: ["adm", "gestor", "operador"] },
   { title: "Transportadoras", url: "/transportadoras", icon: Truck, roles: ["adm", "gestor", "operador"] },
   { title: "Tabelas de frete", url: "/tabelas-frete", icon: FileText, roles: ["adm", "gestor", "operador"] },

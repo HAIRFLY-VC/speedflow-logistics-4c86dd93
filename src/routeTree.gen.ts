@@ -25,7 +25,6 @@ import { Route as AuthenticatedFretistasRouteImport } from './routes/_authentica
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
 import { Route as AuthenticatedMinhasRotasRouteImport } from './routes/_authenticated/minhas-rotas'
 import { Route as AuthenticatedPagamentoFretesRouteImport } from './routes/_authenticated/pagamento-fretes'
-import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedSugestaoRotasRouteImport } from './routes/_authenticated/sugestao-rotas'
 import { Route as AuthenticatedTabelasFreteRouteImport } from './routes/_authenticated/tabelas-frete'
 import { Route as AuthenticatedTransportadorasRouteImport } from './routes/_authenticated/transportadoras'
@@ -129,11 +128,6 @@ const AuthenticatedPagamentoFretesRoute =
     path: '/pagamento-fretes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
-  id: '/produtos',
-  path: '/produtos',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedSugestaoRotasRoute =
   AuthenticatedSugestaoRotasRouteImport.update({
     id: '/sugestao-rotas',
@@ -250,7 +244,6 @@ export interface FileRoutesByFullPath {
   '/kanban': typeof AuthenticatedKanbanRoute
   '/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/pagamento-fretes': typeof AuthenticatedPagamentoFretesRoute
-  '/produtos': typeof AuthenticatedProdutosRoute
   '/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
   '/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
   '/transportadoras': typeof AuthenticatedTransportadorasRoute
@@ -285,7 +278,6 @@ export interface FileRoutesByTo {
   '/kanban': typeof AuthenticatedKanbanRoute
   '/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/pagamento-fretes': typeof AuthenticatedPagamentoFretesRoute
-  '/produtos': typeof AuthenticatedProdutosRoute
   '/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
   '/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
   '/transportadoras': typeof AuthenticatedTransportadorasRoute
@@ -323,7 +315,6 @@ export interface FileRoutesById {
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
   '/_authenticated/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/_authenticated/pagamento-fretes': typeof AuthenticatedPagamentoFretesRoute
-  '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
   '/_authenticated/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
   '/_authenticated/transportadoras': typeof AuthenticatedTransportadorasRoute
@@ -361,7 +352,6 @@ export interface FileRouteTypes {
     | '/kanban'
     | '/minhas-rotas'
     | '/pagamento-fretes'
-    | '/produtos'
     | '/sugestao-rotas'
     | '/tabelas-frete'
     | '/transportadoras'
@@ -396,7 +386,6 @@ export interface FileRouteTypes {
     | '/kanban'
     | '/minhas-rotas'
     | '/pagamento-fretes'
-    | '/produtos'
     | '/sugestao-rotas'
     | '/tabelas-frete'
     | '/transportadoras'
@@ -433,7 +422,6 @@ export interface FileRouteTypes {
     | '/_authenticated/kanban'
     | '/_authenticated/minhas-rotas'
     | '/_authenticated/pagamento-fretes'
-    | '/_authenticated/produtos'
     | '/_authenticated/sugestao-rotas'
     | '/_authenticated/tabelas-frete'
     | '/_authenticated/transportadoras'
@@ -579,13 +567,6 @@ declare module '@tanstack/react-router' {
       path: '/pagamento-fretes'
       fullPath: '/pagamento-fretes'
       preLoaderRoute: typeof AuthenticatedPagamentoFretesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/produtos': {
-      id: '/_authenticated/produtos'
-      path: '/produtos'
-      fullPath: '/produtos'
-      preLoaderRoute: typeof AuthenticatedProdutosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/sugestao-rotas': {
@@ -747,7 +728,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
   AuthenticatedMinhasRotasRoute: typeof AuthenticatedMinhasRotasRoute
   AuthenticatedPagamentoFretesRoute: typeof AuthenticatedPagamentoFretesRoute
-  AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedSugestaoRotasRoute: typeof AuthenticatedSugestaoRotasRoute
   AuthenticatedTabelasFreteRoute: typeof AuthenticatedTabelasFreteRoute
   AuthenticatedTransportadorasRoute: typeof AuthenticatedTransportadorasRoute
@@ -773,7 +753,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
   AuthenticatedMinhasRotasRoute: AuthenticatedMinhasRotasRoute,
   AuthenticatedPagamentoFretesRoute: AuthenticatedPagamentoFretesRoute,
-  AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedSugestaoRotasRoute: AuthenticatedSugestaoRotasRoute,
   AuthenticatedTabelasFreteRoute: AuthenticatedTabelasFreteRoute,
   AuthenticatedTransportadorasRoute: AuthenticatedTransportadorasRoute,
