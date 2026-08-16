@@ -164,6 +164,7 @@ function emptyForm(): TabelaForm {
 
 function TabelasFretePage() {
   const qc = useQueryClient();
+  const { tabela: tabelaParam } = useSearch({ from: "/_authenticated/tabelas-frete" });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Tabela | null>(null);
 
