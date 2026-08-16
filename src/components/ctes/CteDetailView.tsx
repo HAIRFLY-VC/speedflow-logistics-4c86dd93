@@ -310,7 +310,33 @@ export function CteDetailView({
 
   return (
     <div className="space-y-5">
+      <div className="rounded-md border p-3">
+        <div className="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wide">
+          Tomador do serviço
+        </div>
+        {cte.tomador_cnpj || cte.tomador_nome ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <Field label="CNPJ/CPF" value={cte.tomador_cnpj ?? "—"} />
+            <Field label="Razão social" value={cte.tomador_nome ?? "—"} />
+            <Field
+              label="Papel no CT-e"
+              value={
+                cte.tomador_papel
+                  ? (PAPEL_LABEL[cte.tomador_papel] ?? cte.tomador_papel)
+                  : "—"
+              }
+              hint={cte.empresa_id ? "Empresa cadastrada no app" : "Empresa não cadastrada no app"}
+            />
+          </div>
+        ) : (
+          <div className="text-muted-foreground text-sm">
+            Tomador não identificado no XML. Use “Reprocessar tomadores” na listagem de CT-e.
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+
         <Field label="Transportadora" value={transportadoraNome ?? "Não identificada"} />
         <Field
           label="CNPJ emitente"
