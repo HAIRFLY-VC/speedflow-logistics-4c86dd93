@@ -51,27 +51,10 @@ export async function ingestCteXml(params: {
   const parsed: ParsedCte = parseCteXml(params.xml);
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  // Importa todo CT-e capturado. A empresa (detentora do certificado A1) é
-  // identificada pelo remetente ou pelo destinatário, sem descartar nada.
-  let empresaRemetenteId: string | null = null;
-  const cnpjsEmpresa = [parsed.cnpj_remetente, parsed.cnpj_destinatario].filter(
-    (c): c is string => !!c,
-  );
-  for (const cnpj of cnpjsEmpresa) {
-    const { data } = await centralDb
-      .from("empresas")
-      .select("id, razao_social")
-      .eq("cnpj", cnpj)
-      .maybeSingle();
-    if (!data?.id) continue;
-    empresaRemetenteId = data.id;
-    const nome = cnpj === parsed.cnpj_remetente ? parsed.nome_remetente : parsed.nome_destinatario;
-    // Completa a razão social quando ela foi cadastrada apenas com o CNPJ.
-    if (nome && (!data.razao_social || data.razao_social === `Empresa ${cnpj}`)) {
-      await centralDb.from("empresas").update({ razao_social: nome }).eq("id", data.id);
-    }
-    break;
-  }
+  // A empresa responsável é a TOMADORA do serviço (quem paga o frete),
+  // declarada em ide/toma3 ou ide/toma4 — não necessariamente o destinatário.
+  const empresaRemetenteId = await resolverEmpresaDoTomador(parsed);
+
 
 
 
