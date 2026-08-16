@@ -448,6 +448,7 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
       nome: norm(c.nome ?? "") || "OUTROS",
       esperado: 0,
       cobrado: round2(Number(c.valor ?? 0)),
+      criterio: "componente cobrado no CT-e que não existe na tabela de frete",
     });
   });
 
