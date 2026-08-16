@@ -123,7 +123,7 @@ export function CteDetailView({
           .from("ctes")
           .select(cols)
           .eq("chave_acesso", cte.chave_cte_complementado);
-      } else if (isComplementar && cte.numero_cte_complementado && cte.cnpj_emitente) {
+      } else if (isVinculado && cte.numero_cte_complementado && cte.cnpj_emitente) {
         q = supabase
           .from("ctes")
           .select(cols)
