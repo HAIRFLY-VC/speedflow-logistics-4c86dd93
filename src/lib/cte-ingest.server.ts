@@ -181,7 +181,7 @@ export async function ingestCteXml(params: {
     mensagem: transportadoraId
       ? empresaId
         ? null
-        : "Empresa remetente não cadastrada"
+        : "Tomador do serviço não cadastrado como empresa"
       : "Transportadora emitente não cadastrada",
     cte_id: inserted.id,
   });
