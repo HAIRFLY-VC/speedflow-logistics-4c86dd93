@@ -128,6 +128,8 @@ function calcularEsperado(
   let rotaNome: string | undefined;
   let rotaId: string | undefined;
   let origemRota: string | undefined;
+  // Fator de reentrega aplicado aos demais componentes (GRIS, TAS).
+  let fatorReentrega = 1;
 
   if (rotas.length > 0) {
     // Tabela por origem/destino: quando o município de entrega é conhecido,
