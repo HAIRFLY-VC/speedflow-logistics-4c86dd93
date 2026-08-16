@@ -34,6 +34,7 @@ import {
 } from "@/lib/cte-backfill.functions";
 
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
+import { PAPEL_LABEL } from "@/lib/cte-tomador";
 import type { Tables } from "@/integrations/supabase/types";
 
 
