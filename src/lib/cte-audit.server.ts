@@ -256,7 +256,13 @@ function calcularEsperado(
       base = minimo;
       criterio = `frete mínimo da tabela: ${brl(minimo)}`;
     }
+    if (isReentrega) {
+      const perc = percentualReentrega(tabela, tabela.uf_destino);
+      base = base * (perc / 100);
+      criterio = `${criterio} · reentrega: ${num(perc)}% da tabela`;
+    }
     itens.push({ nome: "FRETE", esperado: round2(base), cobrado: null, criterio });
+
   }
 
 
