@@ -128,6 +128,8 @@ function calcularEsperado(
   let rotaNome: string | undefined;
   let rotaId: string | undefined;
   let origemRota: string | undefined;
+  // Fator de reentrega aplicado aos demais componentes (GRIS, TAS).
+  let fatorReentrega = 1;
 
   if (rotas.length > 0) {
     // Tabela por origem/destino: quando o município de entrega é conhecido,
@@ -180,6 +182,8 @@ function calcularEsperado(
     rotaNome = escolhida.rota;
     rotaId = escolhida.id;
     origemRota = achado.index >= 0 ? (achado.origem ?? "mapa") : "aproximacao";
+    if (isReentrega) fatorReentrega = escolhida.percReentrega / 100;
+
 
     const comoEscolheu =
       origemRota === "aprendido"
@@ -258,7 +262,8 @@ function calcularEsperado(
     }
     if (isReentrega) {
       const perc = percentualReentrega(tabela, tabela.uf_destino);
-      base = base * (perc / 100);
+      fatorReentrega = perc / 100;
+      base = base * fatorReentrega;
       criterio = `${criterio} · reentrega: ${num(perc)}% da tabela`;
     }
     itens.push({ nome: "FRETE", esperado: round2(base), cobrado: null, criterio });
@@ -267,23 +272,28 @@ function calcularEsperado(
 
 
   // GRIS: percentual sobre o valor da mercadoria, respeitando o valor mínimo da tabela.
+  const percTxt = `${num(fatorReentrega * 100)}% da tabela`;
+  const reentregaTxt2 = isReentrega ? ` · reentrega: ${percTxt}` : "";
   const grisPerc = Number(tabela.gris_percentual) / 100;
   const grisMin = Number((tabela as { gris_minimo?: number | string }).gris_minimo ?? 0);
   let gris = grisPerc * valorMercadoria;
   const grisNoMinimo = grisPerc > 0 && grisMin > 0 && gris < grisMin;
   if (grisNoMinimo) gris = grisMin;
+  gris = gris * fatorReentrega;
   const adv = (Number(tabela.ad_valorem_percentual) / 100) * valorMercadoria;
   // Pedágio não é provisionado por padrão: só é considerado quando cobrado no CT-e.
   const pedagio = 0;
-  const tas = Number(tabela.tas_valor);
+  const tas = Number(tabela.tas_valor) * fatorReentrega;
   if (gris) {
     itens.push({
       nome: "GRIS",
       esperado: round2(gris),
       cobrado: null,
-      criterio: grisNoMinimo
-        ? `valor mínimo de GRIS da tabela (${brl(grisMin)}); ${num(Number(tabela.gris_percentual))}% de ${brl(valorMercadoria)} daria ${brl(grisPerc * valorMercadoria)}`
-        : `${num(Number(tabela.gris_percentual))}% sobre mercadoria de ${brl(valorMercadoria)}${grisMin > 0 ? ` (mínimo ${brl(grisMin)})` : ""}`,
+      criterio:
+        (grisNoMinimo
+          ? `valor mínimo de GRIS da tabela (${brl(grisMin)}); ${num(Number(tabela.gris_percentual))}% de ${brl(valorMercadoria)} daria ${brl(grisPerc * valorMercadoria)}`
+          : `${num(Number(tabela.gris_percentual))}% sobre mercadoria de ${brl(valorMercadoria)}${grisMin > 0 ? ` (mínimo ${brl(grisMin)})` : ""}`) +
+        reentregaTxt2,
     });
   }
   if (adv) {
@@ -299,7 +309,7 @@ function calcularEsperado(
       nome: "TAS",
       esperado: round2(tas),
       cobrado: null,
-      criterio: `valor fixo da tabela: ${brl(tas)}`,
+      criterio: `valor fixo da tabela: ${brl(Number(tabela.tas_valor))}${reentregaTxt2}`,
     });
   }
 
