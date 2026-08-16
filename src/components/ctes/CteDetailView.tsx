@@ -220,6 +220,20 @@ export function CteDetailView({
 
   const ultimaAuditoria = auditorias?.[0];
 
+  const { data: tabelaUsada } = useQuery({
+    queryKey: ["cte-tabela-auditoria", ultimaAuditoria?.tabela_preco_id],
+    enabled: !!ultimaAuditoria?.tabela_preco_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete")
+        .select("id, nome, data_inicio, data_fim, uf_destino, tipo_calculo")
+        .eq("id", ultimaAuditoria!.tabela_preco_id!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
 
   const componentes = (Array.isArray(cte.componentes) ? cte.componentes : []) as {
     nome?: string;
