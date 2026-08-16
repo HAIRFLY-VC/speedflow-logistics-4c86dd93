@@ -128,8 +128,21 @@ export function parseCteXml(xml: string): ParsedCte {
 
   const obsTexto = observacoes.map((o) => o.texto).join(" | ").toUpperCase();
 
-  // Complemento: quando a chave do original não vem no XML, tenta pelas observações.
-  if (!chaveComplementado && tipoCte === 1) {
+  // Reentrega: o XML vem como tpCTe = 0 (normal), mas o serviço é a reentrega de
+  // um CT-e anterior. Marcamos com o tipo interno 4 e referenciamos o original.
+  const caracteristicas = [
+    tagValue(compl, "xCaracAd") ?? "",
+    tagValue(compl, "xCaracSer") ?? "",
+  ]
+    .join(" ")
+    .toUpperCase();
+  const isReentrega =
+    tipoCte !== 1 && (caracteristicas.includes("REENTREGA") || obsTexto.includes("REENTREGA"));
+  const tipoFinal = isReentrega ? 4 : tipoCte;
+  const referenciaOriginal = tipoCte === 1 || isReentrega;
+
+  // Complemento/reentrega: quando a chave do original não vem no XML, tenta pelas observações.
+  if (!chaveComplementado && referenciaOriginal) {
     for (const m of obsTexto.matchAll(/\d[\d\s.]{45,}|\d{44}/g)) {
       const d = onlyDigits(m[0]);
       if (d.length === 44 && d !== chave) {
@@ -144,8 +157,11 @@ export function parseCteXml(xml: string): ParsedCte {
   if (chaveComplementado) {
     numeroComplementado = String(Number(chaveComplementado.slice(25, 34)));
   } else {
-    const complDo = obsTexto.match(/COMPL\.?\s*(?:DO|DA|DE)?\s*[A-Z]*0*(\d{3,9})/);
-    if (complDo) numeroComplementado = String(Number(complDo[1]));
+    const refCte =
+      obsTexto.match(/CT-?E\s+\d{1,3}\s+0*(\d{3,9})/) ??
+      obsTexto.match(/CT-?E\s+0*(\d{3,9})/) ??
+      obsTexto.match(/COMPL\.?\s*(?:DO|DA|DE)?\s*[A-Z]*0*(\d{3,9})/);
+    if (refCte) numeroComplementado = String(Number(refCte[1]));
   }
 
 
@@ -169,13 +185,16 @@ export function parseCteXml(xml: string): ParsedCte {
     "SEGURO",
     "GRIS",
   ];
-  let motivo: string | null = MOTIVOS.find((k) => obsTexto.includes(k)) ?? null;
+  let motivo: string | null = isReentrega
+    ? "REENTREGA"
+    : (MOTIVOS.find((k) => obsTexto.includes(k)) ?? null);
   if (!motivo) {
     const m = obsTexto.match(/MOTIVO:?\s*([^|<.]{3,60})/);
     const t = m?.[1]?.trim();
     if (t && t !== "COMPLEMENTAR") motivo = t;
   }
-  if (tipoCte !== 1) motivo = null;
+  if (!referenciaOriginal) motivo = null;
+
 
 
 
