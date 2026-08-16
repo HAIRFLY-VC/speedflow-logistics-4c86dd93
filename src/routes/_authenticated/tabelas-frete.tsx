@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useState, useMemo, useEffect } from "react";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Loader2, Trash2, FileText, Upload, Download, X } from "lucide-react";
 import { toast } from "sonner";
@@ -38,6 +38,8 @@ import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/tabelas-frete")({
   component: TabelasFretePage,
+  validateSearch: (search: Record<string, unknown>): { tabela?: string } =>
+    typeof search.tabela === "string" ? { tabela: search.tabela } : {},
   head: () => ({
     meta: [
       { title: "Tabelas de preço de frete | SpeedFlow Logistics" },
@@ -162,6 +164,7 @@ function emptyForm(): TabelaForm {
 
 function TabelasFretePage() {
   const qc = useQueryClient();
+  const { tabela: tabelaParam } = useSearch({ from: "/_authenticated/tabelas-frete" });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Tabela | null>(null);
 
@@ -188,6 +191,16 @@ function TabelasFretePage() {
       return data as Tabela[];
     },
   });
+
+  // Abre direto a tabela indicada na URL (ex.: link vindo da auditoria do CT-e).
+  useEffect(() => {
+    if (!tabelaParam || !data) return;
+    const alvo = data.find((t) => t.id === tabelaParam);
+    if (alvo) {
+      setEditing(alvo);
+      setOpen(true);
+    }
+  }, [tabelaParam, data]);
 
   const nomeTransportadora = useMemo(() => {
     const map = new Map<string, string>();

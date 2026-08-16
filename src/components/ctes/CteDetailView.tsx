@@ -220,6 +220,20 @@ export function CteDetailView({
 
   const ultimaAuditoria = auditorias?.[0];
 
+  const { data: tabelaUsada } = useQuery({
+    queryKey: ["cte-tabela-auditoria", ultimaAuditoria?.tabela_preco_id],
+    enabled: !!ultimaAuditoria?.tabela_preco_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete")
+        .select("id, nome, data_inicio, data_fim, uf_destino, tipo_calculo")
+        .eq("id", ultimaAuditoria!.tabela_preco_id!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
 
   const componentes = (Array.isArray(cte.componentes) ? cte.componentes : []) as {
     nome?: string;
@@ -627,6 +641,35 @@ export function CteDetailView({
               {brl(Number(ultimaAuditoria.valor_cobrado_total))} · Diferença{" "}
               {brl(Number(ultimaAuditoria.diferenca))} (
               {Number(ultimaAuditoria.percentual_diferenca).toFixed(2)}%)
+            </div>
+            <div className="text-muted-foreground mt-1 text-xs">
+              Tabela de frete utilizada:{" "}
+              {ultimaAuditoria.tabela_preco_id ? (
+                <>
+                  <Link
+                    to="/tabelas-frete"
+                    search={{ tabela: ultimaAuditoria.tabela_preco_id }}
+                    target={appLinkTarget()}
+                    className="text-primary font-medium underline underline-offset-2"
+                  >
+                    {tabelaUsada?.nome ?? "abrir tabela"}
+                  </Link>
+                  {tabelaUsada ? (
+                    <span>
+                      {" "}
+                      · vigência {new Date(`${tabelaUsada.data_inicio}T00:00:00`).toLocaleDateString("pt-BR")}
+                      {tabelaUsada.data_fim
+                        ? ` a ${new Date(`${tabelaUsada.data_fim}T00:00:00`).toLocaleDateString("pt-BR")}`
+                        : " (sem término)"}
+                      {tabelaUsada.uf_destino ? ` · UF ${tabelaUsada.uf_destino}` : ""}
+                    </span>
+                  ) : null}
+                </>
+              ) : (
+                <span className="text-amber-600">
+                  nenhuma tabela vigente encontrada para a transportadora
+                </span>
+              )}
             </div>
 
             {(() => {
