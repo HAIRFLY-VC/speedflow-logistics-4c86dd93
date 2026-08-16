@@ -51,48 +51,29 @@ export async function ingestCteXml(params: {
   const parsed: ParsedCte = parseCteXml(params.xml);
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  // Só importa CT-e cujo REMETENTE seja uma das empresas cadastradas (detentoras do certificado A1).
+  // Importa todo CT-e capturado. A empresa (detentora do certificado A1) é
+  // identificada pelo remetente ou pelo destinatário, sem descartar nada.
   let empresaRemetenteId: string | null = null;
-  if (parsed.cnpj_remetente) {
+  const cnpjsEmpresa = [parsed.cnpj_remetente, parsed.cnpj_destinatario].filter(
+    (c): c is string => !!c,
+  );
+  for (const cnpj of cnpjsEmpresa) {
     const { data } = await centralDb
       .from("empresas")
       .select("id, razao_social")
-      .eq("cnpj", parsed.cnpj_remetente)
+      .eq("cnpj", cnpj)
       .maybeSingle();
-    empresaRemetenteId = data?.id ?? null;
+    if (!data?.id) continue;
+    empresaRemetenteId = data.id;
+    const nome = cnpj === parsed.cnpj_remetente ? parsed.nome_remetente : parsed.nome_destinatario;
     // Completa a razão social quando ela foi cadastrada apenas com o CNPJ.
-    if (
-      data?.id &&
-      parsed.nome_remetente &&
-      (!data.razao_social || data.razao_social === `Empresa ${parsed.cnpj_remetente}`)
-    ) {
-      await centralDb
-        .from("empresas")
-        .update({ razao_social: parsed.nome_remetente })
-        .eq("id", data.id);
+    if (nome && (!data.razao_social || data.razao_social === `Empresa ${cnpj}`)) {
+      await centralDb.from("empresas").update({ razao_social: nome }).eq("id", data.id);
     }
+    break;
   }
-  if (!empresaRemetenteId) {
-    const msg = `CT-e ignorado: remetente ${parsed.cnpj_remetente ?? "não informado"}${
-      parsed.nome_remetente ? ` (${parsed.nome_remetente})` : ""
-    } não é uma empresa cadastrada`;
-    await logCteIngest({
-      origem: params.origem,
-      resultado: "IGNORADO",
-      chave_acesso: parsed.chave_acesso,
-      cnpj_emitente: parsed.cnpj_emitente,
-      cnpj_destinatario: parsed.cnpj_destinatario,
-      cnpj_remetente: parsed.cnpj_remetente,
-      nome_remetente: parsed.nome_remetente,
-      mensagem: msg,
-    });
-    return {
-      ok: true,
-      chave_acesso: parsed.chave_acesso,
-      status: "IGNORADO",
-      message: msg,
-    };
-  }
+
+
 
 
   const { data: existing } = await centralDb
