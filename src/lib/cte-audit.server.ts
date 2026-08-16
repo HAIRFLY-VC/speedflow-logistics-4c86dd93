@@ -295,11 +295,18 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
   const pesoGrupo = Math.max(...grupo.map((c) => Number(c.peso_taxado ?? 0)), 0);
   const mercadoriaGrupo = Math.max(...grupo.map((c) => Number(c.valor_mercadoria ?? 0)), 0);
 
+  // Município de entrega (enderDest do XML) define a praça da tabela de frete.
+  const xmlCte = (cte as { xml_conteudo?: string | null }).xml_conteudo ?? null;
+  const municipioDestino = xmlCte
+    ? (parseEnderecoDestinatario(xmlCte)?.municipio ?? null)
+    : null;
+
   const { itens, total, rota } = calcularEsperado(
     tabela,
     pesoGrupo,
     mercadoriaGrupo,
     cobrado,
+    municipioDestino,
   );
 
 
