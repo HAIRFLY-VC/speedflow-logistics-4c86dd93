@@ -182,6 +182,8 @@ function calcularEsperado(
     rotaNome = escolhida.rota;
     rotaId = escolhida.id;
     origemRota = achado.index >= 0 ? (achado.origem ?? "mapa") : "aproximacao";
+    if (isReentrega) fatorReentrega = escolhida.percReentrega / 100;
+
 
     const comoEscolheu =
       origemRota === "aprendido"
