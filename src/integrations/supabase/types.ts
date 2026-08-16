@@ -427,6 +427,9 @@ export type Database = {
           serie: string | null
           status: Database["public"]["Enums"]["cte_status"]
           tipo_cte: number
+          tomador_cnpj: string | null
+          tomador_nome: string | null
+          tomador_papel: Database["public"]["Enums"]["cte_tomador_papel"] | null
           transportadora_id: string | null
           uf_destino: string | null
           updated_at: string
@@ -458,6 +461,11 @@ export type Database = {
           serie?: string | null
           status?: Database["public"]["Enums"]["cte_status"]
           tipo_cte?: number
+          tomador_cnpj?: string | null
+          tomador_nome?: string | null
+          tomador_papel?:
+            | Database["public"]["Enums"]["cte_tomador_papel"]
+            | null
           transportadora_id?: string | null
           uf_destino?: string | null
           updated_at?: string
@@ -489,6 +497,11 @@ export type Database = {
           serie?: string | null
           status?: Database["public"]["Enums"]["cte_status"]
           tipo_cte?: number
+          tomador_cnpj?: string | null
+          tomador_nome?: string | null
+          tomador_papel?:
+            | Database["public"]["Enums"]["cte_tomador_papel"]
+            | null
           transportadora_id?: string | null
           uf_destino?: string | null
           updated_at?: string
@@ -1720,6 +1733,12 @@ export type Database = {
         | "LANCADO_ERP"
         | "ERRO_ERP"
         | "REJEITADO"
+      cte_tomador_papel:
+        | "REMETENTE"
+        | "EXPEDIDOR"
+        | "RECEBEDOR"
+        | "DESTINATARIO"
+        | "OUTROS"
       nfe_solicitacao_status: "PENDENTE" | "PROCESSANDO" | "CONCLUIDA" | "ERRO"
       ordem_pagamento_status:
         | "PENDENTE"
@@ -1886,6 +1905,13 @@ export const Constants = {
         "LANCADO_ERP",
         "ERRO_ERP",
         "REJEITADO",
+      ],
+      cte_tomador_papel: [
+        "REMETENTE",
+        "EXPEDIDOR",
+        "RECEBEDOR",
+        "DESTINATARIO",
+        "OUTROS",
       ],
       nfe_solicitacao_status: ["PENDENTE", "PROCESSANDO", "CONCLUIDA", "ERRO"],
       ordem_pagamento_status: [
