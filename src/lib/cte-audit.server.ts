@@ -457,7 +457,9 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     mercadoriaGrupo,
     cobrado,
     municipioDestino,
+    isReentrega,
   );
+
 
 
 
