@@ -266,6 +266,10 @@ export function parseCteXml(xml: string): ParsedCte {
     nome_destinatario: dest ? (tagValue(dest, "xNome") ?? "").trim() || null : null,
     cnpj_remetente: rem ? onlyDigits(tagValue(rem, "CNPJ") ?? "") || null : null,
     nome_remetente: rem ? (tagValue(rem, "xNome") ?? "").trim() || null : null,
+    tomador_cnpj: tomador.cnpj,
+    tomador_nome: tomador.nome,
+    tomador_papel: tomador.papel,
+
     data_emissao: dh ? new Date(dh).toISOString() : null,
     valor_total_frete: toNumber(tagValue(vPrest, "vTPrest") ?? tagValue(vPrest, "vRec")),
     valor_mercadoria: toNumber(tagValue(infCarga, "vCarga")),
