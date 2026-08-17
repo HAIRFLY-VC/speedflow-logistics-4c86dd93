@@ -726,7 +726,27 @@ export function CteDetailView({
                         maximumFractionDigits: 2,
                       })}
                     </td>
-                    <td className="px-2 py-1.5" />
+                    <td className="px-2 py-1.5" colSpan={2} />
+                    {(
+                      [
+                        "vlr_frete",
+                        "vlr_perna",
+                        "vlr_diaria",
+                        "vlr_pernoite",
+                        "vlr_reentrega",
+                        "vlr_descarrego",
+                      ] as const
+                    ).map((campo) => {
+                      const soma = ((fretesErp?.itens ?? []) as FreteContabilizadoNfe[]).reduce(
+                        (s, f) => s + Number(f[campo] ?? 0),
+                        0,
+                      );
+                      return (
+                        <td key={campo} className="px-2 py-1.5 text-right">
+                          {soma > 0 ? brl(soma) : "—"}
+                        </td>
+                      );
+                    })}
                     <td className="px-2 py-1.5 text-right">
                       {totalFreteErp > 0 ? brl(totalFreteErp) : "—"}
                     </td>
