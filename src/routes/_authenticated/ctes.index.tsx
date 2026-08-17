@@ -798,7 +798,7 @@ function CtesPage() {
           onRowClick={(c) => {
             openAppRoute(router, `/ctes/${c.id}`);
           }}
-
+          scrollable
         />
 
         <XmlViewerDialog
