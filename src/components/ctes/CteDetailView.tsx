@@ -102,14 +102,17 @@ export function CteDetailView({
 
 
   const isReentrega = cte.tipo_cte === 4;
+  const isDevolucao = cte.tipo_cte === 5;
   const isComplemento =
     cte.tipo_cte === 1 ||
     isReentrega ||
     !!cte.chave_cte_complementado ||
     !!cte.numero_cte_complementado;
   const isComplementar =
-    cte.tipo_cte === 1 || (!isReentrega && !(Number(cte.peso_taxado) > 0));
+    cte.tipo_cte === 1 ||
+    (!isReentrega && !isDevolucao && !(Number(cte.peso_taxado) > 0));
   const isVinculado = isComplementar || isReentrega;
+
   const { data: grupo } = useQuery({
     queryKey: [
       "cte-grupo",
