@@ -38,6 +38,7 @@ import { Route as AuthenticatedRotasIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedRotasRouteIdRouteImport } from './routes/_authenticated/rotas.$routeId'
 import { Route as ApiCentralSplatRouteImport } from './routes/api/central/$'
 import { Route as ApiPublicHooksCteComandosRouteImport } from './routes/api/public/hooks/cte-comandos'
+import { Route as ApiPublicHooksErpFilaCallbackRouteImport } from './routes/api/public/hooks/erp-fila-callback'
 import { Route as ApiPublicHooksErpSyncRouteImport } from './routes/api/public/hooks/erp-sync'
 import { Route as ApiPublicHooksIngestCteRouteImport } from './routes/api/public/hooks/ingest-cte'
 import { Route as ApiPublicHooksIngestNfeRouteImport } from './routes/api/public/hooks/ingest-nfe'
@@ -200,6 +201,12 @@ const ApiPublicHooksCteComandosRoute =
     path: '/api/public/hooks/cte-comandos',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksErpFilaCallbackRoute =
+  ApiPublicHooksErpFilaCallbackRouteImport.update({
+    id: '/api/public/hooks/erp-fila-callback',
+    path: '/api/public/hooks/erp-fila-callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksErpSyncRoute = ApiPublicHooksErpSyncRouteImport.update({
   id: '/api/public/hooks/erp-sync',
   path: '/api/public/hooks/erp-sync',
@@ -257,6 +264,7 @@ export interface FileRoutesByFullPath {
   '/pedidos/': typeof AuthenticatedPedidosIndexRoute
   '/rotas/': typeof AuthenticatedRotasIndexRoute
   '/api/public/hooks/cte-comandos': typeof ApiPublicHooksCteComandosRoute
+  '/api/public/hooks/erp-fila-callback': typeof ApiPublicHooksErpFilaCallbackRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
   '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
@@ -291,6 +299,7 @@ export interface FileRoutesByTo {
   '/pedidos': typeof AuthenticatedPedidosIndexRoute
   '/rotas': typeof AuthenticatedRotasIndexRoute
   '/api/public/hooks/cte-comandos': typeof ApiPublicHooksCteComandosRoute
+  '/api/public/hooks/erp-fila-callback': typeof ApiPublicHooksErpFilaCallbackRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
   '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
@@ -328,6 +337,7 @@ export interface FileRoutesById {
   '/_authenticated/pedidos/': typeof AuthenticatedPedidosIndexRoute
   '/_authenticated/rotas/': typeof AuthenticatedRotasIndexRoute
   '/api/public/hooks/cte-comandos': typeof ApiPublicHooksCteComandosRoute
+  '/api/public/hooks/erp-fila-callback': typeof ApiPublicHooksErpFilaCallbackRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
   '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
@@ -365,6 +375,7 @@ export interface FileRouteTypes {
     | '/pedidos/'
     | '/rotas/'
     | '/api/public/hooks/cte-comandos'
+    | '/api/public/hooks/erp-fila-callback'
     | '/api/public/hooks/erp-sync'
     | '/api/public/hooks/ingest-cte'
     | '/api/public/hooks/ingest-nfe'
@@ -399,6 +410,7 @@ export interface FileRouteTypes {
     | '/pedidos'
     | '/rotas'
     | '/api/public/hooks/cte-comandos'
+    | '/api/public/hooks/erp-fila-callback'
     | '/api/public/hooks/erp-sync'
     | '/api/public/hooks/ingest-cte'
     | '/api/public/hooks/ingest-nfe'
@@ -435,6 +447,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pedidos/'
     | '/_authenticated/rotas/'
     | '/api/public/hooks/cte-comandos'
+    | '/api/public/hooks/erp-fila-callback'
     | '/api/public/hooks/erp-sync'
     | '/api/public/hooks/ingest-cte'
     | '/api/public/hooks/ingest-nfe'
@@ -448,6 +461,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ApiCentralSplatRoute: typeof ApiCentralSplatRoute
   ApiPublicHooksCteComandosRoute: typeof ApiPublicHooksCteComandosRoute
+  ApiPublicHooksErpFilaCallbackRoute: typeof ApiPublicHooksErpFilaCallbackRoute
   ApiPublicHooksErpSyncRoute: typeof ApiPublicHooksErpSyncRoute
   ApiPublicHooksIngestCteRoute: typeof ApiPublicHooksIngestCteRoute
   ApiPublicHooksIngestNfeRoute: typeof ApiPublicHooksIngestNfeRoute
@@ -660,6 +674,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksCteComandosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/erp-fila-callback': {
+      id: '/api/public/hooks/erp-fila-callback'
+      path: '/api/public/hooks/erp-fila-callback'
+      fullPath: '/api/public/hooks/erp-fila-callback'
+      preLoaderRoute: typeof ApiPublicHooksErpFilaCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/erp-sync': {
       id: '/api/public/hooks/erp-sync'
       path: '/api/public/hooks/erp-sync'
@@ -773,6 +794,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ApiCentralSplatRoute: ApiCentralSplatRoute,
   ApiPublicHooksCteComandosRoute: ApiPublicHooksCteComandosRoute,
+  ApiPublicHooksErpFilaCallbackRoute: ApiPublicHooksErpFilaCallbackRoute,
   ApiPublicHooksErpSyncRoute: ApiPublicHooksErpSyncRoute,
   ApiPublicHooksIngestCteRoute: ApiPublicHooksIngestCteRoute,
   ApiPublicHooksIngestNfeRoute: ApiPublicHooksIngestNfeRoute,
