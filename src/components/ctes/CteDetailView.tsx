@@ -666,15 +666,24 @@ export function CteDetailView({
                             statusLabel(info?.status, volumesLoading, info?.mensagem)
                           )}
                         </td>
-                        <td className="px-2 py-1.5">
+                        <td className="px-2 py-1.5 whitespace-nowrap">
                           {(fretesPorChave.get(nf.replace(/\D/g, "")) ?? [])
                             .map((f) => f.bordero ?? "—")
                             .join(", ") || "—"}
                         </td>
-                        <td className="px-2 py-1.5">
-                          {(fretesPorChave.get(nf.replace(/\D/g, "")) ?? [])
-                            .map((f) => dataBr(f.dt_saida))
-                            .join(", ") || "—"}
+                        <td className="px-2 py-1.5 whitespace-nowrap">
+                          {(() => {
+                            const lancados = fretesPorChave.get(nf.replace(/\D/g, "")) ?? [];
+                            if (lancados.length === 0) return "—";
+                            return lancados.map((f, idx) => (
+                              <span key={idx} className="inline-block align-top">
+                                {dataHoraCelula(f.dt_saida)}
+                                {idx < lancados.length - 1 ? (
+                                  <span className="text-muted-foreground mx-1">,</span>
+                                ) : null}
+                              </span>
+                            ));
+                          })()}
                         </td>
                         {(
                           [
@@ -689,7 +698,7 @@ export function CteDetailView({
                           const lancados = fretesPorChave.get(nf.replace(/\D/g, "")) ?? [];
                           const soma = lancados.reduce((s, f) => s + Number(f[campo] ?? 0), 0);
                           return (
-                            <td key={campo} className="px-2 py-1.5 text-right">
+                            <td key={campo} className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
                               {lancados.length === 0 ? "—" : brl(soma)}
                             </td>
                           );
