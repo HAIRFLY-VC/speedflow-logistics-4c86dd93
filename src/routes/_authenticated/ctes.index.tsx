@@ -514,12 +514,25 @@ function CtesPage() {
         header: "Tipo",
         align: "center",
         accessor: (c) =>
-          c.tipo_cte === 4 ? "Reentrega" : Number(c.peso_taxado) > 0 ? "Normal" : "Complementar",
+          c.tipo_cte === 4
+            ? "Reentrega"
+            : c.tipo_cte === 5
+              ? "Devolução"
+              : Number(c.peso_taxado) > 0
+                ? "Normal"
+                : "Complementar",
         render: (c) => {
           const reentrega = c.tipo_cte === 4;
-          const normal = !reentrega && Number(c.peso_taxado) > 0;
-          const label = reentrega ? "R" : normal ? "N" : "C";
-          const tooltip = reentrega ? "Reentrega" : normal ? "Normal" : "Complementar";
+          const devolucao = c.tipo_cte === 5;
+          const normal = !reentrega && !devolucao && Number(c.peso_taxado) > 0;
+          const label = reentrega ? "R" : devolucao ? "D" : normal ? "N" : "C";
+          const tooltip = reentrega
+            ? "Reentrega"
+            : devolucao
+              ? "Devolução"
+              : normal
+                ? "Normal"
+                : "Complementar";
           return (
             <TooltipProvider delayDuration={100}>
               <Tooltip>
@@ -529,13 +542,16 @@ function CtesPage() {
                     className={
                       reentrega
                         ? "bg-purple-500/10 text-purple-600 cursor-default"
-                        : normal
-                          ? "bg-blue-500/10 text-blue-600 cursor-default"
-                          : "bg-amber-500/10 text-amber-600 cursor-default"
+                        : devolucao
+                          ? "bg-teal-500/10 text-teal-600 cursor-default"
+                          : normal
+                            ? "bg-blue-500/10 text-blue-600 cursor-default"
+                            : "bg-amber-500/10 text-amber-600 cursor-default"
                     }
                   >
                     {label}
                   </Badge>
+
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>{tooltip}</p>

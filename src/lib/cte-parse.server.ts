@@ -195,7 +195,16 @@ export function parseCteXml(xml: string): ParsedCte {
     .toUpperCase();
   const isReentrega =
     tipoCte !== 1 && (caracteristicas.includes("REENTREGA") || obsTexto.includes("REENTREGA"));
-  const tipoFinal = isReentrega ? 4 : tipoCte;
+  // Devolução: tpCTe = 0, identificada pelas características/observações do documento.
+  const isDevolucao =
+    tipoCte !== 1 &&
+    !isReentrega &&
+    (caracteristicas.includes("DEVOLUCAO") ||
+      caracteristicas.includes("DEVOLUÇÃO") ||
+      obsTexto.includes("DEVOLUCAO") ||
+      obsTexto.includes("DEVOLUÇÃO"));
+  const tipoFinal = isReentrega ? 4 : isDevolucao ? 5 : tipoCte;
+
   const referenciaOriginal = tipoCte === 1 || isReentrega;
 
   // Complemento/reentrega: quando a chave do original não vem no XML, tenta pelas observações.
