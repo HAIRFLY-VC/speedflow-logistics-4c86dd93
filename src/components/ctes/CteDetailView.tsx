@@ -391,6 +391,9 @@ export function CteDetailView({
           value={
             isReentrega
               ? "Reentrega"
+              : isDevolucao
+                ? "Devolução"
+
               : isComplementar
                 ? "Complementar"
                 : cte.tipo_cte === 2
