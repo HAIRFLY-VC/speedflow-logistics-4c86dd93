@@ -5,6 +5,14 @@ export type NfeVolumeInfo = {
   peso_bruto: number | null;
   peso_liquido: number | null;
   especie: string | null;
-  status: "DISPONIVEL" | "PENDENTE" | "PROCESSANDO" | "ERRO" | "AUSENTE";
+  status:
+    | "DISPONIVEL"
+    | "PENDENTE"
+    | "PROCESSANDO"
+    | "ERRO"
+    | "AUSENTE"
+    | "AGUARDANDO_VARREDURA";
+  /** Origem do dado exibido: XML da NF-e ou carga declarada no CT-e. */
+  origem?: "NFE" | "CTE";
   mensagem: string | null;
 };
