@@ -578,17 +578,34 @@ export function CteDetailView({
                         </td>
                         <td className="px-2 py-1.5">{info?.numero ?? "—"}</td>
                         <td className="px-2 py-1.5 text-right">
-                          {info?.volumes != null
-                            ? info.volumes.toLocaleString("pt-BR")
-                            : statusLabel(info?.status, volumesLoading, info?.mensagem)}
+                          {info?.volumes != null ? (
+                            info.volumes.toLocaleString("pt-BR")
+                          ) : cargaNaLinha?.volumes != null ? (
+                            <span title="Valor declarado na carga do CT-e">
+                              {cargaNaLinha.volumes.toLocaleString("pt-BR")}
+                              <span className="text-muted-foreground ml-1 text-[10px]">(CT-e)</span>
+                            </span>
+                          ) : (
+                            statusLabel(info?.status, volumesLoading, info?.mensagem)
+                          )}
                         </td>
                         <td className="px-2 py-1.5 text-right">
-                          {info?.peso_bruto != null
-                            ? info.peso_bruto.toLocaleString("pt-BR", {
+                          {info?.peso_bruto != null ? (
+                            info.peso_bruto.toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          ) : cargaNaLinha?.peso_real != null ? (
+                            <span title="Peso declarado na carga do CT-e">
+                              {cargaNaLinha.peso_real.toLocaleString("pt-BR", {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
-                              })
-                            : statusLabel(info?.status, volumesLoading, info?.mensagem)}
+                              })}
+                              <span className="text-muted-foreground ml-1 text-[10px]">(CT-e)</span>
+                            </span>
+                          ) : (
+                            statusLabel(info?.status, volumesLoading, info?.mensagem)
+                          )}
                         </td>
                       </tr>
                     );
