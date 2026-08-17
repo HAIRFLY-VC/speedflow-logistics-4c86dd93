@@ -742,10 +742,10 @@ export function CteDetailView({
                         </span>
                       ) : null}
                     </td>
-                    <td className="px-2 py-1.5 text-right">
+                    <td className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
                       {volumesExibidos.toLocaleString("pt-BR")}
                     </td>
-                    <td className="px-2 py-1.5 text-right">
+                    <td className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
                       {pesoExibido.toLocaleString("pt-BR", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -767,12 +767,12 @@ export function CteDetailView({
                         0,
                       );
                       return (
-                        <td key={campo} className="px-2 py-1.5 text-right">
+                        <td key={campo} className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
                           {soma > 0 ? brl(soma) : "—"}
                         </td>
                       );
                     })}
-                    <td className="px-2 py-1.5 text-right">
+                    <td className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
                       {totalFreteErp > 0 ? brl(totalFreteErp) : "—"}
                     </td>
                   </tr>
