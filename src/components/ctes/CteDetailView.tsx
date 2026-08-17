@@ -617,7 +617,7 @@ export function CteDetailView({
                     return (
                       <tr key={nf} className="border-t">
                         <td className="px-2 py-1.5 font-mono break-all">
-                          {/^{44}$/.test(nf) ? (
+                          {/^\d{44}$/.test(nf) ? (
                             <Link
                               to="/nfes/$chave"
                               params={{ chave: nf }}
