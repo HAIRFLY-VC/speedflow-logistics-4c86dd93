@@ -703,7 +703,7 @@ export function CteDetailView({
                             </td>
                           );
                         })}
-                        <td className="px-2 py-1.5 text-right">
+                        <td className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
                           {(() => {
                             const lancados = fretesPorChave.get(nf.replace(/\D/g, "")) ?? [];
                             if (lancados.length === 0) return "—";
