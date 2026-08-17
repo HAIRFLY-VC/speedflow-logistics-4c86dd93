@@ -47,6 +47,12 @@ function statusLabel(
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const dataBr = (v: string | null) => {
+  if (!v) return "—";
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? v : d.toLocaleDateString("pt-BR");
+};
+
 function Field({
   label,
   value,
@@ -579,6 +585,13 @@ export function CteDetailView({
                     <th className="px-2 py-1.5 text-right font-medium">Volumes</th>
                     <th className="px-2 py-1.5 text-right font-medium">Peso bruto (kg)</th>
                     <th className="px-2 py-1.5 text-left font-medium">Borderô</th>
+                    <th className="px-2 py-1.5 text-left font-medium">Dt. saída</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Frete</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Perna</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Diária</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Pernoite</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Reentrega</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Descarrego</th>
                     <th className="px-2 py-1.5 text-right font-medium">Frete contabilizado</th>
                   </tr>
                 </thead>
@@ -642,6 +655,29 @@ export function CteDetailView({
                             .map((f) => f.bordero ?? "—")
                             .join(", ") || "—"}
                         </td>
+                        <td className="px-2 py-1.5">
+                          {(fretesPorChave.get(nf.replace(/\D/g, "")) ?? [])
+                            .map((f) => dataBr(f.dt_saida))
+                            .join(", ") || "—"}
+                        </td>
+                        {(
+                          [
+                            "vlr_frete",
+                            "vlr_perna",
+                            "vlr_diaria",
+                            "vlr_pernoite",
+                            "vlr_reentrega",
+                            "vlr_descarrego",
+                          ] as const
+                        ).map((campo) => {
+                          const lancados = fretesPorChave.get(nf.replace(/\D/g, "")) ?? [];
+                          const soma = lancados.reduce((s, f) => s + Number(f[campo] ?? 0), 0);
+                          return (
+                            <td key={campo} className="px-2 py-1.5 text-right">
+                              {lancados.length === 0 ? "—" : brl(soma)}
+                            </td>
+                          );
+                        })}
                         <td className="px-2 py-1.5 text-right">
                           {(() => {
                             const lancados = fretesPorChave.get(nf.replace(/\D/g, "")) ?? [];
@@ -690,7 +726,27 @@ export function CteDetailView({
                         maximumFractionDigits: 2,
                       })}
                     </td>
-                    <td className="px-2 py-1.5" />
+                    <td className="px-2 py-1.5" colSpan={2} />
+                    {(
+                      [
+                        "vlr_frete",
+                        "vlr_perna",
+                        "vlr_diaria",
+                        "vlr_pernoite",
+                        "vlr_reentrega",
+                        "vlr_descarrego",
+                      ] as const
+                    ).map((campo) => {
+                      const soma = ((fretesErp?.itens ?? []) as FreteContabilizadoNfe[]).reduce(
+                        (s, f) => s + Number(f[campo] ?? 0),
+                        0,
+                      );
+                      return (
+                        <td key={campo} className="px-2 py-1.5 text-right">
+                          {soma > 0 ? brl(soma) : "—"}
+                        </td>
+                      );
+                    })}
                     <td className="px-2 py-1.5 text-right">
                       {totalFreteErp > 0 ? brl(totalFreteErp) : "—"}
                     </td>
