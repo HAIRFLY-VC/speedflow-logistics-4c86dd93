@@ -635,12 +635,12 @@ export function CteDetailView({
                             nf.replace(/(.{4})(?!$)/g, "$1 ")
                           )}
                         </td>
-                        <td className="px-2 py-1.5">{info?.numero ?? "—"}</td>
-                        <td className="px-2 py-1.5 text-right">
+                        <td className="px-2 py-1.5 whitespace-nowrap">{info?.numero ?? "—"}</td>
+                        <td className="px-2 py-1.5 text-right whitespace-nowrap">
                           {info?.volumes != null ? (
                             info.volumes.toLocaleString("pt-BR")
                           ) : cargaNaLinha?.volumes != null ? (
-                            <span title="Valor declarado na carga do CT-e">
+                            <span title="Valor declarado na carga do CT-e" className="whitespace-nowrap">
                               {cargaNaLinha.volumes.toLocaleString("pt-BR")}
                               <span className="text-muted-foreground ml-1 text-[10px]">(CT-e)</span>
                             </span>
