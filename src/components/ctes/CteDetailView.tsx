@@ -272,6 +272,9 @@ export function CteDetailView({
   const pesoExibido = usandoCargaDoCte
     ? (carga?.peso_real ?? Number(cte.peso_taxado ?? 0) ?? 0)
     : totalPesoBruto;
+  // Com uma única NF-e no CT-e, a carga declarada corresponde a ela: mostramos
+  // esses números na linha enquanto o XML da nota não é capturado.
+  const cargaNaLinha = usandoCargaDoCte && nfs.length === 1 ? carga : null;
 
   // Complemento por descarga: exibimos o rateio referencial por volume e por kg.
   const isDescarga =
