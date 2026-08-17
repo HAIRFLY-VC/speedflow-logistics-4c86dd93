@@ -351,29 +351,46 @@ export class SefazNfeDistClient {
 
     const cStat = extractText(result, "cStat");
     const xMotivo = extractText(result, "xMotivo") || "";
+    // maxNSU/ultNSU vem mesmo quando nao ha documentos novos (cStat=137): usar o
+    // valor real evita que a varredura fique travada para sempre no NSU 0.
+    const maxNsuResp = parseInt(extractText(result, "maxNSU") || "", 10);
+    const ultNsuResp = parseInt(extractText(result, "ultNSU") || "", 10);
     if (cStat && cStat !== "138") {
       if (cStat === "137" || cStat === "656") {
-        return { xmls: [], maxNsu: ultimoNsu, ultNsu: ultimoNsu, cStat, xMotivo };
+        return {
+          xmls: [],
+          resumos: [],
+          maxNsu: Number.isNaN(maxNsuResp) ? ultimoNsu : maxNsuResp,
+          ultNsu: Number.isNaN(ultNsuResp) ? ultimoNsu : ultNsuResp,
+          cStat,
+          xMotivo,
+        };
       }
       throw new Error(`SEFAZ retornou cStat=${cStat}: ${xMotivo}`);
     }
 
-    const maxNsu = parseInt(extractText(result, "maxNSU") || String(ultimoNsu), 10);
-    const ultNsu = parseInt(extractText(result, "ultNSU") || String(ultimoNsu), 10);
+    const maxNsu = Number.isNaN(maxNsuResp) ? ultimoNsu : maxNsuResp;
+    const ultNsu = Number.isNaN(ultNsuResp) ? ultimoNsu : ultNsuResp;
     const docs = extractDocZips(result);
 
     const xmls = [];
+    const resumos = [];
     for (const doc of docs) {
       if (!doc.base64) continue;
       try {
         const xmlDoc = zlib.gunzipSync(Buffer.from(doc.base64, "base64")).toString("utf-8");
-        xmls.push({ nsu: parseInt(doc.nsu, 10) || 0, schema: doc.schema, xml: xmlDoc });
+        const item = { nsu: parseInt(doc.nsu, 10) || 0, schema: doc.schema, xml: xmlDoc };
+        if ((doc.schema || "").toLowerCase().includes("resnfe") || /<resnfe/i.test(xmlDoc)) {
+          resumos.push(item);
+        } else {
+          xmls.push(item);
+        }
       } catch {
         // ignora documentos que nao conseguir descompactar
       }
     }
 
-    return { xmls, maxNsu, ultNsu, cStat, xMotivo };
+    return { xmls, resumos, maxNsu, ultNsu, cStat, xMotivo };
   }
 }
 
