@@ -463,6 +463,7 @@ async function processarNfesPendentes(cfg, modoTeste) {
 async function processarNfesPorNsu(cfg, modoTeste, reiniciarNsu = false) {
   setEstado("lendo NF-e na SEFAZ");
   let enviados = 0;
+  let diagnostico = "";
   try {
     for (let i = 0; i < cfg.empresas.length; i++) {
       const empresa = cfg.empresas[i];
@@ -489,15 +490,24 @@ async function processarNfesPorNsu(cfg, modoTeste, reiniciarNsu = false) {
           log(`NF-e: erro na consulta (NSU ${ultimoNsu}): ${e.message}`);
           break;
         }
-        const { xmls, maxNsu, ultNsu, cStat, xMotivo } = retorno;
+        const { xmls, resumos = [], maxNsu, ultNsu, cStat, xMotivo } = retorno;
         log(
-          `NF-e: cStat=${cStat}, ultNSU=${ultNsu}, maxNSU=${maxNsu}, documentos=${xmls.length}` +
+          `NF-e: cStat=${cStat}, ultNSU=${ultNsu}, maxNSU=${maxNsu}, documentos=${xmls.length}, resumos=${resumos.length}` +
             `${xMotivo ? `, motivo=${xMotivo}` : ""}`
         );
+        diagnostico =
+          `cStat=${cStat} ${xMotivo || ""} | maxNSU=${maxNsu} | docs=${xmls.length} | resumos=${resumos.length}`.trim();
 
         if (!xmls.length) {
-          ultimoNsu = Math.max(maxNsu || 0, ultimoNsu);
+          // Avanca com o ultNSU/maxNSU retornado pela SEFAZ, senao a varredura
+          // fica presa no mesmo NSU indefinidamente.
+          const proximo = Math.max(ultNsu || 0, ultimoNsu);
+          ultimoNsu = proximo;
           if (!modoTeste) writeUltimoNsuNfe(i, ultimoNsu);
+          if (resumos.length && ultimoNsu < (maxNsu || 0)) {
+            await sleep(500);
+            continue;
+          }
           break;
         }
 
@@ -542,7 +552,12 @@ async function processarNfesPorNsu(cfg, modoTeste, reiniciarNsu = false) {
       urlHook(cfg.endpoint, "robo-heartbeat"),
       "POST",
       cfg.segredoIngest,
-      { origem: "nfe-nsu", estado: `NSU ${ultimos || "-"} | ${enviados} nota(s) enviada(s)` },
+      {
+        origem: "nfe-nsu",
+        estado:
+          `NSU ${ultimos || "-"} | ${enviados} nota(s) enviada(s)` +
+          (diagnostico ? ` | ${diagnostico}` : ""),
+      },
       Math.min(cfg.timeoutMs || 60000, 20000)
     );
   } catch {
@@ -636,6 +651,27 @@ async function processarEmpresa(cfg, empresaIndex, modoTeste, reiniciarNsu = fal
 }
 
 async function run() {
+  if (process.argv.includes("--diagnostico-nfe")) {
+    const cfgDiag = readConfig();
+    validarConfig(cfgDiag);
+    for (const empresa of cfgDiag.empresas) {
+      try {
+        const client = new SefazNfeDistClient(empresa, cfgDiag.ambiente);
+        const r = await client.consultar(0);
+        log(
+          `DIAGNOSTICO ${empresa.nome} (${empresa.cnpj}): cStat=${r.cStat} ${r.xMotivo || ""} | ` +
+            `ultNSU=${r.ultNsu} maxNSU=${r.maxNsu} | documentos=${r.xmls.length} resumos=${(r.resumos || []).length}`
+        );
+        for (const d of [...r.xmls, ...(r.resumos || [])].slice(0, 5)) {
+          log(`  NSU ${d.nsu} schema=${d.schema || "-"} tamanho=${d.xml.length}`);
+        }
+      } catch (e) {
+        log(`DIAGNOSTICO ${empresa.nome}: falhou - ${e.message}`);
+      }
+    }
+    return;
+  }
+
   const modoTeste = process.argv.includes("--modo-teste");
   const umaVez = process.argv.includes("--uma-vez") || modoTeste;
   log(`Robo iniciado. Modo teste=${modoTeste}, uma vez=${umaVez}`);
