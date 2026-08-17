@@ -93,6 +93,12 @@ function EmpresasPage() {
         render: (e) => <span className="font-mono text-xs">{formatCnpj(e.cnpj)}</span>,
       },
       {
+        id: "cod_erp",
+        header: "Cód. ERP",
+        accessor: (e) => e.cod_erp ?? "",
+        render: (e) => <span className="font-mono text-xs">{e.cod_erp ?? "—"}</span>,
+      },
+      {
         id: "ativo",
         header: "Ativa",
         align: "center",
