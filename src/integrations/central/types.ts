@@ -24,9 +24,17 @@ type CustomerGeoRow = {
   updated_at: string;
 };
 
+type EmpresasRow = Pub["Tables"]["empresas"]["Row"] & { cod_erp: string | null };
+type EmpresasWrite = Pub["Tables"]["empresas"]["Insert"] & { cod_erp?: string | null };
+
 export type CentralDatabase = Omit<Database, "public"> & {
   public: Omit<Pub, "Tables"> & {
-    Tables: Omit<Pub["Tables"], "orders"> & {
+    Tables: Omit<Pub["Tables"], "orders" | "empresas"> & {
+      empresas: Omit<Pub["Tables"]["empresas"], "Row" | "Insert" | "Update"> & {
+        Row: EmpresasRow;
+        Insert: EmpresasWrite;
+        Update: Partial<EmpresasWrite>;
+      };
       orders: Omit<Pub["Tables"]["orders"], "Row" | "Insert" | "Update"> & {
         Row: OrdersRow;
         Insert: OrdersWrite;
