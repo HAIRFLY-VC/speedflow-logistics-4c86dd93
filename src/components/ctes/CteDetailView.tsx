@@ -1003,10 +1003,10 @@ export function CteDetailView({
 
         </>
       ) : null}
-
-
+      <CteAprovacaoPanel cteId={cte.id} />
 
       <div className="flex justify-end gap-2">
+
         <Button variant="outline" disabled={!cte.xml_storage_path} onClick={() => onReadXml(cte)}>
           <FileCode className="mr-1 h-4 w-4" />
           Ler XML
