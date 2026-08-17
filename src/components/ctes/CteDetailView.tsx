@@ -579,6 +579,13 @@ export function CteDetailView({
                     <th className="px-2 py-1.5 text-right font-medium">Volumes</th>
                     <th className="px-2 py-1.5 text-right font-medium">Peso bruto (kg)</th>
                     <th className="px-2 py-1.5 text-left font-medium">Borderô</th>
+                    <th className="px-2 py-1.5 text-left font-medium">Dt. saída</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Frete</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Perna</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Diária</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Pernoite</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Reentrega</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Descarrego</th>
                     <th className="px-2 py-1.5 text-right font-medium">Frete contabilizado</th>
                   </tr>
                 </thead>
