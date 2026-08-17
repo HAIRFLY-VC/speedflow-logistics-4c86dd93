@@ -53,6 +53,22 @@ const dataBr = (v: string | null) => {
   return Number.isNaN(d.getTime()) ? v : d.toLocaleDateString("pt-BR");
 };
 
+const horaBr = (v: string | null) => {
+  if (!v) return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+};
+
+const dataHoraCelula = (v: string | null) => {
+  const hora = horaBr(v);
+  return (
+    <div className="leading-tight">
+      <div>{dataBr(v)}</div>
+      {hora ? <div className="text-muted-foreground text-[10px]">{hora}</div> : null}
+    </div>
+  );
+};
+
 function Field({
   label,
   value,
