@@ -29,7 +29,8 @@ function statusLabel(
 ) {
   if (loading && !status) return "...";
   // 641 = nota emitida pela própria empresa: chega pela varredura por NSU do robô.
-  if (/\b641\b/.test(mensagem ?? "")) return "aguardando varredura";
+  if (status === "AGUARDANDO_VARREDURA" || /\b641\b/.test(mensagem ?? ""))
+    return "aguardando varredura";
   switch (status) {
     case "PENDENTE":
       return "aguardando XML";
