@@ -178,8 +178,10 @@ export const reprocessarIdentificacaoCtes = createServerFn({ method: "POST" })
           tomador_cnpj: parsed.tomador_cnpj,
           tomador_nome: parsed.tomador_nome,
           tomador_papel: parsed.tomador_papel,
+          tipo_cte: parsed.tipo_cte,
           empresa_id: empresaId,
         };
+
         if (status) patch["status"] = status;
 
         const { error: upErr } = await centralDb
