@@ -10,6 +10,8 @@ import { auditarCte } from "@/lib/cte-audit.functions";
 
 import { PracaOverrideDialog } from "@/components/ctes/PracaOverrideDialog";
 import { getVolumesNfesDoCte } from "@/lib/cte.functions";
+import { getFretesContabilizadosNfes } from "@/lib/frete-nfe-erp.functions";
+import type { FreteContabilizadoNfe } from "@/lib/frete-nfe-erp.types";
 import type { NfeVolumeInfo } from "@/lib/nfe-volumes.types";
 import { obterEnderecoEntregaCte, resolverNomeDestinatario } from "@/lib/cte-backfill.functions";
 
@@ -278,6 +280,26 @@ export function CteDetailView({
   // Com uma única NF-e no CT-e, a carga declarada corresponde a ela: mostramos
   // esses números na linha enquanto o XML da nota não é capturado.
   const cargaNaLinha = usandoCargaDoCte && nfs.length === 1 ? carga : null;
+
+  // Despesas de frete já lançadas no ERP para as notas do CT-e.
+  const buscarFretesErp = useServerFn(getFretesContabilizadosNfes);
+  const { data: fretesErp } = useQuery({
+    queryKey: ["cte-nfes-frete-erp", cteIdCarga, nfs.join(",")],
+    enabled: nfs.filter((n) => /^\d{44}$/.test(n)).length > 0,
+    queryFn: async () =>
+      await buscarFretesErp({
+        data: { cteId: cteIdCarga, chaves: nfs.filter((n) => /^\d{44}$/.test(n)) },
+      }),
+    staleTime: 5 * 60_000,
+  });
+  const fretesPorChave = new Map<string, FreteContabilizadoNfe[]>();
+  for (const item of (fretesErp?.itens ?? []) as FreteContabilizadoNfe[]) {
+    const atual = fretesPorChave.get(item.chave) ?? [];
+    atual.push(item);
+    fretesPorChave.set(item.chave, atual);
+  }
+  const totalFreteErp = (fretesErp?.itens ?? []).reduce((s: number, i: FreteContabilizadoNfe) => s + i.total, 0);
+
 
   // Complemento por descarga: exibimos o rateio referencial por volume e por kg.
   const isDescarga =
@@ -556,6 +578,8 @@ export function CteDetailView({
                     <th className="px-2 py-1.5 text-left font-medium">Nº</th>
                     <th className="px-2 py-1.5 text-right font-medium">Volumes</th>
                     <th className="px-2 py-1.5 text-right font-medium">Peso bruto (kg)</th>
+                    <th className="px-2 py-1.5 text-left font-medium">Borderô</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Frete contabilizado</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -613,6 +637,36 @@ export function CteDetailView({
                             statusLabel(info?.status, volumesLoading, info?.mensagem)
                           )}
                         </td>
+                        <td className="px-2 py-1.5">
+                          {(fretesPorChave.get(nf.replace(/\D/g, "")) ?? [])
+                            .map((f) => f.bordero ?? "—")
+                            .join(", ") || "—"}
+                        </td>
+                        <td className="px-2 py-1.5 text-right">
+                          {(() => {
+                            const lancados = fretesPorChave.get(nf.replace(/\D/g, "")) ?? [];
+                            if (lancados.length === 0) return "—";
+                            const total = lancados.reduce((s, f) => s + f.total, 0);
+                            const detalhe = lancados
+                              .flatMap((f) =>
+                                [
+                                  ["Frete", f.vlr_frete],
+                                  ["Perna", f.vlr_perna],
+                                  ["Diária", f.vlr_diaria],
+                                  ["Pernoite", f.vlr_pernoite],
+                                  ["Reentrega", f.vlr_reentrega],
+                                  ["Descarrego", f.vlr_descarrego],
+                                ].filter(([, v]) => Number(v) > 0),
+                              )
+                              .map(([nome, v]) => `${nome}: ${brl(Number(v))}`)
+                              .join(" | ");
+                            return (
+                              <span title={detalhe || undefined} className="font-medium">
+                                {brl(total)}
+                              </span>
+                            );
+                          })()}
+                        </td>
                       </tr>
                     );
                   })}
@@ -635,6 +689,10 @@ export function CteDetailView({
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
+                    </td>
+                    <td className="px-2 py-1.5" />
+                    <td className="px-2 py-1.5 text-right">
+                      {totalFreteErp > 0 ? brl(totalFreteErp) : "—"}
                     </td>
                   </tr>
                 </tfoot>
