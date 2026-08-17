@@ -649,6 +649,29 @@ export function CteDetailView({
                             .map((f) => f.bordero ?? "—")
                             .join(", ") || "—"}
                         </td>
+                        <td className="px-2 py-1.5">
+                          {(fretesPorChave.get(nf.replace(/\D/g, "")) ?? [])
+                            .map((f) => dataBr(f.dt_saida))
+                            .join(", ") || "—"}
+                        </td>
+                        {(
+                          [
+                            "vlr_frete",
+                            "vlr_perna",
+                            "vlr_diaria",
+                            "vlr_pernoite",
+                            "vlr_reentrega",
+                            "vlr_descarrego",
+                          ] as const
+                        ).map((campo) => {
+                          const lancados = fretesPorChave.get(nf.replace(/\D/g, "")) ?? [];
+                          const soma = lancados.reduce((s, f) => s + Number(f[campo] ?? 0), 0);
+                          return (
+                            <td key={campo} className="px-2 py-1.5 text-right">
+                              {lancados.length === 0 ? "—" : brl(soma)}
+                            </td>
+                          );
+                        })}
                         <td className="px-2 py-1.5 text-right">
                           {(() => {
                             const lancados = fretesPorChave.get(nf.replace(/\D/g, "")) ?? [];
