@@ -616,8 +616,8 @@ export function CteDetailView({
                     const info = volumesMap.get(nf.replace(/\D/g, ""));
                     return (
                       <tr key={nf} className="border-t">
-                        <td className="px-2 py-1.5 font-mono">
-                          {/^\d{44}$/.test(nf) ? (
+                        <td className="px-2 py-1.5 font-mono break-all">
+                          {/^{44}$/.test(nf) ? (
                             <Link
                               to="/nfes/$chave"
                               params={{ chave: nf }}
@@ -629,10 +629,10 @@ export function CteDetailView({
                               }
                               className="underline underline-offset-2 hover:opacity-80"
                             >
-                              {nf}
+                              {nf.replace(/(.{4})(?!$)/g, "$1 ")}
                             </Link>
                           ) : (
-                            nf
+                            nf.replace(/(.{4})(?!$)/g, "$1 ")
                           )}
                         </td>
                         <td className="px-2 py-1.5">{info?.numero ?? "—"}</td>
