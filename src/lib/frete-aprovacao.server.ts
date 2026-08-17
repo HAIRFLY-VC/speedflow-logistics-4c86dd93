@@ -64,13 +64,15 @@ type CteRow = {
   nfs_referenciadas: unknown;
   chave_cte_complementado: string | null;
   status: string;
+  tipo_cte: number | null;
+  motivo_complemento: string | null;
 };
 
 async function carregarCte(cteId: string): Promise<CteRow> {
   const { data, error } = await centralDb
     .from("ctes")
     .select(
-      "id, empresa_id, transportadora_id, chave_acesso, numero, data_emissao, valor_total_frete, componentes, nfs_referenciadas, chave_cte_complementado, status",
+      "id, empresa_id, transportadora_id, chave_acesso, numero, data_emissao, valor_total_frete, componentes, nfs_referenciadas, chave_cte_complementado, status, tipo_cte, motivo_complemento",
     )
     .eq("id", cteId)
     .maybeSingle();
@@ -78,6 +80,7 @@ async function carregarCte(cteId: string): Promise<CteRow> {
   if (!data) throw new Error("CT-e não encontrado");
   return data as unknown as CteRow;
 }
+
 
 /** NF-es do CT-e; complementares herdam as notas do documento original. */
 async function chavesDoCte(cte: CteRow): Promise<string[]> {
