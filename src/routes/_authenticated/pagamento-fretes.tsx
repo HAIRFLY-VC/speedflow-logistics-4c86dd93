@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
+import { FilasErpPanel } from "@/components/ctes/FilasErpPanel";
 import {
   autorizarPagamentoFrete,
   lancarOrdemNoErp,
