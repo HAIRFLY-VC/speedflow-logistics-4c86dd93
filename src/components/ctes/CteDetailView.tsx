@@ -279,6 +279,26 @@ export function CteDetailView({
   // esses números na linha enquanto o XML da nota não é capturado.
   const cargaNaLinha = usandoCargaDoCte && nfs.length === 1 ? carga : null;
 
+  // Despesas de frete já lançadas no ERP para as notas do CT-e.
+  const buscarFretesErp = useServerFn(getFretesContabilizadosNfes);
+  const { data: fretesErp } = useQuery({
+    queryKey: ["cte-nfes-frete-erp", cteIdCarga, nfs.join(",")],
+    enabled: nfs.filter((n) => /^\d{44}$/.test(n)).length > 0,
+    queryFn: async () =>
+      await buscarFretesErp({
+        data: { cteId: cteIdCarga, chaves: nfs.filter((n) => /^\d{44}$/.test(n)) },
+      }),
+    staleTime: 5 * 60_000,
+  });
+  const fretesPorChave = new Map<string, (typeof fretesErp)["itens"]>();
+  for (const item of fretesErp?.itens ?? []) {
+    const atual = fretesPorChave.get(item.chave) ?? [];
+    atual.push(item);
+    fretesPorChave.set(item.chave, atual);
+  }
+  const totalFreteErp = (fretesErp?.itens ?? []).reduce((s, i) => s + i.total, 0);
+
+
   // Complemento por descarga: exibimos o rateio referencial por volume e por kg.
   const isDescarga =
     isComplemento && /DESCARG/i.test(cte.motivo_complemento ?? "");
