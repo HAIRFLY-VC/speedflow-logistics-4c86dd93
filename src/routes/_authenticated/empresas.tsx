@@ -190,6 +190,7 @@ function EmpresaDialog({
   const [cnpj, setCnpj] = useState("");
   const [razaoSocial, setRazaoSocial] = useState("");
   const [ativo, setAtivo] = useState(true);
+  const [codErp, setCodErp] = useState("");
   const [dados, setDados] = useState<ConsultaCnpj | null>(null);
 
   const isEditing = !!editing;
@@ -199,11 +200,13 @@ function EmpresaDialog({
       setCnpj(editing.cnpj);
       setRazaoSocial(editing.razao_social);
       setAtivo(editing.ativo);
+      setCodErp(editing.cod_erp ?? "");
       setDados(null);
     } else if (open) {
       setCnpj("");
       setRazaoSocial("");
       setAtivo(true);
+      setCodErp("");
       setDados(null);
     }
   }, [editing, open]);
@@ -226,14 +229,19 @@ function EmpresaDialog({
       if (isEditing) {
         const { error } = await supabase
           .from("empresas")
-          .update({ razao_social: razaoSocial.trim(), ativo })
+          .update({ razao_social: razaoSocial.trim(), ativo, cod_erp: codErp.trim() || null })
           .eq("id", editing!.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("empresas")
           .upsert(
-            { cnpj: dados!.cnpj, razao_social: dados!.razao_social, ativo: true },
+            {
+              cnpj: dados!.cnpj,
+              razao_social: dados!.razao_social,
+              ativo: true,
+              cod_erp: codErp.trim() || null,
+            },
             { onConflict: "cnpj" },
           );
         if (error) throw error;
@@ -255,6 +263,7 @@ function EmpresaDialog({
           setCnpj("");
           setRazaoSocial("");
           setAtivo(true);
+          setCodErp("");
           setDados(null);
         }
       }}
@@ -312,6 +321,16 @@ function EmpresaDialog({
               value={razaoSocial}
               onChange={(e) => setRazaoSocial(e.target.value)}
               placeholder="Razão social da empresa"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="cod_erp">Código da empresa no ERP</Label>
+            <Input
+              id="cod_erp"
+              value={codErp}
+              onChange={(e) => setCodErp(e.target.value)}
+              placeholder="Ex.: 1"
             />
           </div>
 
