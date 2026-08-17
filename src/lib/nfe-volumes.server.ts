@@ -35,7 +35,16 @@ export async function solicitarNfesDoCte(
       .map((s) => s.chave_acesso),
   );
 
-  const novas = alvos.filter((c) => !temXml.has(c) && !jaSolicitadas.has(c));
+  const faltantes = alvos.filter((c) => !temXml.has(c));
+  // O ERP (Oracle) é a fonte principal: notas emitidas pela empresa só existem lá.
+  let importadas: string[] = [];
+  if (faltantes.length > 0) {
+    const { importarNfesDoErp } = await import("./nfe-erp.server");
+    importadas = await importarNfesDoErp(faltantes, 20);
+  }
+  const importadasSet = new Set(importadas);
+
+  const novas = faltantes.filter((c) => !importadasSet.has(c) && !jaSolicitadas.has(c));
   if (novas.length === 0) return 0;
 
   await centralDb.from("nfe_solicitacoes").insert(

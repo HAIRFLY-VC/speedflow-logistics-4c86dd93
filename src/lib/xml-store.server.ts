@@ -14,6 +14,7 @@ const COLUNAS_NOVAS = [
   "especie_volumes",
   "nsu",
   "xml_obtido_em",
+  "xml_origem",
 ];
 
 function semColunasNovas<T extends Record<string, unknown>>(row: T): Record<string, unknown> {

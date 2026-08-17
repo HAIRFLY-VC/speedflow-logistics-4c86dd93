@@ -4,7 +4,11 @@
 import { parseNfeXml } from "./nfe-parse.server";
 import { upsertComFallback } from "./xml-store.server";
 
-export async function ingestNfeXml(xml: string, nsu?: number | null) {
+export async function ingestNfeXml(
+  xml: string,
+  nsu?: number | null,
+  origem: "SEFAZ" | "ERP" | "MANUAL" = "SEFAZ",
+) {
   const parsed = parseNfeXml(xml);
 
   const storagePath = `${parsed.chave_acesso}.xml`;
@@ -45,6 +49,7 @@ export async function ingestNfeXml(xml: string, nsu?: number | null) {
       xml_conteudo: xml,
       nsu: nsu ?? null,
       xml_obtido_em: new Date().toISOString(),
+      xml_origem: origem,
     },
     "chave_acesso",
   );
