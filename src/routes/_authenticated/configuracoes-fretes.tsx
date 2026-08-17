@@ -432,6 +432,10 @@ function ConfiguracoesFretesPage() {
               </CardContent>
             </Card>
 
+            <LancamentoErpConfig />
+
+
+
             {/* Captura automática de CT-e */}
             <Card>
               <CardHeader>
