@@ -174,11 +174,19 @@ export async function montarPreview(cteId: string): Promise<AprovacaoPreview> {
     nome?: string;
     valor?: number;
   }[];
-  const { detalhe, valores } = distribuir(componentes, geral, especifico);
+  // Complemento por descarga: todo o valor é contabilizado como descarrego.
+  const isDescarga =
+    Number(cte.tipo_cte) === 1 && /DESCARG/i.test(cte.motivo_complemento ?? "");
+  const forcar = isDescarga
+    ? ({ campo: "vlr_descarrego", rotulo: "DESCARGA" } as const)
+    : null;
+  const { detalhe, valores } = distribuir(componentes, geral, especifico, forcar);
   const naoMapeados = detalhe.filter((d) => !d.campo).map((d) => d.nome);
 
-  // Sem componentes detalhados, o valor total do CT-e vira frete.
-  if (detalhe.length === 0) valores.vlr_frete = cent(Number(cte.valor_total_frete));
+  // Sem componentes detalhados, o valor total do CT-e vira frete (ou descarrego).
+  if (detalhe.length === 0)
+    valores[forcar?.campo ?? "vlr_frete"] = cent(Number(cte.valor_total_frete));
+
 
   const chaves = await chavesDoCte(cte);
   const { data: notasDb } = chaves.length
