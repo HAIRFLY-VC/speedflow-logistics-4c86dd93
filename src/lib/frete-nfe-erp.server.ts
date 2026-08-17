@@ -7,19 +7,8 @@ const SQL_FRETE_NFE = `select g.bordero, g.dt_saida, g.vlr_frete, g.vlr_perna, g
  where g.cod_filial = :filial
    and g.nro_nf = :nf`;
 
-export type FreteContabilizadoNfe = {
-  chave: string;
-  numero: string;
-  bordero: string | null;
-  dt_saida: string | null;
-  vlr_frete: number;
-  vlr_perna: number;
-  vlr_diaria: number;
-  vlr_pernoite: number;
-  vlr_reentrega: number;
-  vlr_descarrego: number;
-  total: number;
-};
+import type { FreteContabilizadoNfe } from "@/lib/frete-nfe-erp.types";
+export type { FreteContabilizadoNfe };
 
 type ErpQueryResponse = { rows?: Record<string, unknown>[] };
 

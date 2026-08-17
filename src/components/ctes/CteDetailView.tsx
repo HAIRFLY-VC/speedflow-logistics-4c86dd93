@@ -10,6 +10,8 @@ import { auditarCte } from "@/lib/cte-audit.functions";
 
 import { PracaOverrideDialog } from "@/components/ctes/PracaOverrideDialog";
 import { getVolumesNfesDoCte } from "@/lib/cte.functions";
+import { getFretesContabilizadosNfes } from "@/lib/frete-nfe-erp.functions";
+import type { FreteContabilizadoNfe } from "@/lib/frete-nfe-erp.types";
 import type { NfeVolumeInfo } from "@/lib/nfe-volumes.types";
 import { obterEnderecoEntregaCte, resolverNomeDestinatario } from "@/lib/cte-backfill.functions";
 
@@ -290,13 +292,13 @@ export function CteDetailView({
       }),
     staleTime: 5 * 60_000,
   });
-  const fretesPorChave = new Map<string, (typeof fretesErp)["itens"]>();
-  for (const item of fretesErp?.itens ?? []) {
+  const fretesPorChave = new Map<string, FreteContabilizadoNfe[]>();
+  for (const item of (fretesErp?.itens ?? []) as FreteContabilizadoNfe[]) {
     const atual = fretesPorChave.get(item.chave) ?? [];
     atual.push(item);
     fretesPorChave.set(item.chave, atual);
   }
-  const totalFreteErp = (fretesErp?.itens ?? []).reduce((s, i) => s + i.total, 0);
+  const totalFreteErp = (fretesErp?.itens ?? []).reduce((s: number, i: FreteContabilizadoNfe) => s + i.total, 0);
 
 
   // Complemento por descarga: exibimos o rateio referencial por volume e por kg.
