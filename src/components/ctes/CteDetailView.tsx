@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { auditarCte } from "@/lib/cte-audit.functions";
 
 import { PracaOverrideDialog } from "@/components/ctes/PracaOverrideDialog";
+import { CteAprovacaoPanel } from "@/components/ctes/CteAprovacaoPanel";
 import { getVolumesNfesDoCte } from "@/lib/cte.functions";
 import { getFretesContabilizadosNfes } from "@/lib/frete-nfe-erp.functions";
 import type { FreteContabilizadoNfe } from "@/lib/frete-nfe-erp.types";
@@ -1003,10 +1004,10 @@ export function CteDetailView({
 
         </>
       ) : null}
-
-
+      <CteAprovacaoPanel cteId={cte.id} />
 
       <div className="flex justify-end gap-2">
+
         <Button variant="outline" disabled={!cte.xml_storage_path} onClick={() => onReadXml(cte)}>
           <FileCode className="mr-1 h-4 w-4" />
           Ler XML

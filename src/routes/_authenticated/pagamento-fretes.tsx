@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
+import { FilasErpPanel } from "@/components/ctes/FilasErpPanel";
 import {
   autorizarPagamentoFrete,
   lancarOrdemNoErp,
@@ -314,7 +315,10 @@ function PagamentoFretesPage() {
             emptyMessage="Nenhuma ordem de pagamento gerada."
           />
         </section>
+
+        <FilasErpPanel />
       </div>
+
 
       <Dialog open={!!alvo} onOpenChange={(o) => !o && setAlvo(null)}>
         <DialogContent>
