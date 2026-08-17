@@ -61,7 +61,18 @@ export const solicitarNfeXml = createServerFn({ method: "POST" })
       .maybeSingle();
     if (existente) return { status: "CONCLUIDA" as const, mensagem: null as string | null };
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // 1) Tenta o ERP (Oracle) — é lá que estão as notas emitidas pela empresa.
+    const { importarNfeDoErp } = await import("./nfe-erp.server");
+    const erp = await importarNfeDoErp(data.chave);
+    if (erp.ok) {
+      await centralDb
+        .from("nfe_solicitacoes")
+        .update({ status: "CONCLUIDA", mensagem: "XML obtido no ERP" })
+        .eq("chave_acesso", data.chave);
+      return { status: "CONCLUIDA" as const, mensagem: "XML obtido no ERP" as string | null };
+    }
+    const erpMensagem = erp.mensagem;
+
     const { data: sol } = await centralDb
       .from("nfe_solicitacoes")
       .select("id, status")
@@ -75,18 +86,18 @@ export const solicitarNfeXml = createServerFn({ method: "POST" })
         status: "PENDENTE",
       });
       if (error) throw new Error(error.message);
-      return { status: "PENDENTE" as const, mensagem: null as string | null };
+      return { status: "PENDENTE" as const, mensagem: erpMensagem };
     }
 
     if (sol.status === "ERRO") {
       await centralDb
         .from("nfe_solicitacoes")
-        .update({ status: "PENDENTE", mensagem: null })
+        .update({ status: "PENDENTE", mensagem: erpMensagem })
         .eq("id", sol.id);
-      return { status: "PENDENTE" as const, mensagem: null as string | null };
+      return { status: "PENDENTE" as const, mensagem: erpMensagem };
     }
 
-    return { status: sol.status, mensagem: null as string | null };
+    return { status: sol.status, mensagem: erpMensagem };
   });
 
 export const getNfeSolicitacao = createServerFn({ method: "POST" })
