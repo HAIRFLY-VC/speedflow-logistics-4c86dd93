@@ -64,13 +64,15 @@ type CteRow = {
   nfs_referenciadas: unknown;
   chave_cte_complementado: string | null;
   status: string;
+  tipo_cte: number | null;
+  motivo_complemento: string | null;
 };
 
 async function carregarCte(cteId: string): Promise<CteRow> {
   const { data, error } = await centralDb
     .from("ctes")
     .select(
-      "id, empresa_id, transportadora_id, chave_acesso, numero, data_emissao, valor_total_frete, componentes, nfs_referenciadas, chave_cte_complementado, status",
+      "id, empresa_id, transportadora_id, chave_acesso, numero, data_emissao, valor_total_frete, componentes, nfs_referenciadas, chave_cte_complementado, status, tipo_cte, motivo_complemento",
     )
     .eq("id", cteId)
     .maybeSingle();
@@ -78,6 +80,7 @@ async function carregarCte(cteId: string): Promise<CteRow> {
   if (!data) throw new Error("CT-e não encontrado");
   return data as unknown as CteRow;
 }
+
 
 /** NF-es do CT-e; complementares herdam as notas do documento original. */
 async function chavesDoCte(cte: CteRow): Promise<string[]> {
@@ -102,6 +105,8 @@ function distribuir(
   componentes: { nome?: string; valor?: number }[],
   geral: Map<string, ErpCampoValor>,
   especifico: Map<string, ErpCampoValor>,
+  /** Quando informado, todo o valor do CT-e vai para este campo (ex.: descarga). */
+  forcarCampo?: { campo: ErpCampoValor; rotulo: string } | null,
 ) {
   const detalhe: ComponentePreview[] = [];
   const valores = zeros();
@@ -109,6 +114,16 @@ function distribuir(
     const nome = String(c.nome ?? "").trim();
     if (!nome) continue;
     const valor = Number(c.valor ?? 0);
+    if (forcarCampo) {
+      valores[forcarCampo.campo] = cent(valores[forcarCampo.campo] + valor);
+      detalhe.push({
+        nome: forcarCampo.rotulo,
+        valor,
+        campo: forcarCampo.campo,
+        origem: "automatico",
+      });
+      continue;
+    }
     const k = chaveNome(nome);
     let campo: ErpCampoValor | null = null;
     let origem: ComponentePreview["origem"] = "nenhum";
@@ -127,6 +142,7 @@ function distribuir(
   }
   return { detalhe, valores };
 }
+
 
 /** Divide um valor entre as notas conforme os pesos informados. */
 function ratear(total: number, pesos: number[]): number[] {
@@ -158,11 +174,19 @@ export async function montarPreview(cteId: string): Promise<AprovacaoPreview> {
     nome?: string;
     valor?: number;
   }[];
-  const { detalhe, valores } = distribuir(componentes, geral, especifico);
+  // Complemento por descarga: todo o valor é contabilizado como descarrego.
+  const isDescarga =
+    Number(cte.tipo_cte) === 1 && /DESCARG/i.test(cte.motivo_complemento ?? "");
+  const forcar = isDescarga
+    ? ({ campo: "vlr_descarrego", rotulo: "DESCARGA" } as const)
+    : null;
+  const { detalhe, valores } = distribuir(componentes, geral, especifico, forcar);
   const naoMapeados = detalhe.filter((d) => !d.campo).map((d) => d.nome);
 
-  // Sem componentes detalhados, o valor total do CT-e vira frete.
-  if (detalhe.length === 0) valores.vlr_frete = cent(Number(cte.valor_total_frete));
+  // Sem componentes detalhados, o valor total do CT-e vira frete (ou descarrego).
+  if (detalhe.length === 0)
+    valores[forcar?.campo ?? "vlr_frete"] = cent(Number(cte.valor_total_frete));
+
 
   const chaves = await chavesDoCte(cte);
   const { data: notasDb } = chaves.length
