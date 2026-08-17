@@ -648,14 +648,14 @@ export function CteDetailView({
                             statusLabel(info?.status, volumesLoading, info?.mensagem)
                           )}
                         </td>
-                        <td className="px-2 py-1.5 text-right">
+                        <td className="px-2 py-1.5 text-right whitespace-nowrap">
                           {info?.peso_bruto != null ? (
                             info.peso_bruto.toLocaleString("pt-BR", {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             })
                           ) : cargaNaLinha?.peso_real != null ? (
-                            <span title="Peso declarado na carga do CT-e">
+                            <span title="Peso declarado na carga do CT-e" className="whitespace-nowrap">
                               {cargaNaLinha.peso_real.toLocaleString("pt-BR", {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
