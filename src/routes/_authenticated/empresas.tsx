@@ -44,7 +44,7 @@ export const Route = createFileRoute("/_authenticated/empresas")({
   }),
 });
 
-type Empresa = Tables<"empresas">;
+type Empresa = Tables<"empresas"> & { cod_erp: string | null };
 
 const formatCnpj = (v: string) => {
   const d = v.replace(/\D/g, "").slice(0, 14);
