@@ -47,6 +47,12 @@ function statusLabel(
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const dataBr = (v: string | null) => {
+  if (!v) return "—";
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? v : d.toLocaleDateString("pt-BR");
+};
+
 function Field({
   label,
   value,
