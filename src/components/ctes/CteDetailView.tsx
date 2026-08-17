@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { auditarCte } from "@/lib/cte-audit.functions";
 
 import { PracaOverrideDialog } from "@/components/ctes/PracaOverrideDialog";
+import { CteAprovacaoPanel } from "@/components/ctes/CteAprovacaoPanel";
 import { getVolumesNfesDoCte } from "@/lib/cte.functions";
 import { getFretesContabilizadosNfes } from "@/lib/frete-nfe-erp.functions";
 import type { FreteContabilizadoNfe } from "@/lib/frete-nfe-erp.types";
