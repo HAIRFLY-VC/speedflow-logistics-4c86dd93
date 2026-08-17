@@ -314,7 +314,10 @@ function PagamentoFretesPage() {
             emptyMessage="Nenhuma ordem de pagamento gerada."
           />
         </section>
+
+        <FilasErpPanel />
       </div>
+
 
       <Dialog open={!!alvo} onOpenChange={(o) => !o && setAlvo(null)}>
         <DialogContent>
