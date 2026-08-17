@@ -105,6 +105,8 @@ function distribuir(
   componentes: { nome?: string; valor?: number }[],
   geral: Map<string, ErpCampoValor>,
   especifico: Map<string, ErpCampoValor>,
+  /** Quando informado, todo o valor do CT-e vai para este campo (ex.: descarga). */
+  forcarCampo?: { campo: ErpCampoValor; rotulo: string } | null,
 ) {
   const detalhe: ComponentePreview[] = [];
   const valores = zeros();
@@ -112,6 +114,16 @@ function distribuir(
     const nome = String(c.nome ?? "").trim();
     if (!nome) continue;
     const valor = Number(c.valor ?? 0);
+    if (forcarCampo) {
+      valores[forcarCampo.campo] = cent(valores[forcarCampo.campo] + valor);
+      detalhe.push({
+        nome: forcarCampo.rotulo,
+        valor,
+        campo: forcarCampo.campo,
+        origem: "automatico",
+      });
+      continue;
+    }
     const k = chaveNome(nome);
     let campo: ErpCampoValor | null = null;
     let origem: ComponentePreview["origem"] = "nenhum";
@@ -130,6 +142,7 @@ function distribuir(
   }
   return { detalhe, valores };
 }
+
 
 /** Divide um valor entre as notas conforme os pesos informados. */
 function ratear(total: number, pesos: number[]): number[] {
