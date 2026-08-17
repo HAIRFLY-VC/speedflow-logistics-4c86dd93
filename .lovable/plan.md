@@ -1,58 +1,62 @@
-# Leitura da NF-e sob demanda pelo robô
+# Ler o XML da NF-e pela API Oracle do ERP
 
-## O que o teste de agora mostrou
+## Situação atual (verificada)
 
-- Robô online (último contato 15:55) e respondendo à fila de comandos.
-- Heartbeat da varredura: `NSU 0 | 0 nota(s) enviada(s)`, **sem** o bloco de diagnóstico
-  (`cStat=... | maxNSU=... | docs=...`) que a versão nova envia — ou o serviço no servidor
-  ainda roda o código antigo, ou a consulta falha antes de chegar ao diagnóstico.
-- Banco central: 1 NF-e completa gravada (de terceiro). As notas da própria empresa
-  (emitente 10627976000142) seguem com `cStat=641`, e outra nota com `cStat=632`
-  (fora do prazo de download na SEFAZ).
+- A SEFAZ não devolve ao emitente o XML das próprias notas (`cStat=641`) e recusa notas antigas
+  por prazo (`cStat=632`). O robô está online, mas a varredura por NSU segue em
+  `NSU 0 | 0 nota(s) enviada(s)`.
+- No banco central há apenas 1 NF-e completa (de terceiro); as notas do CT-e continuam sem XML.
+- O app já fala com o ERP: `POST {ERP_API_BASE_URL}/v1/query` com `{ sql, binds, limit }` e header
+  `X-API-Key` (usado hoje em `src/lib/erp-sync.server.ts`).
 
-Conclusão: a SEFAZ não devolve ao emitente o XML das próprias notas, e notas antigas de
-terceiros caem no prazo (632). A captura precisa de uma fonte local no servidor.
+Com a consulta Oracle informada, o próprio app passa a buscar o XML — sem depender do robô nem da
+SEFAZ para as notas da empresa.
 
 ## Como vai funcionar
 
-O app continua sendo quem pede: ao abrir uma NF-e sem XML (ou ao clicar em "Tentar
-novamente"), entra uma solicitação na fila. O robô passa a atender essa solicitação em
-três etapas, na ordem:
+1. O app precisa do XML de uma chave (tela da NF-e, ou ingestão de um CT-e que referencia notas).
+2. Busca primeiro no banco central (`nfes.xml_conteudo`) — se já existe, não consulta nada.
+3. Se não existe, consulta a API Oracle do ERP:
 
-1. **Arquivo local do ERP** — procura o XML pela chave nas pastas configuradas no servidor.
-2. **SEFAZ por chave** — só se não achou localmente (funciona para notas de terceiros
-   dentro do prazo).
-3. **Erro explicativo** — devolve ao app o motivo real ("não encontrado na pasta X e
-   SEFAZ respondeu 641/632"), que aparece na tela da NF-e.
+```sql
+select x.gcf_nfe_xml_nfe
+  from gks.gcf_nfe n, gks.gcf_nfe_xml x
+ where n.gcf_nfe_chave = :chave
+   and x.gcf_nfe_xml_id = n.gcf_nfe_id
+```
+
+4. Retornando XML, ele é parseado e gravado normalmente (colunas de conferência + `xml_conteudo`),
+   exatamente como acontece hoje na ingestão vinda do robô.
+5. Se o ERP não tiver a nota, aí sim entra a fila do robô/SEFAZ como hoje (útil para notas de
+   terceiros), com mensagem de erro clara distinguindo "não encontrada no ERP" de "recusada pela SEFAZ".
 
 ## Mudanças
 
-### Robô (`robo-cte/`)
+### Backend
 
-- Nova configuração `pastasXmlNfe: ["C:/ERP/xml/nfe", ...]` (busca recursiva, cache de
-  índice por chave, atualizado a cada ciclo).
-- `processarNfesPendentes` passa a tentar a pasta local antes da SEFAZ e envia o XML
-  encontrado ao mesmo hook `ingest-nfe`.
-- Novo comando `node index.js --testar-nfe <chave>` que mostra onde a nota foi encontrada
-  (pasta ou SEFAZ) sem enviar nada.
-- Log e heartbeat da varredura NSU passam a registrar também a origem usada por nota.
-- `config.exemplo.json` e `README.md` atualizados com a nova chave de configuração.
+- `src/lib/nfe-erp.server.ts` (novo): `buscarXmlNfeNoErp(chave)` — chama a API do ERP com a query
+  acima via bind, trata retorno CLOB (string ou objeto/base64), valida que o conteúdo é um XML de
+  NF-e e devolve `null` quando não encontrado.
+- `src/lib/nfe.functions.ts`: `solicitarNfeXml` passa a tentar o ERP antes de enfileirar para o robô;
+  quando encontra, grava via `ingestNfeXml` e retorna a nota já pronta.
+- `src/lib/nfe-volumes.server.ts` / ingestão do CT-e: ao detectar notas sem XML, tenta o ERP em lote
+  (limite por execução) antes de criar solicitação para o robô.
+- Registro da origem do XML (`ERP` ou `SEFAZ`) na tabela `nfes` para rastreio.
 
-### App
+### UI
 
-- Mensagem de erro da solicitação exibida na tela da NF-e passa a distinguir
-  "não encontrado no servidor" de "recusado pela SEFAZ".
-- Botão "Tentar novamente" reenvia a solicitação para o robô (fila por chave), inclusive
-  para notas com 641 — agora faz sentido, porque o robô procura no disco.
-- Sem mudança de schema: a fila `nfe_solicitacoes` e a tabela `nfes` já atendem.
+- Tela da NF-e: botão "Tentar novamente" busca no ERP primeiro e mostra o resultado imediatamente;
+  mensagens de status diferenciando ERP e SEFAZ.
+- Tabela "Notas fiscais referenciadas" do CT-e: assim que o XML vem do ERP, volumes e peso passam a
+  sair da própria NF-e (deixa de aparecer o fallback "(CT-e)").
 
-### Pacote de download
+### Banco central
 
-Novo zip com tudo dentro de uma única pasta `robo-cte/`, contendo os arquivos alterados e
-instruções curtas de atualização e de preenchimento de `pastasXmlNfe`.
+- Migração pequena: coluna `xml_origem` em `nfes` (texto, opcional).
 
-## O que preciso de você
+## Detalhes técnicos
 
-1. Rodar `node index.js --diagnostico-nfe` na pasta do robô e colar a saída (confirma a
-   versão e o retorno da SEFAZ).
-2. Informar o caminho da pasta no servidor onde o ERP grava os XMLs das NF-es.
+- Reaproveita o cliente HTTP do ERP já existente (mesma URL, mesmo `X-API-Key`, timeout curto e
+  `limit: 1`), sem nova credencial.
+- Chave passada por bind, nunca concatenada na SQL.
+- Nenhuma alteração no robô nesta etapa; ele continua cobrindo CT-e e notas de terceiros.
