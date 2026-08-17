@@ -103,6 +103,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     toolbarRight,
     onFilteredChange,
     groupBy,
+    scrollable,
   } = props;
 
 
@@ -206,6 +207,15 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
   const colspan = visibleColumns.length || 1;
 
+  function TableWrapper({ children }: { children: React.ReactNode }) {
+    if (!scrollable) return <>{children}</>;
+    return (
+      <div className="overflow-y-scroll overflow-x-auto h-[calc(100vh-260px)]">{children}</div>
+    );
+  }
+
+
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -255,9 +265,13 @@ export function DataTable<T>(props: DataTableProps<T>) {
         </div>
       )}
 
-      <div className="border rounded-lg overflow-clip bg-card">
-        <Table>
-          <TableHeader>
+      <div className="border rounded-lg bg-card">
+        <TableWrapper>
+          <Table
+            wrapperClassName={scrollable ? "overflow-visible" : undefined}
+            className={scrollable ? "border-separate" : undefined}
+          >
+            <TableHeader>
             <TableRow>
               {visibleColumns.map((c) => (
                 <HeaderCell
@@ -322,7 +336,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
             )}
           </TableBody>
         </Table>
-      </div>
+      </TableWrapper>
+    </div>
     </div>
   );
 }

@@ -37,6 +37,8 @@ export type DataTableProps<T> = {
   toolbarLeft?: ReactNode;
   toolbarRight?: ReactNode;
   onFilteredChange?: (rows: T[]) => void;
+  /** When true, the table body becomes scrollable within a fixed height with the header sticky. */
+  scrollable?: boolean;
 
   groupBy?: {
     id: string;
