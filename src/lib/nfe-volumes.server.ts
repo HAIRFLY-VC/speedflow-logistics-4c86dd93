@@ -27,9 +27,11 @@ export async function solicitarNfesDoCte(
     .from("nfe_solicitacoes")
     .select("chave_acesso, status")
     .in("chave_acesso", alvos);
+  // Notas emitidas pela própria empresa respondem cStat=641 na consulta por
+  // chave: não adianta reenfileirar, elas só chegam pela varredura por NSU.
   const jaSolicitadas = new Set(
     (solicitadas ?? [])
-      .filter((s) => s.status !== "ERRO")
+      .filter((s) => s.status !== "ERRO" || /\b641\b/.test((s as { mensagem?: string | null }).mensagem ?? ""))
       .map((s) => s.chave_acesso),
   );
 
@@ -99,8 +101,9 @@ export async function coletarVolumesNfes(chaves: string[]): Promise<NfeVolumeInf
         peso_bruto: null,
         peso_liquido: null,
         especie: null,
-        status:
-          sol?.status === "PROCESSANDO"
+        status: /\b641\b/.test(sol?.mensagem ?? "")
+          ? "AGUARDANDO_VARREDURA"
+          : sol?.status === "PROCESSANDO"
             ? "PROCESSANDO"
             : sol?.status === "ERRO"
               ? "ERRO"

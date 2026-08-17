@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
+import { solicitarCapturaCte } from "@/lib/cte-captura.functions";
 import {
   getNfe,
   getNfeSolicitacao,
@@ -115,13 +116,22 @@ function NfeDetailPage() {
 
 
 
+  const pedirVarredura = useServerFn(solicitarCapturaCte);
+
   const retentar = useMutation({
     mutationFn: async () => {
+      // Nota emitida pela própria empresa (cStat=641): a consulta por chave nunca
+      // funciona; o caminho é disparar a varredura por NSU no robô.
+      if (aguardandoVarredura) return pedirVarredura({ data: { reiniciarNsu: false } });
       pedidoFeito.current = true;
       return solicitar({ data: { chave } });
     },
     onSuccess: () => {
-      toast.success("Nova tentativa de leitura enviada ao robô");
+      toast.success(
+        aguardandoVarredura
+          ? "Varredura da SEFAZ solicitada ao robô"
+          : "Nova tentativa de leitura enviada ao robô",
+      );
       qc.invalidateQueries({ queryKey: ["nfe-solicitacao", chave] });
     },
     onError: (e: Error) => toast.error(e.message),

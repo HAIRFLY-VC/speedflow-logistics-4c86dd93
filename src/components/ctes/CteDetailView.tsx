@@ -29,7 +29,8 @@ function statusLabel(
 ) {
   if (loading && !status) return "...";
   // 641 = nota emitida pela própria empresa: chega pela varredura por NSU do robô.
-  if (/\b641\b/.test(mensagem ?? "")) return "aguardando varredura";
+  if (status === "AGUARDANDO_VARREDURA" || /\b641\b/.test(mensagem ?? ""))
+    return "aguardando varredura";
   switch (status) {
     case "PENDENTE":
       return "aguardando XML";
@@ -271,6 +272,9 @@ export function CteDetailView({
   const pesoExibido = usandoCargaDoCte
     ? (carga?.peso_real ?? Number(cte.peso_taxado ?? 0) ?? 0)
     : totalPesoBruto;
+  // Com uma única NF-e no CT-e, a carga declarada corresponde a ela: mostramos
+  // esses números na linha enquanto o XML da nota não é capturado.
+  const cargaNaLinha = usandoCargaDoCte && nfs.length === 1 ? carga : null;
 
   // Complemento por descarga: exibimos o rateio referencial por volume e por kg.
   const isDescarga =
@@ -574,17 +578,34 @@ export function CteDetailView({
                         </td>
                         <td className="px-2 py-1.5">{info?.numero ?? "—"}</td>
                         <td className="px-2 py-1.5 text-right">
-                          {info?.volumes != null
-                            ? info.volumes.toLocaleString("pt-BR")
-                            : statusLabel(info?.status, volumesLoading, info?.mensagem)}
+                          {info?.volumes != null ? (
+                            info.volumes.toLocaleString("pt-BR")
+                          ) : cargaNaLinha?.volumes != null ? (
+                            <span title="Valor declarado na carga do CT-e">
+                              {cargaNaLinha.volumes.toLocaleString("pt-BR")}
+                              <span className="text-muted-foreground ml-1 text-[10px]">(CT-e)</span>
+                            </span>
+                          ) : (
+                            statusLabel(info?.status, volumesLoading, info?.mensagem)
+                          )}
                         </td>
                         <td className="px-2 py-1.5 text-right">
-                          {info?.peso_bruto != null
-                            ? info.peso_bruto.toLocaleString("pt-BR", {
+                          {info?.peso_bruto != null ? (
+                            info.peso_bruto.toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          ) : cargaNaLinha?.peso_real != null ? (
+                            <span title="Peso declarado na carga do CT-e">
+                              {cargaNaLinha.peso_real.toLocaleString("pt-BR", {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
-                              })
-                            : statusLabel(info?.status, volumesLoading, info?.mensagem)}
+                              })}
+                              <span className="text-muted-foreground ml-1 text-[10px]">(CT-e)</span>
+                            </span>
+                          ) : (
+                            statusLabel(info?.status, volumesLoading, info?.mensagem)
+                          )}
                         </td>
                       </tr>
                     );
