@@ -53,6 +53,22 @@ const dataBr = (v: string | null) => {
   return Number.isNaN(d.getTime()) ? v : d.toLocaleDateString("pt-BR");
 };
 
+const horaBr = (v: string | null) => {
+  if (!v) return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+};
+
+const dataHoraCelula = (v: string | null) => {
+  const hora = horaBr(v);
+  return (
+    <div className="leading-tight">
+      <div>{dataBr(v)}</div>
+      {hora ? <div className="text-muted-foreground text-[10px]">{hora}</div> : null}
+    </div>
+  );
+};
+
 function Field({
   label,
   value,
@@ -577,22 +593,22 @@ export function CteDetailView({
             }
           >
             <div className="overflow-hidden rounded-md border">
-              <table className="w-full text-xs">
+              <table className="w-full text-[11px] table-fixed">
                 <thead className="bg-muted/40 text-muted-foreground">
                   <tr>
-                    <th className="px-2 py-1.5 text-left font-medium">Chave</th>
-                    <th className="px-2 py-1.5 text-left font-medium">Nº</th>
-                    <th className="px-2 py-1.5 text-right font-medium">Volumes</th>
-                    <th className="px-2 py-1.5 text-right font-medium">Peso bruto (kg)</th>
-                    <th className="px-2 py-1.5 text-left font-medium">Borderô</th>
-                    <th className="px-2 py-1.5 text-left font-medium">Dt. saída</th>
-                    <th className="px-2 py-1.5 text-right font-medium">Frete</th>
-                    <th className="px-2 py-1.5 text-right font-medium">Perna</th>
-                    <th className="px-2 py-1.5 text-right font-medium">Diária</th>
-                    <th className="px-2 py-1.5 text-right font-medium">Pernoite</th>
-                    <th className="px-2 py-1.5 text-right font-medium">Reentrega</th>
-                    <th className="px-2 py-1.5 text-right font-medium">Descarrego</th>
-                    <th className="px-2 py-1.5 text-right font-medium">Frete contabilizado</th>
+                    <th className="px-2 py-1.5 text-left font-medium w-[180px]">Chave</th>
+                    <th className="px-2 py-1.5 text-left font-medium w-[60px]">Nº</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Volumes</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Peso bruto (kg)</th>
+                    <th className="px-2 py-1.5 text-left font-medium whitespace-nowrap">Borderô</th>
+                    <th className="px-2 py-1.5 text-left font-medium whitespace-nowrap">Dt. saída</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Frete</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Perna</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Diária</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Pernoite</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Reentrega</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Descarrego</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Frete contabilizado</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -600,8 +616,8 @@ export function CteDetailView({
                     const info = volumesMap.get(nf.replace(/\D/g, ""));
                     return (
                       <tr key={nf} className="border-t">
-                        <td className="px-2 py-1.5 font-mono">
-                          {/^\d{44}$/.test(nf) ? (
+                        <td className="px-2 py-1.5 font-mono break-all">
+                          {/^{44}$/.test(nf) ? (
                             <Link
                               to="/nfes/$chave"
                               params={{ chave: nf }}
@@ -613,18 +629,18 @@ export function CteDetailView({
                               }
                               className="underline underline-offset-2 hover:opacity-80"
                             >
-                              {nf}
+                              {nf.replace(/(.{4})(?!$)/g, "$1 ")}
                             </Link>
                           ) : (
-                            nf
+                            nf.replace(/(.{4})(?!$)/g, "$1 ")
                           )}
                         </td>
-                        <td className="px-2 py-1.5">{info?.numero ?? "—"}</td>
-                        <td className="px-2 py-1.5 text-right">
+                        <td className="px-2 py-1.5 whitespace-nowrap">{info?.numero ?? "—"}</td>
+                        <td className="px-2 py-1.5 text-right whitespace-nowrap">
                           {info?.volumes != null ? (
                             info.volumes.toLocaleString("pt-BR")
                           ) : cargaNaLinha?.volumes != null ? (
-                            <span title="Valor declarado na carga do CT-e">
+                            <span title="Valor declarado na carga do CT-e" className="whitespace-nowrap">
                               {cargaNaLinha.volumes.toLocaleString("pt-BR")}
                               <span className="text-muted-foreground ml-1 text-[10px]">(CT-e)</span>
                             </span>
@@ -632,14 +648,14 @@ export function CteDetailView({
                             statusLabel(info?.status, volumesLoading, info?.mensagem)
                           )}
                         </td>
-                        <td className="px-2 py-1.5 text-right">
+                        <td className="px-2 py-1.5 text-right whitespace-nowrap">
                           {info?.peso_bruto != null ? (
                             info.peso_bruto.toLocaleString("pt-BR", {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             })
                           ) : cargaNaLinha?.peso_real != null ? (
-                            <span title="Peso declarado na carga do CT-e">
+                            <span title="Peso declarado na carga do CT-e" className="whitespace-nowrap">
                               {cargaNaLinha.peso_real.toLocaleString("pt-BR", {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
@@ -650,15 +666,24 @@ export function CteDetailView({
                             statusLabel(info?.status, volumesLoading, info?.mensagem)
                           )}
                         </td>
-                        <td className="px-2 py-1.5">
+                        <td className="px-2 py-1.5 whitespace-nowrap">
                           {(fretesPorChave.get(nf.replace(/\D/g, "")) ?? [])
                             .map((f) => f.bordero ?? "—")
                             .join(", ") || "—"}
                         </td>
-                        <td className="px-2 py-1.5">
-                          {(fretesPorChave.get(nf.replace(/\D/g, "")) ?? [])
-                            .map((f) => dataBr(f.dt_saida))
-                            .join(", ") || "—"}
+                        <td className="px-2 py-1.5 whitespace-nowrap">
+                          {(() => {
+                            const lancados = fretesPorChave.get(nf.replace(/\D/g, "")) ?? [];
+                            if (lancados.length === 0) return "—";
+                            return lancados.map((f, idx) => (
+                              <span key={idx} className="inline-block align-top">
+                                {dataHoraCelula(f.dt_saida)}
+                                {idx < lancados.length - 1 ? (
+                                  <span className="text-muted-foreground mx-1">,</span>
+                                ) : null}
+                              </span>
+                            ));
+                          })()}
                         </td>
                         {(
                           [
@@ -673,12 +698,12 @@ export function CteDetailView({
                           const lancados = fretesPorChave.get(nf.replace(/\D/g, "")) ?? [];
                           const soma = lancados.reduce((s, f) => s + Number(f[campo] ?? 0), 0);
                           return (
-                            <td key={campo} className="px-2 py-1.5 text-right">
+                            <td key={campo} className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
                               {lancados.length === 0 ? "—" : brl(soma)}
                             </td>
                           );
                         })}
-                        <td className="px-2 py-1.5 text-right">
+                        <td className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
                           {(() => {
                             const lancados = fretesPorChave.get(nf.replace(/\D/g, "")) ?? [];
                             if (lancados.length === 0) return "—";
@@ -717,10 +742,10 @@ export function CteDetailView({
                         </span>
                       ) : null}
                     </td>
-                    <td className="px-2 py-1.5 text-right">
+                    <td className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
                       {volumesExibidos.toLocaleString("pt-BR")}
                     </td>
-                    <td className="px-2 py-1.5 text-right">
+                    <td className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
                       {pesoExibido.toLocaleString("pt-BR", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -742,12 +767,12 @@ export function CteDetailView({
                         0,
                       );
                       return (
-                        <td key={campo} className="px-2 py-1.5 text-right">
+                        <td key={campo} className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
                           {soma > 0 ? brl(soma) : "—"}
                         </td>
                       );
                     })}
-                    <td className="px-2 py-1.5 text-right">
+                    <td className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
                       {totalFreteErp > 0 ? brl(totalFreteErp) : "—"}
                     </td>
                   </tr>
