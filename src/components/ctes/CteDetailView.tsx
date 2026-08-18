@@ -279,6 +279,28 @@ export function CteDetailView({
   const usandoNfsDoOriginal = nfsProprias.length === 0 && nfsDoOriginal.length > 0;
   const nfs = usandoNfsDoOriginal ? nfsDoOriginal : nfsProprias;
 
+  // Outros CT-e que também apontam para o mesmo CT-e original.
+  const { data: irmaos } = useQuery({
+    queryKey: ["cte-irmaos", cte.id, cteOriginal?.id, cteOriginal?.chave_acesso],
+    enabled: !!cteOriginal?.id,
+    queryFn: async () => {
+      const cols = "id, numero, chave_acesso, tipo_cte, motivo_complemento, valor_total_frete";
+      const filtros = [`chave_cte_complementado.eq.${cteOriginal!.chave_acesso}`];
+      if (cteOriginal!.numero) {
+        filtros.push(`numero_cte_complementado.eq.${cteOriginal!.numero}`);
+      }
+      const { data, error } = await supabase
+        .from("ctes")
+        .select(cols)
+        .or(filtros.join(","))
+        .order("numero", { ascending: true });
+      if (error) throw error;
+      return (data ?? []).filter((c) => c.id !== cte.id && c.id !== cteOriginal!.id);
+    },
+  });
+
+
+
   const buscarVolumes = useServerFn(getVolumesNfesDoCte);
   // Complementar/reentrega não tem carga própria: os totais vêm do CT-e original.
   const cteIdCarga = usandoNfsDoOriginal && cteOriginal?.id ? cteOriginal.id : cte.id;
@@ -577,6 +599,25 @@ export function CteDetailView({
               Do CT-e original{" "}
               {cteOriginal?.numero ? <LinkOriginal>nº {cteOriginal.numero}</LinkOriginal> : ""}
             </Badge>
+          ) : null}
+          {cteOriginal && (irmaos?.length ?? 0) > 0 ? (
+            <>
+              <span className="text-muted-foreground text-[10px]">Outros vinculados:</span>
+              {irmaos!.map((irmao) => (
+                <Badge
+                  key={irmao.id}
+                  variant="outline"
+                  onClick={() => openCteLink(irmao.id)}
+                  title={`Abrir CT-e nº ${irmao.numero ?? ""}${
+                    irmao.motivo_complemento ? ` — ${irmao.motivo_complemento}` : ""
+                  }`}
+                  className="cursor-pointer border-sky-300 bg-sky-50 text-[10px] text-sky-700 underline underline-offset-2 hover:opacity-80 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-300"
+                >
+                  nº {irmao.numero ?? irmao.chave_acesso.slice(-6)}
+                  {irmao.tipo_cte === 4 ? " (reentrega)" : ""}
+                </Badge>
+              ))}
+            </>
           ) : null}
         </div>
         {usandoNfsDoOriginal ? (
