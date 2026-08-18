@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { Copy, KeyRound, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import {
   excluirMapeamentoComponente,
+  gerarTokenN8n,
   getConfigLancamentoErp,
   salvarIntegracaoN8n,
   salvarMapeamentoComponente,
@@ -32,6 +33,7 @@ export function LancamentoErpConfig() {
   const salvarMap = useServerFn(salvarMapeamentoComponente);
   const excluirMap = useServerFn(excluirMapeamentoComponente);
   const salvarN8n = useServerFn(salvarIntegracaoN8n);
+  const gerarToken = useServerFn(gerarTokenN8n);
 
   const { data, isLoading } = useQuery({
     queryKey: ["config-lancamento-erp"],
@@ -44,6 +46,11 @@ export function LancamentoErpConfig() {
     campo: "vlr_frete",
   });
   const [n8n, setN8n] = useState({ url: "", urlFin: "", ativo: false });
+  const [token, setToken] = useState("");
+  const callbackUrl =
+    typeof window === "undefined"
+      ? "/api/public/hooks/erp-fila-callback"
+      : `${window.location.origin}/api/public/hooks/erp-fila-callback`;
 
   useEffect(() => {
     if (data?.n8n) {
@@ -52,6 +59,7 @@ export function LancamentoErpConfig() {
         urlFin: data.n8n.webhook_url_financeiro ?? "",
         ativo: data.n8n.ativo,
       });
+      setToken(data.n8n.webhook_token ?? "");
     }
   }, [data?.n8n]);
 
@@ -79,6 +87,20 @@ export function LancamentoErpConfig() {
     onSuccess: () => invalidar(),
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const mToken = useMutation({
+    mutationFn: async () => await gerarToken({}),
+    onSuccess: (r: { token: string }) => {
+      setToken(r.token);
+      toast.success("Novo token gerado");
+      invalidar();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const copiar = (valor: string, label: string) => {
+    void navigator.clipboard.writeText(valor).then(() => toast.success(`${label} copiado`));
+  };
 
   const mN8n = useMutation({
     mutationFn: async () =>
@@ -232,10 +254,37 @@ export function LancamentoErpConfig() {
               />
             </div>
           </div>
-          <p className="text-muted-foreground text-xs">
-            O n8n deve confirmar o processamento em{" "}
-            <code className="bg-muted rounded px-1">/api/public/hooks/erp-fila-callback</code>.
-          </p>
+          <div className="space-y-1">
+            <Label className="text-xs">Token do webhook</Label>
+            <div className="flex gap-2">
+              <Input readOnly value={token} placeholder="Nenhum token gerado" className="font-mono text-xs" />
+              <Button variant="outline" onClick={() => copiar(token, "Token")} disabled={!token}>
+                <Copy className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" onClick={() => mToken.mutate()} disabled={mToken.isPending}>
+                {mToken.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <KeyRound className="mr-2 h-4 w-4" />
+                )}
+                Gerar
+              </Button>
+            </div>
+            <p className="text-muted-foreground text-xs">
+              Enviado ao n8n no header <code className="bg-muted rounded px-1">X-Webhook-Token</code> e
+              exigido de volta no callback.
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">URL de callback (informar no n8n)</Label>
+            <div className="flex gap-2">
+              <Input readOnly value={callbackUrl} className="font-mono text-xs" />
+              <Button variant="outline" onClick={() => copiar(callbackUrl, "URL")}>
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
           <div className="flex justify-end">
             <Button onClick={() => mN8n.mutate()} disabled={mN8n.isPending}>
               {mN8n.isPending ? (
