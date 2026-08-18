@@ -175,11 +175,16 @@ export async function montarPreview(cteId: string): Promise<AprovacaoPreview> {
     valor?: number;
   }[];
   // Complemento por descarga: todo o valor é contabilizado como descarrego.
+  // Complemento por estadia: todo o valor é contabilizado como pernoite.
   const isDescarga =
     Number(cte.tipo_cte) === 1 && /DESCARG/i.test(cte.motivo_complemento ?? "");
+  const isEstadia =
+    Number(cte.tipo_cte) === 1 && /ESTADIA/i.test(cte.motivo_complemento ?? "");
   const forcar = isDescarga
     ? ({ campo: "vlr_descarrego", rotulo: "DESCARGA" } as const)
-    : null;
+    : isEstadia
+      ? ({ campo: "vlr_pernoite", rotulo: "ESTADIA" } as const)
+      : null;
   const { detalhe, valores } = distribuir(componentes, geral, especifico, forcar);
   const naoMapeados = detalhe.filter((d) => !d.campo).map((d) => d.nome);
 
