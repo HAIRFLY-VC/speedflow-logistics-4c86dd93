@@ -242,7 +242,8 @@ function TransportadorasPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [buscandoId],
+
   );
 
   return (
