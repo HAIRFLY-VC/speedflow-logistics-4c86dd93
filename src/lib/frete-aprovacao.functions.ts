@@ -219,7 +219,7 @@ export const listarFilasErp = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     await podeAutorizar(context);
     const { centralDb } = await import("./central-db");
-    const [{ data: valores }, { data: financeiro }] = await Promise.all([
+    const [{ data: valores }, { data: financeiro }, { data: cfg }] = await Promise.all([
       centralDb
         .from("fila_lancamento_erp_frete")
         .select(
@@ -234,6 +234,42 @@ export const listarFilasErp = createServerFn({ method: "POST" })
         )
         .order("created_at", { ascending: false })
         .limit(300),
+      centralDb
+        .from("integracao_n8n")
+        .select("webhook_url, webhook_url_financeiro, ativo")
+        .eq("id", 1)
+        .maybeSingle(),
     ]);
-    return { valores: valores ?? [], financeiro: financeiro ?? [] };
+
+    const ids = Array.from(
+      new Set([
+        ...(valores ?? []).map((v) => v.cte_id),
+        ...(financeiro ?? []).map((f) => f.cte_id),
+      ]),
+    ).filter(Boolean) as string[];
+
+    const { data: ctes } = ids.length
+      ? await centralDb.from("ctes").select("id, numero, chave_acesso").in("id", ids)
+      : { data: [] as { id: string; numero: string | null; chave_acesso: string }[] };
+
+    const mapa = new Map((ctes ?? []).map((c) => [c.id, c]));
+
+    return {
+      valores: (valores ?? []).map((v) => ({
+        ...v,
+        cte_numero: mapa.get(v.cte_id ?? "")?.numero ?? null,
+        cte_chave: mapa.get(v.cte_id ?? "")?.chave_acesso ?? null,
+      })),
+      financeiro: (financeiro ?? []).map((f) => ({
+        ...f,
+        cte_numero: mapa.get(f.cte_id ?? "")?.numero ?? null,
+        cte_chave: mapa.get(f.cte_id ?? "")?.chave_acesso ?? null,
+      })),
+      fluxos: {
+        ativo: cfg?.ativo ?? false,
+        valoresConfigurado: Boolean(cfg?.webhook_url),
+        financeiroConfigurado: Boolean(cfg?.webhook_url_financeiro),
+      },
+    };
   });
+

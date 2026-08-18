@@ -27,7 +27,7 @@ async function processar(request: Request) {
   const { centralDb } = await import("@/lib/central-db");
   const { data: cfg } = await centralDb
     .from("integracao_n8n")
-    .select("webhook_token")
+    .select("webhook_token, webhook_url_financeiro")
     .eq("id", 1)
     .maybeSingle();
   const esperado = cfg?.webhook_token || process.env["CTE_INGEST_SECRET"] || "";
@@ -81,7 +81,10 @@ async function processar(request: Request) {
         .select("id, status")
         .eq("ordem_pagamento_id", ordemId),
     ]);
-    const todos = [...(pendV ?? []), ...(pendF ?? [])];
+    // O fluxo financeiro só entra no cálculo quando o workflow n8n dele está
+    // configurado; caso contrário a ordem ficaria presa em AGUARDANDO_INTEGRACAO_ERP.
+    const financeiroAtivo = Boolean(cfg?.webhook_url_financeiro);
+    const todos = [...(pendV ?? []), ...(financeiroAtivo ? (pendF ?? []) : [])];
     const houveErro = todos.some((i) => i.status === "ERRO");
     const concluiu = todos.length > 0 && todos.every((i) => i.status === "CONCLUIDO");
     if (houveErro || concluiu) {
