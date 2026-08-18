@@ -437,6 +437,7 @@ function TabelaDialog({
     editing
       ? {
           transportadora_id: editing.transportadora_id,
+          codigo_interno: editing.codigo_interno ?? "",
           nome: editing.nome,
           descricao: editing.descricao ?? "",
           data_inicio: editing.data_inicio,
