@@ -27,7 +27,7 @@ async function processar(request: Request) {
   const { centralDb } = await import("@/lib/central-db");
   const { data: cfg } = await centralDb
     .from("integracao_n8n")
-    .select("webhook_token")
+    .select("webhook_token, webhook_url_financeiro")
     .eq("id", 1)
     .maybeSingle();
   const esperado = cfg?.webhook_token || process.env["CTE_INGEST_SECRET"] || "";
