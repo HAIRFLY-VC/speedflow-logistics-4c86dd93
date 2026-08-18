@@ -1,88 +1,113 @@
 # Configuração do workflow de CT-e/ERP no n8n
 
-## Contexto atual verificado
+## Estado verificado no banco central
 
-O app já tem toda a lógica de aprovação de CT-e e lançamento no ERP pronta em:
+Consultei o banco central (esquema `speedflow`) e todas as tabelas da integração **já existem**:
 
-- `src/lib/frete-aprovacao.server.ts` — monta a prévia, cria a ordem de pagamento e insere nas filas.
-- `src/lib/frete-aprovacao.functions.ts` — server functions expostas ao frontend.
-- `src/components/ctes/CteAprovacaoPanel.tsx` — UI de aprovar/reprovar.
-- `src/components/ctes/LancamentoErpConfig.tsx` — tela de configuração do n8n e de-para de componentes.
-- `src/routes/api/public/hooks/erp-fila-callback.ts` — endpoint que o n8n chama para confirmar o processamento.
-- `src/components/ctes/FilasErpPanel.tsx` — monitoramento das filas.
+- `ordens_pagamento_frete` — vazia
+- `fila_lancamento_erp_frete` — vazia
+- `fila_provisionamento_financeiro` — vazia
+- `mapeamento_componentes_erp` — vazia (nenhum de-para cadastrado; o sistema usa as regras automáticas por nome)
+- `integracao_n8n` — existe a linha `id = 1`, mas com `webhook_url`, `webhook_url_financeiro` e `webhook_token` em branco e `ativo = false`
 
-## Gap identificado
+Ou seja: não falta schema. Falta apenas **ligar** a integração — gerar o token, criar os dois workflows no n8n e preencher as URLs na tela de configuração.
 
-As tabelas usadas pelo motor centralizado ainda **não existem no banco central** (`speedflow`):
+O código do app já está pronto: aprovação (`CteAprovacaoPanel`), motor de rateio (`frete-aprovacao.server.ts`), gatilhos de banco que disparam o n8n a cada inserção nas filas, callback público (`/api/public/hooks/erp-fila-callback`) e o painel de monitoramento (`FilasErpPanel`).
 
-- `fila_lancamento_erp_frete`
-- `fila_provisionamento_financeiro`
-- `integracao_n8n`
-- `mapeamento_componentes_erp`
+## Como o fluxo funciona hoje
 
-Além disso, `ordens_pagamento_frete` existe apenas no `public` (banco local), mas o código de aprovação acessa via `centralDb` (schema `speedflow`). Antes de configurar o n8n, o schema precisa ser criado/migrado no banco central.
+```text
+Usuário aprova CT-e
+   -> cria ordem em ordens_pagamento_frete
+   -> insere 1 linha por NF-e em fila_lancamento_erp_frete
+   -> insere 1 linha em fila_provisionamento_financeiro
+   -> trigger de banco chama o webhook do n8n (POST) com { fila, fila_id, payload }
+   -> n8n lança no ERP Oracle
+   -> n8n confirma em /api/public/hooks/erp-fila-callback
+   -> status vira CONCLUIDO/ERRO e o CT-e vira LANCADO_ERP/ERRO_ERP
+```
 
-## Passo a passo do plano
+## Passo 1 — Gerar e gravar o token do webhook
 
-### 1. Criar tabelas no banco central (speedflow)
+Gerar um token aleatório forte e gravá-lo em `integracao_n8n.webhook_token` (banco central). Esse mesmo token é usado nas duas pontas:
 
-Gerar uma migration que recria as tabelas no schema `speedflow`:
+- O banco envia no header `X-Webhook-Token` ao chamar o n8n (assim o n8n valida que a chamada veio do sistema).
+- O n8n envia no header `x-webhook-token` ao chamar o callback do app.
 
-- `ordens_pagamento_frete` (com as colunas extras: `aprovacao_status`, `decidido_por`, `decidido_em`, `observacao`).
-- `fila_lancamento_erp_frete` (com colunas de valores, payload, registro_erp, status, tentativas, etc.).
-- `fila_provisionamento_financeiro` (com payload, status, tentativas, etc.).
-- `integracao_n8n` (id=1, webhook_url, webhook_url_financeiro, webhook_token, ativo).
-- `mapeamento_componentes_erp` (de-para por transportadora).
+## Passo 2 — Criar o workflow "Lançamento de valores" no n8n
 
-Aplicar `GRANT`, `ENABLE ROW LEVEL SECURITY`, políticas e triggers `set_updated_at` para cada tabela.
+Nós do workflow:
 
-### 2. Configurar o webhook de callback no app
+1. **Webhook** (POST) — copiar a Production URL gerada.
+2. **IF / validação** — conferir o header `X-Webhook-Token` contra o token gerado; rejeitar se não bater.
+3. **HTTP Request para a API Oracle** — chamar `POST {ERP_API_BASE_URL}/v1/query` com header `X-API-Key`, executando o UPDATE/INSERT dos valores em `gks.a_gerentregas`, usando os campos do payload.
+4. **HTTP Request de callback** — `POST https://speedflow-logistics.lovable.app/api/public/hooks/erp-fila-callback` com header `x-webhook-token`.
 
-O endpoint `/api/public/hooks/erp-fila-callback` espera um token (`webhook_token` em `integracao_n8n` ou `CTE_INGEST_SECRET` como fallback). Após a migration:
+Payload que o n8n recebe (dentro de `payload`):
 
-- Gerar/guardar um token seguro em `integracao_n8n.webhook_token`.
-- Informar esse token ao n8n para que ele envie no header `x-webhook-token` ao confirmar processamento.
+```text
+cod_filial, nro_nf, bordero, chave_nfe, chave_cte, numero_cte,
+vlr_frete, vlr_perna, vlr_diaria, vlr_pernoite, vlr_reentrega, vlr_descarrego
+```
 
-### 3. Montar os dois workflows no n8n
+Corpo do callback:
 
-Workflow 1: `frete-valores` (lançamento de valores no ERP por NF-e)
+```json
+{ "fila": "valores", "fila_id": "<id recebido>", "ok": true, "referencia_erp": "<id do lançamento>", "erro": null }
+```
 
-- Trigger: Webhook (URL a ser colada em `integracao_n8n.webhook_url`).
-- Entrada: payload com `cod_filial`, `nro_nf`, `bordero`, `chave_nfe`, `chave_cte`, `numero_cte` e os campos `vlr_frete`, `vlr_perna`, `vlr_diaria`, `vlr_pernoite`, `vlr_reentrega`, `vlr_descarrego`.
-- Ações: autenticar no ERP Oracle (via HTTP Request ou nó Oracle) e lançar os valores no borderô/nota.
-- Retorno: chamar `POST /api/public/hooks/erp-fila-callback` com `fila=valores`, `fila_id`, `ok=true/false`, `referencia_erp` e `erro`.
+Em caso de falha no ERP, enviar `"ok": false` e o texto do erro em `"erro"`.
 
-Workflow 2: `frete-financeiro` (provisionamento financeiro da transportadora)
+## Passo 3 — Criar o workflow "Provisionamento financeiro" no n8n
 
-- Trigger: Webhook (URL a ser colada em `integracao_n8n.webhook_url_financeiro`).
-- Entrada: payload com `cod_filial`, `chave_cte`, `numero_cte`, `data_emissao`, `valor_total`, dados da transportadora e lista de notas.
-- Ações: criar o título/contas a pagar no ERP.
-- Retorno: chamar o callback com `fila=financeiro`, `fila_id`, `ok` e referência.
+Mesma estrutura, mas gerando o título a pagar da transportadora.
 
-### 4. Configurar a tela no app
+Payload recebido:
 
-Em `Configuração > Lançamento no ERP` (componente `LancamentoErpConfig`):
+```text
+cod_filial, chave_cte, numero_cte, data_emissao, valor_total,
+transportadora { razao_social, cnpj, pix, banco, agencia, conta },
+notas [ { nro_nf, chave_nfe, bordero } ],
+valores { os 6 campos }
+```
 
-- Colar a URL do workflow de valores no campo "URL — lançamento de valores".
-- Colar a URL do workflow financeiro no campo "URL — provisionamento financeiro".
-- Ativar a integração.
-- Cadastrar o de-para de componentes do CT-e para os campos do ERP (ou confiar nas regras automáticas).
+Callback igual, mudando apenas `"fila": "financeiro"`.
 
-### 5. Testar o fluxo end-to-end
+## Passo 4 — Preencher as URLs no app
 
-- Escolher um CT-e em status `AUTORIZADO` ou `APROVADO`.
-- Clicar em "Aprovar e lançar no ERP".
-- Verificar se as linhas aparecem em `Filas de lançamento no ERP` com status `PENDENTE`.
-- Disparar/verificar o n8n consumindo os webhooks.
-- Confirmar que o callback atualiza o status para `CONCLUIDO` ou `ERRO` e o CT-e vai para `LANCADO_ERP` ou `ERRO_ERP`.
+Na tela **Configurações de fretes > Lançamento no ERP**:
 
-## Entregáveis
+- Colar a URL do workflow de valores em "URL — lançamento de valores".
+- Colar a URL do workflow financeiro em "URL — provisionamento financeiro".
+- Ligar o switch "Ativo".
+- Salvar.
 
-- Migration SQL no banco central com schema, grants, RLS e triggers.
-- Dois workflows n8n funcionais (valores + financeiro) com retorno de callback.
-- Webhook token configurado e salvo no banco.
-- Configuração validada no app via tela de aprovação de CT-e.
+## Passo 5 — Cadastrar o de-para de componentes (opcional)
 
-## Nota sobre permissões
+A tabela `mapeamento_componentes_erp` está vazia, então hoje valem as regras automáticas:
 
-Apenas usuários com a permissão `pode_autorizar_frete` (perfis adm/gestor/operador com flag habilitada) conseguem aprovar. A configuração de webhooks e de-para é restrita a administradores.
+| Componente do CT-e contém | Campo no ERP |
+|---|---|
+| REENTREG | vlr_reentrega |
+| DESCARR / DESCARG | vlr_descarrego |
+| DIARIA | vlr_diaria |
+| PERNOITE / ESTADIA | vlr_pernoite |
+| PERNA | vlr_perna |
+| FRETE, GRIS, TAS, DESPACHO, PEDÁGIO, AD VALOREM, TDE, TRT, SEC CAT | vlr_frete |
+
+Componentes fora dessas regras aparecem como "sem de-para" e **bloqueiam a aprovação** até serem cadastrados. Vale cadastrar exceções por transportadora conforme aparecerem.
+
+## Passo 6 — Testar de ponta a ponta
+
+1. Abrir um CT-e pendente e clicar em "Aprovar e lançar no ERP".
+2. Conferir em **Pagamento de fretes** se as linhas entram nas filas como `PENDENTE`.
+3. Ver a execução chegando no n8n.
+4. Confirmar que o callback muda o status para `CONCLUIDO` e o CT-e para `LANCADO_ERP`.
+5. Testar também um caso de erro para validar o caminho `ERRO` e o botão de reenvio manual.
+
+## Ajustes no código previstos
+
+- Adicionar na tela de configuração um campo/botão para **gerar e exibir o token do webhook**, hoje inexistente na UI (`LancamentoErpConfig` só edita as duas URLs e o switch).
+- Exibir na mesma tela a **URL do callback** completa, pronta para copiar, em vez do caminho relativo atual.
+
+Nenhuma migration é necessária.
