@@ -159,6 +159,7 @@ async function abrirArquivo(path: string, nome?: string | null, baixar?: boolean
 function emptyForm(): TabelaForm {
   return {
     transportadora_id: "",
+    codigo_interno: "",
     nome: "",
     descricao: "",
     data_inicio: new Date().toISOString().slice(0, 10),
