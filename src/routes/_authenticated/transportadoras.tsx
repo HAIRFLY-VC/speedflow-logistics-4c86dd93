@@ -138,7 +138,7 @@ function TransportadorasPage() {
   }, [tabelas, vinculos]);
 
   const upsert = useMutation({
-    mutationFn: async (input: FormInput) => {
+    mutationFn: async ({ input, tabelaId }: { input: FormInput; tabelaId: string }) => {
       const payload = {
         razao_social: input.razao_social,
         cnpj: input.cnpj.replace(/\D/g, ""),
@@ -149,6 +149,7 @@ function TransportadorasPage() {
         pix: input.pix || null,
         ativo: input.ativo,
       };
+      let id = editing?.id ?? null;
       if (editing) {
         const { error } = await supabase
           .from("transportadoras")
@@ -156,12 +157,34 @@ function TransportadorasPage() {
           .eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("transportadoras").insert(payload);
+        const { data: novo, error } = await supabase
+          .from("transportadoras")
+          .insert(payload)
+          .select("id")
+          .single();
         if (error) throw error;
+        id = (novo as { id: string }).id;
+      }
+
+      // Vínculo com a tabela de frete vigente.
+      const atualId = id ? (vigentePorTransportadora.get(id)?.id ?? "") : "";
+      if (id && tabelaId !== atualId) {
+        const { error: delErr } = await supabase
+          .from("tabelas_preco_frete_transportadoras")
+          .delete()
+          .eq("transportadora_id", id);
+        if (delErr) throw delErr;
+        if (tabelaId) {
+          const { error: insErr } = await supabase
+            .from("tabelas_preco_frete_transportadoras")
+            .insert({ tabela_id: tabelaId, transportadora_id: id });
+          if (insErr) throw insErr;
+        }
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["transportadoras"] });
+      qc.invalidateQueries({ queryKey: ["tabelas-frete-vinculos"] });
       toast.success(editing ? "Transportadora atualizada" : "Transportadora criada");
       setOpen(false);
       setEditing(null);
@@ -377,7 +400,9 @@ function TransportadorasPage() {
           if (!o) setEditing(null);
         }}
         editing={editing}
-        onSubmit={(v) => upsert.mutate(v)}
+        tabelas={tabelas ?? []}
+        tabelaAtualId={editing ? (vigentePorTransportadora.get(editing.id)?.id ?? "") : ""}
+        onSubmit={(v, tabelaId) => upsert.mutate({ input: v, tabelaId })}
         submitting={upsert.isPending}
       />
 
@@ -496,17 +521,28 @@ function TransportadoraDialog({
   open,
   onOpenChange,
   editing,
+  tabelas,
+  tabelaAtualId,
   onSubmit,
   submitting,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   editing: Transportadora | null;
-  onSubmit: (v: FormInput) => void;
+  tabelas: TabelaResumo[];
+  tabelaAtualId: string;
+  onSubmit: (v: FormInput, tabelaId: string) => void;
   submitting: boolean;
 }) {
   const buscarCodErp = useServerFn(buscarCodErpTransportadora);
   const [consultando, setConsultando] = useState(false);
+  const [tabelaId, setTabelaId] = useState(tabelaAtualId);
+  const hoje = new Date().toISOString().slice(0, 10);
+  const opcoesTabelas = tabelas.filter(
+    (t) =>
+      t.id === tabelaAtualId ||
+      (t.ativo && t.data_inicio <= hoje && (!t.data_fim || t.data_fim >= hoje)),
+  );
   const form = useForm<FormInput>({
 
     resolver: zodResolver(schema),
@@ -532,7 +568,7 @@ function TransportadoraDialog({
           <DialogDescription>Identificação e dados bancários.</DialogDescription>
         </DialogHeader>
         <form
-          onSubmit={form.handleSubmit(onSubmit)}
+          onSubmit={form.handleSubmit((v) => onSubmit(v, tabelaId))}
           className="grid grid-cols-1 md:grid-cols-2 gap-4"
         >
           <div className="md:col-span-2 space-y-1.5">
@@ -596,6 +632,38 @@ function TransportadoraDialog({
           <div className="md:col-span-2 space-y-1.5">
             <Label className="text-xs">Chave PIX</Label>
             <Input {...form.register("pix")} />
+          </div>
+          <div className="md:col-span-2 space-y-1.5">
+            <Label className="text-xs">Tabela de frete vigente</Label>
+            <div className="flex items-center gap-2">
+              <Select
+                value={tabelaId || "none"}
+                onValueChange={(v) => setTabelaId(v === "none" ? "" : v)}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Selecione a tabela" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem tabela vigente</SelectItem>
+                  {opcoesTabelas.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.nome}
+                      {t.codigo_interno ? ` · ${t.codigo_interno}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {tabelaId && (
+                <Link
+                  to="/tabelas-frete"
+                  search={{ tabela: tabelaId }}
+                  className="text-primary hover:underline inline-flex items-center gap-1 text-xs whitespace-nowrap"
+                  title="Abrir tabela de frete"
+                >
+                  Abrir <ExternalLink className="h-3 w-3" />
+                </Link>
+              )}
+            </div>
           </div>
           <div className="md:col-span-2 flex items-center gap-3">
             <Switch
