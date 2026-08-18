@@ -342,8 +342,42 @@ function TransportadoraDialog({
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Código no ERP</Label>
-            <Input {...form.register("cod_erp")} placeholder="Ex.: 1234" />
+            <div className="flex gap-2">
+              <Input {...form.register("cod_erp")} placeholder="Ex.: 1234" />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                title="Consultar no ERP pelo CNPJ"
+                disabled={consultando}
+                onClick={async () => {
+                  const cnpj = form.getValues("cnpj");
+                  if (!cnpj) return toast.error("Informe o CNPJ primeiro");
+                  setConsultando(true);
+                  try {
+                    const { codErp } = await buscarCodErp({ data: { cnpj } });
+                    if (codErp) {
+                      form.setValue("cod_erp", codErp, { shouldDirty: true });
+                      toast.success(`Código no ERP: ${codErp}`);
+                    } else {
+                      toast.warning("Nenhum código encontrado no ERP para este CNPJ");
+                    }
+                  } catch (e) {
+                    toast.error((e as Error).message);
+                  } finally {
+                    setConsultando(false);
+                  }
+                }}
+              >
+                {consultando ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
+
           <div className="space-y-1.5">
             <Label className="text-xs">Banco</Label>
             <Input {...form.register("banco")} />
