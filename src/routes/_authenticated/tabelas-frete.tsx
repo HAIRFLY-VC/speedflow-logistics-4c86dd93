@@ -346,9 +346,7 @@ function TabelasFretePage() {
         ),
       },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [nomeTransportadora, transportadorasPorTabela],
+    [toggle.mutate],
   );
 
   return (
