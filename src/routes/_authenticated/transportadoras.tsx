@@ -633,6 +633,38 @@ function TransportadoraDialog({
             <Label className="text-xs">Chave PIX</Label>
             <Input {...form.register("pix")} />
           </div>
+          <div className="md:col-span-2 space-y-1.5">
+            <Label className="text-xs">Tabela de frete vigente</Label>
+            <div className="flex items-center gap-2">
+              <Select
+                value={tabelaId || "none"}
+                onValueChange={(v) => setTabelaId(v === "none" ? "" : v)}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Selecione a tabela" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem tabela vigente</SelectItem>
+                  {opcoesTabelas.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.nome}
+                      {t.codigo_interno ? ` · ${t.codigo_interno}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {tabelaId && (
+                <Link
+                  to="/tabelas-frete"
+                  search={{ tabela: tabelaId }}
+                  className="text-primary hover:underline inline-flex items-center gap-1 text-xs whitespace-nowrap"
+                  title="Abrir tabela de frete"
+                >
+                  Abrir <ExternalLink className="h-3 w-3" />
+                </Link>
+              )}
+            </div>
+          </div>
           <div className="md:col-span-2 flex items-center gap-3">
             <Switch
               id="ativo"
