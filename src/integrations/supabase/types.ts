@@ -1439,6 +1439,7 @@ export type Database = {
           arquivo_path: string | null
           arquivo_tipo: string | null
           ativo: boolean
+          codigo_interno: string | null
           created_at: string
           data_fim: string | null
           data_inicio: string
@@ -1463,6 +1464,7 @@ export type Database = {
           arquivo_path?: string | null
           arquivo_tipo?: string | null
           ativo?: boolean
+          codigo_interno?: string | null
           created_at?: string
           data_fim?: string | null
           data_inicio: string
@@ -1487,6 +1489,7 @@ export type Database = {
           arquivo_path?: string | null
           arquivo_tipo?: string | null
           ativo?: boolean
+          codigo_interno?: string | null
           created_at?: string
           data_fim?: string | null
           data_inicio?: string
