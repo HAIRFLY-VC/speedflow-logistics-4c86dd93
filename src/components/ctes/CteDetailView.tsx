@@ -962,13 +962,14 @@ export function CteDetailView({
             </div>
 
             {(() => {
-              const linhas = (
+              const todasLinhas = (
                 Array.isArray(ultimaAuditoria.detalhamento)
                   ? (ultimaAuditoria.detalhamento as unknown as {
                       nome?: string;
                       esperado?: number;
                       cobrado?: number | null;
                       criterio?: string | null;
+                      cte_id?: string | null;
                     }[])
                   : []
               ).map((d) => ({
@@ -976,16 +977,29 @@ export function CteDetailView({
                 esperado: Number(d.esperado ?? 0),
                 cobrado: d.cobrado == null ? null : Number(d.cobrado),
                 criterio: d.criterio ?? null,
+                cte_id: d.cte_id ?? null,
               }));
+              const linhas = todasLinhas.filter(
+                (l) =>
+                  l.cte_id === cte.id || (l.cte_id == null && !l.nome.includes("(compl.")),
+              );
               if (linhas.length === 0) return null;
 
+              const temOutrosCtes =
+                todasLinhas.some((l) => l.cte_id && l.cte_id !== cte.id) ||
+                todasLinhas.some((l) => l.cte_id == null && l.nome.includes("(compl."));
               const somaEsperado = linhas.reduce((s, l) => s + l.esperado, 0);
               const somaCobrado = linhas.reduce((s, l) => s + (l.cobrado ?? 0), 0);
-              const totalCte = Number(cte.valor_total_frete);
-              const naoConciliado = Math.round((totalCte - somaCobrado) * 100) / 100;
 
               return (
                 <div className="bg-background mt-3 overflow-hidden rounded-md border">
+                  {temOutrosCtes ? (
+                    <div className="text-muted-foreground border-b px-3 py-1.5 text-[10px]">
+                      Exibindo apenas os componentes do CT-e nº {cte.numero ?? "—"}. Os
+                      totais do cabeçalho consideram a auditoria conjunta com os CT-es
+                      vinculados.
+                    </div>
+                  ) : null}
                   <div className="text-muted-foreground grid grid-cols-[1.6fr_1fr_1fr_1fr] gap-2 border-b px-3 py-1.5 text-[11px] font-medium">
                     <span>Componente</span>
                     <span className="text-right">Esperado (tabela)</span>

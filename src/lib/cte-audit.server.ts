@@ -14,6 +14,8 @@ export type AuditItem = {
   cobrado: number | null;
   /** Explicação de como o valor esperado foi calculado. */
   criterio?: string;
+  /** Identifica o CT-e de origem do componente (original ou complemento). */
+  cte_id?: string;
 };
 
 export type AuditOutcome = {
@@ -119,6 +121,7 @@ function calcularEsperado(
   cobradoTotal = 0,
   municipioDestino?: string | null,
   isReentrega = false,
+  cteId?: string,
 ): { itens: AuditItem[]; total: number; rota?: string; rotaId?: string; origemRota?: string } {
   const itens: AuditItem[] = [];
   const rotas = tabela.tabelas_preco_frete_rotas ?? [];
@@ -206,12 +209,14 @@ function calcularEsperado(
       esperado: round2(escolhida.fretePeso),
       cobrado: null,
       criterio: `${pesoTxt} × ${brl(escolhida.tarifa)}/kg · ${escolhida.destino} — ${comoEscolheu}${reentregaTxt}`,
+      cte_id: cteId,
     });
     itens.push({
       nome: "FRETE VALOR",
       esperado: round2(escolhida.freteValor),
       cobrado: null,
       criterio: `${num(escolhida.percValor)}% sobre mercadoria de ${brl(valorMercadoria)} · ${escolhida.destino}${reentregaTxt}`,
+      cte_id: cteId,
     });
     if (escolhida.aplicouMinimo) {
       itens.push({
@@ -221,6 +226,7 @@ function calcularEsperado(
         ),
         cobrado: null,
         criterio: `frete mínimo da praça ${escolhida.destino}: ${brl(escolhida.freteMinimo)}${reentregaTxt}`,
+        cte_id: cteId,
       });
     }
     if (escolhida.despacho) {
@@ -229,6 +235,7 @@ function calcularEsperado(
         esperado: round2(escolhida.despacho),
         cobrado: null,
         criterio: `taxa de despacho fixa da praça ${escolhida.destino}${reentregaTxt}`,
+        cte_id: cteId,
       });
     }
     base = escolhida.total;
@@ -266,7 +273,7 @@ function calcularEsperado(
       base = base * fatorReentrega;
       criterio = `${criterio} · reentrega: ${num(perc)}% da tabela`;
     }
-    itens.push({ nome: "FRETE", esperado: round2(base), cobrado: null, criterio });
+    itens.push({ nome: "FRETE", esperado: round2(base), cobrado: null, criterio, cte_id: cteId });
 
   }
 
@@ -294,6 +301,7 @@ function calcularEsperado(
           ? `valor mínimo de GRIS da tabela (${brl(grisMin)}); ${num(Number(tabela.gris_percentual))}% de ${brl(valorMercadoria)} daria ${brl(grisPerc * valorMercadoria)}`
           : `${num(Number(tabela.gris_percentual))}% sobre mercadoria de ${brl(valorMercadoria)}${grisMin > 0 ? ` (mínimo ${brl(grisMin)})` : ""}`) +
         reentregaTxt2,
+      cte_id: cteId,
     });
   }
   if (adv) {
@@ -302,6 +310,7 @@ function calcularEsperado(
       esperado: round2(adv),
       cobrado: null,
       criterio: `${num(Number(tabela.ad_valorem_percentual))}% sobre mercadoria de ${brl(valorMercadoria)}`,
+      cte_id: cteId,
     });
   }
   if (tas) {
@@ -310,6 +319,7 @@ function calcularEsperado(
       esperado: round2(tas),
       cobrado: null,
       criterio: `valor fixo da tabela: ${brl(Number(tabela.tas_valor))}${reentregaTxt2}`,
+      cte_id: cteId,
     });
   }
 
@@ -322,6 +332,7 @@ function calcularEsperado(
       esperado: round2(total - subtotal),
       cobrado: null,
       criterio: `ICMS de ${num(Number(tabela.icms_percentual))}% embutido: ${brl(subtotal)} ÷ (1 − ${num(Number(tabela.icms_percentual))}%)`,
+      cte_id: cteId,
     });
   }
 
@@ -437,8 +448,13 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     };
   }
 
-  const compsDe = (c: { componentes: unknown }) =>
-    Array.isArray(c.componentes) ? (c.componentes as { nome?: string; valor?: number }[]) : [];
+  const compsDe = (c: { componentes: unknown; id?: string }) =>
+    Array.isArray(c.componentes)
+      ? (c.componentes as { nome?: string; valor?: number; cte_id?: string }[]).map((x) => ({
+          ...x,
+          cte_id: x.cte_id ?? c.id,
+        }))
+      : [];
 
   const componentes = [
     ...compsDe(cte),
@@ -446,6 +462,7 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
       compsDe(c).map((x) => ({
         nome: `${x.nome ?? "COMPLEMENTO"} (compl. CT-e ${c.numero ?? "s/nº"})`,
         valor: x.valor,
+        cte_id: c.id,
       })),
     ),
   ];
@@ -468,6 +485,7 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     cobrado,
     municipioDestino,
     isReentrega,
+    cte.id,
   );
 
 
@@ -487,6 +505,9 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
     return {
       ...item,
       cobrado: idx >= 0 ? round2(Number(componentes[idx]!.valor ?? 0)) : null,
+      cte_id: idx >= 0
+        ? (componentes[idx] as { cte_id?: string }).cte_id ?? item.cte_id
+        : item.cte_id,
     };
   });
 
@@ -499,6 +520,7 @@ export async function auditCte(db: Db, cteId: string): Promise<AuditOutcome> {
       esperado: 0,
       cobrado: round2(Number(c.valor ?? 0)),
       criterio: "componente cobrado no CT-e que não existe na tabela de frete",
+      cte_id: (c as { cte_id?: string }).cte_id,
     });
   });
 
