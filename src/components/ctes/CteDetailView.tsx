@@ -835,7 +835,7 @@ export function CteDetailView({
                       );
                       return (
                         <td key={campo} className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
-                          {soma > 0 ? brl(soma) : "—"}
+                          {soma > 0 ? brlSemSimbolo(soma) : "—"}
                         </td>
                       );
                     })}
