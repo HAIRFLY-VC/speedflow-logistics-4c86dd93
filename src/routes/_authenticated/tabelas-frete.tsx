@@ -102,6 +102,7 @@ const ROTA_VAZIA: RotaDraft = {
 
 type TabelaForm = {
   transportadora_id: string;
+  codigo_interno: string;
   nome: string;
   descricao: string;
   data_inicio: string;
@@ -118,6 +119,15 @@ type TabelaForm = {
   uf_destino: string;
   ativo: boolean;
 };
+
+const slugify = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 20);
 
 const num = (v: string) => {
   const n = Number(String(v).replace(",", "."));
