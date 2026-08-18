@@ -600,6 +600,25 @@ export function CteDetailView({
               {cteOriginal?.numero ? <LinkOriginal>nº {cteOriginal.numero}</LinkOriginal> : ""}
             </Badge>
           ) : null}
+          {cteOriginal && (irmaos?.length ?? 0) > 0 ? (
+            <>
+              <span className="text-muted-foreground text-[10px]">Outros vinculados:</span>
+              {irmaos!.map((irmao) => (
+                <Badge
+                  key={irmao.id}
+                  variant="outline"
+                  onClick={() => openCteLink(irmao.id)}
+                  title={`Abrir CT-e nº ${irmao.numero ?? ""}${
+                    irmao.motivo_complemento ? ` — ${irmao.motivo_complemento}` : ""
+                  }`}
+                  className="cursor-pointer border-sky-300 bg-sky-50 text-[10px] text-sky-700 underline underline-offset-2 hover:opacity-80 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-300"
+                >
+                  nº {irmao.numero ?? irmao.chave_acesso.slice(-6)}
+                  {irmao.tipo_cte === 4 ? " (reentrega)" : ""}
+                </Badge>
+              ))}
+            </>
+          ) : null}
         </div>
         {usandoNfsDoOriginal ? (
           <p className="text-muted-foreground text-xs">
