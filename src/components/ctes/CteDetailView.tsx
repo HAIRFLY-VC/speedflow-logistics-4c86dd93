@@ -279,6 +279,28 @@ export function CteDetailView({
   const usandoNfsDoOriginal = nfsProprias.length === 0 && nfsDoOriginal.length > 0;
   const nfs = usandoNfsDoOriginal ? nfsDoOriginal : nfsProprias;
 
+  // Outros CT-e que também apontam para o mesmo CT-e original.
+  const { data: irmaos } = useQuery({
+    queryKey: ["cte-irmaos", cte.id, cteOriginal?.id, cteOriginal?.chave_acesso],
+    enabled: !!cteOriginal?.id,
+    queryFn: async () => {
+      const cols = "id, numero, chave_acesso, tipo_cte, motivo_complemento, valor_total_frete";
+      const filtros = [`chave_cte_complementado.eq.${cteOriginal!.chave_acesso}`];
+      if (cteOriginal!.numero) {
+        filtros.push(`numero_cte_complementado.eq.${cteOriginal!.numero}`);
+      }
+      const { data, error } = await supabase
+        .from("ctes")
+        .select(cols)
+        .or(filtros.join(","))
+        .order("numero", { ascending: true });
+      if (error) throw error;
+      return (data ?? []).filter((c) => c.id !== cte.id && c.id !== cteOriginal!.id);
+    },
+  });
+
+
+
   const buscarVolumes = useServerFn(getVolumesNfesDoCte);
   // Complementar/reentrega não tem carga própria: os totais vêm do CT-e original.
   const cteIdCarga = usandoNfsDoOriginal && cteOriginal?.id ? cteOriginal.id : cte.id;
