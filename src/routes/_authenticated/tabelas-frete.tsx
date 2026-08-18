@@ -708,6 +708,8 @@ function TabelaDialog({
 
       const payload = {
         transportadora_id: form.transportadora_id,
+        codigo_interno:
+          form.codigo_interno.trim() || slugify(form.nome),
         nome: form.nome.trim(),
         descricao: form.descricao.trim() || null,
         data_inicio: form.data_inicio,
