@@ -305,7 +305,10 @@ function TransportadoraDialog({
   onSubmit: (v: FormInput) => void;
   submitting: boolean;
 }) {
+  const buscarCodErp = useServerFn(buscarCodErpTransportadora);
+  const [consultando, setConsultando] = useState(false);
   const form = useForm<FormInput>({
+
     resolver: zodResolver(schema),
     defaultValues: {
       razao_social: editing?.razao_social ?? "",
