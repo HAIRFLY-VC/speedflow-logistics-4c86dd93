@@ -650,6 +650,49 @@ function TabelaDialog({
       if (form.data_fim && form.data_fim < form.data_inicio)
         throw new Error("Data fim não pode ser anterior à data início");
 
+      // Regra: uma transportadora só pode ter uma tabela de frete vigente.
+      const selecionadas = Array.from(new Set([form.transportadora_id, ...extras]));
+      if (form.ativo) {
+        const { data: outras, error: outrasErr } = await supabase
+          .from("tabelas_preco_frete")
+          .select("id, nome, transportadora_id, data_inicio, data_fim, ativo")
+          .eq("ativo", true);
+        if (outrasErr) throw outrasErr;
+        const candidatas = (outras ?? []).filter((o) => o.id !== editing?.id);
+        if (candidatas.length) {
+          const { data: vinc, error: vincErr } = await supabase
+            .from("tabelas_preco_frete_transportadoras")
+            .select("tabela_id, transportadora_id")
+            .in(
+              "tabela_id",
+              candidatas.map((c) => c.id),
+            );
+          if (vincErr) throw vincErr;
+          const porTabela = new Map<string, Set<string>>();
+          candidatas.forEach((c) =>
+            porTabela.set(c.id, new Set<string>([c.transportadora_id])),
+          );
+          (vinc ?? []).forEach((v) => porTabela.get(v.tabela_id)?.add(v.transportadora_id));
+
+          const inicio = form.data_inicio;
+          const fim = form.data_fim || "9999-12-31";
+          for (const c of candidatas) {
+            const cIni = c.data_inicio;
+            const cFim = c.data_fim || "9999-12-31";
+            const sobrepoe = inicio <= cFim && cIni <= fim;
+            if (!sobrepoe) continue;
+            const conflito = selecionadas.find((id) => porTabela.get(c.id)?.has(id));
+            if (conflito) {
+              const nome =
+                transportadoras.find((t) => t.id === conflito)?.razao_social ?? "transportadora";
+              throw new Error(
+                `${nome} já possui a tabela vigente "${c.nome}" no período informado. Encerre ou desative a tabela anterior antes de salvar.`,
+              );
+            }
+          }
+        }
+      }
+
       const payload = {
         transportadora_id: form.transportadora_id,
         nome: form.nome.trim(),
