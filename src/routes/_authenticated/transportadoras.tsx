@@ -80,6 +80,46 @@ function TransportadorasPage() {
     },
   });
 
+  const [tabelaAlvo, setTabelaAlvo] = useState<Transportadora | null>(null);
+
+  const { data: tabelas } = useQuery({
+    queryKey: ["tabelas-frete-vigentes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete")
+        .select("id, nome, codigo_interno, data_inicio, data_fim, ativo, transportadora_id")
+        .order("data_inicio", { ascending: false });
+      if (error) throw error;
+      return data as TabelaResumo[];
+    },
+  });
+
+  const { data: vinculos } = useQuery({
+    queryKey: ["tabelas-frete-vinculos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .select("tabela_id, transportadora_id");
+      if (error) throw error;
+      return data as { tabela_id: string; transportadora_id: string }[];
+    },
+  });
+
+  const vigentePorTransportadora = useMemo(() => {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const porId = new Map((tabelas ?? []).map((t) => [t.id, t]));
+    const map = new Map<string, TabelaResumo>();
+    (vinculos ?? []).forEach((v) => {
+      const t = porId.get(v.tabela_id);
+      if (!t || !t.ativo) return;
+      if (t.data_inicio > hoje) return;
+      if (t.data_fim && t.data_fim < hoje) return;
+      const atual = map.get(v.transportadora_id);
+      if (!atual || t.data_inicio > atual.data_inicio) map.set(v.transportadora_id, t);
+    });
+    return map;
+  }, [tabelas, vinculos]);
+
   const upsert = useMutation({
     mutationFn: async (input: FormInput) => {
       const payload = {
