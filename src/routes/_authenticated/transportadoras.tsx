@@ -138,7 +138,7 @@ function TransportadorasPage() {
   }, [tabelas, vinculos]);
 
   const upsert = useMutation({
-    mutationFn: async (input: FormInput) => {
+    mutationFn: async ({ input, tabelaId }: { input: FormInput; tabelaId: string }) => {
       const payload = {
         razao_social: input.razao_social,
         cnpj: input.cnpj.replace(/\D/g, ""),
