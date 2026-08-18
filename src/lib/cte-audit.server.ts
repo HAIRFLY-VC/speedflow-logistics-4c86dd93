@@ -67,10 +67,24 @@ export async function pickTabela(
 ) {
   const dia = (emissao ? new Date(emissao) : new Date()).toISOString().slice(0, 10);
   const hoje = new Date().toISOString().slice(0, 10);
+
+  // Uma tabela pode atender várias transportadoras: além da transportadora
+  // "dona" (transportadora_id), consideramos os vínculos N:N.
+  const { data: vinculos, error: vinculoErr } = await db
+    .from("tabelas_preco_frete_transportadoras")
+    .select("tabela_id")
+    .eq("transportadora_id", transportadoraId);
+  if (vinculoErr) throw new Error(vinculoErr.message);
+  const ids = Array.from(new Set((vinculos ?? []).map((v) => v.tabela_id)));
+
+  const filtro = ids.length
+    ? `transportadora_id.eq.${transportadoraId},id.in.(${ids.join(",")})`
+    : `transportadora_id.eq.${transportadoraId}`;
+
   const { data, error } = await db
     .from("tabelas_preco_frete")
     .select("*, tabelas_preco_frete_faixas(*), tabelas_preco_frete_rotas(*)")
-    .eq("transportadora_id", transportadoraId)
+    .or(filtro)
     .eq("ativo", true);
   if (error) throw new Error(error.message);
 

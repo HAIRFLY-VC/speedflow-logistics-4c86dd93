@@ -212,6 +212,35 @@ function TabelasFretePage() {
     return map;
   }, [transportadoras]);
 
+  // Vínculos N:N (uma tabela pode ser usada por várias transportadoras).
+  const { data: vinculos } = useQuery({
+    queryKey: ["tabelas-frete", "vinculos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .select("tabela_id, transportadora_id");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const transportadorasPorTabela = useMemo(() => {
+    const map = new Map<string, string[]>();
+    (vinculos ?? []).forEach((v) => {
+      const nome = nomeTransportadora.get(v.transportadora_id);
+      if (!nome) return;
+      map.set(v.tabela_id, [...(map.get(v.tabela_id) ?? []), nome]);
+    });
+    return map;
+  }, [vinculos, nomeTransportadora]);
+
+  const nomesDaTabela = (t: Tabela) => {
+    const lista = transportadorasPorTabela.get(t.id) ?? [];
+    const principal = nomeTransportadora.get(t.transportadora_id);
+    const todas = Array.from(new Set([...(principal ? [principal] : []), ...lista]));
+    return todas.length ? todas.join(", ") : "—";
+  };
+
   const toggle = useMutation({
     mutationFn: async (t: Tabela) => {
       const { error } = await supabase
@@ -228,8 +257,8 @@ function TabelasFretePage() {
     () => [
       {
         id: "transportadora",
-        header: "Transportadora",
-        accessor: (t) => nomeTransportadora.get(t.transportadora_id) ?? "—",
+        header: "Transportadoras",
+        accessor: (t) => nomesDaTabela(t),
         className: "font-medium",
       },
       { id: "nome", header: "Tabela", accessor: (t) => t.nome },
@@ -322,7 +351,8 @@ function TabelasFretePage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [nomeTransportadora],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [nomeTransportadora, transportadorasPorTabela],
   );
 
   return (
@@ -413,6 +443,8 @@ function TabelaDialog({
         }
       : { ...emptyForm(), transportadora_id: transportadoras[0]?.id ?? "" },
   );
+  // Transportadoras adicionais que também usam esta tabela.
+  const [extras, setExtras] = useState<string[]>([]);
   const [faixas, setFaixas] = useState<FaixaDraft[]>([]);
   const [rotas, setRotas] = useState<RotaDraft[]>([]);
   const [arquivo, setArquivo] = useState<File | null>(null);
@@ -421,6 +453,24 @@ function TabelaDialog({
       ? { path: editing.arquivo_path, nome: editing.arquivo_nome ?? "arquivo" }
       : null,
   );
+
+  useQuery({
+    queryKey: ["tabela-transportadoras", editing?.id],
+    enabled: Boolean(editing?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .select("transportadora_id")
+        .eq("tabela_id", editing!.id);
+      if (error) throw error;
+      setExtras(
+        (data ?? [])
+          .map((v) => v.transportadora_id)
+          .filter((id) => id !== editing!.transportadora_id),
+      );
+      return data;
+    },
+  });
 
   useQuery({
     queryKey: ["tabela-faixas", editing?.id],
@@ -667,6 +717,18 @@ function TabelaDialog({
       }
 
 
+      // Vínculos N:N — a tabela pode ser usada por várias transportadoras.
+      const vinculadas = Array.from(new Set([form.transportadora_id, ...extras]));
+      const { error: delVinc } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .delete()
+        .eq("tabela_id", tabelaId);
+      if (delVinc) throw delVinc;
+      const { error: insVinc } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .insert(vinculadas.map((tid) => ({ tabela_id: tabelaId!, transportadora_id: tid })));
+      if (insVinc) throw insVinc;
+
 
       const { error: delError } = await supabase
         .from("tabelas_preco_frete_faixas")
@@ -818,10 +880,13 @@ function TabelaDialog({
             </div>
           </div>
           <div className="md:col-span-2 space-y-1.5">
-            <Label className="text-xs">Transportadora *</Label>
+            <Label className="text-xs">Transportadora principal *</Label>
             <Select
               value={form.transportadora_id}
-              onValueChange={(v) => set("transportadora_id", v)}
+              onValueChange={(v) => {
+                set("transportadora_id", v);
+                setExtras((e) => e.filter((id) => id !== v));
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione" />
@@ -834,6 +899,36 @@ function TabelaDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="md:col-span-2 space-y-1.5">
+            <Label className="text-xs">Outras transportadoras que usam esta tabela</Label>
+            <div className="rounded-md border p-2 max-h-36 overflow-y-auto space-y-1">
+              {transportadoras.filter((t) => t.id !== form.transportadora_id).length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Nenhuma outra transportadora cadastrada.
+                </p>
+              ) : (
+                transportadoras
+                  .filter((t) => t.id !== form.transportadora_id)
+                  .map((t) => (
+                    <label key={t.id} className="flex items-center gap-2 text-xs">
+                      <input
+                        type="checkbox"
+                        className="h-3.5 w-3.5 accent-primary"
+                        checked={extras.includes(t.id)}
+                        onChange={(e) =>
+                          setExtras((prev) =>
+                            e.target.checked
+                              ? [...prev, t.id]
+                              : prev.filter((id) => id !== t.id),
+                          )
+                        }
+                      />
+                      {t.razao_social}
+                    </label>
+                  ))
+              )}
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Tipo de cálculo</Label>

@@ -115,6 +115,13 @@ type IntegracaoN8nRow = {
   updated_at: string;
 };
 
+type TabelaTransportadoraRow = {
+  id: string;
+  tabela_id: string;
+  transportadora_id: string;
+  created_at: string;
+};
+
 type SimpleTable<Row> = {
   Row: Row;
   Insert: Partial<Row>;
@@ -164,6 +171,7 @@ export type CentralDatabase = Omit<Database, "public"> & {
       fila_provisionamento_financeiro: SimpleTable<FilaFinanceiroRow>;
       mapeamento_componentes_erp: SimpleTable<MapeamentoRow>;
       integracao_n8n: SimpleTable<IntegracaoN8nRow>;
+      tabelas_preco_frete_transportadoras: SimpleTable<TabelaTransportadoraRow>;
     };
   };
 };
