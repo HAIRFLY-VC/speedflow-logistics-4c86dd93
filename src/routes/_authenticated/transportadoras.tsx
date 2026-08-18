@@ -248,6 +248,40 @@ function TransportadorasPage() {
       },
 
       {
+        id: "tabela_vigente",
+        header: "Tabela de frete vigente",
+        accessor: (t) => vigentePorTransportadora.get(t.id)?.nome ?? "",
+        render: (t) => {
+          const tab = vigentePorTransportadora.get(t.id);
+          return (
+            <span className="flex items-center gap-1">
+              {tab ? (
+                <Link
+                  to="/tabelas-frete"
+                  search={{ tabela: tab.id }}
+                  className="text-primary hover:underline inline-flex items-center gap-1"
+                  title="Abrir tabela de frete"
+                >
+                  {tab.nome}
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              ) : (
+                <span className="text-muted-foreground">Sem tabela vigente</span>
+              )}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6"
+                title="Alterar tabela vigente"
+                onClick={() => setTabelaAlvo(t)}
+              >
+                <Table2 className="h-3 w-3" />
+              </Button>
+            </span>
+          );
+        },
+      },
+      {
         id: "banco",
         header: "Banco",
         accessor: (t) => t.banco ?? "",
