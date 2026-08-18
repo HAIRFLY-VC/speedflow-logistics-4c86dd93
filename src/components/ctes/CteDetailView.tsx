@@ -47,6 +47,8 @@ function statusLabel(
 }
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const brlSemSimbolo = (v: number) =>
+  v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const dataBr = (v: string | null) => {
   if (!v) return "—";
@@ -646,13 +648,34 @@ export function CteDetailView({
                     <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Peso bruto (kg)</th>
                     <th className="px-2 py-1.5 text-left font-medium whitespace-normal leading-tight">Borderô</th>
                     <th className="px-2 py-1.5 text-left font-medium whitespace-normal leading-tight">Dt. saída</th>
-                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Frete</th>
-                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Perna</th>
-                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Diária</th>
-                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Pernoite</th>
-                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Reentrega</th>
-                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Descarrego</th>
-                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Frete contabilizado</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">
+                      Frete
+                      <div className="text-muted-foreground font-normal">R$</div>
+                    </th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">
+                      Perna
+                      <div className="text-muted-foreground font-normal">R$</div>
+                    </th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">
+                      Diária
+                      <div className="text-muted-foreground font-normal">R$</div>
+                    </th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">
+                      Pernoite
+                      <div className="text-muted-foreground font-normal">R$</div>
+                    </th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">
+                      Reentrega
+                      <div className="text-muted-foreground font-normal">R$</div>
+                    </th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">
+                      Descarrego
+                      <div className="text-muted-foreground font-normal">R$</div>
+                    </th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">
+                      Frete contabilizado
+                      <div className="text-muted-foreground font-normal">R$</div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -743,7 +766,7 @@ export function CteDetailView({
                           const soma = lancados.reduce((s, f) => s + Number(f[campo] ?? 0), 0);
                           return (
                             <td key={campo} className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
-                              {lancados.length === 0 ? "—" : brl(soma)}
+                              {lancados.length === 0 ? "—" : brlSemSimbolo(soma)}
                             </td>
                           );
                         })}
@@ -767,7 +790,7 @@ export function CteDetailView({
                               .join(" | ");
                             return (
                               <span title={detalhe || undefined} className="font-medium">
-                                {brl(total)}
+                                {brlSemSimbolo(total)}
                               </span>
                             );
                           })()}
@@ -812,12 +835,12 @@ export function CteDetailView({
                       );
                       return (
                         <td key={campo} className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
-                          {soma > 0 ? brl(soma) : "—"}
+                          {soma > 0 ? brlSemSimbolo(soma) : "—"}
                         </td>
                       );
                     })}
                     <td className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
-                      {totalFreteErp > 0 ? brl(totalFreteErp) : "—"}
+                      {totalFreteErp > 0 ? brlSemSimbolo(totalFreteErp) : "—"}
                     </td>
                   </tr>
                 </tfoot>
