@@ -257,13 +257,13 @@ export const listarFilasErp = createServerFn({ method: "POST" })
     return {
       valores: (valores ?? []).map((v) => ({
         ...v,
-        cte_numero: mapa.get(v.cte_id)?.numero ?? null,
-        cte_chave: mapa.get(v.cte_id)?.chave_acesso ?? null,
+        cte_numero: mapa.get(v.cte_id ?? "")?.numero ?? null,
+        cte_chave: mapa.get(v.cte_id ?? "")?.chave_acesso ?? null,
       })),
       financeiro: (financeiro ?? []).map((f) => ({
         ...f,
-        cte_numero: mapa.get(f.cte_id)?.numero ?? null,
-        cte_chave: mapa.get(f.cte_id)?.chave_acesso ?? null,
+        cte_numero: mapa.get(f.cte_id ?? "")?.numero ?? null,
+        cte_chave: mapa.get(f.cte_id ?? "")?.chave_acesso ?? null,
       })),
       fluxos: {
         ativo: cfg?.ativo ?? false,
