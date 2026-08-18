@@ -766,7 +766,7 @@ export function CteDetailView({
                           const soma = lancados.reduce((s, f) => s + Number(f[campo] ?? 0), 0);
                           return (
                             <td key={campo} className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
-                              {lancados.length === 0 ? "—" : brl(soma)}
+                              {lancados.length === 0 ? "—" : brlSemSimbolo(soma)}
                             </td>
                           );
                         })}
