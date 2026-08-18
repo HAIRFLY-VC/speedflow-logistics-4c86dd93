@@ -425,6 +425,24 @@ function TabelaDialog({
   );
 
   useQuery({
+    queryKey: ["tabela-transportadoras", editing?.id],
+    enabled: Boolean(editing?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .select("transportadora_id")
+        .eq("tabela_id", editing!.id);
+      if (error) throw error;
+      setExtras(
+        (data ?? [])
+          .map((v) => v.transportadora_id)
+          .filter((id) => id !== editing!.transportadora_id),
+      );
+      return data;
+    },
+  });
+
+  useQuery({
     queryKey: ["tabela-faixas", editing?.id],
     enabled: Boolean(editing?.id),
     queryFn: async () => {
