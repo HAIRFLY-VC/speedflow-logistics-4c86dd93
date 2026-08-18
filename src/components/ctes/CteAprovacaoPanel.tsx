@@ -219,6 +219,13 @@ export function CteAprovacaoPanel({ cteId }: { cteId: string }) {
         </div>
       ) : null}
 
+      <p className="text-muted-foreground text-xs">
+        A aprovação lança automaticamente apenas os <strong>valores de frete</strong> no ERP. O
+        provisionamento financeiro (contas a pagar) ainda não é automático e precisa ser feito
+        manualmente.
+      </p>
+
+
       {decidido ? (
         <div className="text-muted-foreground flex items-center gap-2 text-xs">
           <CheckCircle2 className="h-4 w-4" /> Decisão já registrada para este CT-e.
