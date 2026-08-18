@@ -27,6 +27,13 @@ type CustomerGeoRow = {
 type EmpresasRow = Pub["Tables"]["empresas"]["Row"] & { cod_erp: string | null };
 type EmpresasWrite = Pub["Tables"]["empresas"]["Insert"] & { cod_erp?: string | null };
 
+type TransportadorasRow = Pub["Tables"]["transportadoras"]["Row"] & {
+  cod_erp: string | null;
+};
+type TransportadorasWrite = Pub["Tables"]["transportadoras"]["Insert"] & {
+  cod_erp?: string | null;
+};
+
 export type FilaErpStatus = "PENDENTE" | "PROCESSANDO" | "CONCLUIDO" | "ERRO";
 export type OrdemAprovacaoStatus = "PENDENTE" | "APROVADO" | "REPROVADO";
 export type ErpCampoValor =
