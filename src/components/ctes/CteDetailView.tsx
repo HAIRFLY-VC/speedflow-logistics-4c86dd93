@@ -840,7 +840,7 @@ export function CteDetailView({
                       );
                     })}
                     <td className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
-                      {totalFreteErp > 0 ? brl(totalFreteErp) : "—"}
+                      {totalFreteErp > 0 ? brlSemSimbolo(totalFreteErp) : "—"}
                     </td>
                   </tr>
                 </tfoot>
