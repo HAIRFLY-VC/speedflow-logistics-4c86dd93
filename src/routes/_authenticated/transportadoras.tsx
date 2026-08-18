@@ -1,14 +1,16 @@
 import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Pencil, Loader2 } from "lucide-react";
+import { Plus, Pencil, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/central/client";
+import { buscarCodErpTransportadora } from "@/lib/transportadora-erp.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import type { CentralDatabase } from "@/integrations/central/types";
+
 
 export const Route = createFileRoute("/_authenticated/transportadoras")({
   component: TransportadorasPage,
@@ -120,6 +123,36 @@ function TransportadorasPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const buscarCodErp = useServerFn(buscarCodErpTransportadora);
+  const [buscandoId, setBuscandoId] = useState<string | null>(null);
+
+  const consultarErp = useMutation({
+    mutationFn: async (t: Transportadora) => {
+      setBuscandoId(t.id);
+      const { codErp } = await buscarCodErp({ data: { cnpj: t.cnpj } });
+      if (!codErp) return { codErp: null as string | null };
+      const { error } = await supabase
+        .from("transportadoras")
+        .update({ cod_erp: codErp })
+        .eq("id", t.id);
+      if (error) throw error;
+      return { codErp };
+    },
+    onSuccess: (r) => {
+      setBuscandoId(null);
+      if (r.codErp) {
+        qc.invalidateQueries({ queryKey: ["transportadoras"] });
+        toast.success(`Código no ERP: ${r.codErp}`);
+      } else {
+        toast.warning("Nenhum código encontrado no ERP para este CNPJ");
+      }
+    },
+    onError: (e: Error) => {
+      setBuscandoId(null);
+      toast.error(e.message);
+    },
+  });
+
   const columns = useMemo<ColumnDef<Transportadora>[]>(
     () => [
       {
@@ -138,8 +171,31 @@ function TransportadorasPage() {
         id: "cod_erp",
         header: "Cód. ERP",
         accessor: (t) => t.cod_erp ?? "",
-        render: (t) => (t.cod_erp ? <span className="font-mono text-xs">{t.cod_erp}</span> : "—"),
+        render: (t) => (
+          <span className="flex items-center gap-1">
+            {t.cod_erp ? (
+              <span className="font-mono text-xs">{t.cod_erp}</span>
+            ) : (
+              <span className="text-muted-foreground">—</span>
+            )}
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6"
+              title="Consultar código no ERP"
+              disabled={buscandoId === t.id}
+              onClick={() => consultarErp.mutate(t)}
+            >
+              {buscandoId === t.id ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Search className="h-3 w-3" />
+              )}
+            </Button>
+          </span>
+        ),
       },
+
       {
         id: "banco",
         header: "Banco",
@@ -186,7 +242,8 @@ function TransportadorasPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [buscandoId],
+
   );
 
   return (
@@ -248,7 +305,10 @@ function TransportadoraDialog({
   onSubmit: (v: FormInput) => void;
   submitting: boolean;
 }) {
+  const buscarCodErp = useServerFn(buscarCodErpTransportadora);
+  const [consultando, setConsultando] = useState(false);
   const form = useForm<FormInput>({
+
     resolver: zodResolver(schema),
     defaultValues: {
       razao_social: editing?.razao_social ?? "",
@@ -285,8 +345,42 @@ function TransportadoraDialog({
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Código no ERP</Label>
-            <Input {...form.register("cod_erp")} placeholder="Ex.: 1234" />
+            <div className="flex gap-2">
+              <Input {...form.register("cod_erp")} placeholder="Ex.: 1234" />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                title="Consultar no ERP pelo CNPJ"
+                disabled={consultando}
+                onClick={async () => {
+                  const cnpj = form.getValues("cnpj");
+                  if (!cnpj) return toast.error("Informe o CNPJ primeiro");
+                  setConsultando(true);
+                  try {
+                    const { codErp } = await buscarCodErp({ data: { cnpj } });
+                    if (codErp) {
+                      form.setValue("cod_erp", codErp, { shouldDirty: true });
+                      toast.success(`Código no ERP: ${codErp}`);
+                    } else {
+                      toast.warning("Nenhum código encontrado no ERP para este CNPJ");
+                    }
+                  } catch (e) {
+                    toast.error((e as Error).message);
+                  } finally {
+                    setConsultando(false);
+                  }
+                }}
+              >
+                {consultando ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
+
           <div className="space-y-1.5">
             <Label className="text-xs">Banco</Label>
             <Input {...form.register("banco")} />
