@@ -218,16 +218,6 @@ function TabelasFretePage() {
     }
   }, [tabelaParam, data]);
 
-  const { data: vinculos } = useQuery({
-    queryKey: ["tabelas-frete", "vinculos"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tabelas_preco_frete_transportadoras")
-        .select("tabela_id, transportadora_id");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
 
 
   const toggle = useMutation({
