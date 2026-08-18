@@ -540,7 +540,7 @@ export function CteDetailView({
                   key={`${c.nome}-${i}`}
                   className="flex items-start justify-between gap-3 border-b px-3 py-2 text-sm last:border-b-0"
                 >
-                  <span>{isDescarga ? "DESCARGA" : c.nome || "—"}</span>
+                  <span>{isDescarga ? "DESCARGA" : isEstadia ? "ESTADIA" : c.nome || "—"}</span>
                   <div className="text-right">
                     <div className="font-medium">{brl(valor)}</div>
                     {isDescarga ? (
