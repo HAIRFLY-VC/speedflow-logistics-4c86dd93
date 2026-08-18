@@ -400,7 +400,9 @@ function TransportadorasPage() {
           if (!o) setEditing(null);
         }}
         editing={editing}
-        onSubmit={(v) => upsert.mutate(v)}
+        tabelas={tabelas ?? []}
+        tabelaAtualId={editing ? (vigentePorTransportadora.get(editing.id)?.id ?? "") : ""}
+        onSubmit={(v, tabelaId) => upsert.mutate({ input: v, tabelaId })}
         submitting={upsert.isPending}
       />
 
