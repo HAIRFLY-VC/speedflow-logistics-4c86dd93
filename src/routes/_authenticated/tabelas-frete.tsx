@@ -850,10 +850,13 @@ function TabelaDialog({
             </div>
           </div>
           <div className="md:col-span-2 space-y-1.5">
-            <Label className="text-xs">Transportadora *</Label>
+            <Label className="text-xs">Transportadora principal *</Label>
             <Select
               value={form.transportadora_id}
-              onValueChange={(v) => set("transportadora_id", v)}
+              onValueChange={(v) => {
+                set("transportadora_id", v);
+                setExtras((e) => e.filter((id) => id !== v));
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione" />
@@ -866,6 +869,36 @@ function TabelaDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="md:col-span-2 space-y-1.5">
+            <Label className="text-xs">Outras transportadoras que usam esta tabela</Label>
+            <div className="rounded-md border p-2 max-h-36 overflow-y-auto space-y-1">
+              {transportadoras.filter((t) => t.id !== form.transportadora_id).length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Nenhuma outra transportadora cadastrada.
+                </p>
+              ) : (
+                transportadoras
+                  .filter((t) => t.id !== form.transportadora_id)
+                  .map((t) => (
+                    <label key={t.id} className="flex items-center gap-2 text-xs">
+                      <input
+                        type="checkbox"
+                        className="h-3.5 w-3.5 accent-primary"
+                        checked={extras.includes(t.id)}
+                        onChange={(e) =>
+                          setExtras((prev) =>
+                            e.target.checked
+                              ? [...prev, t.id]
+                              : prev.filter((id) => id !== t.id),
+                          )
+                        }
+                      />
+                      {t.razao_social}
+                    </label>
+                  ))
+              )}
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Tipo de cálculo</Label>
