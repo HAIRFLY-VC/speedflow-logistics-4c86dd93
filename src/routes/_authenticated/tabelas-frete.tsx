@@ -8,6 +8,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/central/client";
 import { supabase as storageClient } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
