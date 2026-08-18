@@ -64,8 +64,8 @@ const dataHoraCelula = (v: string | null) => {
   const hora = horaBr(v);
   return (
     <div className="leading-tight">
-      <div>{dataBr(v)}</div>
-      {hora ? <div className="text-muted-foreground text-[10px]">{hora}</div> : null}
+      <div className="text-[10px]">{dataBr(v)}</div>
+      {hora ? <div className="text-muted-foreground text-[9px]">{hora}</div> : null}
     </div>
   );
 };
