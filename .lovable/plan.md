@@ -20,7 +20,7 @@ O código do app já está pronto: aprovação (`CteAprovacaoPanel`), motor de r
 Usuário aprova CT-e
    -> cria ordem em ordens_pagamento_frete
    -> insere 1 linha por NF-e em fila_lancamento_erp_frete
-   -> insere 1 linha em fila_provisionamento_financeiro
+   -> insere 1 linha em fila_provisionamento_financeiro (1 por CT-e)
    -> trigger de banco chama o webhook do n8n (POST) com { fila, fila_id, payload }
    -> n8n lança no ERP Oracle
    -> n8n confirma em /api/public/hooks/erp-fila-callback
