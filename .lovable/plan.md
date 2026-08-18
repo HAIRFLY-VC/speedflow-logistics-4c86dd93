@@ -6,7 +6,7 @@ Consultei o banco central (esquema `speedflow`) e todas as tabelas da integraç�
 
 - `ordens_pagamento_frete` — vazia
 - `fila_lancamento_erp_frete` — vazia
-- `fila_provisionamento_financeiro` — vazia
+- `fila_provisionamento_financeiro` — vazia. Estrutura atual: `id`, `ordem_pagamento_id`, `cte_id`, `payload`, `status`, `tentativas`, `ultimo_erro`, `referencia_erp`, `processado_em`, `created_at`, `updated_at`. Como só deve existir **um registro por CT-e**, revisar a estrutura: tornar `cte_id` obrigatório e criar índice único em `cte_id` (e em `ordem_pagamento_id`), garantindo que reprocessos atualizem a linha existente em vez de duplicar
 - `mapeamento_componentes_erp` — vazia (nenhum de-para cadastrado; o sistema usa as regras automáticas por nome)
 - `integracao_n8n` — existe a linha `id = 1`, mas com `webhook_url`, `webhook_url_financeiro` e `webhook_token` em branco e `ativo = false`
 
