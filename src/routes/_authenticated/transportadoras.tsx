@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
-import type { Tables } from "@/integrations/supabase/types";
+import type { CentralDatabase } from "@/integrations/central/types";
 
 export const Route = createFileRoute("/_authenticated/transportadoras")({
   component: TransportadorasPage,
@@ -45,11 +45,12 @@ export const Route = createFileRoute("/_authenticated/transportadoras")({
   }),
 });
 
-type Transportadora = Tables<"transportadoras">;
+type Transportadora = CentralDatabase["public"]["Tables"]["transportadoras"]["Row"];
 
 const schema = z.object({
   razao_social: z.string().trim().min(2).max(200),
   cnpj: z.string().trim().min(11).max(20),
+  cod_erp: z.string().trim().max(40).optional().or(z.literal("")),
   banco: z.string().trim().max(80).optional().or(z.literal("")),
   agencia: z.string().trim().max(20).optional().or(z.literal("")),
   conta: z.string().trim().max(30).optional().or(z.literal("")),
@@ -80,6 +81,7 @@ function TransportadorasPage() {
       const payload = {
         razao_social: input.razao_social,
         cnpj: input.cnpj.replace(/\D/g, ""),
+        cod_erp: input.cod_erp || null,
         banco: input.banco || null,
         agencia: input.agencia || null,
         conta: input.conta || null,
@@ -148,6 +150,12 @@ function TransportadorasPage() {
           ) : (
             "—"
           ),
+      },
+      {
+        id: "cod_erp",
+        header: "Cód. ERP",
+        accessor: (t) => t.cod_erp ?? "",
+        render: (t) => (t.cod_erp ? <span className="font-mono text-xs">{t.cod_erp}</span> : "—"),
       },
       { id: "pix", header: "PIX", accessor: (t) => t.pix ?? "" },
       {
@@ -248,6 +256,7 @@ function TransportadoraDialog({
       banco: editing?.banco ?? "",
       agencia: editing?.agencia ?? "",
       conta: editing?.conta ?? "",
+      cod_erp: editing?.cod_erp ?? "",
       pix: editing?.pix ?? "",
       ativo: editing?.ativo ?? true,
     },
@@ -273,6 +282,10 @@ function TransportadoraDialog({
           <div className="space-y-1.5">
             <Label className="text-xs">CNPJ *</Label>
             <Input {...form.register("cnpj")} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Código no ERP</Label>
+            <Input {...form.register("cod_erp")} placeholder="Ex.: 1234" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Banco</Label>

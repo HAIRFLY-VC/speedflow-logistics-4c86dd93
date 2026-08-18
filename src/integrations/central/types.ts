@@ -27,6 +27,13 @@ type CustomerGeoRow = {
 type EmpresasRow = Pub["Tables"]["empresas"]["Row"] & { cod_erp: string | null };
 type EmpresasWrite = Pub["Tables"]["empresas"]["Insert"] & { cod_erp?: string | null };
 
+type TransportadorasRow = Pub["Tables"]["transportadoras"]["Row"] & {
+  cod_erp: string | null;
+};
+type TransportadorasWrite = Pub["Tables"]["transportadoras"]["Insert"] & {
+  cod_erp?: string | null;
+};
+
 export type FilaErpStatus = "PENDENTE" | "PROCESSANDO" | "CONCLUIDO" | "ERRO";
 export type OrdemAprovacaoStatus = "PENDENTE" | "APROVADO" | "REPROVADO";
 export type ErpCampoValor =
@@ -117,7 +124,18 @@ type SimpleTable<Row> = {
 
 export type CentralDatabase = Omit<Database, "public"> & {
   public: Omit<Pub, "Tables"> & {
-    Tables: Omit<Pub["Tables"], "orders" | "empresas" | "ordens_pagamento_frete"> & {
+    Tables: Omit<
+      Pub["Tables"],
+      "orders" | "empresas" | "ordens_pagamento_frete" | "transportadoras"
+    > & {
+      transportadoras: Omit<
+        Pub["Tables"]["transportadoras"],
+        "Row" | "Insert" | "Update"
+      > & {
+        Row: TransportadorasRow;
+        Insert: TransportadorasWrite;
+        Update: Partial<TransportadorasWrite>;
+      };
       empresas: Omit<Pub["Tables"]["empresas"], "Row" | "Insert" | "Update"> & {
         Row: EmpresasRow;
         Insert: EmpresasWrite;
