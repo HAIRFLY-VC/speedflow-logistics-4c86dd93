@@ -413,6 +413,8 @@ function TabelaDialog({
         }
       : { ...emptyForm(), transportadora_id: transportadoras[0]?.id ?? "" },
   );
+  // Transportadoras adicionais que também usam esta tabela.
+  const [extras, setExtras] = useState<string[]>([]);
   const [faixas, setFaixas] = useState<FaixaDraft[]>([]);
   const [rotas, setRotas] = useState<RotaDraft[]>([]);
   const [arquivo, setArquivo] = useState<File | null>(null);
