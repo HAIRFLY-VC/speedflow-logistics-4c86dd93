@@ -257,8 +257,8 @@ function TabelasFretePage() {
     () => [
       {
         id: "transportadora",
-        header: "Transportadora",
-        accessor: (t) => nomeTransportadora.get(t.transportadora_id) ?? "—",
+        header: "Transportadoras",
+        accessor: (t) => nomesDaTabela(t),
         className: "font-medium",
       },
       { id: "nome", header: "Tabela", accessor: (t) => t.nome },
