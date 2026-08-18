@@ -2,15 +2,8 @@
 // e lançado no financeiro do ERP Oracle (consulta em gks.a_pagctitu).
 import { centralDb } from "@/lib/central-db";
 
-export type StatusErpCte = {
-  cteId: string;
-  /** Resultado da autorização feita no app (botão de aprovar). */
-  contabilizado: "PENDENTE" | "APROVADO" | "REPROVADO";
-  /** true/false quando foi possível consultar o ERP; null quando indisponível. */
-  financeiro: boolean | null;
-  vencimento: string | null;
-  valor: number | null;
-};
+import type { StatusErpCte } from "@/lib/cte-status-erp.types";
+export type { StatusErpCte };
 
 const AGENDA_FIXA = 110;
 
