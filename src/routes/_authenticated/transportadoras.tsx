@@ -521,17 +521,28 @@ function TransportadoraDialog({
   open,
   onOpenChange,
   editing,
+  tabelas,
+  tabelaAtualId,
   onSubmit,
   submitting,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   editing: Transportadora | null;
-  onSubmit: (v: FormInput) => void;
+  tabelas: TabelaResumo[];
+  tabelaAtualId: string;
+  onSubmit: (v: FormInput, tabelaId: string) => void;
   submitting: boolean;
 }) {
   const buscarCodErp = useServerFn(buscarCodErpTransportadora);
   const [consultando, setConsultando] = useState(false);
+  const [tabelaId, setTabelaId] = useState(tabelaAtualId);
+  const hoje = new Date().toISOString().slice(0, 10);
+  const opcoesTabelas = tabelas.filter(
+    (t) =>
+      t.id === tabelaAtualId ||
+      (t.ativo && t.data_inicio <= hoje && (!t.data_fim || t.data_fim >= hoje)),
+  );
   const form = useForm<FormInput>({
 
     resolver: zodResolver(schema),
