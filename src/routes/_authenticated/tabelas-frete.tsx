@@ -351,7 +351,8 @@ function TabelasFretePage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [nomeTransportadora],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [nomeTransportadora, transportadorasPorTabela],
   );
 
   return (
