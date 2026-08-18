@@ -212,6 +212,35 @@ function TabelasFretePage() {
     return map;
   }, [transportadoras]);
 
+  // Vínculos N:N (uma tabela pode ser usada por várias transportadoras).
+  const { data: vinculos } = useQuery({
+    queryKey: ["tabelas-frete", "vinculos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .select("tabela_id, transportadora_id");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const transportadorasPorTabela = useMemo(() => {
+    const map = new Map<string, string[]>();
+    (vinculos ?? []).forEach((v) => {
+      const nome = nomeTransportadora.get(v.transportadora_id);
+      if (!nome) return;
+      map.set(v.tabela_id, [...(map.get(v.tabela_id) ?? []), nome]);
+    });
+    return map;
+  }, [vinculos, nomeTransportadora]);
+
+  const nomesDaTabela = (t: Tabela) => {
+    const lista = transportadorasPorTabela.get(t.id) ?? [];
+    const principal = nomeTransportadora.get(t.transportadora_id);
+    const todas = Array.from(new Set([...(principal ? [principal] : []), ...lista]));
+    return todas.length ? todas.join(", ") : "—";
+  };
+
   const toggle = useMutation({
     mutationFn: async (t: Tabela) => {
       const { error } = await supabase
