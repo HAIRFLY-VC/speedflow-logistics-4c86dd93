@@ -124,7 +124,18 @@ type SimpleTable<Row> = {
 
 export type CentralDatabase = Omit<Database, "public"> & {
   public: Omit<Pub, "Tables"> & {
-    Tables: Omit<Pub["Tables"], "orders" | "empresas" | "ordens_pagamento_frete"> & {
+    Tables: Omit<
+      Pub["Tables"],
+      "orders" | "empresas" | "ordens_pagamento_frete" | "transportadoras"
+    > & {
+      transportadoras: Omit<
+        Pub["Tables"]["transportadoras"],
+        "Row" | "Insert" | "Update"
+      > & {
+        Row: TransportadorasRow;
+        Insert: TransportadorasWrite;
+        Update: Partial<TransportadorasWrite>;
+      };
       empresas: Omit<Pub["Tables"]["empresas"], "Row" | "Insert" | "Update"> & {
         Row: EmpresasRow;
         Insert: EmpresasWrite;
