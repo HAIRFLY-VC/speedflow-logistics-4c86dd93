@@ -1031,6 +1031,17 @@ function TabelaDialog({
             <Input value={form.nome} onChange={(e) => set("nome", e.target.value)} />
           </div>
           <div className="space-y-1.5">
+            <Label className="text-xs">Código interno</Label>
+            <Input
+              value={form.codigo_interno}
+              onChange={(e) => set("codigo_interno", e.target.value.toUpperCase())}
+              placeholder={slugify(form.nome) || "GERADO AUTOMATICAMENTE"}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Se deixado em branco, será gerado a partir do nome.
+            </p>
+          </div>
+          <div className="space-y-1.5">
             <Label className="text-xs">UF destino</Label>
             <Input
               maxLength={2}
