@@ -81,6 +81,10 @@ async function processar(request: Request) {
         .select("id, status")
         .eq("ordem_pagamento_id", ordemId),
     ]);
+    // O fluxo financeiro só entra no cálculo quando o workflow n8n dele está
+    // configurado; caso contrário a ordem ficaria presa em AGUARDANDO_INTEGRACAO_ERP.
+    const financeiroAtivo = Boolean(cfgFluxo?.webhook_url_financeiro);
+    const todos = [...(pendV ?? []), ...(financeiroAtivo ? (pendF ?? []) : [])];
     const todos = [...(pendV ?? []), ...(pendF ?? [])];
     const houveErro = todos.some((i) => i.status === "ERRO");
     const concluiu = todos.length > 0 && todos.every((i) => i.status === "CONCLUIDO");
