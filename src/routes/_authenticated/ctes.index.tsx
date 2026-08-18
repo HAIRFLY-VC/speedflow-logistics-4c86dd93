@@ -28,6 +28,7 @@ import {
   cancelarCapturaCte,
   getStatusRobo,
 } from "@/lib/cte-captura.functions";
+import { getStatusErpCtes } from "@/lib/cte-status-erp.functions";
 import {
   backfillNomeDestinatario,
   reprocessarIdentificacaoCtes,
@@ -215,6 +216,18 @@ function CtesPage() {
         .limit(1000);
       if (error) throw error;
       return data as CteRow[];
+    },
+  });
+
+  const statusErp = useServerFn(getStatusErpCtes);
+  const cteIds = useMemo(() => (data ?? []).map((c) => c.id), [data]);
+  const { data: statusMap } = useQuery({
+    queryKey: ["ctes-status-erp", cteIds],
+    enabled: cteIds.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const linhas = await statusErp({ data: { cteIds } });
+      return new Map(linhas.map((l) => [l.cteId, l]));
     },
   });
 
@@ -599,6 +612,72 @@ function CtesPage() {
         render: (c) => (c.origem_captura === "MANUAL" ? "Manual" : "Automática"),
       },
       {
+        id: "contabilizado",
+        header: "Valores",
+        align: "center",
+        accessor: (c) => statusMap?.get(c.id)?.contabilizado ?? "PENDENTE",
+        render: (c) => {
+          const st = statusMap?.get(c.id)?.contabilizado ?? "PENDENTE";
+          const tone =
+            st === "APROVADO"
+              ? "bg-emerald-500/10 text-emerald-600"
+              : st === "REPROVADO"
+                ? "bg-destructive/10 text-destructive"
+                : "bg-muted text-muted-foreground";
+          const label =
+            st === "APROVADO" ? "Contabilizado" : st === "REPROVADO" ? "Reprovado" : "Pendente";
+          return (
+            <Badge variant="secondary" className={tone}>
+              {label}
+            </Badge>
+          );
+        },
+      },
+      {
+        id: "financeiro",
+        header: "Financeiro",
+        align: "center",
+        accessor: (c) => {
+          const f = statusMap?.get(c.id)?.financeiro;
+          return f == null ? "" : f ? "Lançado" : "Não lançado";
+        },
+        render: (c) => {
+          const info = statusMap?.get(c.id);
+          if (!info || info.financeiro == null) {
+            return <span className="text-muted-foreground text-xs">—</span>;
+          }
+          if (!info.financeiro) {
+            return (
+              <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                Não lançado
+              </Badge>
+            );
+          }
+          const detalhe = [
+            info.vencimento
+              ? `Vencimento ${new Date(`${info.vencimento}T00:00:00`).toLocaleDateString("pt-BR")}`
+              : null,
+            info.valor != null ? brl(Number(info.valor)) : null,
+          ]
+            .filter(Boolean)
+            .join(" · ");
+          return (
+            <TooltipProvider delayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600">
+                    Lançado
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{detalhe || "Lançado no financeiro do ERP"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        },
+      },
+      {
         id: "status",
         header: "Status",
         accessor: (c) => c.status,
@@ -648,7 +727,7 @@ function CtesPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [nomeTransportadora, openXml.isPending, readXml.isPending],
+    [nomeTransportadora, openXml.isPending, readXml.isPending, statusMap],
   );
 
 
