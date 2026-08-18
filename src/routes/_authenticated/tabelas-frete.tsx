@@ -692,22 +692,45 @@ function TabelaDialog({
         ativo: form.ativo,
       };
 
+      // O banco central pode ainda não ter a coluna `codigo_interno`.
+      // Nesse caso (PGRST204) o salvamento é refeito sem ela.
+      const semCodigo = (p: typeof payload) => {
+        const { codigo_interno: _drop, ...rest } = p;
+        return rest;
+      };
+      const faltaCodigo = (e: { code?: string; message?: string } | null) =>
+        !!e && (e.code === "PGRST204" || /codigo_interno/.test(e.message ?? ""));
+
       let tabelaId = editing?.id;
       if (editing) {
-        const { error } = await supabase
+        let { error } = await supabase
           .from("tabelas_preco_frete")
           .update(payload)
           .eq("id", editing.id);
+        if (faltaCodigo(error)) {
+          ({ error } = await supabase
+            .from("tabelas_preco_frete")
+            .update(semCodigo(payload))
+            .eq("id", editing.id));
+        }
         if (error) throw error;
       } else {
-        const { data, error } = await supabase
+        let { data, error } = await supabase
           .from("tabelas_preco_frete")
           .insert(payload)
           .select("id")
           .single();
+        if (faltaCodigo(error)) {
+          ({ data, error } = await supabase
+            .from("tabelas_preco_frete")
+            .insert(semCodigo(payload) as typeof payload)
+            .select("id")
+            .single());
+        }
         if (error) throw error;
-        tabelaId = data.id;
+        tabelaId = data!.id;
       }
+
 
       if (!tabelaId) throw new Error("Falha ao salvar a tabela");
 
