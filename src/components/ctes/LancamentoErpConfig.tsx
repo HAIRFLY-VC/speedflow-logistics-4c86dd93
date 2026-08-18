@@ -236,6 +236,38 @@ export function LancamentoErpConfig() {
               />
             </div>
           </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant="outline"
+              className={
+                n8n.ativo && n8n.url
+                  ? "border-emerald-500/40 text-emerald-600"
+                  : "border-amber-500/40 text-amber-600"
+              }
+            >
+              Valores: {n8n.ativo && n8n.url ? "ativo" : "não configurado"}
+            </Badge>
+            <Badge
+              variant="outline"
+              className={
+                n8n.ativo && n8n.urlFin
+                  ? "border-emerald-500/40 text-emerald-600"
+                  : "border-amber-500/40 text-amber-600"
+              }
+            >
+              Financeiro: {n8n.ativo && n8n.urlFin ? "ativo" : "não configurado"}
+            </Badge>
+          </div>
+          {!(n8n.ativo && n8n.urlFin) ? (
+            <p className="text-muted-foreground flex items-start gap-2 text-xs">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              Somente o fluxo de lançamento de valores está ativo. O provisionamento financeiro
+              ainda precisa ser feito manualmente — a aprovação de um CT-e não gera lançamento
+              automático no contas a pagar.
+            </p>
+          ) : null}
+
           <div className="grid gap-2 sm:grid-cols-2">
             <div>
               <Label className="text-xs">URL — lançamento de valores</Label>
