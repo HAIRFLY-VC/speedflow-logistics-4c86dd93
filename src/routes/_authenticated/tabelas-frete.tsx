@@ -667,6 +667,18 @@ function TabelaDialog({
       }
 
 
+      // Vínculos N:N — a tabela pode ser usada por várias transportadoras.
+      const vinculadas = Array.from(new Set([form.transportadora_id, ...extras]));
+      const { error: delVinc } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .delete()
+        .eq("tabela_id", tabelaId);
+      if (delVinc) throw delVinc;
+      const { error: insVinc } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .insert(vinculadas.map((tid) => ({ tabela_id: tabelaId!, transportadora_id: tid })));
+      if (insVinc) throw insVinc;
+
 
       const { error: delError } = await supabase
         .from("tabelas_preco_frete_faixas")
