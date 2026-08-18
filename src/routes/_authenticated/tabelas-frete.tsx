@@ -401,7 +401,7 @@ function TabelasFretePage() {
           isLoading={isLoading}
           rowKey={(t) => t.id}
           emptyMessage="Nenhuma tabela cadastrada."
-          defaultSort={{ id: "transportadora", dir: "asc" }}
+          defaultSort={{ id: "codigo_interno", dir: "asc" }}
         />
       </div>
 
