@@ -373,7 +373,115 @@ function TransportadorasPage() {
         onSubmit={(v) => upsert.mutate(v)}
         submitting={upsert.isPending}
       />
+
+      <TabelaVigenteDialog
+        key={tabelaAlvo?.id ?? "none"}
+        transportadora={tabelaAlvo}
+        onOpenChange={(o) => !o && setTabelaAlvo(null)}
+        tabelas={tabelas ?? []}
+        atual={tabelaAlvo ? (vigentePorTransportadora.get(tabelaAlvo.id) ?? null) : null}
+      />
     </AppShell>
+  );
+}
+
+function TabelaVigenteDialog({
+  transportadora,
+  onOpenChange,
+  tabelas,
+  atual,
+}: {
+  transportadora: Transportadora | null;
+  onOpenChange: (o: boolean) => void;
+  tabelas: TabelaResumo[];
+  atual: TabelaResumo | null;
+}) {
+  const qc = useQueryClient();
+  const [selecionada, setSelecionada] = useState<string>(atual?.id ?? "");
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const opcoes = tabelas.filter(
+    (t) => t.ativo && t.data_inicio <= hoje && (!t.data_fim || t.data_fim >= hoje),
+  );
+
+  const salvar = useMutation({
+    mutationFn: async () => {
+      if (!transportadora) return;
+      const { error: delErr } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .delete()
+        .eq("transportadora_id", transportadora.id);
+      if (delErr) throw delErr;
+      if (selecionada) {
+        const { error } = await supabase
+          .from("tabelas_preco_frete_transportadoras")
+          .insert({ tabela_id: selecionada, transportadora_id: transportadora.id });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tabelas-frete-vinculos"] });
+      qc.invalidateQueries({ queryKey: ["tabelas-frete"] });
+      toast.success("Tabela de frete vigente atualizada");
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={Boolean(transportadora)} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Tabela de frete vigente</DialogTitle>
+          <DialogDescription>{transportadora?.razao_social}</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Tabela vigente</Label>
+            <Select value={selecionada || "none"} onValueChange={(v) => setSelecionada(v === "none" ? "" : v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a tabela" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem tabela vigente</SelectItem>
+                {opcoes.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.nome}
+                    {t.codigo_interno ? ` · ${t.codigo_interno}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {!opcoes.length && (
+              <p className="text-xs text-muted-foreground">
+                Nenhuma tabela ativa vigente cadastrada hoje.
+              </p>
+            )}
+          </div>
+
+          {selecionada && (
+            <Link
+              to="/tabelas-frete"
+              search={{ tabela: selecionada }}
+              className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+            >
+              Visualizar / editar esta tabela <ExternalLink className="h-3 w-3" />
+            </Link>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+            {salvar.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
