@@ -115,6 +115,13 @@ type IntegracaoN8nRow = {
   updated_at: string;
 };
 
+type TabelaTransportadoraRow = {
+  id: string;
+  tabela_id: string;
+  transportadora_id: string;
+  created_at: string;
+};
+
 type SimpleTable<Row> = {
   Row: Row;
   Insert: Partial<Row>;
