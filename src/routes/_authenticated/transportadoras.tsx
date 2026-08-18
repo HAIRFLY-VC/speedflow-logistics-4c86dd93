@@ -5,7 +5,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Pencil, Loader2, Search } from "lucide-react";
+import { Plus, Pencil, Loader2, Search, Table2, ExternalLink } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -23,6 +24,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import type { CentralDatabase } from "@/integrations/central/types";
 
@@ -62,6 +70,16 @@ const schema = z.object({
 });
 type FormInput = z.infer<typeof schema>;
 
+type TabelaResumo = {
+  id: string;
+  nome: string;
+  codigo_interno: string | null;
+  data_inicio: string;
+  data_fim: string | null;
+  ativo: boolean;
+  transportadora_id: string;
+};
+
 function TransportadorasPage() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Transportadora | null>(null);
@@ -78,6 +96,46 @@ function TransportadorasPage() {
       return data as Transportadora[];
     },
   });
+
+  const [tabelaAlvo, setTabelaAlvo] = useState<Transportadora | null>(null);
+
+  const { data: tabelas } = useQuery({
+    queryKey: ["tabelas-frete-vigentes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete")
+        .select("id, nome, codigo_interno, data_inicio, data_fim, ativo, transportadora_id")
+        .order("data_inicio", { ascending: false });
+      if (error) throw error;
+      return data as TabelaResumo[];
+    },
+  });
+
+  const { data: vinculos } = useQuery({
+    queryKey: ["tabelas-frete-vinculos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .select("tabela_id, transportadora_id");
+      if (error) throw error;
+      return data as { tabela_id: string; transportadora_id: string }[];
+    },
+  });
+
+  const vigentePorTransportadora = useMemo(() => {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const porId = new Map((tabelas ?? []).map((t) => [t.id, t]));
+    const map = new Map<string, TabelaResumo>();
+    (vinculos ?? []).forEach((v) => {
+      const t = porId.get(v.tabela_id);
+      if (!t || !t.ativo) return;
+      if (t.data_inicio > hoje) return;
+      if (t.data_fim && t.data_fim < hoje) return;
+      const atual = map.get(v.transportadora_id);
+      if (!atual || t.data_inicio > atual.data_inicio) map.set(v.transportadora_id, t);
+    });
+    return map;
+  }, [tabelas, vinculos]);
 
   const upsert = useMutation({
     mutationFn: async (input: FormInput) => {
@@ -197,6 +255,40 @@ function TransportadorasPage() {
       },
 
       {
+        id: "tabela_vigente",
+        header: "Tabela de frete vigente",
+        accessor: (t) => vigentePorTransportadora.get(t.id)?.nome ?? "",
+        render: (t) => {
+          const tab = vigentePorTransportadora.get(t.id);
+          return (
+            <span className="flex items-center gap-1">
+              {tab ? (
+                <Link
+                  to="/tabelas-frete"
+                  search={{ tabela: tab.id }}
+                  className="text-primary hover:underline inline-flex items-center gap-1"
+                  title="Abrir tabela de frete"
+                >
+                  {tab.nome}
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              ) : (
+                <span className="text-muted-foreground">Sem tabela vigente</span>
+              )}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6"
+                title="Alterar tabela vigente"
+                onClick={() => setTabelaAlvo(t)}
+              >
+                <Table2 className="h-3 w-3" />
+              </Button>
+            </span>
+          );
+        },
+      },
+      {
         id: "banco",
         header: "Banco",
         accessor: (t) => t.banco ?? "",
@@ -242,7 +334,7 @@ function TransportadorasPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [buscandoId],
+    [buscandoId, vigentePorTransportadora],
 
   );
 
@@ -288,7 +380,115 @@ function TransportadorasPage() {
         onSubmit={(v) => upsert.mutate(v)}
         submitting={upsert.isPending}
       />
+
+      <TabelaVigenteDialog
+        key={tabelaAlvo?.id ?? "none"}
+        transportadora={tabelaAlvo}
+        onOpenChange={(o) => !o && setTabelaAlvo(null)}
+        tabelas={tabelas ?? []}
+        atual={tabelaAlvo ? (vigentePorTransportadora.get(tabelaAlvo.id) ?? null) : null}
+      />
     </AppShell>
+  );
+}
+
+function TabelaVigenteDialog({
+  transportadora,
+  onOpenChange,
+  tabelas,
+  atual,
+}: {
+  transportadora: Transportadora | null;
+  onOpenChange: (o: boolean) => void;
+  tabelas: TabelaResumo[];
+  atual: TabelaResumo | null;
+}) {
+  const qc = useQueryClient();
+  const [selecionada, setSelecionada] = useState<string>(atual?.id ?? "");
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const opcoes = tabelas.filter(
+    (t) => t.ativo && t.data_inicio <= hoje && (!t.data_fim || t.data_fim >= hoje),
+  );
+
+  const salvar = useMutation({
+    mutationFn: async () => {
+      if (!transportadora) return;
+      const { error: delErr } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .delete()
+        .eq("transportadora_id", transportadora.id);
+      if (delErr) throw delErr;
+      if (selecionada) {
+        const { error } = await supabase
+          .from("tabelas_preco_frete_transportadoras")
+          .insert({ tabela_id: selecionada, transportadora_id: transportadora.id });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tabelas-frete-vinculos"] });
+      qc.invalidateQueries({ queryKey: ["tabelas-frete"] });
+      toast.success("Tabela de frete vigente atualizada");
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={Boolean(transportadora)} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Tabela de frete vigente</DialogTitle>
+          <DialogDescription>{transportadora?.razao_social}</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Tabela vigente</Label>
+            <Select value={selecionada || "none"} onValueChange={(v) => setSelecionada(v === "none" ? "" : v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a tabela" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem tabela vigente</SelectItem>
+                {opcoes.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.nome}
+                    {t.codigo_interno ? ` · ${t.codigo_interno}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {!opcoes.length && (
+              <p className="text-xs text-muted-foreground">
+                Nenhuma tabela ativa vigente cadastrada hoje.
+              </p>
+            )}
+          </div>
+
+          {selecionada && (
+            <Link
+              to="/tabelas-frete"
+              search={{ tabela: selecionada }}
+              className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+            >
+              Visualizar / editar esta tabela <ExternalLink className="h-3 w-3" />
+            </Link>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+            {salvar.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
