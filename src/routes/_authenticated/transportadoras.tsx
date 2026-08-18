@@ -149,6 +149,7 @@ function TransportadorasPage() {
         pix: input.pix || null,
         ativo: input.ativo,
       };
+      let id = editing?.id ?? null;
       if (editing) {
         const { error } = await supabase
           .from("transportadoras")
@@ -156,12 +157,34 @@ function TransportadorasPage() {
           .eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("transportadoras").insert(payload);
+        const { data: novo, error } = await supabase
+          .from("transportadoras")
+          .insert(payload)
+          .select("id")
+          .single();
         if (error) throw error;
+        id = (novo as { id: string }).id;
+      }
+
+      // Vínculo com a tabela de frete vigente.
+      const atualId = id ? (vigentePorTransportadora.get(id)?.id ?? "") : "";
+      if (id && tabelaId !== atualId) {
+        const { error: delErr } = await supabase
+          .from("tabelas_preco_frete_transportadoras")
+          .delete()
+          .eq("transportadora_id", id);
+        if (delErr) throw delErr;
+        if (tabelaId) {
+          const { error: insErr } = await supabase
+            .from("tabelas_preco_frete_transportadoras")
+            .insert({ tabela_id: tabelaId, transportadora_id: id });
+          if (insErr) throw insErr;
+        }
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["transportadoras"] });
+      qc.invalidateQueries({ queryKey: ["tabelas-frete-vinculos"] });
       toast.success(editing ? "Transportadora atualizada" : "Transportadora criada");
       setOpen(false);
       setEditing(null);
