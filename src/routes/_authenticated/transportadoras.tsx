@@ -123,6 +123,36 @@ function TransportadorasPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const buscarCodErp = useServerFn(buscarCodErpTransportadora);
+  const [buscandoId, setBuscandoId] = useState<string | null>(null);
+
+  const consultarErp = useMutation({
+    mutationFn: async (t: Transportadora) => {
+      setBuscandoId(t.id);
+      const { codErp } = await buscarCodErp({ data: { cnpj: t.cnpj } });
+      if (!codErp) return { codErp: null as string | null };
+      const { error } = await supabase
+        .from("transportadoras")
+        .update({ cod_erp: codErp })
+        .eq("id", t.id);
+      if (error) throw error;
+      return { codErp };
+    },
+    onSuccess: (r) => {
+      setBuscandoId(null);
+      if (r.codErp) {
+        qc.invalidateQueries({ queryKey: ["transportadoras"] });
+        toast.success(`Código no ERP: ${r.codErp}`);
+      } else {
+        toast.warning("Nenhum código encontrado no ERP para este CNPJ");
+      }
+    },
+    onError: (e: Error) => {
+      setBuscandoId(null);
+      toast.error(e.message);
+    },
+  });
+
   const columns = useMemo<ColumnDef<Transportadora>[]>(
     () => [
       {
@@ -141,8 +171,31 @@ function TransportadorasPage() {
         id: "cod_erp",
         header: "Cód. ERP",
         accessor: (t) => t.cod_erp ?? "",
-        render: (t) => (t.cod_erp ? <span className="font-mono text-xs">{t.cod_erp}</span> : "—"),
+        render: (t) => (
+          <span className="flex items-center gap-1">
+            {t.cod_erp ? (
+              <span className="font-mono text-xs">{t.cod_erp}</span>
+            ) : (
+              <span className="text-muted-foreground">—</span>
+            )}
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6"
+              title="Consultar código no ERP"
+              disabled={buscandoId === t.id}
+              onClick={() => consultarErp.mutate(t)}
+            >
+              {buscandoId === t.id ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Search className="h-3 w-3" />
+              )}
+            </Button>
+          </span>
+        ),
       },
+
       {
         id: "banco",
         header: "Banco",
