@@ -135,6 +135,12 @@ function TransportadorasPage() {
         className: "font-mono text-xs",
       },
       {
+        id: "cod_erp",
+        header: "Cód. ERP",
+        accessor: (t) => t.cod_erp ?? "",
+        render: (t) => (t.cod_erp ? <span className="font-mono text-xs">{t.cod_erp}</span> : "—"),
+      },
+      {
         id: "banco",
         header: "Banco",
         accessor: (t) => t.banco ?? "",
@@ -150,12 +156,6 @@ function TransportadorasPage() {
           ) : (
             "—"
           ),
-      },
-      {
-        id: "cod_erp",
-        header: "Cód. ERP",
-        accessor: (t) => t.cod_erp ?? "",
-        render: (t) => (t.cod_erp ? <span className="font-mono text-xs">{t.cod_erp}</span> : "—"),
       },
       { id: "pix", header: "PIX", accessor: (t) => t.pix ?? "" },
       {
