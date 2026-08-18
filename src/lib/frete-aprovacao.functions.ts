@@ -99,7 +99,7 @@ export const getConfigLancamentoErp = createServerFn({ method: "POST" })
       centralDb.from("transportadoras").select("id, razao_social").order("razao_social"),
       centralDb
         .from("integracao_n8n")
-        .select("webhook_url, webhook_url_financeiro, ativo")
+        .select("webhook_url, webhook_url_financeiro, webhook_token, ativo")
         .eq("id", 1)
         .maybeSingle(),
     ]);
@@ -109,9 +109,27 @@ export const getConfigLancamentoErp = createServerFn({ method: "POST" })
       n8n: {
         webhook_url: n8n?.webhook_url ?? "",
         webhook_url_financeiro: n8n?.webhook_url_financeiro ?? "",
+        webhook_token: n8n?.webhook_token ?? "",
         ativo: n8n?.ativo ?? false,
       },
     };
+  });
+
+/** Gera (e grava) um novo token compartilhado com o n8n. */
+export const gerarTokenN8n = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ehAdmin(context);
+    const { centralDb } = await import("./central-db");
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    const token = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    const { error } = await centralDb
+      .from("integracao_n8n")
+      .update({ webhook_token: token })
+      .eq("id", 1);
+    if (error) throw new Error(error.message);
+    return { token };
   });
 
 export const salvarMapeamentoComponente = createServerFn({ method: "POST" })

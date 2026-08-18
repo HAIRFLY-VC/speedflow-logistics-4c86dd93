@@ -367,6 +367,9 @@ export async function aprovar(
     conta?: string | null;
   } | null;
 
+  // Regra: 1 registro por CT-e na fila financeira (reprocesso substitui o anterior).
+  await centralDb.from("fila_provisionamento_financeiro").delete().eq("cte_id", cteId);
+
   const { error: finErr } = await centralDb.from("fila_provisionamento_financeiro").insert({
     ordem_pagamento_id: ordem.id,
     cte_id: cteId,
