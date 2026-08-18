@@ -218,13 +218,6 @@ function TabelasFretePage() {
     }
   }, [tabelaParam, data]);
 
-  const nomeTransportadora = useMemo(() => {
-    const map = new Map<string, string>();
-    (transportadoras ?? []).forEach((t) => map.set(t.id, t.razao_social));
-    return map;
-  }, [transportadoras]);
-
-  // Vínculos N:N (uma tabela pode ser usada por várias transportadoras).
   const { data: vinculos } = useQuery({
     queryKey: ["tabelas-frete", "vinculos"],
     queryFn: async () => {
