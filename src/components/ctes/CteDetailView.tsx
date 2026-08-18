@@ -327,6 +327,8 @@ export function CteDetailView({
   // Complemento por descarga: exibimos o rateio referencial por volume e por kg.
   const isDescarga =
     isComplemento && /DESCARG/i.test(cte.motivo_complemento ?? "");
+  const isEstadia =
+    isComplemento && /ESTADIA/i.test(cte.motivo_complemento ?? "");
 
   const podeAbrirOriginal = !!cteOriginal?.id;
 
