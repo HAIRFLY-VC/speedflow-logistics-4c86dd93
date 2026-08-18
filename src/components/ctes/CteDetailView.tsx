@@ -47,6 +47,8 @@ function statusLabel(
 }
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const brlSemSimbolo = (v: number) =>
+  v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const dataBr = (v: string | null) => {
   if (!v) return "—";
