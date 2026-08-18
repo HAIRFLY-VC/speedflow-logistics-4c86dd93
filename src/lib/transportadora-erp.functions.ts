@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 type ErpQueryResponse = { rows?: Record<string, unknown>[] };
 
 const SQL_COD_TRANSPORTADORA = `select t.dba_tip_codigo_1 as cod
-  from a_cadctipo t
+  from gks.a_cadctipo t
  where t.dba_tip_cgc_cpf = :cnpj`;
 
 /**
