@@ -599,17 +599,17 @@ export function CteDetailView({
                   <tr>
                     <th className="px-2 py-1.5 text-left font-medium w-[180px]">Chave</th>
                     <th className="px-2 py-1.5 text-left font-medium w-[60px]">Nº</th>
-                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Volumes</th>
-                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Peso bruto (kg)</th>
-                    <th className="px-2 py-1.5 text-left font-medium whitespace-nowrap">Borderô</th>
-                    <th className="px-2 py-1.5 text-left font-medium whitespace-nowrap">Dt. saída</th>
-                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Frete</th>
-                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Perna</th>
-                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Diária</th>
-                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Pernoite</th>
-                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Reentrega</th>
-                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Descarrego</th>
-                    <th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">Frete contabilizado</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Volumes</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Peso bruto (kg)</th>
+                    <th className="px-2 py-1.5 text-left font-medium whitespace-normal leading-tight">Borderô</th>
+                    <th className="px-2 py-1.5 text-left font-medium whitespace-normal leading-tight">Dt. saída</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Frete</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Perna</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Diária</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Pernoite</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Reentrega</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Descarrego</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Frete contabilizado</th>
                   </tr>
                 </thead>
                 <tbody>
