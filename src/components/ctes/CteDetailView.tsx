@@ -790,7 +790,7 @@ export function CteDetailView({
                               .join(" | ");
                             return (
                               <span title={detalhe || undefined} className="font-medium">
-                                {brl(total)}
+                                {brlSemSimbolo(total)}
                               </span>
                             );
                           })()}
