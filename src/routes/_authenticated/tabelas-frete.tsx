@@ -102,6 +102,7 @@ const ROTA_VAZIA: RotaDraft = {
 
 type TabelaForm = {
   transportadora_id: string;
+  codigo_interno: string;
   nome: string;
   descricao: string;
   data_inicio: string;
@@ -118,6 +119,15 @@ type TabelaForm = {
   uf_destino: string;
   ativo: boolean;
 };
+
+const slugify = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 20);
 
 const num = (v: string) => {
   const n = Number(String(v).replace(",", "."));
@@ -149,6 +159,7 @@ async function abrirArquivo(path: string, nome?: string | null, baixar?: boolean
 function emptyForm(): TabelaForm {
   return {
     transportadora_id: "",
+    codigo_interno: "",
     nome: "",
     descricao: "",
     data_inicio: new Date().toISOString().slice(0, 10),
@@ -207,40 +218,7 @@ function TabelasFretePage() {
     }
   }, [tabelaParam, data]);
 
-  const nomeTransportadora = useMemo(() => {
-    const map = new Map<string, string>();
-    (transportadoras ?? []).forEach((t) => map.set(t.id, t.razao_social));
-    return map;
-  }, [transportadoras]);
 
-  // Vínculos N:N (uma tabela pode ser usada por várias transportadoras).
-  const { data: vinculos } = useQuery({
-    queryKey: ["tabelas-frete", "vinculos"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tabelas_preco_frete_transportadoras")
-        .select("tabela_id, transportadora_id");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const transportadorasPorTabela = useMemo(() => {
-    const map = new Map<string, string[]>();
-    (vinculos ?? []).forEach((v) => {
-      const nome = nomeTransportadora.get(v.transportadora_id);
-      if (!nome) return;
-      map.set(v.tabela_id, [...(map.get(v.tabela_id) ?? []), nome]);
-    });
-    return map;
-  }, [vinculos, nomeTransportadora]);
-
-  const nomesDaTabela = (t: Tabela) => {
-    const lista = transportadorasPorTabela.get(t.id) ?? [];
-    const principal = nomeTransportadora.get(t.transportadora_id);
-    const todas = Array.from(new Set([...(principal ? [principal] : []), ...lista]));
-    return todas.length ? todas.join(", ") : "—";
-  };
 
   const toggle = useMutation({
     mutationFn: async (t: Tabela) => {
@@ -257,9 +235,9 @@ function TabelasFretePage() {
   const columns = useMemo<ColumnDef<Tabela>[]>(
     () => [
       {
-        id: "transportadora",
-        header: "Transportadoras",
-        accessor: (t) => nomesDaTabela(t),
+        id: "codigo_interno",
+        header: "Código interno",
+        accessor: (t) => t.codigo_interno ?? "",
         className: "font-medium",
       },
       { id: "nome", header: "Tabela", accessor: (t) => t.nome },
@@ -351,9 +329,7 @@ function TabelasFretePage() {
         ),
       },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [nomeTransportadora, transportadorasPorTabela],
+    [toggle.mutate],
   );
 
   return (
@@ -390,7 +366,7 @@ function TabelasFretePage() {
           isLoading={isLoading}
           rowKey={(t) => t.id}
           emptyMessage="Nenhuma tabela cadastrada."
-          defaultSort={{ id: "transportadora", dir: "asc" }}
+          defaultSort={{ id: "codigo_interno", dir: "asc" }}
         />
       </div>
 
@@ -426,6 +402,7 @@ function TabelaDialog({
     editing
       ? {
           transportadora_id: editing.transportadora_id,
+          codigo_interno: editing.codigo_interno ?? "",
           nome: editing.nome,
           descricao: editing.descricao ?? "",
           data_inicio: editing.data_inicio,
@@ -696,6 +673,8 @@ function TabelaDialog({
 
       const payload = {
         transportadora_id: form.transportadora_id,
+        codigo_interno:
+          form.codigo_interno.trim() || slugify(form.nome),
         nome: form.nome.trim(),
         descricao: form.descricao.trim() || null,
         data_inicio: form.data_inicio,
@@ -1015,6 +994,17 @@ function TabelaDialog({
           <div className="md:col-span-2 space-y-1.5">
             <Label className="text-xs">Nome *</Label>
             <Input value={form.nome} onChange={(e) => set("nome", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Código interno</Label>
+            <Input
+              value={form.codigo_interno}
+              onChange={(e) => set("codigo_interno", e.target.value.toUpperCase())}
+              placeholder={slugify(form.nome) || "GERADO AUTOMATICAMENTE"}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Se deixado em branco, será gerado a partir do nome.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">UF destino</Label>
