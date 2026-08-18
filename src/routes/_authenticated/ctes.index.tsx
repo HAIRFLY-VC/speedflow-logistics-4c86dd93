@@ -436,19 +436,6 @@ function CtesPage() {
         },
       },
       {
-        id: "empresa",
-        header: "Empresa (A1)",
-        accessor: (c) => c.empresas?.razao_social ?? c.empresa_id ?? "",
-        render: (c) => (
-          <div>
-            <div className="font-mono text-xs">{c.empresas?.cnpj ?? c.cnpj_emitente ?? "—"}</div>
-            <div className="text-[11px] font-medium text-muted-foreground">
-              {c.empresas?.razao_social ?? "—"}
-            </div>
-          </div>
-        ),
-      },
-      {
         id: "tomador",
         header: "Tomador",
         accessor: (c) => c.tomador_nome ?? c.tomador_cnpj ?? "",
