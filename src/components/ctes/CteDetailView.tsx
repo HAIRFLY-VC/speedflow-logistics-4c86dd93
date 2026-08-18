@@ -983,7 +983,7 @@ export function CteDetailView({
                 (l) =>
                   l.cte_id === cte.id || (l.cte_id == null && !l.nome.includes("(compl.")),
               );
-              if (linhas.length === 0) return null;
+              if (linhas.length === 0) return <div className="text-xs">TESTE_NENHUM</div>;
 
               const temOutrosCtes =
                 todasLinhas.some((l) => l.cte_id && l.cte_id !== cte.id) ||
