@@ -268,9 +268,9 @@ function TabelasFretePage() {
   const columns = useMemo<ColumnDef<Tabela>[]>(
     () => [
       {
-        id: "transportadora",
-        header: "Transportadoras",
-        accessor: (t) => nomesDaTabela(t),
+        id: "codigo_interno",
+        header: "Código interno",
+        accessor: (t) => t.codigo_interno ?? "",
         className: "font-medium",
       },
       { id: "nome", header: "Tabela", accessor: (t) => t.nome },
