@@ -8,6 +8,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/central/client";
 import { supabase as storageClient } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -944,21 +945,33 @@ function TabelaDialog({
             </Select>
           </div>
           <div className="md:col-span-2 space-y-1.5">
-            <Label className="text-xs">Outras transportadoras que usam esta tabela</Label>
-            <div className="rounded-md border p-2 max-h-36 overflow-y-auto space-y-1">
-              {transportadoras.filter((t) => t.id !== form.transportadora_id).length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  Nenhuma outra transportadora cadastrada.
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Transportadoras que utilizam esta tabela</Label>
+              <Badge variant="secondary" className="text-[10px]">
+                {1 + extras.length} vinculada{1 + extras.length > 1 ? "s" : ""}
+              </Badge>
+            </div>
+            <div className="rounded-md border divide-y max-h-44 overflow-y-auto">
+              {transportadoras.length === 0 ? (
+                <p className="p-2 text-xs text-muted-foreground">
+                  Nenhuma transportadora cadastrada.
                 </p>
               ) : (
-                transportadoras
-                  .filter((t) => t.id !== form.transportadora_id)
-                  .map((t) => (
-                    <label key={t.id} className="flex items-center gap-2 text-xs">
+                [
+                  ...transportadoras.filter((t) => t.id === form.transportadora_id),
+                  ...transportadoras.filter((t) => t.id !== form.transportadora_id),
+                ].map((t) => {
+                  const principal = t.id === form.transportadora_id;
+                  return (
+                    <label
+                      key={t.id}
+                      className="flex items-center gap-2 px-2 py-1.5 text-xs cursor-pointer hover:bg-muted/50"
+                    >
                       <input
                         type="checkbox"
                         className="h-3.5 w-3.5 accent-primary"
-                        checked={extras.includes(t.id)}
+                        checked={principal || extras.includes(t.id)}
+                        disabled={principal}
                         onChange={(e) =>
                           setExtras((prev) =>
                             e.target.checked
@@ -967,11 +980,21 @@ function TabelaDialog({
                           )
                         }
                       />
-                      {t.razao_social}
+                      <span className="flex-1 truncate">{t.razao_social}</span>
+                      {principal && (
+                        <Badge variant="outline" className="text-[10px]">
+                          Principal
+                        </Badge>
+                      )}
                     </label>
-                  ))
+                  );
+                })
               )}
             </div>
+            <p className="text-[11px] text-muted-foreground">
+              Marque todas as transportadoras que utilizam esta mesma tabela. A auditoria de CT-e
+              usará esta tabela para qualquer uma delas.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Tipo de cálculo</Label>
