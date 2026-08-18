@@ -63,6 +63,16 @@ const schema = z.object({
 });
 type FormInput = z.infer<typeof schema>;
 
+type TabelaResumo = {
+  id: string;
+  nome: string;
+  codigo_interno: string | null;
+  data_inicio: string;
+  data_fim: string | null;
+  ativo: boolean;
+  transportadora_id: string;
+};
+
 function TransportadorasPage() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Transportadora | null>(null);
