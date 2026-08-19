@@ -830,7 +830,7 @@ function CtesPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [nomeTransportadora, openXml.isPending, readXml.isPending, statusMap],
+    [nomeTransportadora, openXml.isPending, readXml.isPending, statusMap, isAdm],
   );
 
 
