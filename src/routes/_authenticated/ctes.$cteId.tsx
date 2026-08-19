@@ -197,39 +197,114 @@ export default function CteDetailPage() {
             </p>
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <span className="text-muted-foreground text-xs">Valores:</span>
-              <Badge
-                variant="secondary"
-                className={
-                  statusInfo?.contabilizado === "APROVADO"
-                    ? "bg-emerald-500/10 text-emerald-600"
-                    : statusInfo?.contabilizado === "REPROVADO"
-                      ? "bg-destructive/10 text-destructive"
-                      : "bg-muted text-muted-foreground"
-                }
-              >
-                {statusInfo?.contabilizado === "APROVADO"
-                  ? "Contabilizado"
-                  : statusInfo?.contabilizado === "REPROVADO"
-                    ? "Reprovado"
-                    : "Pendente"}
-                {statusInfo?.contabilizadoManual ? " *" : ""}
-              </Badge>
+              {(() => {
+                const badge = (
+                  <Badge
+                    variant="secondary"
+                    className={
+                      statusInfo?.contabilizado === "APROVADO"
+                        ? "bg-emerald-500/10 text-emerald-600"
+                        : statusInfo?.contabilizado === "REPROVADO"
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-muted text-muted-foreground"
+                    }
+                  >
+                    {statusInfo?.contabilizado === "APROVADO"
+                      ? "Contabilizado"
+                      : statusInfo?.contabilizado === "REPROVADO"
+                        ? "Reprovado"
+                        : "Pendente"}
+                    {statusInfo?.contabilizadoManual ? " *" : ""}
+                  </Badge>
+                );
+                if (!isAdm) return badge;
+                return (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button type="button" className="cursor-pointer">
+                        {badge}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuLabel className="text-xs font-normal">
+                        Alterar status (não dispara o ERP)
+                      </DropdownMenuLabel>
+                      <DropdownMenuItem
+                        onClick={() => mStatusManual.mutate({ cteId, valores: "APROVADO" })}
+                      >
+                        Contabilizado
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => mStatusManual.mutate({ cteId, valores: "PENDENTE" })}
+                      >
+                        Pendente
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => mStatusManual.mutate({ cteId, valores: "REPROVADO" })}
+                      >
+                        Reprovado
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => mStatusManual.mutate({ cteId, valores: null })}
+                      >
+                        Automático (seguir aprovação)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                );
+              })()}
               <span className="text-muted-foreground text-xs">Financeiro:</span>
-              {statusInfo == null || statusInfo.financeiro == null ? (
-                <span className="text-muted-foreground text-xs">—</span>
-              ) : (
-                <Badge
-                  variant="secondary"
-                  className={
-                    statusInfo.financeiro
-                      ? "bg-emerald-500/10 text-emerald-600"
-                      : "bg-muted text-muted-foreground"
-                  }
-                >
-                  {statusInfo.financeiro ? "Lançado" : "Não lançado"}
-                  {statusInfo.financeiroManual ? " *" : ""}
-                </Badge>
-              )}
+              {(() => {
+                const conteudo =
+                  statusInfo == null || statusInfo.financeiro == null ? (
+                    <span className="text-muted-foreground text-xs">—</span>
+                  ) : (
+                    <Badge
+                      variant="secondary"
+                      className={
+                        statusInfo.financeiro
+                          ? "bg-emerald-500/10 text-emerald-600"
+                          : "bg-muted text-muted-foreground"
+                      }
+                    >
+                      {statusInfo.financeiro ? "Lançado" : "Não lançado"}
+                      {statusInfo.financeiroManual ? " *" : ""}
+                    </Badge>
+                  );
+                if (!isAdm) return conteudo;
+                return (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button type="button" className="cursor-pointer">
+                        {conteudo}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuLabel className="text-xs font-normal">
+                        Alterar status (não dispara o ERP)
+                      </DropdownMenuLabel>
+                      <DropdownMenuItem
+                        onClick={() => mStatusManual.mutate({ cteId, financeiro: true })}
+                      >
+                        Lançado
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => mStatusManual.mutate({ cteId, financeiro: false })}
+                      >
+                        Não lançado
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => mStatusManual.mutate({ cteId, financeiro: null })}
+                      >
+                        Automático (consultar ERP)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                );
+              })()}
+
               {statusInfo?.financeiro && (statusInfo.vencimento || statusInfo.valor != null) ? (
                 <span className="text-muted-foreground text-xs">
                   {[
