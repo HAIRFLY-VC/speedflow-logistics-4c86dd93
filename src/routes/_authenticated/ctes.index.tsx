@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { openAppRoute } from "@/lib/open-in-tab";
 
@@ -29,6 +29,16 @@ import {
   getStatusRobo,
 } from "@/lib/cte-captura.functions";
 import { getStatusErpCtes } from "@/lib/cte-status-erp.functions";
+import { definirStatusManualCte } from "@/lib/cte-status-manual.functions";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   backfillNomeDestinatario,
   reprocessarIdentificacaoCtes,
@@ -229,6 +239,22 @@ function CtesPage() {
       const linhas = await statusErp({ data: { cteIds } });
       return new Map(linhas.map((l) => [l.cteId, l]));
     },
+  });
+
+  const { role } = useAuth();
+  const isAdm = role === "adm";
+  const definirStatus = useServerFn(definirStatusManualCte);
+  const mStatusManual = useMutation({
+    mutationFn: async (vars: {
+      cteId: string;
+      valores?: "PENDENTE" | "APROVADO" | "REPROVADO" | null;
+      financeiro?: boolean | null;
+    }) => await definirStatus({ data: vars }),
+    onSuccess: () => {
+      toast.success("Status atualizado.");
+      void qc.invalidateQueries({ queryKey: ["ctes-status-erp"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const backfillDestinatariosMutation = useMutation({
@@ -617,7 +643,8 @@ function CtesPage() {
         align: "center",
         accessor: (c) => statusMap?.get(c.id)?.contabilizado ?? "PENDENTE",
         render: (c) => {
-          const st = statusMap?.get(c.id)?.contabilizado ?? "PENDENTE";
+          const info = statusMap?.get(c.id);
+          const st = info?.contabilizado ?? "PENDENTE";
           const tone =
             st === "APROVADO"
               ? "bg-emerald-500/10 text-emerald-600"
@@ -626,10 +653,53 @@ function CtesPage() {
                 : "bg-muted text-muted-foreground";
           const label =
             st === "APROVADO" ? "Contabilizado" : st === "REPROVADO" ? "Reprovado" : "Pendente";
-          return (
+          const badge = (
             <Badge variant="secondary" className={tone}>
               {label}
+              {info?.contabilizadoManual ? " *" : ""}
             </Badge>
+          );
+          if (!isAdm) return badge;
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" className="cursor-pointer">
+                  {badge}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center">
+                <DropdownMenuLabel className="text-xs font-normal">
+                  Alterar status (não dispara o ERP)
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() =>
+                    mStatusManual.mutate({ cteId: c.id, valores: "APROVADO" })
+                  }
+                >
+                  Contabilizado
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    mStatusManual.mutate({ cteId: c.id, valores: "PENDENTE" })
+                  }
+                >
+                  Pendente
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    mStatusManual.mutate({ cteId: c.id, valores: "REPROVADO" })
+                  }
+                >
+                  Reprovado
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => mStatusManual.mutate({ cteId: c.id, valores: null })}
+                >
+                  Automático (seguir aprovação)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           );
         },
       },
@@ -643,37 +713,70 @@ function CtesPage() {
         },
         render: (c) => {
           const info = statusMap?.get(c.id);
+          const marca = info?.financeiroManual ? " *" : "";
+          let conteudo: ReactNode;
           if (!info || info.financeiro == null) {
-            return <span className="text-muted-foreground text-xs">—</span>;
-          }
-          if (!info.financeiro) {
-            return (
+            conteudo = <span className="text-muted-foreground text-xs">—</span>;
+          } else if (!info.financeiro) {
+            conteudo = (
               <Badge variant="secondary" className="bg-muted text-muted-foreground">
-                Não lançado
+                Não lançado{marca}
               </Badge>
             );
+          } else {
+            const detalhe = [
+              info.vencimento
+                ? `Vencimento ${new Date(`${info.vencimento}T00:00:00`).toLocaleDateString("pt-BR")}`
+                : null,
+              info.valor != null ? brl(Number(info.valor)) : null,
+            ]
+              .filter(Boolean)
+              .join(" · ");
+            conteudo = (
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600">
+                      Lançado{marca}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{detalhe || "Lançado no financeiro do ERP"}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
           }
-          const detalhe = [
-            info.vencimento
-              ? `Vencimento ${new Date(`${info.vencimento}T00:00:00`).toLocaleDateString("pt-BR")}`
-              : null,
-            info.valor != null ? brl(Number(info.valor)) : null,
-          ]
-            .filter(Boolean)
-            .join(" · ");
+          if (!isAdm) return conteudo;
           return (
-            <TooltipProvider delayDuration={100}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600">
-                    Lançado
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{detalhe || "Lançado no financeiro do ERP"}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" className="cursor-pointer">
+                  {conteudo}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center">
+                <DropdownMenuLabel className="text-xs font-normal">
+                  Alterar status (não dispara o ERP)
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => mStatusManual.mutate({ cteId: c.id, financeiro: true })}
+                >
+                  Lançado
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => mStatusManual.mutate({ cteId: c.id, financeiro: false })}
+                >
+                  Não lançado
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => mStatusManual.mutate({ cteId: c.id, financeiro: null })}
+                >
+                  Automático (consultar ERP)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           );
         },
       },
@@ -727,7 +830,7 @@ function CtesPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [nomeTransportadora, openXml.isPending, readXml.isPending, statusMap],
+    [nomeTransportadora, openXml.isPending, readXml.isPending, statusMap, isAdm],
   );
 
 

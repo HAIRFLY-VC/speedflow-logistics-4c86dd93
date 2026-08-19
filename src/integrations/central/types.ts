@@ -115,6 +115,14 @@ type IntegracaoN8nRow = {
   updated_at: string;
 };
 
+type CteStatusOverrideRow = {
+  cte_id: string;
+  valores: "PENDENTE" | "APROVADO" | "REPROVADO" | null;
+  financeiro: boolean | null;
+  definido_por: string | null;
+  definido_em: string;
+};
+
 type TabelaTransportadoraRow = {
   id: string;
   tabela_id: string;
@@ -172,6 +180,7 @@ export type CentralDatabase = Omit<Database, "public"> & {
       mapeamento_componentes_erp: SimpleTable<MapeamentoRow>;
       integracao_n8n: SimpleTable<IntegracaoN8nRow>;
       tabelas_preco_frete_transportadoras: SimpleTable<TabelaTransportadoraRow>;
+      cte_status_override: SimpleTable<CteStatusOverrideRow>;
     };
   };
 };

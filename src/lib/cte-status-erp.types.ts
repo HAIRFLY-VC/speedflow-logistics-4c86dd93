@@ -6,4 +6,7 @@ export type StatusErpCte = {
   financeiro: boolean | null;
   vencimento: string | null;
   valor: number | null;
+  /** Status definido manualmente por um administrador. */
+  contabilizadoManual: boolean;
+  financeiroManual: boolean;
 };
