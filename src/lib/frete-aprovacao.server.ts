@@ -2,6 +2,7 @@
 // NF-e e publicação nas filas consumidas pelo n8n.
 import { centralDb } from "@/lib/central-db";
 import { buscarFretesContabilizados, numeroDaChaveNfe } from "@/lib/frete-nfe-erp.server";
+import { statusErpCtes } from "@/lib/cte-status-erp.server";
 import type {
   AprovacaoPreview,
   ComponentePreview,
