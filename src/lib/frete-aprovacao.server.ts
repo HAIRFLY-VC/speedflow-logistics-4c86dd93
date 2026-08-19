@@ -267,6 +267,8 @@ export async function montarPreview(cteId: string): Promise<AprovacaoPreview> {
     .limit(1)
     .maybeSingle();
 
+  const [statusErp] = await statusErpCtes([cte.id]);
+
   return {
     cte_id: cte.id,
     cod_filial: filial,
@@ -278,6 +280,8 @@ export async function montarPreview(cteId: string): Promise<AprovacaoPreview> {
     jaAprovado: ordem?.aprovacao_status === "APROVADO",
     aprovacaoStatus: (ordem?.aprovacao_status ?? "PENDENTE") as AprovacaoPreview["aprovacaoStatus"],
     observacao: ordem?.observacao ?? null,
+    contabilizado: statusErp?.contabilizado ?? "PENDENTE",
+    financeiro: statusErp?.financeiro ?? null,
   };
 }
 
