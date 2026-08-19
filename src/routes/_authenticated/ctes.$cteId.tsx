@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { openAppRoute } from "@/lib/open-in-tab";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, FileCode, FileDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -12,10 +12,21 @@ import { supabase } from "@/integrations/central/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
 import { CteDetailView } from "@/components/ctes/CteDetailView";
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
 import { getCteXmlUrl } from "@/lib/cte.functions";
 import { getStatusErpCtes } from "@/lib/cte-status-erp.functions";
+import { definirStatusManualCte } from "@/lib/cte-status-manual.functions";
+
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/ctes/$cteId")({
