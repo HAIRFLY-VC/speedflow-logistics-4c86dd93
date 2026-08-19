@@ -346,6 +346,11 @@ export function CteDetailView({
     fretesPorChave.set(item.chave, atual);
   }
   const totalFreteErp = (fretesErp?.itens ?? []).reduce((s: number, i: FreteContabilizadoNfe) => s + i.total, 0);
+  const somaMercadorias = volumesData.reduce((s, n) => s + (n.valor_produtos ?? 0), 0);
+  const totalMercadorias =
+    somaMercadorias > 0 ? somaMercadorias : (carga?.valor_carga ?? 0);
+  const percentualFrete =
+    totalMercadorias > 0 && totalFreteErp > 0 ? (totalFreteErp / totalMercadorias) * 100 : null;
 
 
   // Complemento por descarga: exibimos o rateio referencial por volume e por kg.
@@ -646,6 +651,10 @@ export function CteDetailView({
                     <th className="px-2 py-1.5 text-left font-medium w-[60px]">Nº</th>
                     <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Volumes</th>
                     <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">Peso bruto (kg)</th>
+                    <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">
+                      Valor mercadorias
+                      <div className="text-muted-foreground font-normal">R$</div>
+                    </th>
                     <th className="px-2 py-1.5 text-left font-medium whitespace-normal leading-tight">Borderô</th>
                     <th className="px-2 py-1.5 text-left font-medium whitespace-normal leading-tight">Dt. saída</th>
                     <th className="px-2 py-1.5 text-right font-medium whitespace-normal leading-tight">
@@ -733,6 +742,13 @@ export function CteDetailView({
                             statusLabel(info?.status, volumesLoading, info?.mensagem)
                           )}
                         </td>
+                        <td className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
+                          {info?.valor_produtos != null && info.valor_produtos > 0
+                            ? brlSemSimbolo(info.valor_produtos)
+                            : cargaNaLinha?.valor_carga
+                              ? brlSemSimbolo(cargaNaLinha.valor_carga)
+                              : "—"}
+                        </td>
                         <td className="px-2 py-1.5 whitespace-nowrap">
                           {(fretesPorChave.get(nf.replace(/\D/g, "")) ?? [])
                             .map((f) => f.bordero ?? "—")
@@ -818,6 +834,9 @@ export function CteDetailView({
                         maximumFractionDigits: 2,
                       })}
                     </td>
+                    <td className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
+                      {totalMercadorias > 0 ? brlSemSimbolo(totalMercadorias) : "—"}
+                    </td>
                     <td className="px-2 py-1.5" colSpan={2} />
                     {(
                       [
@@ -841,6 +860,17 @@ export function CteDetailView({
                     })}
                     <td className="px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
                       {totalFreteErp > 0 ? brlSemSimbolo(totalFreteErp) : "—"}
+                      <div
+                        className="text-muted-foreground text-[10px] font-normal"
+                        title="Frete contabilizado ÷ valor das mercadorias"
+                      >
+                        {percentualFrete != null
+                          ? `${percentualFrete.toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}% de frete`
+                          : "% de frete —"}
+                      </div>
                     </td>
                   </tr>
                 </tfoot>
