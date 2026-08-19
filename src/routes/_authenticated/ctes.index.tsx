@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { openAppRoute } from "@/lib/open-in-tab";
 
@@ -714,7 +714,7 @@ function CtesPage() {
         render: (c) => {
           const info = statusMap?.get(c.id);
           const marca = info?.financeiroManual ? " *" : "";
-          let conteudo: React.ReactNode;
+          let conteudo: ReactNode;
           if (!info || info.financeiro == null) {
             conteudo = <span className="text-muted-foreground text-xs">—</span>;
           } else if (!info.financeiro) {
