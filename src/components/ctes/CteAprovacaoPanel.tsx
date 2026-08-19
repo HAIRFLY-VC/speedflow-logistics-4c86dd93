@@ -90,6 +90,7 @@ export function CteAprovacaoPanel({ cteId }: { cteId: string }) {
   if (!data) return null;
 
   const decidido = data.aprovacaoStatus !== "PENDENTE";
+  const lancadoCompleto = data.contabilizado === "APROVADO" && data.financeiro === true;
 
   return (
     <section className="space-y-3 rounded-md border p-3">
