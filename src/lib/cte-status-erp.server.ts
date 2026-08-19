@@ -135,6 +135,19 @@ export async function statusErpCtes(cteIds: string[]): Promise<StatusErpCte[]> {
     }
   }
 
+  // Ajustes manuais feitos por administradores (não disparam fluxo no n8n).
+  const { data: overrides } = await centralDb
+    .from("cte_status_override")
+    .select("cte_id, valores, financeiro")
+    .in("cte_id", cteIds);
+  const manual = new Map(
+    ((overrides ?? []) as {
+      cte_id: string;
+      valores: "PENDENTE" | "APROVADO" | "REPROVADO" | null;
+      financeiro: boolean | null;
+    }[]).map((o) => [o.cte_id, o]),
+  );
+
   return linhasCte.map((c) => {
     const k = chaves.get(c.id);
     let financeiro: boolean | null = null;
@@ -146,12 +159,15 @@ export async function statusErpCtes(cteIds: string[]): Promise<StatusErpCte[]> {
       vencimento = achado?.vencimento ?? null;
       valor = achado?.valor ?? null;
     }
+    const ov = manual.get(c.id);
     return {
       cteId: c.id,
-      contabilizado: aprovacao.get(c.id) ?? "PENDENTE",
-      financeiro,
+      contabilizado: ov?.valores ?? aprovacao.get(c.id) ?? "PENDENTE",
+      financeiro: ov?.financeiro ?? financeiro,
       vencimento,
       valor,
+      contabilizadoManual: ov?.valores != null,
+      financeiroManual: ov?.financeiro != null,
     };
   });
 }
