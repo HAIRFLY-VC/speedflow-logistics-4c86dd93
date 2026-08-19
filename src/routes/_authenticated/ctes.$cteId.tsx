@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CteDetailView } from "@/components/ctes/CteDetailView";
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
 import { getCteXmlUrl } from "@/lib/cte.functions";
+import { getStatusErpCtes } from "@/lib/cte-status-erp.functions";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/ctes/$cteId")({
