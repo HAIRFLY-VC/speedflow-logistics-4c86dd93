@@ -220,9 +220,9 @@ export function CteAprovacaoPanel({ cteId }: { cteId: string }) {
       ) : null}
 
       <p className="text-muted-foreground text-xs">
-        A aprovação lança automaticamente apenas os <strong>valores de frete</strong> no ERP. O
-        provisionamento financeiro (contas a pagar) ainda não é automático e precisa ser feito
-        manualmente.
+        A aprovação lança os <strong>valores de frete</strong> no ERP e cria automaticamente a{" "}
+        <strong>tarefa do financeiro no Bitrix</strong>. O link da tarefa fica disponível na fila de
+        provisionamento financeiro.
       </p>
 
 
