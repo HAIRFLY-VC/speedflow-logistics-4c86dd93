@@ -69,13 +69,14 @@ export async function coletarVolumesNfes(chaves: string[]): Promise<NfeVolumeInf
     xml_storage_path: string | null;
     volumes?: number | string | null;
     peso_liquido?: number | string | null;
+    valor_produtos?: number | string | null;
     especie_volumes?: string | null;
     xml_conteudo?: string | null;
   };
 
   const colunasBase = "chave_acesso, numero, peso_bruto, xml_storage_path";
   let nfesResp = (await (centralDb.from("nfes") as any)
-    .select(`${colunasBase}, volumes, peso_liquido, especie_volumes, xml_conteudo`)
+    .select(`${colunasBase}, volumes, peso_liquido, valor_produtos, especie_volumes, xml_conteudo`)
     .in("chave_acesso", alvos)) as { data: NfeRow[] | null; error: unknown };
   if (nfesResp.error) {
     nfesResp = (await (centralDb.from("nfes") as any)
@@ -109,6 +110,7 @@ export async function coletarVolumesNfes(chaves: string[]): Promise<NfeVolumeInf
         volumes: null,
         peso_bruto: null,
         peso_liquido: null,
+        valor_produtos: null,
         especie: null,
         status: /\b641\b/.test(sol?.mensagem ?? "")
           ? "AGUARDANDO_VARREDURA"
@@ -128,6 +130,7 @@ export async function coletarVolumesNfes(chaves: string[]): Promise<NfeVolumeInf
     let pesoLiquido = nfe.peso_liquido == null ? null : Number(nfe.peso_liquido);
     let especie = nfe.especie_volumes ?? null;
     let pesoBruto = nfe.peso_bruto == null ? null : Number(nfe.peso_bruto);
+    let valorProdutos = nfe.valor_produtos == null ? null : Number(nfe.valor_produtos);
 
     // Só relê o XML quando as colunas ainda não estão preenchidas.
     if (volumes == null && pesoLiquido == null) {
@@ -152,6 +155,7 @@ export async function coletarVolumesNfes(chaves: string[]): Promise<NfeVolumeInf
           pesoLiquido = parsed.peso_liquido;
           especie = parsed.especie_volumes;
           if (parsed.peso_bruto != null) pesoBruto = parsed.peso_bruto;
+          if (parsed.valor_produtos) valorProdutos = parsed.valor_produtos;
         } catch {
           // mantém o que já está gravado na NF-e
         }
@@ -164,6 +168,7 @@ export async function coletarVolumesNfes(chaves: string[]): Promise<NfeVolumeInf
       volumes,
       peso_bruto: pesoBruto,
       peso_liquido: pesoLiquido,
+      valor_produtos: valorProdutos,
       especie,
       status: "DISPONIVEL",
       mensagem: null,
