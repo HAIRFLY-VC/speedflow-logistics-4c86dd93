@@ -643,7 +643,8 @@ function CtesPage() {
         align: "center",
         accessor: (c) => statusMap?.get(c.id)?.contabilizado ?? "PENDENTE",
         render: (c) => {
-          const st = statusMap?.get(c.id)?.contabilizado ?? "PENDENTE";
+          const info = statusMap?.get(c.id);
+          const st = info?.contabilizado ?? "PENDENTE";
           const tone =
             st === "APROVADO"
               ? "bg-emerald-500/10 text-emerald-600"
@@ -652,10 +653,53 @@ function CtesPage() {
                 : "bg-muted text-muted-foreground";
           const label =
             st === "APROVADO" ? "Contabilizado" : st === "REPROVADO" ? "Reprovado" : "Pendente";
-          return (
+          const badge = (
             <Badge variant="secondary" className={tone}>
               {label}
+              {info?.contabilizadoManual ? " *" : ""}
             </Badge>
+          );
+          if (!isAdm) return badge;
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" className="cursor-pointer">
+                  {badge}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center">
+                <DropdownMenuLabel className="text-xs font-normal">
+                  Alterar status (não dispara o ERP)
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() =>
+                    mStatusManual.mutate({ cteId: c.id, valores: "APROVADO" })
+                  }
+                >
+                  Contabilizado
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    mStatusManual.mutate({ cteId: c.id, valores: "PENDENTE" })
+                  }
+                >
+                  Pendente
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    mStatusManual.mutate({ cteId: c.id, valores: "REPROVADO" })
+                  }
+                >
+                  Reprovado
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => mStatusManual.mutate({ cteId: c.id, valores: null })}
+                >
+                  Automático (seguir aprovação)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           );
         },
       },
