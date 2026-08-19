@@ -661,6 +661,7 @@ function CtesPage() {
           );
           if (!isAdm) return badge;
           return (
+            <div onClick={(e) => e.stopPropagation()} className="inline-block">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button type="button" className="cursor-pointer">
@@ -700,6 +701,7 @@ function CtesPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </div>
           );
         },
       },
@@ -749,6 +751,7 @@ function CtesPage() {
           }
           if (!isAdm) return conteudo;
           return (
+            <div onClick={(e) => e.stopPropagation()} className="inline-block">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button type="button" className="cursor-pointer">
@@ -777,6 +780,7 @@ function CtesPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </div>
           );
         },
       },

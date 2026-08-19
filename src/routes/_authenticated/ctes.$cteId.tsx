@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CteDetailView } from "@/components/ctes/CteDetailView";
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
 import { getCteXmlUrl } from "@/lib/cte.functions";
+import { getStatusErpCtes } from "@/lib/cte-status-erp.functions";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/ctes/$cteId")({
@@ -56,6 +57,16 @@ export default function CteDetailPage() {
   const router = useRouter();
 
   const signUrl = useServerFn(getCteXmlUrl);
+  const statusErp = useServerFn(getStatusErpCtes);
+
+  const { data: statusInfo } = useQuery({
+    queryKey: ["cte-status-erp", cteId],
+    queryFn: async () => {
+      const linhas = await statusErp({ data: { cteIds: [cteId] } });
+      return linhas[0] ?? null;
+    },
+    staleTime: 60_000,
+  });
 
   const [xmlOpen, setXmlOpen] = useState(false);
   const [xmlContent, setXmlContent] = useState<string | null>(null);
@@ -156,6 +167,59 @@ export default function CteDetailPage() {
             <p className="text-muted-foreground font-mono text-[11px] break-all">
               {cte?.chave_acesso ?? cteId}
             </p>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="text-muted-foreground text-xs">Valores:</span>
+              <Badge
+                variant="secondary"
+                className={
+                  statusInfo?.contabilizado === "APROVADO"
+                    ? "bg-emerald-500/10 text-emerald-600"
+                    : statusInfo?.contabilizado === "REPROVADO"
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-muted text-muted-foreground"
+                }
+              >
+                {statusInfo?.contabilizado === "APROVADO"
+                  ? "Contabilizado"
+                  : statusInfo?.contabilizado === "REPROVADO"
+                    ? "Reprovado"
+                    : "Pendente"}
+                {statusInfo?.contabilizadoManual ? " *" : ""}
+              </Badge>
+              <span className="text-muted-foreground text-xs">Financeiro:</span>
+              {statusInfo == null || statusInfo.financeiro == null ? (
+                <span className="text-muted-foreground text-xs">—</span>
+              ) : (
+                <Badge
+                  variant="secondary"
+                  className={
+                    statusInfo.financeiro
+                      ? "bg-emerald-500/10 text-emerald-600"
+                      : "bg-muted text-muted-foreground"
+                  }
+                >
+                  {statusInfo.financeiro ? "Lançado" : "Não lançado"}
+                  {statusInfo.financeiroManual ? " *" : ""}
+                </Badge>
+              )}
+              {statusInfo?.financeiro && (statusInfo.vencimento || statusInfo.valor != null) ? (
+                <span className="text-muted-foreground text-xs">
+                  {[
+                    statusInfo.vencimento
+                      ? `Vencimento ${new Date(`${statusInfo.vencimento}T00:00:00`).toLocaleDateString("pt-BR")}`
+                      : null,
+                    statusInfo.valor != null
+                      ? statusInfo.valor.toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+              ) : null}
+            </div>
           </div>
 
           {cte ? (
