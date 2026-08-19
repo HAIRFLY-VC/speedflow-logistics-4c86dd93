@@ -247,7 +247,21 @@ export function FilasErpPanel() {
                 </Badge>
               </span>
               <span className="text-muted-foreground truncate">
-                {f.ultimo_erro ?? f.referencia_erp ?? "—"}
+                {f.ultimo_erro ? (
+                  f.ultimo_erro
+                ) : bitrixTaskUrl(f.referencia_erp) ? (
+                  <a
+                    href={bitrixTaskUrl(f.referencia_erp)!}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary inline-flex items-center gap-1 underline underline-offset-2"
+                  >
+                    Tarefa {extrairTarefaBitrix(f.referencia_erp)} no Bitrix
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : (
+                  (f.referencia_erp ?? "—")
+                )}
               </span>
               <Button
                 variant="ghost"
