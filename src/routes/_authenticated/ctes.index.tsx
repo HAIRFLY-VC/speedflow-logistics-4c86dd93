@@ -29,6 +29,16 @@ import {
   getStatusRobo,
 } from "@/lib/cte-captura.functions";
 import { getStatusErpCtes } from "@/lib/cte-status-erp.functions";
+import { definirStatusManualCte } from "@/lib/cte-status-manual.functions";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   backfillNomeDestinatario,
   reprocessarIdentificacaoCtes,
