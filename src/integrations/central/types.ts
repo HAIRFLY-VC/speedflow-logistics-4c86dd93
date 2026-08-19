@@ -115,6 +115,14 @@ type IntegracaoN8nRow = {
   updated_at: string;
 };
 
+type CteStatusOverrideRow = {
+  cte_id: string;
+  valores: "PENDENTE" | "APROVADO" | "REPROVADO" | null;
+  financeiro: boolean | null;
+  definido_por: string | null;
+  definido_em: string;
+};
+
 type TabelaTransportadoraRow = {
   id: string;
   tabela_id: string;
