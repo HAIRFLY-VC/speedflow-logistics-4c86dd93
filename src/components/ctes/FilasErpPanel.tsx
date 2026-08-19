@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
+import { AlertTriangle, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { listarFilasErp, reenviarFilaErp } from "@/lib/frete-aprovacao.functions";
+import { bitrixTaskUrl, extrairTarefaBitrix } from "@/lib/bitrix";
 
 const brl = (v: number) =>
   Number(v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -247,7 +248,21 @@ export function FilasErpPanel() {
                 </Badge>
               </span>
               <span className="text-muted-foreground truncate">
-                {f.ultimo_erro ?? f.referencia_erp ?? "—"}
+                {f.ultimo_erro ? (
+                  f.ultimo_erro
+                ) : bitrixTaskUrl(f.referencia_erp) ? (
+                  <a
+                    href={bitrixTaskUrl(f.referencia_erp)!}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary inline-flex items-center gap-1 underline underline-offset-2"
+                  >
+                    Tarefa {extrairTarefaBitrix(f.referencia_erp)} no Bitrix
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : (
+                  (f.referencia_erp ?? "—")
+                )}
               </span>
               <Button
                 variant="ghost"
