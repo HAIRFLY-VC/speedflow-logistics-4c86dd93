@@ -90,6 +90,7 @@ export function CteAprovacaoPanel({ cteId }: { cteId: string }) {
   if (!data) return null;
 
   const decidido = data.aprovacaoStatus !== "PENDENTE";
+  const lancadoCompleto = data.contabilizado === "APROVADO" && data.financeiro === true;
 
   return (
     <section className="space-y-3 rounded-md border p-3">
@@ -226,9 +227,12 @@ export function CteAprovacaoPanel({ cteId }: { cteId: string }) {
       </p>
 
 
-      {decidido ? (
+      {decidido || lancadoCompleto ? (
         <div className="text-muted-foreground flex items-center gap-2 text-xs">
-          <CheckCircle2 className="h-4 w-4" /> Decisão já registrada para este CT-e.
+          <CheckCircle2 className="h-4 w-4" />
+          {lancadoCompleto
+            ? "Valores contabilizados e financeiro lançado — aprovação bloqueada."
+            : "Decisão já registrada para este CT-e."}
         </div>
       ) : (
         <div className="flex justify-end gap-2">

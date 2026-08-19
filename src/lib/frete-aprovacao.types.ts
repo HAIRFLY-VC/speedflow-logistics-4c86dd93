@@ -51,4 +51,8 @@ export type AprovacaoPreview = {
   jaAprovado: boolean;
   aprovacaoStatus: "PENDENTE" | "APROVADO" | "REPROVADO";
   observacao: string | null;
+  /** Status de contabilização dos valores de frete (aprovacao interna + override). */
+  contabilizado: "PENDENTE" | "APROVADO" | "REPROVADO";
+  /** Status de lançamento no financeiro do ERP (consulta Oracle + override). */
+  financeiro: boolean | null;
 };
