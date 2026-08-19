@@ -180,6 +180,7 @@ export type CentralDatabase = Omit<Database, "public"> & {
       mapeamento_componentes_erp: SimpleTable<MapeamentoRow>;
       integracao_n8n: SimpleTable<IntegracaoN8nRow>;
       tabelas_preco_frete_transportadoras: SimpleTable<TabelaTransportadoraRow>;
+      cte_status_override: SimpleTable<CteStatusOverrideRow>;
     };
   };
 };
