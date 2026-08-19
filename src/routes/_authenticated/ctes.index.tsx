@@ -751,6 +751,7 @@ function CtesPage() {
           }
           if (!isAdm) return conteudo;
           return (
+            <div onClick={(e) => e.stopPropagation()} className="inline-block">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button type="button" className="cursor-pointer">
