@@ -713,37 +713,70 @@ function CtesPage() {
         },
         render: (c) => {
           const info = statusMap?.get(c.id);
+          const marca = info?.financeiroManual ? " *" : "";
+          let conteudo: React.ReactNode;
           if (!info || info.financeiro == null) {
-            return <span className="text-muted-foreground text-xs">—</span>;
-          }
-          if (!info.financeiro) {
-            return (
+            conteudo = <span className="text-muted-foreground text-xs">—</span>;
+          } else if (!info.financeiro) {
+            conteudo = (
               <Badge variant="secondary" className="bg-muted text-muted-foreground">
-                Não lançado
+                Não lançado{marca}
               </Badge>
             );
+          } else {
+            const detalhe = [
+              info.vencimento
+                ? `Vencimento ${new Date(`${info.vencimento}T00:00:00`).toLocaleDateString("pt-BR")}`
+                : null,
+              info.valor != null ? brl(Number(info.valor)) : null,
+            ]
+              .filter(Boolean)
+              .join(" · ");
+            conteudo = (
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600">
+                      Lançado{marca}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{detalhe || "Lançado no financeiro do ERP"}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
           }
-          const detalhe = [
-            info.vencimento
-              ? `Vencimento ${new Date(`${info.vencimento}T00:00:00`).toLocaleDateString("pt-BR")}`
-              : null,
-            info.valor != null ? brl(Number(info.valor)) : null,
-          ]
-            .filter(Boolean)
-            .join(" · ");
+          if (!isAdm) return conteudo;
           return (
-            <TooltipProvider delayDuration={100}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600">
-                    Lançado
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{detalhe || "Lançado no financeiro do ERP"}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" className="cursor-pointer">
+                  {conteudo}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center">
+                <DropdownMenuLabel className="text-xs font-normal">
+                  Alterar status (não dispara o ERP)
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => mStatusManual.mutate({ cteId: c.id, financeiro: true })}
+                >
+                  Lançado
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => mStatusManual.mutate({ cteId: c.id, financeiro: false })}
+                >
+                  Não lançado
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => mStatusManual.mutate({ cteId: c.id, financeiro: null })}
+                >
+                  Automático (consultar ERP)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           );
         },
       },
