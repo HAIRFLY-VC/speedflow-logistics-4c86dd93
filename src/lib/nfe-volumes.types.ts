@@ -4,6 +4,8 @@ export type NfeVolumeInfo = {
   volumes: number | null;
   peso_bruto: number | null;
   peso_liquido: number | null;
+  /** Valor das mercadorias (vProd) da NF-e. */
+  valor_produtos: number | null;
   especie: string | null;
   status:
     | "DISPONIVEL"
