@@ -57,6 +57,16 @@ export default function CteDetailPage() {
   const router = useRouter();
 
   const signUrl = useServerFn(getCteXmlUrl);
+  const statusErp = useServerFn(getStatusErpCtes);
+
+  const { data: statusInfo } = useQuery({
+    queryKey: ["cte-status-erp", cteId],
+    queryFn: async () => {
+      const linhas = await statusErp({ data: { cteIds: [cteId] } });
+      return linhas[0] ?? null;
+    },
+    staleTime: 60_000,
+  });
 
   const [xmlOpen, setXmlOpen] = useState(false);
   const [xmlContent, setXmlContent] = useState<string | null>(null);
