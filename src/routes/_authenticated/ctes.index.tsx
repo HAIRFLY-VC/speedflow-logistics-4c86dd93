@@ -780,6 +780,7 @@ function CtesPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </div>
           );
         },
       },
