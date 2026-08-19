@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { openAppRoute } from "@/lib/open-in-tab";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, FileCode, FileDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -12,10 +12,21 @@ import { supabase } from "@/integrations/central/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
 import { CteDetailView } from "@/components/ctes/CteDetailView";
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
 import { getCteXmlUrl } from "@/lib/cte.functions";
 import { getStatusErpCtes } from "@/lib/cte-status-erp.functions";
+import { definirStatusManualCte } from "@/lib/cte-status-manual.functions";
+
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/ctes/$cteId")({
@@ -66,6 +77,23 @@ export default function CteDetailPage() {
       return linhas[0] ?? null;
     },
     staleTime: 60_000,
+  });
+
+  const { role } = useAuth();
+  const isAdm = role === "adm";
+  const definirStatus = useServerFn(definirStatusManualCte);
+  const mStatusManual = useMutation({
+    mutationFn: async (vars: {
+      cteId: string;
+      valores?: "PENDENTE" | "APROVADO" | "REPROVADO" | null;
+      financeiro?: boolean | null;
+    }) => await definirStatus({ data: vars }),
+    onSuccess: () => {
+      toast.success("Status atualizado.");
+      void qc.invalidateQueries({ queryKey: ["cte-status-erp"] });
+      void qc.invalidateQueries({ queryKey: ["ctes-status-erp"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const [xmlOpen, setXmlOpen] = useState(false);
@@ -169,39 +197,114 @@ export default function CteDetailPage() {
             </p>
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <span className="text-muted-foreground text-xs">Valores:</span>
-              <Badge
-                variant="secondary"
-                className={
-                  statusInfo?.contabilizado === "APROVADO"
-                    ? "bg-emerald-500/10 text-emerald-600"
-                    : statusInfo?.contabilizado === "REPROVADO"
-                      ? "bg-destructive/10 text-destructive"
-                      : "bg-muted text-muted-foreground"
-                }
-              >
-                {statusInfo?.contabilizado === "APROVADO"
-                  ? "Contabilizado"
-                  : statusInfo?.contabilizado === "REPROVADO"
-                    ? "Reprovado"
-                    : "Pendente"}
-                {statusInfo?.contabilizadoManual ? " *" : ""}
-              </Badge>
+              {(() => {
+                const badge = (
+                  <Badge
+                    variant="secondary"
+                    className={
+                      statusInfo?.contabilizado === "APROVADO"
+                        ? "bg-emerald-500/10 text-emerald-600"
+                        : statusInfo?.contabilizado === "REPROVADO"
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-muted text-muted-foreground"
+                    }
+                  >
+                    {statusInfo?.contabilizado === "APROVADO"
+                      ? "Contabilizado"
+                      : statusInfo?.contabilizado === "REPROVADO"
+                        ? "Reprovado"
+                        : "Pendente"}
+                    {statusInfo?.contabilizadoManual ? " *" : ""}
+                  </Badge>
+                );
+                if (!isAdm) return badge;
+                return (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button type="button" className="cursor-pointer">
+                        {badge}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuLabel className="text-xs font-normal">
+                        Alterar status (não dispara o ERP)
+                      </DropdownMenuLabel>
+                      <DropdownMenuItem
+                        onClick={() => mStatusManual.mutate({ cteId, valores: "APROVADO" })}
+                      >
+                        Contabilizado
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => mStatusManual.mutate({ cteId, valores: "PENDENTE" })}
+                      >
+                        Pendente
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => mStatusManual.mutate({ cteId, valores: "REPROVADO" })}
+                      >
+                        Reprovado
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => mStatusManual.mutate({ cteId, valores: null })}
+                      >
+                        Automático (seguir aprovação)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                );
+              })()}
               <span className="text-muted-foreground text-xs">Financeiro:</span>
-              {statusInfo == null || statusInfo.financeiro == null ? (
-                <span className="text-muted-foreground text-xs">—</span>
-              ) : (
-                <Badge
-                  variant="secondary"
-                  className={
-                    statusInfo.financeiro
-                      ? "bg-emerald-500/10 text-emerald-600"
-                      : "bg-muted text-muted-foreground"
-                  }
-                >
-                  {statusInfo.financeiro ? "Lançado" : "Não lançado"}
-                  {statusInfo.financeiroManual ? " *" : ""}
-                </Badge>
-              )}
+              {(() => {
+                const conteudo =
+                  statusInfo == null || statusInfo.financeiro == null ? (
+                    <span className="text-muted-foreground text-xs">—</span>
+                  ) : (
+                    <Badge
+                      variant="secondary"
+                      className={
+                        statusInfo.financeiro
+                          ? "bg-emerald-500/10 text-emerald-600"
+                          : "bg-muted text-muted-foreground"
+                      }
+                    >
+                      {statusInfo.financeiro ? "Lançado" : "Não lançado"}
+                      {statusInfo.financeiroManual ? " *" : ""}
+                    </Badge>
+                  );
+                if (!isAdm) return conteudo;
+                return (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button type="button" className="cursor-pointer">
+                        {conteudo}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuLabel className="text-xs font-normal">
+                        Alterar status (não dispara o ERP)
+                      </DropdownMenuLabel>
+                      <DropdownMenuItem
+                        onClick={() => mStatusManual.mutate({ cteId, financeiro: true })}
+                      >
+                        Lançado
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => mStatusManual.mutate({ cteId, financeiro: false })}
+                      >
+                        Não lançado
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => mStatusManual.mutate({ cteId, financeiro: null })}
+                      >
+                        Automático (consultar ERP)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                );
+              })()}
+
               {statusInfo?.financeiro && (statusInfo.vencimento || statusInfo.valor != null) ? (
                 <span className="text-muted-foreground text-xs">
                   {[
