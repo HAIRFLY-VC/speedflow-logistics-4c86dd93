@@ -241,6 +241,22 @@ function CtesPage() {
     },
   });
 
+  const { role } = useAuth();
+  const isAdm = role === "adm";
+  const definirStatus = useServerFn(definirStatusManualCte);
+  const mStatusManual = useMutation({
+    mutationFn: async (vars: {
+      cteId: string;
+      valores?: "PENDENTE" | "APROVADO" | "REPROVADO" | null;
+      financeiro?: boolean | null;
+    }) => await definirStatus({ data: vars }),
+    onSuccess: () => {
+      toast.success("Status atualizado.");
+      void qc.invalidateQueries({ queryKey: ["ctes-status-erp"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const backfillDestinatariosMutation = useMutation({
     mutationFn: () => backfillDestinatarios({}),
     onSuccess: (r) => {
