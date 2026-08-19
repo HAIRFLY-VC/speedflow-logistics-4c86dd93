@@ -79,6 +79,23 @@ export default function CteDetailPage() {
     staleTime: 60_000,
   });
 
+  const { role } = useAuth();
+  const isAdm = role === "adm";
+  const definirStatus = useServerFn(definirStatusManualCte);
+  const mStatusManual = useMutation({
+    mutationFn: async (vars: {
+      cteId: string;
+      valores?: "PENDENTE" | "APROVADO" | "REPROVADO" | null;
+      financeiro?: boolean | null;
+    }) => await definirStatus({ data: vars }),
+    onSuccess: () => {
+      toast.success("Status atualizado.");
+      void qc.invalidateQueries({ queryKey: ["cte-status-erp"] });
+      void qc.invalidateQueries({ queryKey: ["ctes-status-erp"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const [xmlOpen, setXmlOpen] = useState(false);
   const [xmlContent, setXmlContent] = useState<string | null>(null);
   const [xmlTitle, setXmlTitle] = useState("XML do CT-e");
