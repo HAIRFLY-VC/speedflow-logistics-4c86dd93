@@ -106,7 +106,10 @@ function nomeRotaOf(r: RouteRow) {
   return r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code;
 }
 function motoristaOf(r: RouteRow) {
-  return r.driver_name ?? r.freight_carriers?.full_name ?? "";
+  const name = r.driver_name ?? r.freight_carriers?.full_name ?? "";
+  const cod = r.freight_carriers?.cod_erp;
+  if (name && cod) return `${name} (${cod})`;
+  return name;
 }
 function paradasOf(r: RouteRow) {
   const set = new Set<string>();
