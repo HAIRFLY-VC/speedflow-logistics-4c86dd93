@@ -62,7 +62,7 @@ type RouteRow = {
   total_distance_km: number | null;
   driver_name: string | null;
   notes: string | null;
-  freight_carriers: { full_name: string; vehicle_plate: string | null; cod_erp: string | null } | null;
+  freight_carriers: { full_name: string; vehicle_plate: string | null; transportadoras: { cod_erp: string | null } | null } | null;
   route_orders: {
     stop_order: number | null;
     orders: {
@@ -107,7 +107,7 @@ function nomeRotaOf(r: RouteRow) {
 }
 function motoristaOf(r: RouteRow) {
   const name = r.driver_name ?? r.freight_carriers?.full_name ?? "";
-  const cod = r.freight_carriers?.cod_erp;
+  const cod = r.freight_carriers?.transportadoras?.cod_erp;
   if (name && cod) return `${name} (${cod})`;
   return name;
 }
@@ -383,7 +383,7 @@ function RotasPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate,cod_erp),route_orders(stop_order,orders(customer_id,order_number,total_amount,weight,erp_status,delivery_latitude,delivery_longitude,customers(latitude,longitude)))",
+          "id,code,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate,transportadoras(cod_erp)),route_orders(stop_order,orders(customer_id,order_number,total_amount,weight,erp_status,delivery_latitude,delivery_longitude,customers(latitude,longitude)))",
         );
       if (error) throw error;
       const rows = ((data ?? []) as unknown as RouteRow[]).filter(
