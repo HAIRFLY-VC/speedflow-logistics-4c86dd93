@@ -422,7 +422,7 @@ function RotasPage() {
       },
       {
         id: "motorista",
-        header: "Motorista",
+        header: "Fret / Transp",
         sortable: false,
         accessor: (r) => motoristaOf(r),
         render: (r) => motoristaOf(r) || <span className="text-muted-foreground">—</span>,
