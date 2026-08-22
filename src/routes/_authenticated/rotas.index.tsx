@@ -62,7 +62,7 @@ type RouteRow = {
   total_distance_km: number | null;
   driver_name: string | null;
   notes: string | null;
-  freight_carriers: { full_name: string; vehicle_plate: string | null } | null;
+  freight_carriers: { full_name: string; vehicle_plate: string | null; cod_erp: string | null } | null;
   route_orders: {
     stop_order: number | null;
     orders: {
