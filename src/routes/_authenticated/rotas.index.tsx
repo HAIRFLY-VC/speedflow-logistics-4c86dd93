@@ -668,6 +668,7 @@ function RotasPage() {
           isLoading={isLoading}
           rowKey={(r) => r.id}
           emptyMessage="Nenhuma rota criada."
+          onFilteredChange={setFilteredData}
           groupBy={{
             id: "route_date",
             accessor: (r) => r.route_date,
