@@ -1627,6 +1627,7 @@ export type Database = {
           ativo: boolean
           banco: string | null
           cnpj: string
+          cod_erp: string | null
           conta: string | null
           created_at: string
           id: string
@@ -1639,6 +1640,7 @@ export type Database = {
           ativo?: boolean
           banco?: string | null
           cnpj: string
+          cod_erp?: string | null
           conta?: string | null
           created_at?: string
           id?: string
@@ -1651,6 +1653,7 @@ export type Database = {
           ativo?: boolean
           banco?: string | null
           cnpj?: string
+          cod_erp?: string | null
           conta?: string | null
           created_at?: string
           id?: string
