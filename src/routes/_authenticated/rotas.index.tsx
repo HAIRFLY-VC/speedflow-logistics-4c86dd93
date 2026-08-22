@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Loader2, RefreshCw } from "lucide-react";
+import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -17,6 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -108,6 +114,9 @@ function paradasOf(r: RouteRow) {
     if (ro.orders?.customer_id) set.add(ro.orders.customer_id);
   }
   return set.size;
+}
+function pedidosOf(r: RouteRow) {
+  return (r.route_orders ?? []).length;
 }
 function valorOf(r: RouteRow) {
   let total = 0;
@@ -579,6 +588,16 @@ function RotasPage() {
   );
 
 
+  const totals = useMemo(() => {
+    const rows = data ?? [];
+    return {
+      merchandise: rows.reduce((s, r) => s + valorOf(r), 0),
+      weight: rows.reduce((s, r) => s + pesoOf(r), 0),
+      orders: rows.reduce((s, r) => s + pedidosOf(r), 0),
+      stops: rows.reduce((s, r) => s + paradasOf(r), 0),
+    };
+  }, [data]);
+
   return (
     <AppShell>
       <div className="space-y-4">
@@ -592,6 +611,53 @@ function RotasPage() {
           <Button onClick={() => setOpen(true)}>
             <Plus className="h-4 w-4 mr-1" /> Nova rota
           </Button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium">Valor total das mercadorias</CardTitle>
+              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold tabular-nums">
+                {currencyFmt.format(totals.merchandise)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium">Peso total</CardTitle>
+              <Weight className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold tabular-nums">
+                {weightFmt.format(totals.weight)} kg
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium">Quantidade de pedidos</CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold tabular-nums">
+                {totals.orders.toLocaleString("pt-BR")}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium">Quantidade de entregas</CardTitle>
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold tabular-nums">
+                {totals.stops.toLocaleString("pt-BR")}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <DataTable
