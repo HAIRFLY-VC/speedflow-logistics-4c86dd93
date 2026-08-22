@@ -353,6 +353,7 @@ function DistanceCell({
 function RotasPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [filteredData, setFilteredData] = useState<RouteRow[] | undefined>();
 
   const depotQ = useQuery({
     queryKey: ["company_settings", "depot"],
@@ -589,14 +590,14 @@ function RotasPage() {
 
 
   const totals = useMemo(() => {
-    const rows = data ?? [];
+    const rows = filteredData ?? data ?? [];
     return {
       merchandise: rows.reduce((s, r) => s + valorOf(r), 0),
       weight: rows.reduce((s, r) => s + pesoOf(r), 0),
       orders: rows.reduce((s, r) => s + pedidosOf(r), 0),
       stops: rows.reduce((s, r) => s + paradasOf(r), 0),
     };
-  }, [data]);
+  }, [filteredData, data]);
 
   return (
     <AppShell>
@@ -667,6 +668,7 @@ function RotasPage() {
           isLoading={isLoading}
           rowKey={(r) => r.id}
           emptyMessage="Nenhuma rota criada."
+          onFilteredChange={setFilteredData}
           groupBy={{
             id: "route_date",
             accessor: (r) => r.route_date,
