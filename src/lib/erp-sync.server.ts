@@ -34,6 +34,7 @@ type ErpOrderRow = {
   DT_PREV_EXP: string | null;
   NOME_ROTA: string | null;
   NOME_MOTORISTA: string | null;
+  COD_FRT_TRP: number | string | null;
   QTD_DIAS: number | null;
   ID_ROTA: number | string | null;
   OBS_LOGIST: string | null;
