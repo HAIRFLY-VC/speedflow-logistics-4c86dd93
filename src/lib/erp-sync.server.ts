@@ -358,7 +358,14 @@ export async function syncErpOrders(opts: {
 
 
     // Auto-cadastro de rotas a partir de ID_ROTA (ERP) + NOME_ROTA + DT_PREV_EXP + NOME_MOTORISTA
-    type RouteGroup = { erpRouteId: string | null; nome: string; date: string; driver: string | null; pedidos: string[] };
+    type RouteGroup = {
+      erpRouteId: string | null;
+      nome: string;
+      date: string;
+      driver: string | null;
+      carrierCode: string | null;
+      pedidos: string[];
+    };
     const groups = new Map<string, RouteGroup>();
     for (const row of rows) {
       const nome = (row.NOME_ROTA ?? "").trim();
@@ -368,19 +375,46 @@ export async function syncErpOrders(opts: {
       const dateOnly = dt.slice(0, 10);
       if (dateOnly === "3000-01-01" || dateOnly === "4000-01-01") continue;
       const driver = row.NOME_MOTORISTA?.trim() || null;
+      const carrierCode =
+        row.COD_FRT_TRP != null && String(row.COD_FRT_TRP).trim() !== ""
+          ? String(row.COD_FRT_TRP).trim()
+          : null;
       const erpRouteId =
         row.ID_ROTA != null && String(row.ID_ROTA).trim() !== ""
           ? String(row.ID_ROTA).trim()
           : null;
       const key = erpRouteId
         ? `erp:${erpRouteId}`
-        : `${nome}|${dateOnly}|${driver ?? ""}`;
+        : `${nome}|${dateOnly}|${driver ?? ""}|${carrierCode ?? ""}`;
       let g = groups.get(key);
       if (!g) {
-        g = { erpRouteId, nome, date: dateOnly, driver, pedidos: [] };
+        g = { erpRouteId, nome, date: dateOnly, driver, carrierCode, pedidos: [] };
         groups.set(key, g);
       }
       g.pedidos.push(String(row.PEDIDO));
+    }
+
+    // Cache de resolução COD_FRT_TRP -> freight_carriers.id
+    const carrierCache = new Map<string, string | null>();
+    async function resolveCarrierId(codErp: string): Promise<string | null> {
+      if (carrierCache.has(codErp)) return carrierCache.get(codErp) ?? null;
+      const { data: transp } = await centralDb
+        .from("transportadoras")
+        .select("id")
+        .eq("cod_erp", codErp)
+        .maybeSingle();
+      if (!transp) {
+        carrierCache.set(codErp, null);
+        return null;
+      }
+      const { data: carrier } = await centralDb
+        .from("freight_carriers")
+        .select("id")
+        .eq("transportadora_id", transp.id)
+        .maybeSingle();
+      const id = carrier?.id ?? null;
+      carrierCache.set(codErp, id);
+      return id;
     }
 
     for (const g of groups.values()) {
@@ -388,6 +422,8 @@ export async function syncErpOrders(opts: {
         const code = g.erpRouteId
           ? `erp-${g.erpRouteId}`
           : `${slugify(g.nome)}-${g.date.replace(/-/g, "")}`;
+
+        const carrierId = g.carrierCode ? await resolveCarrierId(g.carrierCode) : null;
 
         let existing: { id: string } | null = null;
         if (g.erpRouteId) {
@@ -430,6 +466,7 @@ export async function syncErpOrders(opts: {
               driver_name: g.driver,
               route_date: g.date,
               erp_route_id: g.erpRouteId,
+              carrier_id: carrierId,
               code: g.erpRouteId ? `erp-${g.erpRouteId}` : undefined,
             })
             .eq("id", routeId);
@@ -443,6 +480,7 @@ export async function syncErpOrders(opts: {
               driver_name: g.driver,
               notes: `Rota ${g.nome}`,
               erp_route_id: g.erpRouteId,
+              carrier_id: carrierId,
             })
             .select("id")
             .single();
