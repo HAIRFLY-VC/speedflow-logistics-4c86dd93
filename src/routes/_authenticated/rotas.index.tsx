@@ -353,6 +353,7 @@ function DistanceCell({
 function RotasPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [filteredData, setFilteredData] = useState<RouteRow[] | undefined>();
 
   const depotQ = useQuery({
     queryKey: ["company_settings", "depot"],
