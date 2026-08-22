@@ -429,7 +429,7 @@ function RotasPage() {
       },
       {
         id: "paradas",
-        header: "Paradas",
+        header: "Qtd Entregas",
         sortable: false,
         align: "right",
         accessor: (r) => paradasOf(r),
