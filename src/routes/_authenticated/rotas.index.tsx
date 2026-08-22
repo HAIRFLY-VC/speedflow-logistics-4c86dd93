@@ -588,6 +588,16 @@ function RotasPage() {
   );
 
 
+  const totals = useMemo(() => {
+    const rows = data ?? [];
+    return {
+      merchandise: rows.reduce((s, r) => s + valorOf(r), 0),
+      weight: rows.reduce((s, r) => s + pesoOf(r), 0),
+      orders: rows.reduce((s, r) => s + pedidosOf(r), 0),
+      stops: rows.reduce((s, r) => s + paradasOf(r), 0),
+    };
+  }, [data]);
+
   return (
     <AppShell>
       <div className="space-y-4">
@@ -601,6 +611,53 @@ function RotasPage() {
           <Button onClick={() => setOpen(true)}>
             <Plus className="h-4 w-4 mr-1" /> Nova rota
           </Button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium">Valor total das mercadorias</CardTitle>
+              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold tabular-nums">
+                {currencyFmt.format(totals.merchandise)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium">Peso total</CardTitle>
+              <Weight className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold tabular-nums">
+                {weightFmt.format(totals.weight)} kg
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium">Quantidade de pedidos</CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold tabular-nums">
+                {totals.orders.toLocaleString("pt-BR")}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium">Quantidade de entregas</CardTitle>
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold tabular-nums">
+                {totals.stops.toLocaleString("pt-BR")}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <DataTable
