@@ -109,6 +109,9 @@ function paradasOf(r: RouteRow) {
   }
   return set.size;
 }
+function pedidosOf(r: RouteRow) {
+  return (r.route_orders ?? []).length;
+}
 function valorOf(r: RouteRow) {
   let total = 0;
   for (const ro of r.route_orders ?? []) total += Number(ro.orders?.total_amount ?? 0);
