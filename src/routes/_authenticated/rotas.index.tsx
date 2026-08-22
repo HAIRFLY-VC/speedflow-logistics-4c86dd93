@@ -590,14 +590,14 @@ function RotasPage() {
 
 
   const totals = useMemo(() => {
-    const rows = data ?? [];
+    const rows = filteredData ?? data ?? [];
     return {
       merchandise: rows.reduce((s, r) => s + valorOf(r), 0),
       weight: rows.reduce((s, r) => s + pesoOf(r), 0),
       orders: rows.reduce((s, r) => s + pedidosOf(r), 0),
       stops: rows.reduce((s, r) => s + paradasOf(r), 0),
     };
-  }, [data]);
+  }, [filteredData, data]);
 
   return (
     <AppShell>
