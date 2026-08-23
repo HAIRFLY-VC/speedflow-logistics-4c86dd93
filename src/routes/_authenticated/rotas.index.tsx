@@ -621,18 +621,23 @@ function RotasPage() {
         filterable: false,
         accessor: (r) => {
           const v = valorOf(r);
-          return v > 0 ? (Number(r.total_freight ?? 0) / v) * 100 : 0;
+          return v > 0 ? (freteOf(r) / v) * 100 : 0;
         },
         render: (r) => {
           const v = valorOf(r);
-          const f = Number(r.total_freight ?? 0);
+          const f = freteOf(r);
           if (v <= 0 || f <= 0) return <span className="text-muted-foreground">—</span>;
-          return `${((f / v) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
+          const est = Number(r.total_freight ?? 0) <= 0;
+          return (
+            <span className={est ? "italic text-amber-600" : undefined} title={est ? "Baseado na estimativa da tabela de preço" : undefined}>
+              {((f / v) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%
+            </span>
+          );
         },
         className: "tabular-nums text-xs",
         aggregate: (rows) => {
           const v = rows.reduce((s, r) => s + valorOf(r), 0);
-          const f = rows.reduce((s, r) => s + Number(r.total_freight ?? 0), 0);
+          const f = rows.reduce((s, r) => s + freteOf(r), 0);
           if (v <= 0 || f <= 0) return <span className="text-muted-foreground">—</span>;
           return (
             <span className="tabular-nums">
@@ -640,6 +645,7 @@ function RotasPage() {
             </span>
           );
         },
+
       },
       {
 
