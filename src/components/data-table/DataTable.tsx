@@ -223,14 +223,132 @@ export function DataTable<T>(props: DataTableProps<T>) {
   function TableWrapper({ children }: { children: React.ReactNode }) {
     if (!scrollable) return <>{children}</>;
     return (
-      <div className="overflow-y-scroll overflow-x-auto h-[calc(100vh-260px)]">{children}</div>
+      <div className="overflow-y-scroll overflow-x-auto h-[calc(100dvh-260px)]">{children}</div>
     );
   }
 
+  const filterChips =
+    activeFilterEntries.length > 0 ? (
+      <div className="flex flex-wrap items-center gap-1.5">
+        {activeFilterEntries.map(([id, vals]) => {
+          const c = columns.find((x) => x.id === id);
+          const distinct = distinctByColumn.get(id) ?? [];
+          const labelFor = (k: string) =>
+            distinct.find((d) => d.key === k)?.label ?? (k === EMPTY_KEY ? EMPTY_LABEL : k);
+          const text =
+            vals.length <= 2 ? vals.map(labelFor).join(", ") : `${vals.length} selecionados`;
+          return (
+            <Badge key={id} variant="secondary" className="gap-1 max-w-full">
+              <span className="text-xs truncate">
+                {c?.header ?? id}: <span className="font-normal">{text}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setFilter(id, [])}
+                aria-label={`Remover filtro ${c?.header ?? id}`}
+                className="hover:opacity-70 shrink-0"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          );
+        })}
+        <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 text-xs">
+          Limpar filtros
+        </Button>
+      </div>
+    ) : null;
 
+  if (isMobile) {
+    return (
+      <div className="space-y-3">
+        {(toolbarLeft || toolbarRight) && (
+          <div className="flex flex-col gap-2 [&_input]:h-10 [&_button]:min-h-10">
+            {toolbarLeft ? (
+              <div className="flex flex-wrap items-center gap-2 [&>*]:min-w-0 [&>*]:flex-1">
+                {toolbarLeft}
+              </div>
+            ) : null}
+            {toolbarRight ? (
+              <div className="flex flex-wrap items-center gap-2">{toolbarRight}</div>
+            ) : null}
+          </div>
+        )}
+
+        <div className="flex items-center gap-2">
+          <MobileControls
+            columns={visibleColumns}
+            sort={state.sort}
+            setSort={setSort}
+            filters={state.filters}
+            setFilter={setFilter}
+            clearFilters={clearFilters}
+            distinctByColumn={distinctByColumn}
+            activeCount={activeFilterEntries.length}
+          />
+          <ColumnsManager
+            columns={columns}
+            state={state}
+            toggleVisible={toggleVisible}
+            reorder={reorder}
+            reset={reset}
+          />
+          <span className="ml-auto text-xs text-muted-foreground">
+            {filteredSorted.length} registro{filteredSorted.length === 1 ? "" : "s"}
+          </span>
+        </div>
+
+        {filterChips}
+
+        {isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full rounded-lg" />
+            ))}
+          </div>
+        ) : filteredSorted.length === 0 ? (
+          <div className="border rounded-lg bg-card text-center text-muted-foreground py-10 text-sm">
+            {emptyMessage}
+          </div>
+        ) : grouped ? (
+          <div className="space-y-4">
+            {grouped.map(([key, rows]) => (
+              <div key={key} className="space-y-2">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                  {groupBy!.label(key, rows)}
+                </div>
+                {rows.map((r) => (
+                  <MobileCard
+                    key={rowKey(r)}
+                    row={r}
+                    columns={visibleColumns}
+                    onRowClick={onRowClick}
+                    rowClassName={rowClassName}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filteredSorted.map((r) => (
+              <MobileCard
+                key={rowKey(r)}
+                row={r}
+                columns={visibleColumns}
+                onRowClick={onRowClick}
+                rowClassName={rowClassName}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">{toolbarLeft}</div>
         <div className="flex flex-wrap items-center gap-2">
