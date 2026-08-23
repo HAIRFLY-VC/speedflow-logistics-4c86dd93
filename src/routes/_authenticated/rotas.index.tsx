@@ -182,12 +182,20 @@ function StatusList({ map }: { map: Map<string, number> }) {
   );
 }
 
-function FreightInput({ route }: { route: RouteRow }) {
+function FreightInput({
+  route,
+  estimate,
+}: {
+  route: RouteRow;
+  estimate: SimulacaoRota | null;
+}) {
   const qc = useQueryClient();
+  const initial = Number(route.total_freight ?? 0);
+  const isEstimate = initial <= 0 && estimate != null;
   const [value, setValue] = useState<string>(
-    route.total_freight ? String(route.total_freight) : "",
+    initial > 0 ? String(initial) : isEstimate ? String(estimate!.total) : "",
   );
-  const initial = route.total_freight ?? 0;
+  const [estimated, setEstimated] = useState(isEstimate);
 
   const save = useMutation({
     mutationFn: async (next: number) => {
@@ -208,26 +216,48 @@ function FreightInput({ route }: { route: RouteRow }) {
     const n = Number(value.replace(",", "."));
     const next = Number.isFinite(n) ? n : 0;
     if (next === initial) return;
+    setEstimated(false);
     save.mutate(next);
   };
 
+  const title = estimate
+    ? `Estimativa calculada pela tabela de preço "${estimate.tabelaNome}" (${estimate.entregasCalculadas} de ${estimate.entregasTotal} entregas${estimate.parcial ? " — praça não identificada nas demais" : ""}). Edite para confirmar o valor real.`
+    : undefined;
+
   return (
-    <Input
-      type="number"
-      min="0"
-      step="0.01"
-      inputMode="decimal"
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-      }}
-      className="h-7 w-28 text-right tabular-nums text-xs"
-      placeholder="0,00"
-    />
+    <span className="inline-flex items-center gap-1 justify-end">
+      {estimated && (
+        <span
+          title={title}
+          className="inline-flex items-center gap-0.5 rounded border border-amber-500/30 bg-amber-500/15 px-1 py-0.5 text-[10px] font-semibold text-amber-600"
+        >
+          <Calculator className="h-3 w-3" /> est.
+        </span>
+      )}
+      <Input
+        type="number"
+        min="0"
+        step="0.01"
+        inputMode="decimal"
+        value={value}
+        title={estimated ? title : undefined}
+        onChange={(e) => {
+          setValue(e.target.value);
+          setEstimated(false);
+        }}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        }}
+        className={`h-7 w-28 text-right tabular-nums text-xs ${
+          estimated ? "border-amber-500/40 bg-amber-500/10 italic text-amber-700" : ""
+        }`}
+        placeholder="0,00"
+      />
+    </span>
   );
 }
+
 
 function DistanceCell({
   route,
