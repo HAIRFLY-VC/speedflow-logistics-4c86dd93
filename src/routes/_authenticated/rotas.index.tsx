@@ -425,7 +425,7 @@ function RotasPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate,transportadoras(cod_erp)),route_orders(stop_order,orders(customer_id,order_number,total_amount,weight,erp_status,delivery_latitude,delivery_longitude,customers(latitude,longitude)))",
+          "id,code,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate,transportadoras(id,cod_erp)),route_orders(stop_order,orders(customer_id,order_number,total_amount,weight,erp_status,delivery_latitude,delivery_longitude,customers(latitude,longitude,city)))",
         );
       if (error) throw error;
       const rows = ((data ?? []) as unknown as RouteRow[]).filter(
@@ -441,6 +441,64 @@ function RotasPage() {
       return rows;
     },
   });
+
+  const tabelasQ = useQuery({
+    queryKey: ["tabelas-frete-simulacao"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete")
+        .select("*, tabelas_preco_frete_faixas(*), tabelas_preco_frete_rotas(*)")
+        .eq("ativo", true);
+      if (error) throw error;
+      return (data ?? []) as unknown as TabelaSim[];
+    },
+  });
+
+  const vinculosQ = useQuery({
+    queryKey: ["tabelas-frete-vinculos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .select("tabela_id, transportadora_id");
+      if (error) throw error;
+      return (data ?? []) as { tabela_id: string; transportadora_id: string }[];
+    },
+  });
+
+  const estimativas = useMemo(() => {
+    const map = new Map<string, SimulacaoRota>();
+    const tabelas = tabelasQ.data ?? [];
+    const vinculos = vinculosQ.data ?? [];
+    if (!tabelas.length) return map;
+    for (const r of data ?? []) {
+      const transportadoraId = r.freight_carriers?.transportadoras?.id;
+      if (!transportadoraId) continue;
+      const tabela = tabelaVigenteDaTransportadora(tabelas, vinculos, transportadoraId);
+      if (!tabela) continue;
+      // Uma entrega por cliente da rota: soma peso e valor dos pedidos.
+      const porCliente = new Map<
+        string,
+        { peso: number; valorMercadoria: number; municipio: string | null }
+      >();
+      for (const ro of r.route_orders ?? []) {
+        const o = ro.orders;
+        if (!o?.customer_id) continue;
+        const atual = porCliente.get(o.customer_id) ?? {
+          peso: 0,
+          valorMercadoria: 0,
+          municipio: o.customers?.city ?? null,
+        };
+        atual.peso += Number(o.weight ?? 0);
+        atual.valorMercadoria += Number(o.total_amount ?? 0);
+        if (!atual.municipio) atual.municipio = o.customers?.city ?? null;
+        porCliente.set(o.customer_id, atual);
+      }
+      const sim = simularRota(tabela, Array.from(porCliente.values()));
+      if (sim) map.set(r.id, sim);
+    }
+    return map;
+  }, [data, tabelasQ.data, vinculosQ.data]);
+
 
   const columns = useMemo<ColumnDef<RouteRow>[]>(
     () => [
