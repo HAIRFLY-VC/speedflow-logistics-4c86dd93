@@ -708,17 +708,9 @@ function GroupBlock<T>({
   onRowClick?: (row: T) => void;
   rowClassName?: (row: T) => string | undefined;
 }) {
+  const [expanded, setExpanded] = useState(false);
   return (
     <>
-      {rows.map((r) => (
-        <BodyRow
-          key={rowKey(r)}
-          row={r}
-          columns={columns}
-          onRowClick={onRowClick}
-          rowClassName={rowClassName}
-        />
-      ))}
       <TableRow className="bg-muted/50 font-semibold">
         {columns.map((c, idx) => {
           const alignClass =
@@ -733,7 +725,20 @@ function GroupBlock<T>({
                 key={c.id}
                 className="text-muted-foreground text-xs uppercase tracking-wider"
               >
-                {groupBy.label(groupKey, rows)}
+                <button
+                  type="button"
+                  onClick={() => setExpanded((e) => !e)}
+                  className="inline-flex items-center gap-1.5 hover:text-foreground"
+                  aria-expanded={expanded}
+                  title={expanded ? "Comprimir detalhamento" : "Expandir detalhamento"}
+                >
+                  {expanded ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                  <span>{groupBy.label(groupKey, rows)}</span>
+                </button>
               </TableCell>
             );
           }
@@ -744,6 +749,16 @@ function GroupBlock<T>({
           );
         })}
       </TableRow>
+      {expanded &&
+        rows.map((r) => (
+          <BodyRow
+            key={rowKey(r)}
+            row={r}
+            columns={columns}
+            onRowClick={onRowClick}
+            rowClassName={rowClassName}
+          />
+        ))}
     </>
   );
 }
