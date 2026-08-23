@@ -778,7 +778,7 @@ function RotasPage() {
         ),
       },
     ],
-    [depot, estimativas, freteOf],
+    [depot, estimativas, freteOf, transpPorRota],
   );
 
 
