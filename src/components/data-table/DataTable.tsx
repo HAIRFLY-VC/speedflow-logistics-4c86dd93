@@ -1,5 +1,5 @@
 import { isValidElement, useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, ChevronsUpDown, Filter, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, Filter, SlidersHorizontal, X } from "lucide-react";
 
 import {
   Table,
@@ -18,11 +18,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import type { ColumnDef, DataTableProps } from "./types";
 import { useTablePrefs } from "./useTablePrefs";
 import { ColumnsManager } from "./ColumnsManager";
+
 
 const EMPTY_KEY = "__empty__";
 const EMPTY_LABEL = "(Vazio)";
