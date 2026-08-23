@@ -499,8 +499,17 @@ function RotasPage() {
     return map;
   }, [data, tabelasQ.data, vinculosQ.data]);
 
+  /** Frete informado; na ausência, a estimativa da tabela da transportadora. */
+  const freteOf = useMemo(
+    () => (r: RouteRow) =>
+      Number(r.total_freight ?? 0) > 0
+        ? Number(r.total_freight)
+        : (estimativas.get(r.id)?.total ?? 0),
+    [estimativas],
+  );
 
   const columns = useMemo<ColumnDef<RouteRow>[]>(
+
     () => [
       {
         id: "route_date",
