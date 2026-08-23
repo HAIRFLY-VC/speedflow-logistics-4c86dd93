@@ -510,9 +510,9 @@ function RouteDetailPage() {
               <CardTitle className="text-base">Adicionar pedido à rota</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Select value={pickOrder} onValueChange={setPickOrder}>
-                  <SelectTrigger className="flex-1">
+                  <SelectTrigger className="w-full min-w-0 sm:flex-1">
                     <SelectValue placeholder="Selecione um pedido faturado para adicionar" />
                   </SelectTrigger>
                   <SelectContent>
@@ -531,7 +531,11 @@ function RouteDetailPage() {
                     )}
                   </SelectContent>
                 </Select>
-                <Button onClick={() => addStop.mutate()} disabled={addStop.isPending}>
+                <Button
+                  onClick={() => addStop.mutate()}
+                  disabled={addStop.isPending}
+                  className="w-full sm:w-auto"
+                >
                   <Plus className="h-4 w-4 mr-1" /> Adicionar
                 </Button>
               </div>
