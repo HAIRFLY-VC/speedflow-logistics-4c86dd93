@@ -643,8 +643,8 @@ export function CteDetailView({
                 : "space-y-2"
             }
           >
-            <div className="overflow-hidden rounded-md border">
-              <table className="w-full text-[11px] table-fixed">
+            <div className="overflow-x-auto rounded-md border">
+              <table className="w-full min-w-[1000px] text-[11px] table-fixed">
                 <thead className="bg-muted/40 text-muted-foreground">
                   <tr>
                     <th className="px-2 py-1.5 text-left font-medium w-[180px]">Chave</th>

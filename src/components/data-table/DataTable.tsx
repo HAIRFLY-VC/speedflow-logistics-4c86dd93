@@ -1,5 +1,5 @@
 import { isValidElement, useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, ChevronsUpDown, Filter, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, Filter, SlidersHorizontal, X } from "lucide-react";
 
 import {
   Table,
@@ -18,11 +18,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import type { ColumnDef, DataTableProps } from "./types";
 import { useTablePrefs } from "./useTablePrefs";
 import { ColumnsManager } from "./ColumnsManager";
+
 
 const EMPTY_KEY = "__empty__";
 const EMPTY_LABEL = "(Vazio)";
@@ -105,6 +114,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
     groupBy,
     scrollable,
   } = props;
+
+  const isMobile = useIsMobile();
+
+
 
 
   const {
@@ -210,14 +223,132 @@ export function DataTable<T>(props: DataTableProps<T>) {
   function TableWrapper({ children }: { children: React.ReactNode }) {
     if (!scrollable) return <>{children}</>;
     return (
-      <div className="overflow-y-scroll overflow-x-auto h-[calc(100vh-260px)]">{children}</div>
+      <div className="overflow-y-scroll overflow-x-auto h-[calc(100dvh-260px)]">{children}</div>
     );
   }
 
+  const filterChips =
+    activeFilterEntries.length > 0 ? (
+      <div className="flex flex-wrap items-center gap-1.5">
+        {activeFilterEntries.map(([id, vals]) => {
+          const c = columns.find((x) => x.id === id);
+          const distinct = distinctByColumn.get(id) ?? [];
+          const labelFor = (k: string) =>
+            distinct.find((d) => d.key === k)?.label ?? (k === EMPTY_KEY ? EMPTY_LABEL : k);
+          const text =
+            vals.length <= 2 ? vals.map(labelFor).join(", ") : `${vals.length} selecionados`;
+          return (
+            <Badge key={id} variant="secondary" className="gap-1 max-w-full">
+              <span className="text-xs truncate">
+                {c?.header ?? id}: <span className="font-normal">{text}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setFilter(id, [])}
+                aria-label={`Remover filtro ${c?.header ?? id}`}
+                className="hover:opacity-70 shrink-0"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          );
+        })}
+        <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 text-xs">
+          Limpar filtros
+        </Button>
+      </div>
+    ) : null;
 
+  if (isMobile) {
+    return (
+      <div className="space-y-3">
+        {(toolbarLeft || toolbarRight) && (
+          <div className="flex flex-col gap-2 [&_input]:h-10 [&_button]:min-h-10">
+            {toolbarLeft ? (
+              <div className="flex flex-wrap items-center gap-2 [&>*]:min-w-0 [&>button]:flex-auto [&>input]:w-full">
+                {toolbarLeft}
+              </div>
+            ) : null}
+            {toolbarRight ? (
+              <div className="flex flex-wrap items-center gap-2">{toolbarRight}</div>
+            ) : null}
+          </div>
+        )}
+
+        <div className="flex items-center gap-2">
+          <MobileControls
+            columns={visibleColumns}
+            sort={state.sort}
+            setSort={setSort}
+            filters={state.filters}
+            setFilter={setFilter}
+            clearFilters={clearFilters}
+            distinctByColumn={distinctByColumn}
+            activeCount={activeFilterEntries.length}
+          />
+          <ColumnsManager
+            columns={columns}
+            state={state}
+            toggleVisible={toggleVisible}
+            reorder={reorder}
+            reset={reset}
+          />
+          <span className="ml-auto text-xs text-muted-foreground">
+            {filteredSorted.length} registro{filteredSorted.length === 1 ? "" : "s"}
+          </span>
+        </div>
+
+        {filterChips}
+
+        {isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full rounded-lg" />
+            ))}
+          </div>
+        ) : filteredSorted.length === 0 ? (
+          <div className="border rounded-lg bg-card text-center text-muted-foreground py-10 text-sm">
+            {emptyMessage}
+          </div>
+        ) : grouped ? (
+          <div className="space-y-4">
+            {grouped.map(([key, rows]) => (
+              <div key={key} className="space-y-2">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                  {groupBy!.label(key, rows)}
+                </div>
+                {rows.map((r) => (
+                  <MobileCard
+                    key={rowKey(r)}
+                    row={r}
+                    columns={visibleColumns}
+                    onRowClick={onRowClick}
+                    rowClassName={rowClassName}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filteredSorted.map((r) => (
+              <MobileCard
+                key={rowKey(r)}
+                row={r}
+                columns={visibleColumns}
+                onRowClick={onRowClick}
+                rowClassName={rowClassName}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">{toolbarLeft}</div>
         <div className="flex flex-wrap items-center gap-2">
@@ -618,3 +749,201 @@ function GroupBlock<T>({
 }
 
 export type { ColumnDef, DataTableProps } from "./types";
+
+function MobileCard<T>({
+  row,
+  columns,
+  onRowClick,
+  rowClassName,
+}: {
+  row: T;
+  columns: ColumnDef<T>[];
+  onRowClick?: (row: T) => void;
+  rowClassName?: (row: T) => string | undefined;
+}) {
+  const [title, ...rest] = columns;
+  const content = (
+    <>
+      {title ? (
+        <div className="font-medium text-sm min-w-0 break-words">
+          {title.render ? title.render(row) : defaultRender(title, row)}
+        </div>
+      ) : null}
+      {rest.length > 0 ? (
+        <dl className="mt-2 grid grid-cols-[minmax(0,40%)_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-xs">
+          {rest.map((c) => (
+            <div key={c.id} className="contents">
+              <dt className="text-muted-foreground truncate">{c.header}</dt>
+              <dd className="min-w-0 break-words">
+                {c.render ? c.render(row) : defaultRender(c, row)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </>
+  );
+
+  if (onRowClick) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => onRowClick(row)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onRowClick(row);
+          }
+        }}
+        className={`w-full text-left border rounded-lg bg-card p-3 active:bg-muted/50 ${rowClassName?.(row) ?? ""}`}
+      >
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`border rounded-lg bg-card p-3 ${rowClassName?.(row) ?? ""}`}>{content}</div>
+  );
+}
+
+function MobileControls<T>({
+  columns,
+  sort,
+  setSort,
+  filters,
+  setFilter,
+  clearFilters,
+  distinctByColumn,
+  activeCount,
+}: {
+  columns: ColumnDef<T>[];
+  sort: { id: string; dir: "asc" | "desc" } | null;
+  setSort: (s: { id: string; dir: "asc" | "desc" } | null) => void;
+  filters: Record<string, string[]>;
+  setFilter: (id: string, v: string[]) => void;
+  clearFilters: () => void;
+  distinctByColumn: Map<string, { key: string; label: string }[]>;
+  activeCount: number;
+}) {
+  const sortable = columns.filter((c) => c.sortable !== false);
+  const filterable = columns.filter((c) => c.filterable !== false);
+
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="outline" size="sm" className="min-h-10 gap-2">
+          <SlidersHorizontal className="h-4 w-4" />
+          Filtros e ordem
+          {activeCount > 0 ? (
+            <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+              {activeCount}
+            </Badge>
+          ) : null}
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto">
+        <SheetHeader className="px-0">
+          <SheetTitle>Filtros e ordenação</SheetTitle>
+        </SheetHeader>
+
+        <div className="space-y-4 pb-6">
+          <div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+              Ordenar por
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {sortable.map((c) => {
+                const active = sort?.id === c.id;
+                return (
+                  <Button
+                    key={c.id}
+                    type="button"
+                    variant={active ? "default" : "outline"}
+                    size="sm"
+                    className="min-h-10 gap-1"
+                    onClick={() =>
+                      setSort(
+                        active
+                          ? sort!.dir === "asc"
+                            ? { id: c.id, dir: "desc" }
+                            : null
+                          : { id: c.id, dir: "asc" },
+                      )
+                    }
+                  >
+                    {c.header}
+                    {active ? (
+                      sort!.dir === "asc" ? (
+                        <ArrowUp className="h-3 w-3" />
+                      ) : (
+                        <ArrowDown className="h-3 w-3" />
+                      )
+                    ) : null}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                Filtrar
+              </span>
+              {activeCount > 0 ? (
+                <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={clearFilters}>
+                  Limpar tudo
+                </Button>
+              ) : null}
+            </div>
+            <div className="space-y-2">
+              {filterable.map((c) => {
+                const selected = filters[c.id] ?? [];
+                const options = distinctByColumn.get(c.id) ?? [];
+                return (
+                  <details key={c.id} className="border rounded-lg bg-card">
+                    <summary className="cursor-pointer list-none px-3 py-3 text-sm flex items-center justify-between gap-2">
+                      <span className="truncate">{c.header}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {selected.length ? `${selected.length} selec.` : "Todos"}
+                      </span>
+                    </summary>
+                    <div className="border-t max-h-56 overflow-auto p-1">
+                      {options.length === 0 ? (
+                        <div className="text-xs text-muted-foreground text-center py-3">
+                          Nenhum valor
+                        </div>
+                      ) : (
+                        options.map((o) => (
+                          <label
+                            key={o.key}
+                            className="flex items-center gap-2 px-2 py-2 rounded text-sm active:bg-muted/60"
+                          >
+                            <Checkbox
+                              checked={selected.includes(o.key)}
+                              onCheckedChange={() =>
+                                setFilter(
+                                  c.id,
+                                  selected.includes(o.key)
+                                    ? selected.filter((k) => k !== o.key)
+                                    : [...selected, o.key],
+                                )
+                              }
+                            />
+                            <span className="flex-1 truncate">{o.label}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </details>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
