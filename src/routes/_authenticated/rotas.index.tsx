@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin } from "lucide-react";
+import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -12,6 +12,13 @@ import { supabase } from "@/integrations/central/client";
 import { computeRoutePolyline } from "@/lib/route-directions.functions";
 import { sequenceStops } from "@/components/route-suggestions/SuggestionMap";
 import { getOrderCoord } from "@/lib/order-coords";
+import {
+  simularRota,
+  tabelaVigenteDaTransportadora,
+  type SimulacaoRota,
+  type TabelaSim,
+} from "@/lib/frete-simulacao";
+
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,7 +69,11 @@ type RouteRow = {
   total_distance_km: number | null;
   driver_name: string | null;
   notes: string | null;
-  freight_carriers: { full_name: string; vehicle_plate: string | null; transportadoras: { cod_erp: string | null } | null } | null;
+  freight_carriers: {
+    full_name: string;
+    vehicle_plate: string | null;
+    transportadoras: { id: string; cod_erp: string | null } | null;
+  } | null;
   route_orders: {
     stop_order: number | null;
     orders: {
@@ -73,10 +84,11 @@ type RouteRow = {
       erp_status: string | null;
       delivery_latitude: number | null;
       delivery_longitude: number | null;
-      customers: { latitude: number | null; longitude: number | null } | null;
+      customers: { latitude: number | null; longitude: number | null; city: string | null } | null;
     } | null;
   }[];
 };
+
 
 const currencyFmt = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -177,12 +189,20 @@ function StatusList({ map }: { map: Map<string, number> }) {
   );
 }
 
-function FreightInput({ route }: { route: RouteRow }) {
+function FreightInput({
+  route,
+  estimate,
+}: {
+  route: RouteRow;
+  estimate: SimulacaoRota | null;
+}) {
   const qc = useQueryClient();
+  const initial = Number(route.total_freight ?? 0);
+  const isEstimate = initial <= 0 && estimate != null;
   const [value, setValue] = useState<string>(
-    route.total_freight ? String(route.total_freight) : "",
+    initial > 0 ? String(initial) : isEstimate ? String(estimate!.total) : "",
   );
-  const initial = route.total_freight ?? 0;
+  const [estimated, setEstimated] = useState(isEstimate);
 
   const save = useMutation({
     mutationFn: async (next: number) => {
@@ -203,26 +223,48 @@ function FreightInput({ route }: { route: RouteRow }) {
     const n = Number(value.replace(",", "."));
     const next = Number.isFinite(n) ? n : 0;
     if (next === initial) return;
+    setEstimated(false);
     save.mutate(next);
   };
 
+  const title = estimate
+    ? `Estimativa calculada pela tabela de preço "${estimate.tabelaNome}" (${estimate.entregasCalculadas} de ${estimate.entregasTotal} entregas${estimate.parcial ? " — praça não identificada nas demais" : ""}). Edite para confirmar o valor real.`
+    : undefined;
+
   return (
-    <Input
-      type="number"
-      min="0"
-      step="0.01"
-      inputMode="decimal"
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-      }}
-      className="h-7 w-28 text-right tabular-nums text-xs"
-      placeholder="0,00"
-    />
+    <span className="inline-flex items-center gap-1 justify-end">
+      {estimated && (
+        <span
+          title={title}
+          className="inline-flex items-center gap-0.5 rounded border border-amber-500/30 bg-amber-500/15 px-1 py-0.5 text-[10px] font-semibold text-amber-600"
+        >
+          <Calculator className="h-3 w-3" /> est.
+        </span>
+      )}
+      <Input
+        type="number"
+        min="0"
+        step="0.01"
+        inputMode="decimal"
+        value={value}
+        title={estimated ? title : undefined}
+        onChange={(e) => {
+          setValue(e.target.value);
+          setEstimated(false);
+        }}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        }}
+        className={`h-7 w-28 text-right tabular-nums text-xs ${
+          estimated ? "border-amber-500/40 bg-amber-500/10 italic text-amber-700" : ""
+        }`}
+        placeholder="0,00"
+      />
+    </span>
   );
 }
+
 
 function DistanceCell({
   route,
@@ -383,7 +425,7 @@ function RotasPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate,transportadoras(cod_erp)),route_orders(stop_order,orders(customer_id,order_number,total_amount,weight,erp_status,delivery_latitude,delivery_longitude,customers(latitude,longitude)))",
+          "id,code,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate,transportadoras(id,cod_erp)),route_orders(stop_order,orders(customer_id,order_number,total_amount,weight,erp_status,delivery_latitude,delivery_longitude,customers(latitude,longitude,city)))",
         );
       if (error) throw error;
       const rows = ((data ?? []) as unknown as RouteRow[]).filter(
@@ -400,7 +442,74 @@ function RotasPage() {
     },
   });
 
+  const tabelasQ = useQuery({
+    queryKey: ["tabelas-frete-simulacao"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete")
+        .select("*, tabelas_preco_frete_faixas(*), tabelas_preco_frete_rotas(*)")
+        .eq("ativo", true);
+      if (error) throw error;
+      return (data ?? []) as unknown as TabelaSim[];
+    },
+  });
+
+  const vinculosQ = useQuery({
+    queryKey: ["tabelas-frete-vinculos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .select("tabela_id, transportadora_id");
+      if (error) throw error;
+      return (data ?? []) as { tabela_id: string; transportadora_id: string }[];
+    },
+  });
+
+  const estimativas = useMemo(() => {
+    const map = new Map<string, SimulacaoRota>();
+    const tabelas = tabelasQ.data ?? [];
+    const vinculos = vinculosQ.data ?? [];
+    if (!tabelas.length) return map;
+    for (const r of data ?? []) {
+      const transportadoraId = r.freight_carriers?.transportadoras?.id;
+      if (!transportadoraId) continue;
+      const tabela = tabelaVigenteDaTransportadora(tabelas, vinculos, transportadoraId);
+      if (!tabela) continue;
+      // Uma entrega por cliente da rota: soma peso e valor dos pedidos.
+      const porCliente = new Map<
+        string,
+        { peso: number; valorMercadoria: number; municipio: string | null }
+      >();
+      for (const ro of r.route_orders ?? []) {
+        const o = ro.orders;
+        if (!o?.customer_id) continue;
+        const atual = porCliente.get(o.customer_id) ?? {
+          peso: 0,
+          valorMercadoria: 0,
+          municipio: o.customers?.city ?? null,
+        };
+        atual.peso += Number(o.weight ?? 0);
+        atual.valorMercadoria += Number(o.total_amount ?? 0);
+        if (!atual.municipio) atual.municipio = o.customers?.city ?? null;
+        porCliente.set(o.customer_id, atual);
+      }
+      const sim = simularRota(tabela, Array.from(porCliente.values()));
+      if (sim) map.set(r.id, sim);
+    }
+    return map;
+  }, [data, tabelasQ.data, vinculosQ.data]);
+
+  /** Frete informado; na ausência, a estimativa da tabela da transportadora. */
+  const freteOf = useMemo(
+    () => (r: RouteRow) =>
+      Number(r.total_freight ?? 0) > 0
+        ? Number(r.total_freight)
+        : (estimativas.get(r.id)?.total ?? 0),
+    [estimativas],
+  );
+
   const columns = useMemo<ColumnDef<RouteRow>[]>(
+
     () => [
       {
         id: "route_date",
@@ -494,15 +603,22 @@ function RotasPage() {
         sortable: false,
         align: "right",
         filterable: false,
-        accessor: (r) => Number(r.total_freight ?? 0),
-        render: (r) => <FreightInput route={r} />,
+        accessor: (r) => freteOf(r),
+        render: (r) => (
+          <FreightInput
+            key={`${r.id}-${r.total_freight ?? 0}-${estimativas.get(r.id)?.total ?? 0}`}
+            route={r}
+            estimate={estimativas.get(r.id) ?? null}
+          />
+        ),
         className: "tabular-nums",
         aggregate: (rows) => (
           <span className="tabular-nums">
-            {currencyFmt.format(rows.reduce((s, r) => s + Number(r.total_freight ?? 0), 0))}
+            {currencyFmt.format(rows.reduce((s, r) => s + freteOf(r), 0))}
           </span>
         ),
       },
+
       {
         id: "freight_pct",
         header: "% Frete",
@@ -511,18 +627,23 @@ function RotasPage() {
         filterable: false,
         accessor: (r) => {
           const v = valorOf(r);
-          return v > 0 ? (Number(r.total_freight ?? 0) / v) * 100 : 0;
+          return v > 0 ? (freteOf(r) / v) * 100 : 0;
         },
         render: (r) => {
           const v = valorOf(r);
-          const f = Number(r.total_freight ?? 0);
+          const f = freteOf(r);
           if (v <= 0 || f <= 0) return <span className="text-muted-foreground">—</span>;
-          return `${((f / v) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
+          const est = Number(r.total_freight ?? 0) <= 0;
+          return (
+            <span className={est ? "italic text-amber-600" : undefined} title={est ? "Baseado na estimativa da tabela de preço" : undefined}>
+              {((f / v) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%
+            </span>
+          );
         },
         className: "tabular-nums text-xs",
         aggregate: (rows) => {
           const v = rows.reduce((s, r) => s + valorOf(r), 0);
-          const f = rows.reduce((s, r) => s + Number(r.total_freight ?? 0), 0);
+          const f = rows.reduce((s, r) => s + freteOf(r), 0);
           if (v <= 0 || f <= 0) return <span className="text-muted-foreground">—</span>;
           return (
             <span className="tabular-nums">
@@ -530,6 +651,7 @@ function RotasPage() {
             </span>
           );
         },
+
       },
       {
 
@@ -588,7 +710,7 @@ function RotasPage() {
         ),
       },
     ],
-    [depot],
+    [depot, estimativas, freteOf],
   );
 
 
