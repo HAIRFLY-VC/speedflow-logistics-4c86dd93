@@ -819,6 +819,59 @@ function MobileCard<T>({
   );
 }
 
+function MobileGroup<T>({
+  groupKey,
+  rows,
+  columns,
+  groupBy,
+  rowKey,
+  onRowClick,
+  rowClassName,
+}: {
+  groupKey: string;
+  rows: T[];
+  columns: ColumnDef<T>[];
+  groupBy: NonNullable<DataTableProps<T>["groupBy"]>;
+  rowKey: (row: T) => string;
+  onRowClick?: (row: T) => void;
+  rowClassName?: (row: T) => string | undefined;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="border rounded-lg bg-card overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-muted/40 text-left"
+        aria-expanded={expanded}
+        title={expanded ? "Comprimir detalhamento" : "Expandir detalhamento"}
+      >
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">
+          {groupBy.label(groupKey, rows)}
+        </span>
+        {expanded ? (
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        )}
+      </button>
+      {expanded && (
+        <div className="p-2 space-y-2">
+          {rows.map((r) => (
+            <MobileCard
+              key={rowKey(r)}
+              row={r}
+              columns={columns}
+              onRowClick={onRowClick}
+              rowClassName={rowClassName}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MobileControls<T>({
   columns,
   sort,
