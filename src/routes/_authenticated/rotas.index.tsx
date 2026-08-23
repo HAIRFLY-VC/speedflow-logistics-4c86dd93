@@ -562,7 +562,7 @@ function RotasPage() {
       if (sim) map.set(r.id, sim);
     }
     return map;
-  }, [data, tabelasQ.data, vinculosQ.data]);
+  }, [data, tabelasQ.data, vinculosQ.data, transpPorRota]);
 
   /** Frete informado; na ausência, a estimativa da tabela da transportadora. */
   const freteOf = useMemo(
