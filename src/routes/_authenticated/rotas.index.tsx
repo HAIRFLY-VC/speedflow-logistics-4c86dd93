@@ -675,8 +675,11 @@ function RotasPage() {
           groupBy={{
             id: "route_date",
             accessor: (r) => r.route_date,
-            label: (key) =>
-              `Total ${formatRouteDate(key)}`,
+            label: (key, rows) => {
+              const valor = rows.reduce((s, r) => s + valorOf(r), 0);
+              const peso = rows.reduce((s, r) => s + pesoOf(r), 0);
+              return `Total ${formatRouteDate(key)} · ${currencyFmt.format(valor)} · ${weightFmt.format(peso)} kg`;
+            },
           }}
         />
       </div>
