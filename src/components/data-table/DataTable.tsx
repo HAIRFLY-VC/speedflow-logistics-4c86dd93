@@ -115,6 +115,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
     scrollable,
   } = props;
 
+  const isMobile = useIsMobile();
+
+
+
 
   const {
     state,
