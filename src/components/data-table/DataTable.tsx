@@ -265,7 +265,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
         {(toolbarLeft || toolbarRight) && (
           <div className="flex flex-col gap-2 [&_input]:h-10 [&_button]:min-h-10">
             {toolbarLeft ? (
-              <div className="flex flex-wrap items-center gap-2 [&>*]:min-w-0 [&>*]:flex-1">
+              <div className="flex flex-wrap items-center gap-2 [&>*]:min-w-0 [&>button]:flex-auto [&>input]:w-full">
                 {toolbarLeft}
               </div>
             ) : null}
