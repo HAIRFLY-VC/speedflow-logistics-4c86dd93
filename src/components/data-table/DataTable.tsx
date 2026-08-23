@@ -1,5 +1,5 @@
 import { isValidElement, useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, ChevronsUpDown, Filter, SlidersHorizontal, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, ChevronsUpDown, Filter, SlidersHorizontal, X } from "lucide-react";
 
 import {
   Table,
@@ -311,22 +311,18 @@ export function DataTable<T>(props: DataTableProps<T>) {
             {emptyMessage}
           </div>
         ) : grouped ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {grouped.map(([key, rows]) => (
-              <div key={key} className="space-y-2">
-                <div className="text-xs uppercase tracking-wider text-muted-foreground">
-                  {groupBy!.label(key, rows)}
-                </div>
-                {rows.map((r) => (
-                  <MobileCard
-                    key={rowKey(r)}
-                    row={r}
-                    columns={visibleColumns}
-                    onRowClick={onRowClick}
-                    rowClassName={rowClassName}
-                  />
-                ))}
-              </div>
+              <MobileGroup
+                key={key}
+                groupKey={key}
+                rows={rows}
+                columns={visibleColumns}
+                groupBy={groupBy!}
+                rowKey={rowKey}
+                onRowClick={onRowClick}
+                rowClassName={rowClassName}
+              />
             ))}
           </div>
         ) : (
@@ -708,17 +704,9 @@ function GroupBlock<T>({
   onRowClick?: (row: T) => void;
   rowClassName?: (row: T) => string | undefined;
 }) {
+  const [expanded, setExpanded] = useState(false);
   return (
     <>
-      {rows.map((r) => (
-        <BodyRow
-          key={rowKey(r)}
-          row={r}
-          columns={columns}
-          onRowClick={onRowClick}
-          rowClassName={rowClassName}
-        />
-      ))}
       <TableRow className="bg-muted/50 font-semibold">
         {columns.map((c, idx) => {
           const alignClass =
@@ -733,7 +721,20 @@ function GroupBlock<T>({
                 key={c.id}
                 className="text-muted-foreground text-xs uppercase tracking-wider"
               >
-                {groupBy.label(groupKey, rows)}
+                <button
+                  type="button"
+                  onClick={() => setExpanded((e) => !e)}
+                  className="inline-flex items-center gap-1.5 hover:text-foreground"
+                  aria-expanded={expanded}
+                  title={expanded ? "Comprimir detalhamento" : "Expandir detalhamento"}
+                >
+                  {expanded ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                  <span>{groupBy.label(groupKey, rows)}</span>
+                </button>
               </TableCell>
             );
           }
@@ -744,6 +745,16 @@ function GroupBlock<T>({
           );
         })}
       </TableRow>
+      {expanded &&
+        rows.map((r) => (
+          <BodyRow
+            key={rowKey(r)}
+            row={r}
+            columns={columns}
+            onRowClick={onRowClick}
+            rowClassName={rowClassName}
+          />
+        ))}
     </>
   );
 }
@@ -805,6 +816,59 @@ function MobileCard<T>({
 
   return (
     <div className={`border rounded-lg bg-card p-3 ${rowClassName?.(row) ?? ""}`}>{content}</div>
+  );
+}
+
+function MobileGroup<T>({
+  groupKey,
+  rows,
+  columns,
+  groupBy,
+  rowKey,
+  onRowClick,
+  rowClassName,
+}: {
+  groupKey: string;
+  rows: T[];
+  columns: ColumnDef<T>[];
+  groupBy: NonNullable<DataTableProps<T>["groupBy"]>;
+  rowKey: (row: T) => string;
+  onRowClick?: (row: T) => void;
+  rowClassName?: (row: T) => string | undefined;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="border rounded-lg bg-card overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-muted/40 text-left"
+        aria-expanded={expanded}
+        title={expanded ? "Comprimir detalhamento" : "Expandir detalhamento"}
+      >
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">
+          {groupBy.label(groupKey, rows)}
+        </span>
+        {expanded ? (
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        )}
+      </button>
+      {expanded && (
+        <div className="p-2 space-y-2">
+          {rows.map((r) => (
+            <MobileCard
+              key={rowKey(r)}
+              row={r}
+              columns={columns}
+              onRowClick={onRowClick}
+              rowClassName={rowClassName}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
