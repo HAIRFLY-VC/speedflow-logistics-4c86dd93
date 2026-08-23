@@ -104,28 +104,36 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider open={open} onOpenChange={handleOpenChange}>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-dvh flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 border-b flex items-center px-3 gap-2 bg-card sticky top-0 z-10">
-            <SidebarTrigger title="Comprimir ou expandir menu lateral">
+          <header className="h-14 border-b grid grid-cols-[auto_minmax(0,1fr)_auto] items-center px-2 sm:px-3 gap-2 bg-card sticky top-0 z-10">
+            <SidebarTrigger
+              title="Comprimir ou expandir menu lateral"
+              aria-label="Comprimir ou expandir menu lateral"
+              className="h-10 w-10"
+            >
               <Menu className="h-5 w-5" />
             </SidebarTrigger>
-            <div className="flex items-center gap-2">
-              <Truck className="h-5 w-5 text-primary" />
-              <span className="font-semibold tracking-tight">SpeedFlow Logistics</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <Truck className="h-5 w-5 text-primary shrink-0" />
+              <span className="font-semibold tracking-tight truncate">
+                <span className="sm:hidden">SpeedFlow</span>
+                <span className="hidden sm:inline">SpeedFlow Logistics</span>
+              </span>
             </div>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <ErpSyncButton />
               <NotificationsBell />
             </div>
           </header>
-          <main className="flex-1 p-4 md:p-6 overflow-auto">{children}</main>
+          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">{children}</main>
         </div>
       </div>
     </SidebarProvider>
   );
 }
+
 
 function AppSidebar() {
   const { role, user, signOut } = useAuth();
