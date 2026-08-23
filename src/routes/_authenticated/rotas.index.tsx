@@ -594,15 +594,16 @@ function RotasPage() {
         sortable: false,
         align: "right",
         filterable: false,
-        accessor: (r) => Number(r.total_freight ?? 0),
-        render: (r) => <FreightInput route={r} />,
+        accessor: (r) => freteOf(r),
+        render: (r) => <FreightInput route={r} estimate={estimativas.get(r.id) ?? null} />,
         className: "tabular-nums",
         aggregate: (rows) => (
           <span className="tabular-nums">
-            {currencyFmt.format(rows.reduce((s, r) => s + Number(r.total_freight ?? 0), 0))}
+            {currencyFmt.format(rows.reduce((s, r) => s + freteOf(r), 0))}
           </span>
         ),
       },
+
       {
         id: "freight_pct",
         header: "% Frete",
