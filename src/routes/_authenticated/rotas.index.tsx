@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin } from "lucide-react";
+import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -12,6 +12,13 @@ import { supabase } from "@/integrations/central/client";
 import { computeRoutePolyline } from "@/lib/route-directions.functions";
 import { sequenceStops } from "@/components/route-suggestions/SuggestionMap";
 import { getOrderCoord } from "@/lib/order-coords";
+import {
+  simularRota,
+  tabelaVigenteDaTransportadora,
+  type SimulacaoRota,
+  type TabelaSim,
+} from "@/lib/frete-simulacao";
+
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
