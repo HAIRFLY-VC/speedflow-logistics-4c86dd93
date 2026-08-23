@@ -1,5 +1,5 @@
 import { isValidElement, useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, ChevronsUpDown, Filter, SlidersHorizontal, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, ChevronsUpDown, Filter, SlidersHorizontal, X } from "lucide-react";
 
 import {
   Table,
