@@ -62,7 +62,11 @@ type RouteRow = {
   total_distance_km: number | null;
   driver_name: string | null;
   notes: string | null;
-  freight_carriers: { full_name: string; vehicle_plate: string | null; transportadoras: { cod_erp: string | null } | null } | null;
+  freight_carriers: {
+    full_name: string;
+    vehicle_plate: string | null;
+    transportadoras: { id: string; cod_erp: string | null } | null;
+  } | null;
   route_orders: {
     stop_order: number | null;
     orders: {
@@ -73,10 +77,11 @@ type RouteRow = {
       erp_status: string | null;
       delivery_latitude: number | null;
       delivery_longitude: number | null;
-      customers: { latitude: number | null; longitude: number | null } | null;
+      customers: { latitude: number | null; longitude: number | null; city: string | null } | null;
     } | null;
   }[];
 };
+
 
 const currencyFmt = new Intl.NumberFormat("pt-BR", {
   style: "currency",
