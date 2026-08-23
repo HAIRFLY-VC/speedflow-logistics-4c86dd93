@@ -704,7 +704,7 @@ function RotasPage() {
         ),
       },
     ],
-    [depot],
+    [depot, estimativas, freteOf],
   );
 
 
