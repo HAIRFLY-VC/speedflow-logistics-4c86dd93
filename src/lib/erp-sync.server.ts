@@ -400,7 +400,7 @@ export async function syncErpOrders(opts: {
       if (carrierCache.has(codErp)) return carrierCache.get(codErp) ?? null;
       const { data: transp } = await centralDb
         .from("transportadoras")
-        .select("id")
+        .select("id,razao_social")
         .eq("cod_erp", codErp)
         .maybeSingle();
       if (!transp) {
@@ -412,10 +412,25 @@ export async function syncErpOrders(opts: {
         .select("id")
         .eq("transportadora_id", transp.id)
         .maybeSingle();
-      const id = carrier?.id ?? null;
+      let id = carrier?.id ?? null;
+      if (!id) {
+        // Transportadora cadastrada sem fretista correspondente: cria o vínculo
+        // para que a rota fique associada (e a simulação de frete funcione).
+        const { data: novo } = await centralDb
+          .from("freight_carriers")
+          .insert({
+            full_name: transp.razao_social,
+            transportadora_id: transp.id,
+            is_active: true,
+          })
+          .select("id")
+          .single();
+        id = novo?.id ?? null;
+      }
       carrierCache.set(codErp, id);
       return id;
     }
+
 
     for (const g of groups.values()) {
       try {
