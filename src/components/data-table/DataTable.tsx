@@ -311,22 +311,18 @@ export function DataTable<T>(props: DataTableProps<T>) {
             {emptyMessage}
           </div>
         ) : grouped ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {grouped.map(([key, rows]) => (
-              <div key={key} className="space-y-2">
-                <div className="text-xs uppercase tracking-wider text-muted-foreground">
-                  {groupBy!.label(key, rows)}
-                </div>
-                {rows.map((r) => (
-                  <MobileCard
-                    key={rowKey(r)}
-                    row={r}
-                    columns={visibleColumns}
-                    onRowClick={onRowClick}
-                    rowClassName={rowClassName}
-                  />
-                ))}
-              </div>
+              <MobileGroup
+                key={key}
+                groupKey={key}
+                rows={rows}
+                columns={visibleColumns}
+                groupBy={groupBy!}
+                rowKey={rowKey}
+                onRowClick={onRowClick}
+                rowClassName={rowClassName}
+              />
             ))}
           </div>
         ) : (
