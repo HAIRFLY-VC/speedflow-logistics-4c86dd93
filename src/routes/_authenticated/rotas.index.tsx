@@ -505,16 +505,41 @@ function RotasPage() {
     },
   });
 
+
+  const transportadorasQ = useQuery({
+    queryKey: ["transportadoras-simulacao"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transportadoras")
+        .select("id, razao_social, cod_erp")
+        .eq("ativo", true);
+      if (error) throw error;
+      return (data ?? []) as TransportadoraLite[];
+    },
+  });
+
+  /** Transportadora resolvida por rota (vínculo direto ou casamento por nome). */
+  const transpPorRota = useMemo(() => {
+    const map = new Map<string, TransportadoraLite>();
+    const lista = transportadorasQ.data ?? [];
+    for (const r of data ?? []) {
+      const t = resolveTransportadora(r, lista);
+      if (t) map.set(r.id, t);
+    }
+    return map;
+  }, [data, transportadorasQ.data]);
+
   const estimativas = useMemo(() => {
     const map = new Map<string, SimulacaoRota>();
     const tabelas = tabelasQ.data ?? [];
     const vinculos = vinculosQ.data ?? [];
     if (!tabelas.length) return map;
     for (const r of data ?? []) {
-      const transportadoraId = r.freight_carriers?.transportadoras?.id;
+      const transportadoraId = transpPorRota.get(r.id)?.id;
       if (!transportadoraId) continue;
       const tabela = tabelaVigenteDaTransportadora(tabelas, vinculos, transportadoraId);
       if (!tabela) continue;
+
       // Uma entrega por cliente da rota: soma peso e valor dos pedidos.
       const porCliente = new Map<
         string,
