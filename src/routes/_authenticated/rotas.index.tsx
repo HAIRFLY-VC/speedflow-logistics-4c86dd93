@@ -117,12 +117,52 @@ function formatRouteDate(value: string | null | undefined): string {
 function nomeRotaOf(r: RouteRow) {
   return r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code;
 }
-function motoristaOf(r: RouteRow) {
+function motoristaOf(r: RouteRow, codFallback?: string | null) {
   const name = r.driver_name ?? r.freight_carriers?.full_name ?? "";
-  const cod = r.freight_carriers?.transportadoras?.cod_erp;
+  const cod = r.freight_carriers?.transportadoras?.cod_erp ?? codFallback ?? null;
   if (name && cod) return `${name} (${cod})`;
   return name;
 }
+
+type TransportadoraLite = { id: string; razao_social: string; cod_erp: string | null };
+
+const normalizaNome = (v: string) =>
+  v
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, " ")
+    .trim();
+
+/**
+ * Resolve a transportadora da rota. Prioriza o vínculo por `freight_carriers`;
+ * quando a rota veio do ERP sem esse vínculo, casa pelo nome (o ERP trunca a
+ * razão social, então comparamos por prefixo).
+ */
+function resolveTransportadora(
+  r: RouteRow,
+  transportadoras: TransportadoraLite[],
+): TransportadoraLite | null {
+  const vinculada = r.freight_carriers?.transportadoras?.id;
+  if (vinculada) {
+    return (
+      transportadoras.find((t) => t.id === vinculada) ?? {
+        id: vinculada,
+        razao_social: "",
+        cod_erp: r.freight_carriers?.transportadoras?.cod_erp ?? null,
+      }
+    );
+  }
+  const nome = normalizaNome(r.driver_name ?? r.freight_carriers?.full_name ?? "");
+  if (nome.length < 4) return null;
+  return (
+    transportadoras.find((t) => {
+      const alvo = normalizaNome(t.razao_social ?? "");
+      return alvo === nome || alvo.startsWith(nome) || nome.startsWith(alvo);
+    }) ?? null
+  );
+}
+
 function paradasOf(r: RouteRow) {
   const set = new Set<string>();
   for (const ro of r.route_orders ?? []) {
