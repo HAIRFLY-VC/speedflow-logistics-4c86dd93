@@ -604,7 +604,13 @@ function RotasPage() {
         align: "right",
         filterable: false,
         accessor: (r) => freteOf(r),
-        render: (r) => <FreightInput route={r} estimate={estimativas.get(r.id) ?? null} />,
+        render: (r) => (
+          <FreightInput
+            key={`${r.id}-${r.total_freight ?? 0}-${estimativas.get(r.id)?.total ?? 0}`}
+            route={r}
+            estimate={estimativas.get(r.id) ?? null}
+          />
+        ),
         className: "tabular-nums",
         aggregate: (rows) => (
           <span className="tabular-nums">
