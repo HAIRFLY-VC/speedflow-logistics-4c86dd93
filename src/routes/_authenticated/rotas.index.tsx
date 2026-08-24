@@ -679,11 +679,13 @@ function RotasPage() {
         filterable: false,
         accessor: (r) => freteOf(r),
         render: (r) => (
-          <FreightInput
-            key={`${r.id}-${r.total_freight ?? 0}-${estimativas.get(r.id)?.total ?? 0}`}
-            route={r}
-            estimate={estimativas.get(r.id) ?? null}
-          />
+          <span onClick={(e) => e.stopPropagation()}>
+            <FreightInput
+              key={`${r.id}-${r.total_freight ?? 0}-${estimativas.get(r.id)?.total ?? 0}`}
+              route={r}
+              estimate={estimativas.get(r.id) ?? null}
+            />
+          </span>
         ),
         className: "tabular-nums",
         aggregate: (rows) => (
