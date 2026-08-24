@@ -871,6 +871,9 @@ function RotasPage() {
           rowKey={(r) => r.id}
           emptyMessage="Nenhuma rota criada."
           onFilteredChange={setFilteredData}
+          onRowClick={(r) =>
+            navigate({ to: "/rotas/$routeId", params: { routeId: r.id } })
+          }
           groupBy={{
             id: "route_date",
             accessor: (r) => r.route_date,
