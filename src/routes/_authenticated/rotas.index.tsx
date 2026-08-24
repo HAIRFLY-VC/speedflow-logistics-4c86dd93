@@ -874,7 +874,14 @@ function RotasPage() {
             label: (key, rows) => {
               const valor = rows.reduce((s, r) => s + valorOf(r), 0);
               const peso = rows.reduce((s, r) => s + pesoOf(r), 0);
-              return `Total ${formatRouteDate(key)} · ${currencyFmt.format(valor)} · ${weightFmt.format(peso)} kg`;
+              return (
+                <>
+                  <span className="hidden sm:inline">{formatRouteDate(key)}</span>
+                  <span className="inline sm:hidden">
+                    Total {formatRouteDate(key)} · {currencyFmt.format(valor)} · {weightFmt.format(peso)} kg
+                  </span>
+                </>
+              );
             },
           }}
         />
