@@ -657,7 +657,11 @@ function RotasPage() {
         align: "right",
         filterable: false,
         accessor: (r) => Number(r.total_distance_km ?? 0),
-        render: (r) => <DistanceCell route={r} depot={depot} />,
+        render: (r) => (
+          <span onClick={(e) => e.stopPropagation()}>
+            <DistanceCell route={r} depot={depot} />
+          </span>
+        ),
         className: "tabular-nums text-xs",
         aggregate: (rows) => (
           <span className="tabular-nums">
