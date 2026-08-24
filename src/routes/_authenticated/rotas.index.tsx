@@ -582,11 +582,7 @@ function RotasPage() {
         sortable: false,
         accessor: (r) => r.route_date,
         render: (r) => (
-          <Link
-            to="/rotas/$routeId"
-            params={{ routeId: r.id }}
-            className="text-primary hover:underline"
-          >
+          <span className="text-primary">
             <span className="hidden sm:inline">{formatRouteDate(r.route_date)}</span>
             <span className="inline-flex flex-col gap-0.5 sm:hidden">
               <span>Total {formatRouteDate(r.route_date)}</span>
@@ -594,7 +590,7 @@ function RotasPage() {
                 {currencyFmt.format(valorOf(r))} · {weightFmt.format(pesoOf(r))} kg
               </span>
             </span>
-          </Link>
+          </span>
         ),
       },
       {
