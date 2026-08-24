@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator } from "lucide-react";
@@ -437,6 +437,7 @@ function DistanceCell({
 
 function RotasPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [filteredData, setFilteredData] = useState<RouteRow[] | undefined>();
 
@@ -582,11 +583,7 @@ function RotasPage() {
         sortable: false,
         accessor: (r) => r.route_date,
         render: (r) => (
-          <Link
-            to="/rotas/$routeId"
-            params={{ routeId: r.id }}
-            className="text-primary hover:underline"
-          >
+          <span className="text-primary">
             <span className="hidden sm:inline">{formatRouteDate(r.route_date)}</span>
             <span className="inline-flex flex-col gap-0.5 sm:hidden">
               <span>Total {formatRouteDate(r.route_date)}</span>
@@ -594,7 +591,7 @@ function RotasPage() {
                 {currencyFmt.format(valorOf(r))} · {weightFmt.format(pesoOf(r))} kg
               </span>
             </span>
-          </Link>
+          </span>
         ),
       },
       {
@@ -661,7 +658,11 @@ function RotasPage() {
         align: "right",
         filterable: false,
         accessor: (r) => Number(r.total_distance_km ?? 0),
-        render: (r) => <DistanceCell route={r} depot={depot} />,
+        render: (r) => (
+          <span onClick={(e) => e.stopPropagation()}>
+            <DistanceCell route={r} depot={depot} />
+          </span>
+        ),
         className: "tabular-nums text-xs",
         aggregate: (rows) => (
           <span className="tabular-nums">
@@ -679,11 +680,13 @@ function RotasPage() {
         filterable: false,
         accessor: (r) => freteOf(r),
         render: (r) => (
-          <FreightInput
-            key={`${r.id}-${r.total_freight ?? 0}-${estimativas.get(r.id)?.total ?? 0}`}
-            route={r}
-            estimate={estimativas.get(r.id) ?? null}
-          />
+          <span onClick={(e) => e.stopPropagation()}>
+            <FreightInput
+              key={`${r.id}-${r.total_freight ?? 0}-${estimativas.get(r.id)?.total ?? 0}`}
+              route={r}
+              estimate={estimativas.get(r.id) ?? null}
+            />
+          </span>
         ),
         className: "tabular-nums",
         aggregate: (rows) => (
@@ -868,6 +871,9 @@ function RotasPage() {
           rowKey={(r) => r.id}
           emptyMessage="Nenhuma rota criada."
           onFilteredChange={setFilteredData}
+          onRowClick={(r) =>
+            navigate({ to: "/rotas/$routeId", params: { routeId: r.id } })
+          }
           groupBy={{
             id: "route_date",
             accessor: (r) => r.route_date,
