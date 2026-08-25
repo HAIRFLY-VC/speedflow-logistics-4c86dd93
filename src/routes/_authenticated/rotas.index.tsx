@@ -584,13 +584,7 @@ function RotasPage() {
         accessor: (r) => r.route_date,
         render: (r) => (
           <span className="text-primary">
-            <span className="hidden sm:inline">{formatRouteDate(r.route_date)}</span>
-            <span className="inline-flex flex-col gap-0.5 sm:hidden">
-              <span>Total {formatRouteDate(r.route_date)}</span>
-              <span className="text-xs text-muted-foreground">
-                {currencyFmt.format(valorOf(r))} · {weightFmt.format(pesoOf(r))} kg
-              </span>
-            </span>
+            {formatRouteDate(r.route_date)}
           </span>
         ),
       },
