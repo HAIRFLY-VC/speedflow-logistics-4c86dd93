@@ -243,6 +243,7 @@ function FreightInput({
     initial > 0 ? String(initial) : isEstimate ? String(estimate!.total) : "",
   );
   const [estimated, setEstimated] = useState(isEstimate);
+  const [dirty, setDirty] = useState(false);
 
   const save = useMutation({
     mutationFn: async (next: number) => {
@@ -260,9 +261,11 @@ function FreightInput({
   });
 
   const commit = () => {
+    if (!dirty) return;
     const n = Number(value.replace(",", "."));
     const next = Number.isFinite(n) ? n : 0;
     if (next === initial) return;
+    setDirty(false);
     setEstimated(false);
     save.mutate(next);
   };
@@ -290,10 +293,12 @@ function FreightInput({
         title={estimated ? title : undefined}
         onChange={(e) => {
           setValue(e.target.value);
+          setDirty(true);
           setEstimated(false);
         }}
         onBlur={commit}
         onKeyDown={(e) => {
+          e.stopPropagation();
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
         }}
         className={`h-7 w-28 text-right tabular-nums text-xs ${

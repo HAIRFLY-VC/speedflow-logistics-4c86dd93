@@ -802,6 +802,7 @@ function MobileCard<T>({
         tabIndex={0}
         onClick={() => onRowClick(row)}
         onKeyDown={(e) => {
+          if (e.currentTarget !== e.target) return;
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             onRowClick(row);
