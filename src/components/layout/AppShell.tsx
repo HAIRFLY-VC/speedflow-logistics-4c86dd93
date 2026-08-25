@@ -115,17 +115,19 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <span className="hidden sm:inline">SpeedFlow Logistics</span>
               </span>
             </div>
+            <div className="order-2 sm:order-3">
+              <ErpSyncButton />
+            </div>
+            <div className="order-3 sm:order-4">
+              <NotificationsBell />
+            </div>
             <SidebarTrigger
               title="Comprimir ou expandir menu lateral"
               aria-label="Comprimir ou expandir menu lateral"
-              className="h-10 w-10 order-2 sm:order-1"
+              className="h-10 w-10 order-4 sm:order-1"
             >
               <Menu className="h-5 w-5" />
             </SidebarTrigger>
-            <div className="flex items-center gap-1 sm:gap-2 order-3">
-              <ErpSyncButton />
-              <NotificationsBell />
-            </div>
           </header>
           <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">{children}</main>
         </div>
