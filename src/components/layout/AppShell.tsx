@@ -107,22 +107,22 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="min-h-dvh flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 border-b grid grid-cols-[auto_minmax(0,1fr)_auto] items-center px-2 sm:px-3 gap-2 bg-card sticky top-0 z-10">
-            <SidebarTrigger
-              title="Comprimir ou expandir menu lateral"
-              aria-label="Comprimir ou expandir menu lateral"
-              className="h-10 w-10"
-            >
-              <Menu className="h-5 w-5" />
-            </SidebarTrigger>
-            <div className="flex items-center gap-2 min-w-0">
+          <header className="h-14 border-b flex items-center justify-between px-2 sm:px-3 gap-2 bg-card sticky top-0 z-10">
+            <div className="flex items-center gap-2 min-w-0 order-1 sm:order-2">
               <Truck className="h-5 w-5 text-primary shrink-0" />
               <span className="font-semibold tracking-tight truncate">
                 <span className="sm:hidden">SpeedFlow</span>
                 <span className="hidden sm:inline">SpeedFlow Logistics</span>
               </span>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2">
+            <SidebarTrigger
+              title="Comprimir ou expandir menu lateral"
+              aria-label="Comprimir ou expandir menu lateral"
+              className="h-10 w-10 order-2 sm:order-1"
+            >
+              <Menu className="h-5 w-5" />
+            </SidebarTrigger>
+            <div className="flex items-center gap-1 sm:gap-2 order-3">
               <ErpSyncButton />
               <NotificationsBell />
             </div>
