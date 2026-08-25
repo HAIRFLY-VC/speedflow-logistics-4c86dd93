@@ -261,9 +261,11 @@ function FreightInput({
   });
 
   const commit = () => {
+    if (!dirty) return;
     const n = Number(value.replace(",", "."));
     const next = Number.isFinite(n) ? n : 0;
     if (next === initial) return;
+    setDirty(false);
     setEstimated(false);
     save.mutate(next);
   };
