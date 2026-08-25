@@ -293,10 +293,12 @@ function FreightInput({
         title={estimated ? title : undefined}
         onChange={(e) => {
           setValue(e.target.value);
+          setDirty(true);
           setEstimated(false);
         }}
         onBlur={commit}
         onKeyDown={(e) => {
+          e.stopPropagation();
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
         }}
         className={`h-7 w-28 text-right tabular-nums text-xs ${
