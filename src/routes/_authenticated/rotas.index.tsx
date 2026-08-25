@@ -243,6 +243,7 @@ function FreightInput({
     initial > 0 ? String(initial) : isEstimate ? String(estimate!.total) : "",
   );
   const [estimated, setEstimated] = useState(isEstimate);
+  const [dirty, setDirty] = useState(false);
 
   const save = useMutation({
     mutationFn: async (next: number) => {
