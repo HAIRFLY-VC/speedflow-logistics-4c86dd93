@@ -7,6 +7,7 @@ import {
   ORDER_STATUS_LABEL,
   STATUS_TONE,
   formatCurrency,
+  formatCurrencyNoSymbol,
   isStageLate,
   type OrderStatus,
   type SlaSettings,
