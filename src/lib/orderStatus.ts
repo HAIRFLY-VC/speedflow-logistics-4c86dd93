@@ -45,6 +45,10 @@ export function formatCurrency(n: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 }
 
+export function formatCurrencyNoSymbol(n: number) {
+  return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
+
 export type SlaSettings = {
   sla_commercial_approval_hours: number;
   sla_credit_approval_hours: number;

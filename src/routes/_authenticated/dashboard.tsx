@@ -7,6 +7,7 @@ import {
   ORDER_STATUS_LABEL,
   STATUS_TONE,
   formatCurrency,
+  formatCurrencyNoSymbol,
   isStageLate,
   type OrderStatus,
   type SlaSettings,
@@ -179,8 +180,9 @@ function DashboardPage() {
           <Kpi
             icon={DollarSign}
             label="Receita"
-            value={formatCurrency(totals.revenue)}
+            value={formatCurrencyNoSymbol(totals.revenue)}
             loading={isLoading}
+            compact
           />
         </div>
 
@@ -319,12 +321,14 @@ function Kpi({
   value,
   loading,
   tone,
+  compact,
 }: {
   icon: typeof ShoppingCart;
   label: string;
   value: string | number;
   loading?: boolean;
   tone?: string;
+  compact?: boolean;
 }) {
   return (
     <Card>
@@ -336,7 +340,11 @@ function Kpi({
         {loading ? (
           <Skeleton className="h-7 w-20 mt-2" />
         ) : (
-          <div className={`mt-1 text-2xl font-semibold tabular-nums ${tone ?? ""}`}>{value}</div>
+          <div
+            className={`mt-1 font-semibold tabular-nums leading-tight ${compact ? "text-xl" : "text-2xl"} ${tone ?? ""}`}
+          >
+            {value}
+          </div>
         )}
       </CardContent>
     </Card>
