@@ -101,7 +101,10 @@ const weightFmt = new Intl.NumberFormat("pt-BR", {
 
 function formatRouteDate(value: string | null | undefined): string {
   if (!value) return "";
-  const iso = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const str = String(value);
+  if (str.startsWith("3000-01-01") || str.startsWith("4000-01-01"))
+    return "Sem data prevista";
+  const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
   const dmy = String(value).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
   if (dmy) {
