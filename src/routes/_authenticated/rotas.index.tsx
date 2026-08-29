@@ -488,7 +488,9 @@ function RotasPage() {
         (r) => (r.route_orders ?? []).length > 0,
       );
       rows.sort((a, b) => {
-        const d = String(a.route_date).localeCompare(String(b.route_date));
+        const d = routeDateSortKey(a.route_date).localeCompare(
+          routeDateSortKey(b.route_date),
+        );
         if (d !== 0) return d;
         return nomeRotaOf(a).localeCompare(nomeRotaOf(b), undefined, {
           sensitivity: "base",
