@@ -102,8 +102,8 @@ const weightFmt = new Intl.NumberFormat("pt-BR", {
 function formatRouteDate(value: string | null | undefined): string {
   if (!value) return "";
   const str = String(value);
-  if (str.startsWith("3000-01-01") || str.startsWith("4000-01-01"))
-    return "Sem data prevista";
+  if (str.startsWith("4000-01-01")) return "Não planejado";
+  if (str.startsWith("3000-01-01")) return "Sem data prevista";
   const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
   const dmy = String(value).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
@@ -115,6 +115,13 @@ function formatRouteDate(value: string | null | undefined): string {
     return `${d}/${m}/${y}`;
   }
   return String(value);
+}
+
+function routeDateSortKey(value: string | null | undefined): string {
+  const str = String(value ?? "");
+  if (str.startsWith("4000-01-01")) return "z";
+  if (str.startsWith("3000-01-01")) return "y";
+  return str;
 }
 
 function nomeRotaOf(r: RouteRow) {
@@ -481,7 +488,9 @@ function RotasPage() {
         (r) => (r.route_orders ?? []).length > 0,
       );
       rows.sort((a, b) => {
-        const d = String(a.route_date).localeCompare(String(b.route_date));
+        const d = routeDateSortKey(a.route_date).localeCompare(
+          routeDateSortKey(b.route_date),
+        );
         if (d !== 0) return d;
         return nomeRotaOf(a).localeCompare(nomeRotaOf(b), undefined, {
           sensitivity: "base",
