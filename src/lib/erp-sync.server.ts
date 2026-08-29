@@ -368,20 +368,23 @@ export async function syncErpOrders(opts: {
     };
     const groups = new Map<string, RouteGroup>();
     for (const row of rows) {
-      const nome = (row.NOME_ROTA ?? "").trim();
-      if (!nome) continue;
+      const erpRouteId =
+        row.ID_ROTA != null && String(row.ID_ROTA).trim() !== ""
+          ? String(row.ID_ROTA).trim()
+          : null;
+      let nome = (row.NOME_ROTA ?? "").trim();
+      // Rotas com DT_PREV_EXP sentinela (3000/4000) também devem ser exibidas.
+      // 4000-01-01 = sem data prevista (e às vezes sem NOME_ROTA): usa fallback pelo ID_ROTA.
+      if (!nome) {
+        if (erpRouteId) nome = `ROTA ${erpRouteId}`;
+        else continue;
+      }
       const dt = parseErpDate(row.DT_PREV_EXP);
-      if (!dt) continue;
-      const dateOnly = dt.slice(0, 10);
-      if (dateOnly === "3000-01-01" || dateOnly === "4000-01-01") continue;
+      const dateOnly = dt ? dt.slice(0, 10) : "3000-01-01";
       const driver = row.NOME_MOTORISTA?.trim() || null;
       const carrierCode =
         row.COD_FRT_TRP != null && String(row.COD_FRT_TRP).trim() !== ""
           ? String(row.COD_FRT_TRP).trim()
-          : null;
-      const erpRouteId =
-        row.ID_ROTA != null && String(row.ID_ROTA).trim() !== ""
-          ? String(row.ID_ROTA).trim()
           : null;
       const key = erpRouteId
         ? `erp:${erpRouteId}`
