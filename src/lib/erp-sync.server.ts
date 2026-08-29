@@ -531,6 +531,7 @@ export async function syncErpOrders(opts: {
 
         let routeId: string;
         if (existing) {
+          // Rota finalizada (concluída/cancelada) reencontrada: apenas atualiza
           routeId = existing.id;
           await centralDb
             .from("routes")
@@ -538,21 +539,27 @@ export async function syncErpOrders(opts: {
               driver_name: g.driver,
               route_date: g.date,
               erp_route_id: g.erpRouteId,
-              carrier_id: carrierId,
+              carrier_id: carrierId ?? undefined,
               code: g.erpRouteId ? `erp-${g.erpRouteId}` : undefined,
             })
             .eq("id", routeId);
 
         } else {
+          const snap =
+            (g.erpRouteId ? snapshotByErpId.get(g.erpRouteId) : undefined) ??
+            snapshotByCode.get(code);
           const { data: ins, error } = await centralDb
             .from("routes")
             .insert({
               code,
               route_date: g.date,
               driver_name: g.driver,
-              notes: `Rota ${g.nome}`,
+              notes: snap?.notes ?? `Rota ${g.nome}`,
               erp_route_id: g.erpRouteId,
-              carrier_id: carrierId,
+              carrier_id: carrierId ?? snap?.carrier_id ?? null,
+              total_freight: snap?.total_freight ?? 0,
+              total_distance_km: snap?.total_distance_km ?? null,
+              status: (snap?.status as "planejada" | "em_andamento") ?? "planejada",
             })
             .select("id")
             .single();
