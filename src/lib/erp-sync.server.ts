@@ -432,6 +432,63 @@ export async function syncErpOrders(opts: {
     }
 
 
+    // Rotas pendentes (planejada/em_andamento) são sempre excluídas e reinseridas
+    // a partir do retorno da query — o ERP é a fonte da verdade.
+    // Dados informados manualmente são preservados via snapshot.
+    type RouteSnapshot = {
+      erp_route_id: string | null;
+      code: string;
+      total_freight: number | null;
+      total_distance_km: number | null;
+      carrier_id: string | null;
+      status: string;
+      notes: string | null;
+    };
+    const snapshotByErpId = new Map<string, RouteSnapshot>();
+    const snapshotByCode = new Map<string, RouteSnapshot>();
+    try {
+      const { data: pendingRoutes, error: pendErr } = await centralDb
+        .from("routes")
+        .select("id,erp_route_id,code,total_freight,total_distance_km,carrier_id,status,notes")
+        .in("status", ["planejada", "em_andamento"]);
+      if (pendErr) throw pendErr;
+
+      const pendingIds = (pendingRoutes ?? []).map((r) => r.id as string);
+      for (const r of pendingRoutes ?? []) {
+        const snap: RouteSnapshot = {
+          erp_route_id: (r.erp_route_id as string | null) ?? null,
+          code: r.code as string,
+          total_freight: (r.total_freight as number | null) ?? null,
+          total_distance_km: (r.total_distance_km as number | null) ?? null,
+          carrier_id: (r.carrier_id as string | null) ?? null,
+          status: r.status as string,
+          notes: (r.notes as string | null) ?? null,
+        };
+        if (snap.erp_route_id) snapshotByErpId.set(snap.erp_route_id, snap);
+        snapshotByCode.set(snap.code, snap);
+      }
+
+      if (pendingIds.length > 0) {
+        const { error: roErr } = await centralDb
+          .from("route_orders")
+          .delete()
+          .in("route_id", pendingIds);
+        if (roErr) throw roErr;
+        const { error: dmErr } = await centralDb
+          .from("delivery_manifests")
+          .delete()
+          .in("route_id", pendingIds);
+        if (dmErr) throw dmErr;
+        const { error: delRoutesErr } = await centralDb
+          .from("routes")
+          .delete()
+          .in("id", pendingIds);
+        if (delRoutesErr) throw delRoutesErr;
+      }
+    } catch (e) {
+      errors.push({ pedido: 0, message: `Reinserção de rotas pendentes: ${describeError(e)}` });
+    }
+
     for (const g of groups.values()) {
       try {
         const code = g.erpRouteId
@@ -474,6 +531,7 @@ export async function syncErpOrders(opts: {
 
         let routeId: string;
         if (existing) {
+          // Rota finalizada (concluída/cancelada) reencontrada: apenas atualiza
           routeId = existing.id;
           await centralDb
             .from("routes")
@@ -481,21 +539,27 @@ export async function syncErpOrders(opts: {
               driver_name: g.driver,
               route_date: g.date,
               erp_route_id: g.erpRouteId,
-              carrier_id: carrierId,
+              carrier_id: carrierId ?? undefined,
               code: g.erpRouteId ? `erp-${g.erpRouteId}` : undefined,
             })
             .eq("id", routeId);
 
         } else {
+          const snap =
+            (g.erpRouteId ? snapshotByErpId.get(g.erpRouteId) : undefined) ??
+            snapshotByCode.get(code);
           const { data: ins, error } = await centralDb
             .from("routes")
             .insert({
               code,
               route_date: g.date,
               driver_name: g.driver,
-              notes: `Rota ${g.nome}`,
+              notes: snap?.notes ?? `Rota ${g.nome}`,
               erp_route_id: g.erpRouteId,
-              carrier_id: carrierId,
+              carrier_id: carrierId ?? snap?.carrier_id ?? null,
+              total_freight: snap?.total_freight ?? 0,
+              total_distance_km: snap?.total_distance_km ?? null,
+              status: (snap?.status as "planejada" | "em_andamento") ?? "planejada",
             })
             .select("id")
             .single();
