@@ -372,15 +372,17 @@ export async function syncErpOrders(opts: {
         row.ID_ROTA != null && String(row.ID_ROTA).trim() !== ""
           ? String(row.ID_ROTA).trim()
           : null;
-      let nome = (row.NOME_ROTA ?? "").trim();
-      // Rotas com DT_PREV_EXP sentinela (3000/4000) também devem ser exibidas.
-      // 4000-01-01 = sem data prevista (e às vezes sem NOME_ROTA): usa fallback pelo ID_ROTA.
-      if (!nome) {
-        if (erpRouteId) nome = `ROTA ${erpRouteId}`;
-        else continue;
-      }
       const dt = parseErpDate(row.DT_PREV_EXP);
       const dateOnly = dt ? dt.slice(0, 10) : "3000-01-01";
+      let nome = (row.NOME_ROTA ?? "").trim();
+      // Rotas com DT_PREV_EXP sentinela (3000/4000) também devem ser exibidas.
+      // 4000-01-01 representa pedidos ainda sem rota no ERP, portanto normalmente
+      // não possui NOME_ROTA nem ID_ROTA. Agrupa esses pedidos em uma rota visível.
+      if (!nome) {
+        if (erpRouteId) nome = `ROTA ${erpRouteId}`;
+        else if (dateOnly === "4000-01-01") nome = "NÃO PLANEJADO";
+        else continue;
+      }
       const driver = row.NOME_MOTORISTA?.trim() || null;
       const carrierCode =
         row.COD_FRT_TRP != null && String(row.COD_FRT_TRP).trim() !== ""
