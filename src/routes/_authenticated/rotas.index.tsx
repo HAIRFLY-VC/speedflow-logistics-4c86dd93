@@ -481,7 +481,7 @@ function RotasPage() {
 
 
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error: routesError } = useQuery({
     queryKey: ["routes"],
     queryFn: async () => {
       const { data, error } = await supabase
