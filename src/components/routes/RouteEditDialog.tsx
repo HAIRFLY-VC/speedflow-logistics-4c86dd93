@@ -322,22 +322,22 @@ export function RouteEditDialog({
                 </Command>
               </PopoverContent>
             </Popover>
-              {selected ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  aria-label="Limpar responsável"
-                  title="Limpar responsável"
-                  className="h-11 w-11 shrink-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCodFrtTrp(null);
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              ) : null}
+            {selected ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                aria-label="Limpar responsável"
+                title="Limpar responsável"
+                className="h-11 w-11 shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCodFrtTrp(null);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            ) : null}
             </div>
           </div>
         </div>
