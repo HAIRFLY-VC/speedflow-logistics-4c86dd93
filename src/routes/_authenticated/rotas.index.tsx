@@ -67,7 +67,7 @@ type RouteRow = {
   code: string;
   erp_route_id: string | null;
   erp_status: string | null;
-  route_date: string | null;
+  route_date: string;
   status: RouteStatus;
   total_freight: number;
   total_distance_km: number | null;
