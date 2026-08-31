@@ -132,6 +132,9 @@ function routeDateSortKey(value: string | null | undefined): string {
 function nomeRotaOf(r: RouteRow) {
   return r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code;
 }
+function normalizaCod(v: string | null | undefined): string {
+  return String(v ?? "").trim().replace(/^0+/, "");
+}
 function motoristaOf(r: RouteRow, codFallback?: string | null) {
   const name = r.driver_name ?? r.freight_carriers?.full_name ?? "";
   const cod =
@@ -997,6 +1000,7 @@ function RotasPage() {
                 notes: editRoute.notes,
                 driver_name: editRoute.driver_name,
                 erp_route_id: editRoute.erp_route_id,
+                erp_carrier_code: editRoute.erp_carrier_code,
                 erp_status: editRoute.erp_status,
               }
             : null
