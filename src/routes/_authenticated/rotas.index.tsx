@@ -459,6 +459,8 @@ function RotasPage() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [filteredData, setFilteredData] = useState<RouteRow[] | undefined>();
+  const [editRoute, setEditRoute] = useState<RouteRow | null>(null);
+  const [editCodErp, setEditCodErp] = useState<string | null>(null);
 
   const depotQ = useQuery({
     queryKey: ["company_settings", "depot"],
