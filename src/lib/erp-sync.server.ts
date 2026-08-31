@@ -60,10 +60,7 @@ const PENDING_ORDERS_SQL = `
          E.COD_MOTORISTA, E.PLACA, E.MOTORISTA,
          E.STATUS, E.OBS, E.QTD_DIAS AS QTD_DIAS, E.OBS_LOGIST, E.DIF_ENT,
          E.GNRE, E.TP_PGTO, E.INF_CMP, E.QTD_EMB,
-         CASE WHEN R.DT_PREV_EXP IS NULL THEN
-              CASE WHEN R.NOME_ROTA IS NULL THEN TO_DATE('40000101','yyyyMMdd')
-                   ELSE TO_DATE('30000101','yyyyMMdd') END
-              ELSE R.DT_PREV_EXP END DT_PREV_EXP,
+          R.DT_PREV_EXP DT_PREV_EXP,
          R.NOME_ROTA, R.COD_FRT_TRP, R.NOME_MOTORISTA, R.ID AS ID_ROTA, R.STATUS AS ROTA_STATUS, E.CEP
   FROM ERP_PEDIDOS_EXPEDICAO_PENDENTE E,
        A_GER_ROTAS_PEDIDOS P,
@@ -375,7 +372,12 @@ export async function syncErpOrders(opts: {
           ? String(row.ID_ROTA).trim()
           : null;
       const dt = parseErpDate(row.DT_PREV_EXP);
-      const dateOnly = dt ? dt.slice(0, 10) : "3000-01-01";
+      const rawNome = (row.NOME_ROTA ?? "").trim();
+      const dateOnly = dt
+        ? dt.slice(0, 10)
+        : !erpRouteId && !rawNome
+          ? "4000-01-01"
+          : "3000-01-01";
       let nome = (row.NOME_ROTA ?? "").trim();
       // Rotas com DT_PREV_EXP sentinela (3000/4000) também devem ser exibidas.
       // 4000-01-01 representa pedidos ainda sem rota no ERP, portanto normalmente
