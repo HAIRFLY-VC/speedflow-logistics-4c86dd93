@@ -365,6 +365,7 @@ export async function syncErpOrders(opts: {
       date: string;
       driver: string | null;
       carrierCode: string | null;
+      erpStatus: string;
       pedidos: string[];
     };
     const groups = new Map<string, RouteGroup>();
@@ -389,12 +390,13 @@ export async function syncErpOrders(opts: {
         row.COD_FRT_TRP != null && String(row.COD_FRT_TRP).trim() !== ""
           ? String(row.COD_FRT_TRP).trim()
           : null;
+      const erpStatus = row.ROTA_STATUS?.trim() || "P";
       const key = erpRouteId
         ? `erp:${erpRouteId}`
         : `${nome}|${dateOnly}|${driver ?? ""}|${carrierCode ?? ""}`;
       let g = groups.get(key);
       if (!g) {
-        g = { erpRouteId, nome, date: dateOnly, driver, carrierCode, pedidos: [] };
+        g = { erpRouteId, nome, date: dateOnly, driver, carrierCode, erpStatus, pedidos: [] };
         groups.set(key, g);
       }
       g.pedidos.push(String(row.PEDIDO));
