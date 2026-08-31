@@ -273,7 +273,6 @@ export function RouteEditDialog({
                         value={`${r.razaoSocial} ${r.codErp} ${TIPO_LABEL[r.tipoFrete]}`}
                         onSelect={() => {
                           setCodFrtTrp(r.codErp);
-                          setNomeMotorista(r.razaoSocial);
                           setSearchOpen(false);
                         }}
                       >
