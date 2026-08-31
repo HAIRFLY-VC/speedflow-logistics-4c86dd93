@@ -549,6 +549,7 @@ export async function syncErpOrders(opts: {
               driver_name: g.driver,
               route_date: g.date,
               erp_route_id: g.erpRouteId,
+              erp_status: g.erpStatus,
               carrier_id: carrierId ?? undefined,
               code: g.erpRouteId ? `erp-${g.erpRouteId}` : undefined,
             })
@@ -566,6 +567,7 @@ export async function syncErpOrders(opts: {
               driver_name: g.driver,
               notes: snap?.notes ?? `Rota ${g.nome}`,
               erp_route_id: g.erpRouteId,
+              erp_status: snap?.erp_status ?? g.erpStatus,
               carrier_id: carrierId ?? snap?.carrier_id ?? null,
               total_freight: snap?.total_freight ?? 0,
               total_distance_km: snap?.total_distance_km ?? null,
