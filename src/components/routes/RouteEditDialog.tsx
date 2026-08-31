@@ -324,11 +324,19 @@ export function RouteEditDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex-col gap-2 sm:flex-row">
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => onOpenChange(false)}
+          >
             Cancelar
           </Button>
-          <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+          <Button
+            className="w-full sm:w-auto"
+            onClick={() => salvar.mutate()}
+            disabled={salvar.isPending}
+          >
             {salvar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Salvar no ERP
           </Button>
