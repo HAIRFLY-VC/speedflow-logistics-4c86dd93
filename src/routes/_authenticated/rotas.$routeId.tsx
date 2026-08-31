@@ -388,14 +388,24 @@ function RouteDetailPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight font-mono">{route.code}</h1>
             <p className="text-sm text-muted-foreground">
-              {format(new Date(route.route_date), "dd/MM/yyyy", { locale: ptBR })}
+              {route.route_date && !route.route_date.startsWith("3000-01-01") && !route.route_date.startsWith("4000-01-01")
+                ? format(new Date(route.route_date), "dd/MM/yyyy", { locale: ptBR })
+                : "Não planejado"}
             </p>
           </div>
-          <span
-            className={`inline-flex items-center rounded-md border px-3 py-1 text-sm font-medium ${ROUTE_STATUS_TONE[route.status]}`}
-          >
-            {ROUTE_STATUS_LABEL[route.status]}
-          </span>
+          <div className="flex items-center gap-2">
+            {route.erp_route_id && (
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                <Pencil className="h-4 w-4 mr-1" />
+                Editar
+              </Button>
+            )}
+            <span
+              className={`inline-flex items-center rounded-md border px-3 py-1 text-sm font-medium ${ROUTE_STATUS_TONE[route.status]}`}
+            >
+              {ROUTE_STATUS_LABEL[route.status]}
+            </span>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
