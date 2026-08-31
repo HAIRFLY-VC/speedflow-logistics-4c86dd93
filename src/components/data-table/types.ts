@@ -19,6 +19,11 @@ export type ColumnDef<T> = {
   headerClassName?: string;
   sortable?: boolean;
   filterable?: boolean;
+  /** Keeps the column at the very beginning, ignoring saved column order. */
+  pinFirst?: boolean;
+  /** Hides the column from the mobile card layout (still shown in the table). */
+  hideOnCard?: boolean;
+
   width?: string;
 };
 

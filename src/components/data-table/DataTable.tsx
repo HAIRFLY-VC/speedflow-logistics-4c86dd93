@@ -134,7 +134,13 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
   const visibleColumns = orderedColumns
     .filter(({ state: cs }) => cs?.visible !== false)
-    .map(({ def }) => def);
+    .map(({ def }) => def)
+    // Colunas fixadas ficam sempre no início, mesmo com ordem salva antiga.
+    .sort((a, b) => Number(!!b.pinFirst) - Number(!!a.pinFirst));
+
+  /** Colunas exibidas no card mobile (a coluna de ações fica fora). */
+  const cardColumns = visibleColumns.filter((c) => !c.hideOnCard);
+
 
   // Per-column distinct value catalog, computed from the full dataset.
   const distinctByColumn = useMemo(() => {
