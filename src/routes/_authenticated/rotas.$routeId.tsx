@@ -9,6 +9,7 @@ import {
   XCircle,
   FileText,
   Loader2,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -30,6 +31,7 @@ import {
 import { SuggestionMap, sequenceStops } from "@/components/route-suggestions/SuggestionMap";
 import { getOrderCoord } from "@/lib/order-coords";
 import { formatCurrency, type OrderStatus } from "@/lib/orderStatus";
+import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEditDialog";
 import type { Database } from "@/integrations/supabase/types";
 
 const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
@@ -60,11 +62,14 @@ type RouteDetail = {
   total_freight: number;
   notes: string | null;
   carrier_id: string | null;
+  erp_route_id: string | null;
+  erp_status: string | null;
   freight_carriers: {
     id: string;
     full_name: string;
     vehicle_plate: string | null;
     phone: string | null;
+    transportadoras: { cod_erp: string | null } | null;
   } | null;
 };
 
@@ -104,6 +109,7 @@ function RouteDetailPage() {
   const qc = useQueryClient();
   const { user, role } = useAuth();
   const canOperate = role === "adm" || role === "gestor" || role === "operador";
+  const [editOpen, setEditOpen] = useState(false);
 
   const routeQ = useQuery({
     queryKey: ["routes", routeId],
@@ -111,7 +117,7 @@ function RouteDetailPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,route_date,status,total_freight,notes,carrier_id,freight_carriers(id,full_name,vehicle_plate,phone)",
+          "id,code,erp_route_id,erp_status,route_date,status,total_freight,notes,carrier_id,freight_carriers(id,full_name,vehicle_plate,phone,transportadoras(cod_erp))",
         )
         .eq("id", routeId)
         .maybeSingle();
@@ -301,9 +307,8 @@ function RouteDetailPage() {
   const issueManifest = useMutation({
     mutationFn: async () => {
       if (stops.length === 0) throw new Error("Rota sem pedidos");
-      const code = `BOR-${route?.route_date.replace(/-/g, "")}-${Math.floor(
-        Math.random() * 1000,
-      )
+      const datePart = (route?.route_date ?? "00000000").replace(/-/g, "");
+      const code = `BOR-${datePart}-${Math.floor(Math.random() * 1000)
         .toString()
         .padStart(3, "0")}`;
       const { error } = await supabase.from("delivery_manifests").insert({
@@ -382,14 +387,24 @@ function RouteDetailPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight font-mono">{route.code}</h1>
             <p className="text-sm text-muted-foreground">
-              {format(new Date(route.route_date), "dd/MM/yyyy", { locale: ptBR })}
+              {route.route_date && !route.route_date.startsWith("3000-01-01") && !route.route_date.startsWith("4000-01-01")
+                ? format(new Date(route.route_date), "dd/MM/yyyy", { locale: ptBR })
+                : "Não planejado"}
             </p>
           </div>
-          <span
-            className={`inline-flex items-center rounded-md border px-3 py-1 text-sm font-medium ${ROUTE_STATUS_TONE[route.status]}`}
-          >
-            {ROUTE_STATUS_LABEL[route.status]}
-          </span>
+          <div className="flex items-center gap-2">
+            {route.erp_route_id && (
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                <Pencil className="h-4 w-4 mr-1" />
+                Editar
+              </Button>
+            )}
+            <span
+              className={`inline-flex items-center rounded-md border px-3 py-1 text-sm font-medium ${ROUTE_STATUS_TONE[route.status]}`}
+            >
+              {ROUTE_STATUS_LABEL[route.status]}
+            </span>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -542,6 +557,33 @@ function RouteDetailPage() {
             </CardContent>
           </Card>
         ) : null}
+
+        <RouteEditDialog
+          route={
+            route
+              ? {
+                  id: route.id,
+                  code: route.code,
+                  route_date: route.route_date,
+                  notes: route.notes,
+                  driver_name: route.freight_carriers?.full_name ?? null,
+                  erp_route_id: route.erp_route_id,
+                  erp_status: route.erp_status,
+                }
+              : null
+          }
+          open={editOpen}
+          onOpenChange={(o) => {
+            setEditOpen(o);
+            if (!o) routeQ.refetch();
+          }}
+          initialCodErp={route?.freight_carriers?.transportadoras?.cod_erp ?? null}
+          onSuccess={() => {
+            qc.invalidateQueries({ queryKey: ["routes"] });
+            qc.invalidateQueries({ queryKey: ["routes", routeId] });
+            setEditOpen(false);
+          }}
+        />
       </div>
     </AppShell>
   );

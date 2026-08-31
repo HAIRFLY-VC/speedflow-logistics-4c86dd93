@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator } from "lucide-react";
+import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -18,6 +18,8 @@ import {
   type SimulacaoRota,
   type TabelaSim,
 } from "@/lib/frete-simulacao";
+import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEditDialog";
+
 
 
 import { Button } from "@/components/ui/button";
@@ -63,6 +65,8 @@ export const Route = createFileRoute("/_authenticated/rotas/")({
 type RouteRow = {
   id: string;
   code: string;
+  erp_route_id: string | null;
+  erp_status: string | null;
   route_date: string;
   status: RouteStatus;
   total_freight: number;
@@ -100,7 +104,7 @@ const weightFmt = new Intl.NumberFormat("pt-BR", {
 });
 
 function formatRouteDate(value: string | null | undefined): string {
-  if (!value) return "";
+  if (!value) return "Não planejado";
   const str = String(value);
   if (str.startsWith("4000-01-01")) return "Não planejado";
   if (str.startsWith("3000-01-01")) return "Sem data prevista";
@@ -119,7 +123,7 @@ function formatRouteDate(value: string | null | undefined): string {
 
 function routeDateSortKey(value: string | null | undefined): string {
   const str = String(value ?? "");
-  if (str.startsWith("4000-01-01")) return "z";
+  if (!str || str.startsWith("4000-01-01")) return "z";
   if (str.startsWith("3000-01-01")) return "y";
   return str;
 }
@@ -455,6 +459,8 @@ function RotasPage() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [filteredData, setFilteredData] = useState<RouteRow[] | undefined>();
+  const [editRoute, setEditRoute] = useState<RouteRow | null>(null);
+  const [editCodErp, setEditCodErp] = useState<string | null>(null);
 
   const depotQ = useQuery({
     queryKey: ["company_settings", "depot"],
@@ -481,7 +487,7 @@ function RotasPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate,transportadoras(id,cod_erp)),route_orders(stop_order,orders(customer_id,order_number,total_amount,weight,erp_status,delivery_latitude,delivery_longitude,customers(latitude,longitude,city)))",
+          "id,code,erp_route_id,erp_status,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate,transportadoras(id,cod_erp)),route_orders(stop_order,orders(customer_id,order_number,total_amount,weight,erp_status,delivery_latitude,delivery_longitude,customers(latitude,longitude,city)))",
         );
       if (error) throw error;
       const rows = ((data ?? []) as unknown as RouteRow[]).filter(
@@ -797,6 +803,29 @@ function RotasPage() {
           </span>
         ),
       },
+      {
+        id: "acoes",
+        header: "",
+        sortable: false,
+        align: "right",
+        filterable: false,
+        accessor: () => "",
+        render: (r) =>
+          r.erp_route_id ? (
+            <button
+              type="button"
+              title="Editar rota"
+              className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditCodErp(transpPorRota.get(r.id)?.cod_erp ?? null);
+                setEditRoute(r);
+              }}
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+          ) : null,
+      },
     ],
     [depot, estimativas, freteOf, transpPorRota],
   );
@@ -908,6 +937,30 @@ function RotasPage() {
         open={open}
         onOpenChange={setOpen}
         onCreated={() => qc.invalidateQueries({ queryKey: ["routes"] })}
+      />
+      <RouteEditDialog
+        route={
+          editRoute
+            ? {
+                id: editRoute.id,
+                code: editRoute.code,
+                route_date: editRoute.route_date,
+                notes: editRoute.notes,
+                driver_name: editRoute.driver_name,
+                erp_route_id: editRoute.erp_route_id,
+                erp_status: editRoute.erp_status,
+              }
+            : null
+        }
+        open={!!editRoute}
+        onOpenChange={(o) => {
+          if (!o) setEditRoute(null);
+        }}
+        initialCodErp={editCodErp}
+        onSuccess={() => {
+          qc.invalidateQueries({ queryKey: ["routes"] });
+          setEditRoute(null);
+        }}
       />
     </AppShell>
   );

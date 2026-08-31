@@ -1386,6 +1386,7 @@ export type Database = {
           created_at: string
           driver_name: string | null
           erp_route_id: string | null
+          erp_status: string | null
           id: string
           notes: string | null
           route_date: string
@@ -1400,6 +1401,7 @@ export type Database = {
           created_at?: string
           driver_name?: string | null
           erp_route_id?: string | null
+          erp_status?: string | null
           id?: string
           notes?: string | null
           route_date: string
@@ -1414,6 +1416,7 @@ export type Database = {
           created_at?: string
           driver_name?: string | null
           erp_route_id?: string | null
+          erp_status?: string | null
           id?: string
           notes?: string | null
           route_date?: string
