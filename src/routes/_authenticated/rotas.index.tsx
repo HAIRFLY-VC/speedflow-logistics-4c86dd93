@@ -481,7 +481,7 @@ function RotasPage() {
 
 
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error: routesError } = useQuery({
     queryKey: ["routes"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -902,6 +902,13 @@ function RotasPage() {
             </CardContent>
           </Card>
         </div>
+
+        {routesError ? (
+          <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+            Não foi possível carregar as rotas:{" "}
+            {(routesError as Error).message}
+          </div>
+        ) : null}
 
         <DataTable
           tableKey="rotas"
