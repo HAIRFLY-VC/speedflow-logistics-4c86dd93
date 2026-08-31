@@ -1,15 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { Check, ChevronsUpDown, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { supabase } from "@/integrations/central/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
@@ -26,16 +24,18 @@ import {
 import {
   Command,
   CommandEmpty,
-  CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+import { useServerFn } from "@tanstack/react-start";
 import {
   listarResponsaveisErp,
   atualizarCapaRotaErp,
   type ResponsavelErp,
 } from "@/lib/rota-erp.functions";
+import { supabase } from "@/integrations/central/client";
 
 export type EditableRoute = {
   id: string;
@@ -43,39 +43,38 @@ export type EditableRoute = {
   route_date: string | null;
   notes: string | null;
   driver_name: string | null;
-  erp_route_id: string | number | null;
+  erp_route_id: string | null;
   erp_status: string | null;
 };
-
-function nomeRotaOf(r: EditableRoute): string {
-  if (r.notes?.startsWith("Rota ")) return r.notes.slice(5);
-  return r.code ?? "";
-}
-
-function isSentinelDate(value: string | null | undefined): boolean {
-  if (!value) return true;
-  return value.startsWith("3000-01-01") || value.startsWith("4000-01-01");
-}
-
-function initialDateValue(value: string | null | undefined): string {
-  if (isSentinelDate(value)) return "";
-  const iso = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return iso ? `${iso[1]}-${iso[2]}-${iso[3]}` : "";
-}
-
-function formatYyyyMMdd(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const iso = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return iso ? `${iso[1]}${iso[2]}${iso[3]}` : null;
-}
 
 type RouteEditDialogProps = {
   route: EditableRoute | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initialCodErp?: string | null;
+  initialCodErp: string | null;
   onSuccess?: () => void;
 };
+
+const TIPO_LABEL: Record<ResponsavelErp["tipoFrete"], string> = {
+  P: "Própria",
+  F: "Fretista",
+  T: "Transportadora",
+};
+
+function toDateInput(value: string | null | undefined): string {
+  if (!value) return "";
+  if (value.startsWith("3000-01-01") || value.startsWith("4000-01-01")) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
+
+function toYyyyMMdd(value: string): string | null {
+  if (!value) return null;
+  const [y, m, d] = value.split("-");
+  if (!y || !m || !d) return null;
+  return `${y}${m}${d}`;
+}
 
 export function RouteEditDialog({
   route,
@@ -85,94 +84,81 @@ export function RouteEditDialog({
   onSuccess,
 }: RouteEditDialogProps) {
   const qc = useQueryClient();
-  const listar = useServerFn(listarResponsaveisErp);
-  const atualizar = useServerFn(atualizarCapaRotaErp);
+  const getResponsaveis = useServerFn(listarResponsaveisErp);
+  const doAtualizar = useServerFn(atualizarCapaRotaErp);
 
-  const [dateValue, setDateValue] = useState<string>("");
-  const [nome, setNome] = useState<string>("");
-  const [selectedCod, setSelectedCod] = useState<string | null>(null);
-  const [comboOpen, setComboOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [dtPrevExp, setDtPrevExp] = useState("");
+  const [nomeRota, setNomeRota] = useState("");
+  const [nomeMotorista, setNomeMotorista] = useState("");
+  const [codFrtTrp, setCodFrtTrp] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    if (!route) return;
+    setDtPrevExp(toDateInput(route.route_date));
+    setNomeRota(route.code ?? "");
+    setNomeMotorista(route.driver_name ?? "");
+    setCodFrtTrp(initialCodErp ?? null);
+  }, [route, initialCodErp]);
 
   const responsaveisQ = useQuery({
     queryKey: ["responsaveis-erp"],
-    queryFn: () => listar(),
-    staleTime: 5 * 60 * 1000,
+    queryFn: () => getResponsaveis(),
     enabled: open,
+    staleTime: 5 * 60 * 1000,
   });
 
   const responsaveis = responsaveisQ.data ?? [];
-
   const selected = useMemo(
-    () => responsaveis.find((r) => r.codErp === selectedCod) ?? null,
-    [responsaveis, selectedCod],
+    () => responsaveis.find((r) => r.codErp === codFrtTrp) ?? null,
+    [responsaveis, codFrtTrp],
   );
 
-  // Sincroniza estado local quando a rota mudar / o diálogo abrir.
-  useMemo(() => {
-    if (open && route) {
-      setDateValue(initialDateValue(route.route_date));
-      setNome(nomeRotaOf(route));
-      setSelectedCod(initialCodErp?.trim() || null);
-    }
-  }, [open, route, initialCodErp]);
+  const filteredBySearch = useMemo(() => {
+    return responsaveis;
+  }, [responsaveis]);
 
-  const canSave = nome.trim().length > 0 && !saving;
+  const salvar = useMutation({
+    mutationFn: async () => {
+      if (!route) throw new Error("Rota não encontrada");
+      if (!route.erp_route_id) throw new Error("Rota sem vínculo ERP");
 
-  const handleSave = async () => {
-    if (!route || !route.erp_route_id) return;
-    setSaving(true);
-    try {
-      const id = Number(route.erp_route_id);
-      const dtYyyyMMdd = formatYyyyMMdd(dateValue);
-      const nomeRota = nome.trim().toUpperCase();
-      const nomeMotorista = selected?.razaoSocial ?? null;
-      const codFrtTrp = selected?.codErp ?? null;
-      const status = route.erp_status?.trim() || "P";
+      const nome = nomeRota.trim().toUpperCase();
+      if (!nome) throw new Error("Informe o nome da rota");
 
-      await atualizar({
+      await doAtualizar({
         data: {
-          id,
-          dtPrevExpYyyyMMdd: dtYyyyMMdd,
-          nomeRota,
-          nomeMotorista,
-          codFrtTrp,
-          status,
+          id: Number(route.erp_route_id),
+          dtPrevExpYyyyMMdd: toYyyyMMdd(dtPrevExp),
+          nomeRota: nome,
+          nomeMotorista: nomeMotorista.trim().toUpperCase() || null,
+          codFrtTrp: codFrtTrp?.trim() || null,
+          status: route.erp_status ?? "P",
         },
       });
-
-      let carrierId: string | null = null;
-      if (codFrtTrp) {
-        const { data: fc } = await supabase
-          .from("freight_carriers")
-          .select("id, transportadoras!inner(cod_erp)")
-          .eq("transportadoras.cod_erp", codFrtTrp)
-          .maybeSingle();
-        carrierId = (fc as { id?: string } | null)?.id ?? null;
-      }
 
       const { error } = await supabase
         .from("routes")
         .update({
-          route_date: dateValue || null,
-          notes: `Rota ${nomeRota}`,
-          driver_name: nomeMotorista,
-          carrier_id: carrierId,
-          erp_status: status,
+          route_date: dtPrevExp || null,
+          code: nome,
+          notes: nomeMotorista.trim() || null,
         })
         .eq("id", route.id);
       if (error) throw error;
-
-      toast.success("Rota atualizada no ERP e no app");
+    },
+    onSuccess: () => {
+      toast.success("Rota atualizada no ERP");
       qc.invalidateQueries({ queryKey: ["routes"] });
       onSuccess?.();
       onOpenChange(false);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao atualizar rota");
-    } finally {
-      setSaving(false);
-    }
-  };
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar rota");
+    },
+  });
+
+  if (!route) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -180,109 +166,111 @@ export function RouteEditDialog({
         <DialogHeader>
           <DialogTitle>Editar rota</DialogTitle>
           <DialogDescription>
-            Altere a capa da rota no ERP. O nome é obrigatório; data e responsável são opcionais.
+            Altere os dados da capa da rota. As mudanças serão replicadas para o ERP.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Data prevista</Label>
+          <div className="grid gap-2">
+            <Label htmlFor="dtPrevExp">Data prevista de entrega</Label>
             <Input
+              id="dtPrevExp"
               type="date"
-              value={dateValue}
-              onChange={(e) => setDateValue(e.target.value)}
+              value={dtPrevExp}
+              onChange={(e) => setDtPrevExp(e.target.value)}
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs">Nome da rota *</Label>
+          <div className="grid gap-2">
+            <Label htmlFor="nomeRota">Nome da rota</Label>
             <Input
-              value={nome}
-              onChange={(e) => setNome(e.target.value.toUpperCase())}
-              placeholder="Ex: ROTA CENTRO"
+              id="nomeRota"
+              value={nomeRota}
+              onChange={(e) => setNomeRota(e.target.value.toUpperCase())}
+              placeholder="Ex: M-NOVA ROTA"
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs">Transportadora / fretista</Label>
-            <Popover open={comboOpen} onOpenChange={setComboOpen}>
+          <div className="grid gap-2">
+            <Label htmlFor="nomeMotorista">Motorista / Responsável</Label>
+            <Input
+              id="nomeMotorista"
+              value={nomeMotorista}
+              onChange={(e) => setNomeMotorista(e.target.value)}
+              placeholder="Nome do motorista"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Transportadora / Fretista / Frota própria</Label>
+            <Popover open={searchOpen} onOpenChange={setSearchOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
-                  aria-expanded={comboOpen}
-                  className="w-full justify-between font-normal"
+                  aria-expanded={searchOpen}
+                  className="justify-between font-normal"
                   disabled={responsaveisQ.isLoading}
                 >
-                  <span className="truncate">
-                    {selected ? `${selected.razaoSocial} (${selected.codErp})` : "Selecione..."}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    {selected && (
-                      <span
-                        className="text-muted-foreground hover:text-foreground"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedCod(null);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </span>
-                    )}
-                    <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-                  </div>
+                  {selected ? (
+                    <span className="truncate">
+                      {selected.razaoSocial} ({selected.codErp}) ·{" "}
+                      {TIPO_LABEL[selected.tipoFrete]}
+                    </span>
+                  ) : (
+                    "Selecione o responsável"
+                  )}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                <Command filter={responsavelFilter}>
-                  <CommandInput placeholder="Buscar por razão social ou código ERP..." />
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar por razão social ou código..." />
                   <CommandList>
-                    <CommandEmpty>Nenhum responsável encontrado.</CommandEmpty>
-                    <CommandGroup>
-                      {responsaveis.map((r) => (
-                        <CommandItem
-                          key={r.codErp}
-                          value={`${r.razaoSocial} ${r.codErp}`}
-                          onSelect={() => {
-                            setSelectedCod(r.codErp);
-                            setComboOpen(false);
-                          }}
-                        >
-                          <span className="flex-1 truncate">
-                            {r.razaoSocial} <span className="text-muted-foreground">({r.codErp})</span>
-                          </span>
-                          {selectedCod === r.codErp && (
-                            <Check className="ml-2 h-4 w-4" />
+                    <CommandEmpty>
+                      {responsaveisQ.isLoading ? "Carregando..." : "Nenhum responsável encontrado."}
+                    </CommandEmpty>
+                    {filteredBySearch.map((r) => (
+                      <CommandItem
+                        key={r.codErp}
+                        value={`${r.razaoSocial} ${r.codErp} ${TIPO_LABEL[r.tipoFrete]}`}
+                        onSelect={() => {
+                          setCodFrtTrp(r.codErp);
+                          setNomeMotorista(r.razaoSocial);
+                          setSearchOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            codFrtTrp === r.codErp ? "opacity-100" : "opacity-0",
                           )}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
+                        />
+                        <div className="flex flex-col">
+                          <span className="text-sm">{r.razaoSocial}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {r.codErp} · {TIPO_LABEL[r.tipoFrete]}
+                          </span>
+                        </div>
+                      </CommandItem>
+                    ))}
                   </CommandList>
                 </Command>
               </PopoverContent>
             </Popover>
-            {responsaveisQ.isLoading && (
-              <p className="text-xs text-muted-foreground">Carregando responsáveis...</p>
-            )}
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={!canSave}>
-            {saving && <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
-            Salvar
+          <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+            {salvar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Salvar no ERP
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-}
-
-function responsavelFilter(value: string, search: string, keywords?: string[]): number {
-  const term = search.toLowerCase();
-  const haystack = [value, ...(keywords ?? [])].join(" ").toLowerCase();
-  return haystack.includes(term) ? 1 : 0;
 }
