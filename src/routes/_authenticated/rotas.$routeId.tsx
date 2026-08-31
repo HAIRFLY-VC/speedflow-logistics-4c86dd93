@@ -558,6 +558,33 @@ function RouteDetailPage() {
             </CardContent>
           </Card>
         ) : null}
+
+        <RouteEditDialog
+          route={
+            route
+              ? {
+                  id: route.id,
+                  code: route.code,
+                  route_date: route.route_date,
+                  notes: route.notes,
+                  driver_name: route.freight_carriers?.full_name ?? route.notes ? null : null,
+                  erp_route_id: route.erp_route_id,
+                  erp_status: route.erp_status,
+                }
+              : null
+          }
+          open={editOpen}
+          onOpenChange={(o) => {
+            setEditOpen(o);
+            if (!o) routeQ.refetch();
+          }}
+          initialCodErp={route?.freight_carriers?.transportadoras?.cod_erp ?? null}
+          onSuccess={() => {
+            qc.invalidateQueries({ queryKey: ["routes"] });
+            qc.invalidateQueries({ queryKey: ["routes", routeId] });
+            setEditOpen(false);
+          }}
+        />
       </div>
     </AppShell>
   );
