@@ -63,7 +63,6 @@ type RouteDetail = {
   notes: string | null;
   carrier_id: string | null;
   erp_route_id: string | null;
-  erp_carrier_code: string | null;
   erp_status: string | null;
   freight_carriers: {
     id: string;
@@ -118,7 +117,7 @@ function RouteDetailPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,erp_route_id,erp_carrier_code,erp_status,route_date,status,total_freight,notes,carrier_id,freight_carriers(id,full_name,vehicle_plate,phone,transportadoras(cod_erp))",
+          "id,code,erp_route_id,erp_status,route_date,status,total_freight,notes,carrier_id,freight_carriers(id,full_name,vehicle_plate,phone,transportadoras(cod_erp))",
         )
         .eq("id", routeId)
         .maybeSingle();
@@ -572,7 +571,6 @@ function RouteDetailPage() {
                   notes: route.notes,
                   driver_name: route.freight_carriers?.full_name ?? null,
                   erp_route_id: route.erp_route_id,
-                  erp_carrier_code: route.erp_carrier_code,
                   erp_status: route.erp_status,
                 }
               : null
@@ -582,7 +580,7 @@ function RouteDetailPage() {
             setEditOpen(o);
             if (!o) routeQ.refetch();
           }}
-          initialCodErp={route?.erp_carrier_code ?? route?.freight_carriers?.transportadoras?.cod_erp ?? null}
+          initialCodErp={route?.freight_carriers?.transportadoras?.cod_erp ?? null}
           onSuccess={() => {
             qc.invalidateQueries({ queryKey: ["routes"] });
             qc.invalidateQueries({ queryKey: ["routes", routeId] });

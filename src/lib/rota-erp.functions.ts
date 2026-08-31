@@ -66,6 +66,49 @@ export const listarResponsaveisErp = createServerFn({ method: "GET" })
     }
   });
 
+const SQL_ROTA_RESPONSAVEL = `select R.COD_FRT_TRP COD from gks.a_ger_rotas R where R.ID = :id`;
+
+/**
+ * Busca no ERP o código do responsável (COD_FRT_TRP) da rota informada.
+ * Usado para pré-selecionar a transportadora/fretista no modal de edição.
+ */
+export const buscarResponsavelRotaErp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { idRota: number }) => {
+    const id = Number(input?.idRota ?? NaN);
+    if (!Number.isFinite(id) || id <= 0) throw new Error("ID da rota no ERP é obrigatório");
+    return { idRota: id };
+  })
+  .handler(async ({ data }) => {
+    const baseUrl = process.env["ERP_API_BASE_URL"];
+    const apiKey = process.env["ERP_API_KEY"];
+    if (!baseUrl || !apiKey) throw new Error("Integração com o ERP não configurada");
+    const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+    try {
+      const res = await fetch(`${cleanBase}/v1/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+        body: JSON.stringify({ sql: SQL_ROTA_RESPONSAVEL, binds: { id: data.idRota }, limit: 1 }),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        const texto = (await res.text()).replace(/\s+/g, " ").slice(0, 200);
+        throw new Error(`ERP API ${res.status}${texto ? `: ${texto}` : ""}`);
+      }
+      const json = (await res.json()) as ErpQueryResponse;
+      const linha = json.rows?.[0];
+      if (!linha) return { codErp: null as string | null };
+      const bruto = getField(linha, "COD");
+      const codErp = bruto == null || String(bruto).trim() === "" ? null : String(bruto).trim();
+      return { codErp };
+    } finally {
+      clearTimeout(timeout);
+    }
+  });
+
 type AtualizarCapaRotaInput = {
   id: number;
   dtPrevExpYyyyMMdd: string | null;

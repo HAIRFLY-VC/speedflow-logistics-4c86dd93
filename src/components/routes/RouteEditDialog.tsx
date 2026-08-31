@@ -33,6 +33,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   listarResponsaveisErp,
   atualizarCapaRotaErp,
+  buscarResponsavelRotaErp,
   type ResponsavelErp,
 } from "@/lib/rota-erp.functions";
 import { supabase } from "@/integrations/central/client";
@@ -46,7 +47,6 @@ export type EditableRoute = {
   notes: string | null;
   driver_name: string | null;
   erp_route_id: string | null;
-  erp_carrier_code?: string | null;
   erp_status: string | null;
 };
 
@@ -103,6 +103,7 @@ export function RouteEditDialog({
   const qc = useQueryClient();
   const getResponsaveis = useServerFn(listarResponsaveisErp);
   const doAtualizar = useServerFn(atualizarCapaRotaErp);
+  const getResponsavelRota = useServerFn(buscarResponsavelRotaErp);
 
   const [dtPrevExp, setDtPrevExp] = useState("");
   const [nomeRota, setNomeRota] = useState("");
@@ -113,7 +114,7 @@ export function RouteEditDialog({
     if (!route) return;
     setDtPrevExp(toDateInput(route.route_date));
     setNomeRota((route.nomeRota ?? route.code ?? "").trim());
-    setCodFrtTrp(route.erp_carrier_code ?? initialCodErp ?? null);
+    setCodFrtTrp(initialCodErp ?? null);
   }, [route, initialCodErp]);
 
   const responsaveisQ = useQuery({
@@ -122,6 +123,19 @@ export function RouteEditDialog({
     enabled: open,
     staleTime: 5 * 60 * 1000,
   });
+
+  // Código do responsável direto no ERP (fonte da verdade da capa da rota).
+  const codRotaErpQ = useQuery({
+    queryKey: ["rota-responsavel-erp", route?.erp_route_id],
+    queryFn: () => getResponsavelRota({ data: { idRota: Number(route?.erp_route_id) } }),
+    enabled: open && !!route?.erp_route_id,
+    staleTime: 60 * 1000,
+  });
+  const codErpRota = codRotaErpQ.data?.codErp ?? null;
+
+  useEffect(() => {
+    if (codErpRota) setCodFrtTrp(codErpRota);
+  }, [codErpRota]);
 
   const responsaveis = responsaveisQ.data ?? [];
   const selected = useMemo(
@@ -135,7 +149,7 @@ export function RouteEditDialog({
     if (!open || responsaveis.length === 0) return;
     if (codFrtTrp && responsaveis.some((r) => r.codErp === codFrtTrp)) return;
 
-    const alvoCod = normalizaCod(codFrtTrp ?? route?.erp_carrier_code ?? initialCodErp);
+    const alvoCod = normalizaCod(codFrtTrp ?? codErpRota ?? initialCodErp);
     if (alvoCod) {
       const porCod = responsaveis.find((r) => normalizaCod(r.codErp) === alvoCod);
       if (porCod) {
@@ -151,7 +165,7 @@ export function RouteEditDialog({
       });
       if (porNome) setCodFrtTrp(porNome.codErp);
     }
-  }, [open, responsaveis, codFrtTrp, initialCodErp, route?.erp_carrier_code, route?.driver_name]);
+  }, [open, responsaveis, codFrtTrp, initialCodErp, codErpRota, route?.driver_name]);
 
   const filteredBySearch = useMemo(() => {
     return responsaveis;
@@ -185,7 +199,6 @@ export function RouteEditDialog({
           code: nome,
           notes: `Rota ${nome}`,
           driver_name: nomeMotorista,
-          erp_carrier_code: codFrtTrp?.trim() || null,
         })
         .eq("id", route.id);
       if (error) throw error;
@@ -193,6 +206,7 @@ export function RouteEditDialog({
     onSuccess: () => {
       toast.success("Rota atualizada no ERP");
       qc.invalidateQueries({ queryKey: ["routes"] });
+      qc.invalidateQueries({ queryKey: ["rota-responsavel-erp"] });
       onSuccess?.();
       onOpenChange(false);
     },
