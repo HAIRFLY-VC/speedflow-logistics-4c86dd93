@@ -9,6 +9,7 @@ import {
   XCircle,
   FileText,
   Loader2,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -30,6 +31,7 @@ import {
 import { SuggestionMap, sequenceStops } from "@/components/route-suggestions/SuggestionMap";
 import { getOrderCoord } from "@/lib/order-coords";
 import { formatCurrency, type OrderStatus } from "@/lib/orderStatus";
+import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEditDialog";
 import type { Database } from "@/integrations/supabase/types";
 
 const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
