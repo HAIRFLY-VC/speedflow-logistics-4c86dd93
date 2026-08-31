@@ -10,7 +10,7 @@ Um botão "Editar rota" abre um modal com:
 - **Nome da rota (NOME_ROTA)** — **único campo obrigatório**; texto livre convertido para maiúsculas ao salvar. Sem ele o botão salvar fica desabilitado.
 - **Transportadora / fretista (COD_FRT_TRP + NOME_MOTORISTA)** — opcional; lista suspensa com busca, exibindo `RAZÃO SOCIAL (CÓDIGO ERP)`. A busca filtra por parte da razão social ou pelo código no ERP. Ao selecionar, o app grava o código e a razão social correspondente; é possível limpar a seleção, e nesse caso código, nome e status vão nulos (rota ainda sem responsável definido).
 
-O tipo de frete (P/F/T) não é editável: é derivado automaticamente da natureza do cadastro escolhido (EM → P, EF → F, ET → T) e enviado no campo `status` do update. Quando nenhum responsável for selecionado, o `status` é enviado como `P`, que também é o valor padrão para novas rotas.
+O campo `status` enviado ao ERP segue o valor retornado pelo ERP para aquela rota; para novas rotas o padrão é `P`. O tipo de frete (P/F/T), derivado da natureza do cadastro (EM/EF/ET), será utilizado em uma funcionalidade posterior e não é enviado neste update.
 
 
 O modal fica disponível tanto na listagem de rotas quanto na tela de detalhamento da rota. Só é habilitado para rotas que possuem ID no ERP; rotas criadas manualmente no app continuam com a edição local existente.
