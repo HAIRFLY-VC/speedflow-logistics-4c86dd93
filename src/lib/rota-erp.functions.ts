@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const SQL_RESPONSIVEIS = `select TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOCIAL, T.DBA_TIP_CODIGO_1 COD_ERP, t.dba_tip_natureza COD_NAT
-  from a_cadctipo t
+  from gks.a_cadctipo t
  where t.dba_tip_natureza in ('EM','EF','ET')`;
 
 type ErpQueryResponse = { rows?: Record<string, unknown>[] };
