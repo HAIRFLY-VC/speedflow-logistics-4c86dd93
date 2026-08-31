@@ -40,7 +40,7 @@ import { supabase } from "@/integrations/central/client";
 export type EditableRoute = {
   id: string;
   code: string;
-  route_date: string | null;
+  route_date: string;
   notes: string | null;
   driver_name: string | null;
   erp_route_id: string | null;
