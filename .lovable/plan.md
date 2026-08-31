@@ -6,11 +6,12 @@ Permitir que o usuário edite os dados da capa da rota no app e gravar a mesma a
 
 Um botão "Editar rota" abre um modal com:
 
-- **Data prevista (DT_PREV_EXP)** — seletor de data. Rotas sem data (sentinelas 01/01/3000 e 01/01/4000) começam vazias e podem receber uma data.
-- **Nome da rota (NOME_ROTA)** — texto livre; ao salvar é convertido para maiúsculas.
-- **Transportadora / fretista (COD_FRT_TRP + NOME_MOTORISTA)** — lista suspensa com busca, exibindo `RAZÃO SOCIAL (CÓDIGO ERP)`. A busca filtra por parte da razão social ou pelo código no ERP. Ao selecionar, o app grava o código e a razão social correspondente.
+- **Data prevista (DT_PREV_EXP)** — opcional; seletor de data. Rotas sem data (sentinelas 01/01/3000 e 01/01/4000) começam vazias e podem receber uma data. Se ficar em branco, o campo é enviado nulo ao ERP.
+- **Nome da rota (NOME_ROTA)** — **único campo obrigatório**; texto livre convertido para maiúsculas ao salvar. Sem ele o botão salvar fica desabilitado.
+- **Transportadora / fretista (COD_FRT_TRP + NOME_MOTORISTA)** — opcional; lista suspensa com busca, exibindo `RAZÃO SOCIAL (CÓDIGO ERP)`. A busca filtra por parte da razão social ou pelo código no ERP. Ao selecionar, o app grava o código e a razão social correspondente; é possível limpar a seleção, e nesse caso código, nome e status vão nulos (rota ainda sem responsável definido).
 
 O tipo de frete (P/F/T) não é editável: é derivado automaticamente da natureza do cadastro escolhido (EM → P, EF → F, ET → T) e enviado no campo `status` do update.
+
 
 O modal fica disponível tanto na listagem de rotas quanto na tela de detalhamento da rota. Só é habilitado para rotas que possuem ID no ERP; rotas criadas manualmente no app continuam com a edição local existente.
 
