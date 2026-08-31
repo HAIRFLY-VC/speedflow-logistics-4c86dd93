@@ -372,7 +372,12 @@ export async function syncErpOrders(opts: {
           ? String(row.ID_ROTA).trim()
           : null;
       const dt = parseErpDate(row.DT_PREV_EXP);
-      const dateOnly = dt ? dt.slice(0, 10) : "3000-01-01";
+      const rawNome = (row.NOME_ROTA ?? "").trim();
+      const dateOnly = dt
+        ? dt.slice(0, 10)
+        : !erpRouteId && !rawNome
+          ? "4000-01-01"
+          : "3000-01-01";
       let nome = (row.NOME_ROTA ?? "").trim();
       // Rotas com DT_PREV_EXP sentinela (3000/4000) também devem ser exibidas.
       // 4000-01-01 representa pedidos ainda sem rota no ERP, portanto normalmente
