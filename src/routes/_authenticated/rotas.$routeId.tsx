@@ -57,7 +57,7 @@ export const Route = createFileRoute("/_authenticated/rotas/$routeId")({
 type RouteDetail = {
   id: string;
   code: string;
-  route_date: string | null;
+  route_date: string;
   status: RouteStatus;
   total_freight: number;
   notes: string | null;
