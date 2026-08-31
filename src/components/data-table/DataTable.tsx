@@ -324,7 +324,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                 key={key}
                 groupKey={key}
                 rows={rows}
-                columns={visibleColumns}
+                columns={cardColumns}
                 groupBy={groupBy!}
                 rowKey={rowKey}
                 onRowClick={onRowClick}
@@ -339,7 +339,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
               <MobileCard
                 key={rowKey(r)}
                 row={r}
-                columns={visibleColumns}
+                columns={cardColumns}
                 onRowClick={onRowClick}
                 rowClassName={rowClassName}
                 cardHeaderAction={cardHeaderAction}
