@@ -37,6 +37,7 @@ type ErpOrderRow = {
   COD_FRT_TRP: number | string | null;
   QTD_DIAS: number | null;
   ID_ROTA: number | string | null;
+  ROTA_STATUS: string | null;
   OBS_LOGIST: string | null;
 };
 
