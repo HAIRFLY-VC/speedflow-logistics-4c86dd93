@@ -307,9 +307,8 @@ function RouteDetailPage() {
   const issueManifest = useMutation({
     mutationFn: async () => {
       if (stops.length === 0) throw new Error("Rota sem pedidos");
-      const code = `BOR-${route?.route_date.replace(/-/g, "")}-${Math.floor(
-        Math.random() * 1000,
-      )
+      const datePart = (route?.route_date ?? "00000000").replace(/-/g, "");
+      const code = `BOR-${datePart}-${Math.floor(Math.random() * 1000)
         .toString()
         .padStart(3, "0")}`;
       const { error } = await supabase.from("delivery_manifests").insert({
