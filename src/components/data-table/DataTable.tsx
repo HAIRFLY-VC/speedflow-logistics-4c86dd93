@@ -882,7 +882,7 @@ function MobileGroup<T>({
             <MobileCard
               key={rowKey(r)}
               row={r}
-              columns={columns}
+              columns={cardColumns}
               onRowClick={onRowClick}
               rowClassName={rowClassName}
               cardHeaderAction={cardHeaderAction}
