@@ -803,6 +803,29 @@ function RotasPage() {
           </span>
         ),
       },
+      {
+        id: "acoes",
+        header: "",
+        sortable: false,
+        align: "right",
+        filterable: false,
+        accessor: () => "",
+        render: (r) =>
+          r.erp_route_id ? (
+            <button
+              type="button"
+              title="Editar rota"
+              className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditCodErp(transpPorRota.get(r.id)?.cod_erp ?? null);
+                setEditRoute(r);
+              }}
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+          ) : null,
+      },
     ],
     [depot, estimativas, freteOf, transpPorRota],
   );
