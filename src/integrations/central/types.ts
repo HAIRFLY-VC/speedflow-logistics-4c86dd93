@@ -164,6 +164,11 @@ export type CentralDatabase = Omit<Database, "public"> & {
         Insert: OpfWrite;
         Update: Partial<OpfWrite>;
       };
+      routes: Omit<Pub["Tables"]["routes"], "Row" | "Insert" | "Update"> & {
+        Row: Pub["Tables"]["routes"]["Row"] & { erp_carrier_code: string | null };
+        Insert: Pub["Tables"]["routes"]["Insert"] & { erp_carrier_code?: string | null };
+        Update: Partial<Pub["Tables"]["routes"]["Update"]> & { erp_carrier_code?: string | null };
+      };
       orders: Omit<Pub["Tables"]["orders"], "Row" | "Insert" | "Update"> & {
         Row: OrdersRow;
         Insert: OrdersWrite;
