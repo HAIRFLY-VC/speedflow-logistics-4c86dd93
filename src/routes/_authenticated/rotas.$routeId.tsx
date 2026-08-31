@@ -564,6 +564,9 @@ function RouteDetailPage() {
               ? {
                   id: route.id,
                   code: route.code,
+                  nomeRota: route.notes?.startsWith("Rota ")
+                    ? route.notes.slice(5)
+                    : route.code,
                   route_date: route.route_date,
                   notes: route.notes,
                   driver_name: route.freight_carriers?.full_name ?? null,
