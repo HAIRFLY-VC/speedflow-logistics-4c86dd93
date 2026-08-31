@@ -185,6 +185,7 @@ export function RouteEditDialog({
           code: nome,
           notes: `Rota ${nome}`,
           driver_name: nomeMotorista,
+          erp_carrier_code: codFrtTrp?.trim() || null,
         })
         .eq("id", route.id);
       if (error) throw error;
