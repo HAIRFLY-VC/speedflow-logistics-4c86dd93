@@ -109,6 +109,7 @@ function RouteDetailPage() {
   const qc = useQueryClient();
   const { user, role } = useAuth();
   const canOperate = role === "adm" || role === "gestor" || role === "operador";
+  const [editOpen, setEditOpen] = useState(false);
 
   const routeQ = useQuery({
     queryKey: ["routes", routeId],
