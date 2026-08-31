@@ -134,7 +134,13 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
   const visibleColumns = orderedColumns
     .filter(({ state: cs }) => cs?.visible !== false)
-    .map(({ def }) => def);
+    .map(({ def }) => def)
+    // Colunas fixadas ficam sempre no início, mesmo com ordem salva antiga.
+    .sort((a, b) => Number(!!b.pinFirst) - Number(!!a.pinFirst));
+
+  /** Colunas exibidas no card mobile (a coluna de ações fica fora). */
+  const cardColumns = visibleColumns.filter((c) => !c.hideOnCard);
+
 
   // Per-column distinct value catalog, computed from the full dataset.
   const distinctByColumn = useMemo(() => {
@@ -318,7 +324,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                 key={key}
                 groupKey={key}
                 rows={rows}
-                columns={visibleColumns}
+                columns={cardColumns}
                 groupBy={groupBy!}
                 rowKey={rowKey}
                 onRowClick={onRowClick}
@@ -330,10 +336,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
         ) : (
           <div className="space-y-2">
             {filteredSorted.map((r) => (
-              <MobileCard
-                key={rowKey(r)}
-                row={r}
-                columns={visibleColumns}
+            <MobileCard
+              key={rowKey(r)}
+              row={r}
+              columns={columns}
                 onRowClick={onRowClick}
                 rowClassName={rowClassName}
                 cardHeaderAction={cardHeaderAction}

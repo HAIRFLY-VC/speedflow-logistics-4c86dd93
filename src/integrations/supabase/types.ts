@@ -1385,6 +1385,7 @@ export type Database = {
           code: string
           created_at: string
           driver_name: string | null
+          erp_carrier_code: string | null
           erp_route_id: string | null
           erp_status: string | null
           id: string
@@ -1400,6 +1401,7 @@ export type Database = {
           code: string
           created_at?: string
           driver_name?: string | null
+          erp_carrier_code?: string | null
           erp_route_id?: string | null
           erp_status?: string | null
           id?: string
@@ -1415,6 +1417,7 @@ export type Database = {
           code?: string
           created_at?: string
           driver_name?: string | null
+          erp_carrier_code?: string | null
           erp_route_id?: string | null
           erp_status?: string | null
           id?: string

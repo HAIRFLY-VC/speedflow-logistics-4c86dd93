@@ -451,6 +451,7 @@ export async function syncErpOrders(opts: {
       total_freight: number | null;
       total_distance_km: number | null;
       carrier_id: string | null;
+      erp_carrier_code: string | null;
       status: string;
       erp_status: string | null;
       notes: string | null;
@@ -460,7 +461,7 @@ export async function syncErpOrders(opts: {
     try {
       const { data: pendingRoutes, error: pendErr } = await centralDb
         .from("routes")
-        .select("id,erp_route_id,code,total_freight,total_distance_km,carrier_id,status,erp_status,notes")
+        .select("id,erp_route_id,erp_carrier_code,code,total_freight,total_distance_km,carrier_id,status,erp_status,notes")
         .in("status", ["planejada", "em_andamento"]);
       if (pendErr) throw pendErr;
 
@@ -472,6 +473,7 @@ export async function syncErpOrders(opts: {
           total_freight: (r.total_freight as number | null) ?? null,
           total_distance_km: (r.total_distance_km as number | null) ?? null,
           carrier_id: (r.carrier_id as string | null) ?? null,
+          erp_carrier_code: (r.erp_carrier_code as string | null) ?? null,
           status: r.status as string,
           erp_status: (r.erp_status as string | null) ?? null,
           notes: (r.notes as string | null) ?? null,
@@ -551,6 +553,7 @@ export async function syncErpOrders(opts: {
               driver_name: g.driver,
               route_date: g.date,
               erp_route_id: g.erpRouteId,
+              erp_carrier_code: g.carrierCode,
               erp_status: g.erpStatus,
               carrier_id: carrierId ?? undefined,
               code: g.erpRouteId ? `erp-${g.erpRouteId}` : undefined,
@@ -569,6 +572,7 @@ export async function syncErpOrders(opts: {
               driver_name: g.driver,
               notes: snap?.notes ?? `Rota ${g.nome}`,
               erp_route_id: g.erpRouteId,
+              erp_carrier_code: g.carrierCode ?? snap?.erp_carrier_code ?? null,
               erp_status: snap?.erp_status ?? g.erpStatus,
               carrier_id: carrierId ?? snap?.carrier_id ?? null,
               total_freight: snap?.total_freight ?? 0,

@@ -46,6 +46,7 @@ export type EditableRoute = {
   notes: string | null;
   driver_name: string | null;
   erp_route_id: string | null;
+  erp_carrier_code?: string | null;
   erp_status: string | null;
 };
 
@@ -112,7 +113,7 @@ export function RouteEditDialog({
     if (!route) return;
     setDtPrevExp(toDateInput(route.route_date));
     setNomeRota((route.nomeRota ?? route.code ?? "").trim());
-    setCodFrtTrp(initialCodErp ?? null);
+    setCodFrtTrp(route.erp_carrier_code ?? initialCodErp ?? null);
   }, [route, initialCodErp]);
 
   const responsaveisQ = useQuery({
@@ -134,7 +135,7 @@ export function RouteEditDialog({
     if (!open || responsaveis.length === 0) return;
     if (codFrtTrp && responsaveis.some((r) => r.codErp === codFrtTrp)) return;
 
-    const alvoCod = normalizaCod(codFrtTrp ?? initialCodErp);
+    const alvoCod = normalizaCod(codFrtTrp ?? route?.erp_carrier_code ?? initialCodErp);
     if (alvoCod) {
       const porCod = responsaveis.find((r) => normalizaCod(r.codErp) === alvoCod);
       if (porCod) {
@@ -150,7 +151,7 @@ export function RouteEditDialog({
       });
       if (porNome) setCodFrtTrp(porNome.codErp);
     }
-  }, [open, responsaveis, codFrtTrp, initialCodErp, route?.driver_name]);
+  }, [open, responsaveis, codFrtTrp, initialCodErp, route?.erp_carrier_code, route?.driver_name]);
 
   const filteredBySearch = useMemo(() => {
     return responsaveis;
@@ -184,6 +185,7 @@ export function RouteEditDialog({
           code: nome,
           notes: `Rota ${nome}`,
           driver_name: nomeMotorista,
+          erp_carrier_code: codFrtTrp?.trim() || null,
         })
         .eq("id", route.id);
       if (error) throw error;
