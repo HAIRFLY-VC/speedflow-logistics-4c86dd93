@@ -39,6 +39,8 @@ export type DataTableProps<T> = {
   onFilteredChange?: (rows: T[]) => void;
   /** When true, the table body becomes scrollable within a fixed height with the header sticky. */
   scrollable?: boolean;
+  /** Optional action rendered at the top-right corner of each mobile card. */
+  cardHeaderAction?: (row: T) => ReactNode;
 
   groupBy?: {
     id: string;

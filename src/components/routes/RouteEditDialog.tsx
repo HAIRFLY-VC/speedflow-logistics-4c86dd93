@@ -40,6 +40,8 @@ import { supabase } from "@/integrations/central/client";
 export type EditableRoute = {
   id: string;
   code: string;
+  /** Nome exibido na listagem (pode diferir do código interno). */
+  nomeRota?: string | null;
   route_date: string;
   notes: string | null;
   driver_name: string | null;
@@ -60,6 +62,20 @@ const TIPO_LABEL: Record<ResponsavelErp["tipoFrete"], string> = {
   F: "Fretista",
   T: "Transportadora",
 };
+
+function normalizaCod(v: string | null | undefined): string {
+  const s = String(v ?? "").trim().replace(/^0+/, "");
+  return s;
+}
+
+function normalizaNome(v: string): string {
+  return v
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, " ")
+    .trim();
+}
 
 function toDateInput(value: string | null | undefined): string {
   if (!value) return "";
@@ -89,15 +105,13 @@ export function RouteEditDialog({
 
   const [dtPrevExp, setDtPrevExp] = useState("");
   const [nomeRota, setNomeRota] = useState("");
-  const [nomeMotorista, setNomeMotorista] = useState("");
   const [codFrtTrp, setCodFrtTrp] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (!route) return;
     setDtPrevExp(toDateInput(route.route_date));
-    setNomeRota(route.code ?? "");
-    setNomeMotorista(route.driver_name ?? "");
+    setNomeRota((route.nomeRota ?? route.code ?? "").trim());
     setCodFrtTrp(initialCodErp ?? null);
   }, [route, initialCodErp]);
 
@@ -114,6 +128,30 @@ export function RouteEditDialog({
     [responsaveis, codFrtTrp],
   );
 
+  // Pré-seleciona o responsável quando o código do ERP não bate exatamente
+  // (zeros à esquerda/espaços) ou quando só temos a razão social na rota.
+  useEffect(() => {
+    if (!open || responsaveis.length === 0) return;
+    if (codFrtTrp && responsaveis.some((r) => r.codErp === codFrtTrp)) return;
+
+    const alvoCod = normalizaCod(codFrtTrp ?? initialCodErp);
+    if (alvoCod) {
+      const porCod = responsaveis.find((r) => normalizaCod(r.codErp) === alvoCod);
+      if (porCod) {
+        setCodFrtTrp(porCod.codErp);
+        return;
+      }
+    }
+    const alvoNome = normalizaNome(route?.driver_name ?? "");
+    if (alvoNome.length >= 4) {
+      const porNome = responsaveis.find((r) => {
+        const n = normalizaNome(r.razaoSocial);
+        return n === alvoNome || n.startsWith(alvoNome) || alvoNome.startsWith(n);
+      });
+      if (porNome) setCodFrtTrp(porNome.codErp);
+    }
+  }, [open, responsaveis, codFrtTrp, initialCodErp, route?.driver_name]);
+
   const filteredBySearch = useMemo(() => {
     return responsaveis;
   }, [responsaveis]);
@@ -125,13 +163,15 @@ export function RouteEditDialog({
 
       const nome = nomeRota.trim().toUpperCase();
       if (!nome) throw new Error("Informe o nome da rota");
+      const responsavel = responsaveis.find((r) => r.codErp === codFrtTrp) ?? null;
+      const nomeMotorista = responsavel?.razaoSocial?.trim().toUpperCase() || null;
 
       await doAtualizar({
         data: {
           id: Number(route.erp_route_id),
           dtPrevExpYyyyMMdd: toYyyyMMdd(dtPrevExp),
           nomeRota: nome,
-          nomeMotorista: nomeMotorista.trim().toUpperCase() || null,
+          nomeMotorista,
           codFrtTrp: codFrtTrp?.trim() || null,
           status: route.erp_status ?? "P",
         },
@@ -142,7 +182,8 @@ export function RouteEditDialog({
         .update({
           route_date: dtPrevExp || "3000-01-01",
           code: nome,
-          notes: nomeMotorista.trim() || null,
+          notes: `Rota ${nome}`,
+          driver_name: nomeMotorista,
         })
         .eq("id", route.id);
       if (error) throw error;
@@ -171,6 +212,12 @@ export function RouteEditDialog({
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
+          {route.erp_route_id ? (
+            <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">ID da rota no ERP: </span>
+              <span className="font-semibold tabular-nums">{route.erp_route_id}</span>
+            </div>
+          ) : null}
           <div className="grid gap-2">
             <Label htmlFor="dtPrevExp">Data prevista de entrega</Label>
             <Input
@@ -188,16 +235,6 @@ export function RouteEditDialog({
               value={nomeRota}
               onChange={(e) => setNomeRota(e.target.value.toUpperCase())}
               placeholder="Ex: M-NOVA ROTA"
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="nomeMotorista">Motorista / Responsável</Label>
-            <Input
-              id="nomeMotorista"
-              value={nomeMotorista}
-              onChange={(e) => setNomeMotorista(e.target.value)}
-              placeholder="Nome do motorista"
             />
           </div>
 
@@ -236,7 +273,6 @@ export function RouteEditDialog({
                         value={`${r.razaoSocial} ${r.codErp} ${TIPO_LABEL[r.tipoFrete]}`}
                         onSelect={() => {
                           setCodFrtTrp(r.codErp);
-                          setNomeMotorista(r.razaoSocial);
                           setSearchOpen(false);
                         }}
                       >
