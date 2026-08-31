@@ -65,7 +65,9 @@ export const Route = createFileRoute("/_authenticated/rotas/")({
 type RouteRow = {
   id: string;
   code: string;
-  route_date: string;
+  erp_route_id: string | null;
+  erp_status: string | null;
+  route_date: string | null;
   status: RouteStatus;
   total_freight: number;
   total_distance_km: number | null;
