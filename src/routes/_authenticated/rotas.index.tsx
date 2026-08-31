@@ -938,6 +938,30 @@ function RotasPage() {
         onOpenChange={setOpen}
         onCreated={() => qc.invalidateQueries({ queryKey: ["routes"] })}
       />
+      <RouteEditDialog
+        route={
+          editRoute
+            ? {
+                id: editRoute.id,
+                code: editRoute.code,
+                route_date: editRoute.route_date,
+                notes: editRoute.notes,
+                driver_name: editRoute.driver_name,
+                erp_route_id: editRoute.erp_route_id,
+                erp_status: editRoute.erp_status,
+              }
+            : null
+        }
+        open={!!editRoute}
+        onOpenChange={(o) => {
+          if (!o) setEditRoute(null);
+        }}
+        initialCodErp={editCodErp}
+        onSuccess={() => {
+          qc.invalidateQueries({ queryKey: ["routes"] });
+          setEditRoute(null);
+        }}
+      />
     </AppShell>
   );
 }
