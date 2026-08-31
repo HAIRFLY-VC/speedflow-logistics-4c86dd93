@@ -450,6 +450,7 @@ export async function syncErpOrders(opts: {
       total_distance_km: number | null;
       carrier_id: string | null;
       status: string;
+      erp_status: string | null;
       notes: string | null;
     };
     const snapshotByErpId = new Map<string, RouteSnapshot>();
@@ -457,7 +458,7 @@ export async function syncErpOrders(opts: {
     try {
       const { data: pendingRoutes, error: pendErr } = await centralDb
         .from("routes")
-        .select("id,erp_route_id,code,total_freight,total_distance_km,carrier_id,status,notes")
+        .select("id,erp_route_id,code,total_freight,total_distance_km,carrier_id,status,erp_status,notes")
         .in("status", ["planejada", "em_andamento"]);
       if (pendErr) throw pendErr;
 
@@ -470,6 +471,7 @@ export async function syncErpOrders(opts: {
           total_distance_km: (r.total_distance_km as number | null) ?? null,
           carrier_id: (r.carrier_id as string | null) ?? null,
           status: r.status as string,
+          erp_status: (r.erp_status as string | null) ?? null,
           notes: (r.notes as string | null) ?? null,
         };
         if (snap.erp_route_id) snapshotByErpId.set(snap.erp_route_id, snap);
