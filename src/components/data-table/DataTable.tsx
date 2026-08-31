@@ -336,10 +336,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
         ) : (
           <div className="space-y-2">
             {filteredSorted.map((r) => (
-              <MobileCard
-                key={rowKey(r)}
-                row={r}
-                columns={cardColumns}
+            <MobileCard
+              key={rowKey(r)}
+              row={r}
+              columns={columns}
                 onRowClick={onRowClick}
                 rowClassName={rowClassName}
                 cardHeaderAction={cardHeaderAction}

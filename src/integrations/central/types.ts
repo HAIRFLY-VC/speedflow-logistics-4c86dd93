@@ -141,7 +141,7 @@ export type CentralDatabase = Omit<Database, "public"> & {
   public: Omit<Pub, "Tables"> & {
     Tables: Omit<
       Pub["Tables"],
-      "orders" | "empresas" | "ordens_pagamento_frete" | "transportadoras" | "routes"
+      "orders" | "empresas" | "ordens_pagamento_frete" | "transportadoras"
     > & {
       transportadoras: Omit<
         Pub["Tables"]["transportadoras"],
@@ -163,11 +163,6 @@ export type CentralDatabase = Omit<Database, "public"> & {
         Row: OpfRow;
         Insert: OpfWrite;
         Update: Partial<OpfWrite>;
-      };
-      routes: Omit<Pub["Tables"]["routes"], "Row" | "Insert" | "Update"> & {
-        Row: Pub["Tables"]["routes"]["Row"] & { erp_carrier_code: string | null };
-        Insert: Pub["Tables"]["routes"]["Insert"] & { erp_carrier_code?: string | null };
-        Update: Partial<Pub["Tables"]["routes"]["Update"]> & { erp_carrier_code?: string | null };
       };
       orders: Omit<Pub["Tables"]["orders"], "Row" | "Insert" | "Update"> & {
         Row: OrdersRow;
