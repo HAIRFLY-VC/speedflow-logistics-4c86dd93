@@ -104,7 +104,7 @@ const weightFmt = new Intl.NumberFormat("pt-BR", {
 });
 
 function formatRouteDate(value: string | null | undefined): string {
-  if (!value) return "";
+  if (!value) return "Não planejado";
   const str = String(value);
   if (str.startsWith("4000-01-01")) return "Não planejado";
   if (str.startsWith("3000-01-01")) return "Sem data prevista";
@@ -123,7 +123,7 @@ function formatRouteDate(value: string | null | undefined): string {
 
 function routeDateSortKey(value: string | null | undefined): string {
   const str = String(value ?? "");
-  if (str.startsWith("4000-01-01")) return "z";
+  if (!str || str.startsWith("4000-01-01")) return "z";
   if (str.startsWith("3000-01-01")) return "y";
   return str;
 }
