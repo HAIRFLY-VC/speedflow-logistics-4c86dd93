@@ -57,16 +57,19 @@ export const Route = createFileRoute("/_authenticated/rotas/$routeId")({
 type RouteDetail = {
   id: string;
   code: string;
-  route_date: string;
+  route_date: string | null;
   status: RouteStatus;
   total_freight: number;
   notes: string | null;
   carrier_id: string | null;
+  erp_route_id: string | null;
+  erp_status: string | null;
   freight_carriers: {
     id: string;
     full_name: string;
     vehicle_plate: string | null;
     phone: string | null;
+    transportadoras: { cod_erp: string | null } | null;
   } | null;
 };
 
