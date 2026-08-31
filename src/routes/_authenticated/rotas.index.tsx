@@ -601,6 +601,18 @@ function RotasPage() {
 
     () => [
       {
+        id: "erp_route_id",
+        header: "ID",
+        sortable: false,
+        accessor: (r) => r.erp_route_id ?? "",
+        render: (r) =>
+          r.erp_route_id ? (
+            <span className="font-semibold tabular-nums">ID {r.erp_route_id}</span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
+      },
+      {
         id: "route_date",
         header: "Data planejada",
         sortable: false,
@@ -921,6 +933,23 @@ function RotasPage() {
           onRowClick={(r) =>
             navigate({ to: "/rotas/$routeId", params: { routeId: r.id } })
           }
+          cardHeaderAction={(r) =>
+            r.erp_route_id ? (
+              <button
+                type="button"
+                title="Editar rota"
+                aria-label="Editar rota"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-md border text-muted-foreground hover:bg-accent hover:text-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditCodErp(transpPorRota.get(r.id)?.cod_erp ?? null);
+                  setEditRoute(r);
+                }}
+              >
+                <Pencil className="h-5 w-5" />
+              </button>
+            ) : null
+          }
           groupBy={{
             id: "route_date",
             accessor: (r) => r.route_date,
@@ -951,6 +980,7 @@ function RotasPage() {
             ? {
                 id: editRoute.id,
                 code: editRoute.code,
+                nomeRota: nomeRotaOf(editRoute),
                 route_date: editRoute.route_date,
                 notes: editRoute.notes,
                 driver_name: editRoute.driver_name,
