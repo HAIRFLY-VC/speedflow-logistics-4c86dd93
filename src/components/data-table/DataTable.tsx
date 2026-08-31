@@ -113,6 +113,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     onFilteredChange,
     groupBy,
     scrollable,
+    cardHeaderAction,
   } = props;
 
   const isMobile = useIsMobile();
@@ -322,6 +323,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                 rowKey={rowKey}
                 onRowClick={onRowClick}
                 rowClassName={rowClassName}
+                cardHeaderAction={cardHeaderAction}
               />
             ))}
           </div>
@@ -334,6 +336,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                 columns={visibleColumns}
                 onRowClick={onRowClick}
                 rowClassName={rowClassName}
+                cardHeaderAction={cardHeaderAction}
               />
             ))}
           </div>
@@ -695,6 +698,7 @@ function GroupBlock<T>({
   rowKey,
   onRowClick,
   rowClassName,
+  cardHeaderAction,
 }: {
   groupKey: string;
   rows: T[];
@@ -703,6 +707,7 @@ function GroupBlock<T>({
   rowKey: (row: T) => string;
   onRowClick?: (row: T) => void;
   rowClassName?: (row: T) => string | undefined;
+  cardHeaderAction?: (row: T) => ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
   return (
@@ -766,18 +771,25 @@ function MobileCard<T>({
   columns,
   onRowClick,
   rowClassName,
+  cardHeaderAction,
 }: {
   row: T;
   columns: ColumnDef<T>[];
   onRowClick?: (row: T) => void;
   rowClassName?: (row: T) => string | undefined;
+  cardHeaderAction?: (row: T) => ReactNode;
 }) {
   const [title, ...rest] = columns;
   const content = (
     <>
-      {title ? (
-        <div className="font-medium text-sm min-w-0 break-words">
-          {title.render ? title.render(row) : defaultRender(title, row)}
+      {title || cardHeaderAction ? (
+        <div className="flex items-start justify-between gap-2">
+          <div className="font-medium text-sm min-w-0 break-words">
+            {title ? (title.render ? title.render(row) : defaultRender(title, row)) : null}
+          </div>
+          {cardHeaderAction ? (
+            <div className="shrink-0 -mt-1 -mr-1">{cardHeaderAction(row)}</div>
+          ) : null}
         </div>
       ) : null}
       {rest.length > 0 ? (
@@ -828,6 +840,7 @@ function MobileGroup<T>({
   rowKey,
   onRowClick,
   rowClassName,
+  cardHeaderAction,
 }: {
   groupKey: string;
   rows: T[];
@@ -836,6 +849,7 @@ function MobileGroup<T>({
   rowKey: (row: T) => string;
   onRowClick?: (row: T) => void;
   rowClassName?: (row: T) => string | undefined;
+  cardHeaderAction?: (row: T) => ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
   return (
@@ -865,6 +879,7 @@ function MobileGroup<T>({
               columns={columns}
               onRowClick={onRowClick}
               rowClassName={rowClassName}
+              cardHeaderAction={cardHeaderAction}
             />
           ))}
         </div>
