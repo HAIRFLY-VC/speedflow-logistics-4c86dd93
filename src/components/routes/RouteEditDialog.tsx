@@ -140,7 +140,7 @@ export function RouteEditDialog({
       const { error } = await supabase
         .from("routes")
         .update({
-          route_date: dtPrevExp || null,
+          route_date: dtPrevExp || "3000-01-01",
           code: nome,
           notes: nomeMotorista.trim() || null,
         })
