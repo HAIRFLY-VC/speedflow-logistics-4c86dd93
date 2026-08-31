@@ -567,7 +567,7 @@ function RouteDetailPage() {
                   code: route.code,
                   route_date: route.route_date,
                   notes: route.notes,
-                  driver_name: route.freight_carriers?.full_name ?? route.notes ? null : null,
+                  driver_name: route.freight_carriers?.full_name ?? null,
                   erp_route_id: route.erp_route_id,
                   erp_status: route.erp_status,
                 }
