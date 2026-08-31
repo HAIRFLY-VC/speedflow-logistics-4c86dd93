@@ -219,7 +219,7 @@ export function RouteEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] overflow-x-hidden sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Editar rota</DialogTitle>
           <DialogDescription>
@@ -262,21 +262,31 @@ export function RouteEditDialog({
                   variant="outline"
                   role="combobox"
                   aria-expanded={searchOpen}
-                  className="justify-between font-normal"
+                  className="h-auto min-h-11 w-full min-w-0 items-start justify-between gap-2 whitespace-normal break-words py-2 text-left font-normal"
                   disabled={responsaveisQ.isLoading}
                 >
                   {selected ? (
-                    <span className="truncate">
-                      {selected.razaoSocial} ({selected.codErp}) ·{" "}
-                      {TIPO_LABEL[selected.tipoFrete]}
+                    <span className="flex min-w-0 flex-col">
+                      <span className="whitespace-normal break-words">{selected.razaoSocial}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {selected.codErp} · {TIPO_LABEL[selected.tipoFrete]}
+                      </span>
+                    </span>
+                  ) : codFrtTrp ? (
+                    <span className="flex min-w-0 flex-col">
+                      <span className="text-muted-foreground">Carregando responsável…</span>
+                      <span className="text-xs text-muted-foreground">Código {codFrtTrp}</span>
                     </span>
                   ) : (
                     "Selecione o responsável"
                   )}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  <ChevronsUpDown className="mt-1 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <PopoverContent
+                className="w-[--radix-popover-trigger-width] max-w-[calc(100vw-2rem)] p-0"
+                align="start"
+              >
                 <Command>
                   <CommandInput placeholder="Buscar por razão social ou código..." />
                   <CommandList>
@@ -291,15 +301,16 @@ export function RouteEditDialog({
                           setCodFrtTrp(r.codErp);
                           setSearchOpen(false);
                         }}
+                        className="items-start"
                       >
                         <Check
                           className={cn(
-                            "mr-2 h-4 w-4",
+                            "mr-2 mt-0.5 h-4 w-4 shrink-0",
                             codFrtTrp === r.codErp ? "opacity-100" : "opacity-0",
                           )}
                         />
-                        <div className="flex flex-col">
-                          <span className="text-sm">{r.razaoSocial}</span>
+                        <div className="flex min-w-0 flex-col">
+                          <span className="whitespace-normal break-words text-sm">{r.razaoSocial}</span>
                           <span className="text-xs text-muted-foreground">
                             {r.codErp} · {TIPO_LABEL[r.tipoFrete]}
                           </span>
@@ -313,11 +324,19 @@ export function RouteEditDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex-col gap-2 sm:flex-row">
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => onOpenChange(false)}
+          >
             Cancelar
           </Button>
-          <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+          <Button
+            className="w-full sm:w-auto"
+            onClick={() => salvar.mutate()}
+            disabled={salvar.isPending}
+          >
             {salvar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Salvar no ERP
           </Button>
