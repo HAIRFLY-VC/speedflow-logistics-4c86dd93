@@ -66,6 +66,7 @@ type RouteRow = {
   id: string;
   code: string;
   erp_route_id: string | null;
+  erp_carrier_code: string | null;
   erp_status: string | null;
   route_date: string;
   status: RouteStatus;
@@ -133,7 +134,11 @@ function nomeRotaOf(r: RouteRow) {
 }
 function motoristaOf(r: RouteRow, codFallback?: string | null) {
   const name = r.driver_name ?? r.freight_carriers?.full_name ?? "";
-  const cod = r.freight_carriers?.transportadoras?.cod_erp ?? codFallback ?? null;
+  const cod =
+    r.erp_carrier_code ??
+    r.freight_carriers?.transportadoras?.cod_erp ??
+    codFallback ??
+    null;
   if (name && cod) return `${name} (${cod})`;
   return name;
 }
@@ -157,6 +162,11 @@ function resolveTransportadora(
   r: RouteRow,
   transportadoras: TransportadoraLite[],
 ): TransportadoraLite | null {
+  const codRota = normalizaCod(r.erp_carrier_code);
+  if (codRota) {
+    const porCodigo = transportadoras.find((t) => normalizaCod(t.cod_erp) === codRota);
+    if (porCodigo) return porCodigo;
+  }
   const vinculada = r.freight_carriers?.transportadoras?.id;
   if (vinculada) {
     return (
@@ -487,7 +497,7 @@ function RotasPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,erp_route_id,erp_status,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate,transportadoras(id,cod_erp)),route_orders(stop_order,orders(customer_id,order_number,total_amount,weight,erp_status,delivery_latitude,delivery_longitude,customers(latitude,longitude,city)))",
+          "id,code,erp_route_id,erp_carrier_code,erp_status,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate,transportadoras(id,cod_erp)),route_orders(stop_order,orders(customer_id,order_number,total_amount,weight,erp_status,delivery_latitude,delivery_longitude,customers(latitude,longitude,city)))",
         );
       if (error) throw error;
       const rows = ((data ?? []) as unknown as RouteRow[]).filter(
@@ -603,6 +613,7 @@ function RotasPage() {
       {
         id: "erp_route_id",
         header: "ID",
+        pinFirst: true,
         sortable: false,
         accessor: (r) => r.erp_route_id ?? "",
         render: (r) =>
@@ -818,6 +829,7 @@ function RotasPage() {
       {
         id: "acoes",
         header: "",
+        hideOnCard: true,
         sortable: false,
         align: "right",
         filterable: false,
@@ -993,7 +1005,7 @@ function RotasPage() {
         onOpenChange={(o) => {
           if (!o) setEditRoute(null);
         }}
-        initialCodErp={editCodErp}
+        initialCodErp={editRoute?.erp_carrier_code ?? editCodErp}
         onSuccess={() => {
           qc.invalidateQueries({ queryKey: ["routes"] });
           setEditRoute(null);
