@@ -256,37 +256,38 @@ export function RouteEditDialog({
 
           <div className="grid gap-2">
             <Label>Transportadora / Fretista / Frota própria</Label>
-            <Popover open={searchOpen} onOpenChange={setSearchOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={searchOpen}
-                  className="h-auto min-h-11 w-full min-w-0 items-start justify-between gap-2 whitespace-normal break-words py-2 text-left font-normal"
-                  disabled={responsaveisQ.isLoading}
-                >
-                  {selected ? (
-                    <span className="flex min-w-0 flex-col">
-                      <span className="whitespace-normal break-words">{selected.razaoSocial}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {selected.codErp} · {TIPO_LABEL[selected.tipoFrete]}
+            <div className="flex items-start gap-2">
+              <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={searchOpen}
+                    className="h-auto min-h-11 w-full min-w-0 items-start justify-between gap-2 whitespace-normal break-words py-2 text-left font-normal"
+                    disabled={responsaveisQ.isLoading}
+                  >
+                    {selected ? (
+                      <span className="flex min-w-0 flex-col">
+                        <span className="whitespace-normal break-words">{selected.razaoSocial}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {selected.codErp} · {TIPO_LABEL[selected.tipoFrete]}
+                        </span>
                       </span>
-                    </span>
-                  ) : codFrtTrp ? (
-                    <span className="flex min-w-0 flex-col">
-                      <span className="text-muted-foreground">Carregando responsável…</span>
-                      <span className="text-xs text-muted-foreground">Código {codFrtTrp}</span>
-                    </span>
-                  ) : (
-                    "Selecione o responsável"
-                  )}
-                  <ChevronsUpDown className="mt-1 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className="w-[--radix-popover-trigger-width] max-w-[calc(100vw-2rem)] p-0"
-                align="start"
-              >
+                    ) : codFrtTrp ? (
+                      <span className="flex min-w-0 flex-col">
+                        <span className="text-muted-foreground">Carregando responsável…</span>
+                        <span className="text-xs text-muted-foreground">Código {codFrtTrp}</span>
+                      </span>
+                    ) : (
+                      "Selecione o responsável"
+                    )}
+                    <ChevronsUpDown className="mt-1 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-[--radix-popover-trigger-width] max-w-[calc(100vw-2rem)] p-0"
+                  align="start"
+                >
                 <Command>
                   <CommandInput placeholder="Buscar por razão social ou código..." />
                   <CommandList>
