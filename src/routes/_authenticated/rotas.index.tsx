@@ -312,8 +312,18 @@ function FreightInput({
   };
 
   const title = estimate
-    ? `Estimativa calculada pela tabela de preço "${estimate.tabelaNome}" (${estimate.entregasCalculadas} de ${estimate.entregasTotal} entregas${estimate.parcial ? " — praça não identificada nas demais" : ""}). Edite para confirmar o valor real.`
+    ? `Estimativa calculada pela tabela de preço "${estimate.tabelaNome}" (${estimate.entregasCalculadas} de ${estimate.entregasTotal} entregas${estimate.parcial ? " — praça não identificada nas demais" : ""}).`
     : undefined;
+
+  if (!editable) {
+    if (!value) return <span className="text-muted-foreground">—</span>;
+    return (
+      <span className={`inline-flex items-center gap-1 tabular-nums ${estimated ? "italic text-amber-600" : ""}`} title={estimated ? title : undefined}>
+        {estimated && <Calculator className="h-3 w-3" />}
+        {Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </span>
+    );
+  }
 
   return (
     <span className="inline-flex items-center gap-1 justify-end">
