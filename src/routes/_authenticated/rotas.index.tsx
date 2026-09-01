@@ -1030,7 +1030,21 @@ function RotasPage() {
           ) : null,
       },
     ],
-    [depot, estimativas, freteOf, responsavelPorRota, transpPorRota],
+    [
+      depot,
+      estimativas,
+      freteOf,
+      responsavelPorRota,
+      transpPorRota,
+      codResponsavelPorRota,
+      naturezasQ.data,
+      naturezasQ.isFetching,
+      naturezasQ.error,
+      codsRotaQ.isFetching,
+      codsRotaQ.error,
+      responsaveisQ.isFetching,
+      responsaveisQ.error,
+    ],
   );
 
 
