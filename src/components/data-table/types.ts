@@ -21,6 +21,9 @@ export type ColumnDef<T> = {
   filterable?: boolean;
   /** Keeps the column at the very beginning, ignoring saved column order. */
   pinFirst?: boolean;
+  /** Keeps the column immediately after the given column id, ignoring saved order. */
+  pinAfter?: string;
+
   /** Hides the column from the mobile card layout (still shown in the table). */
   hideOnCard?: boolean;
 
