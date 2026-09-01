@@ -746,7 +746,9 @@ function RotasPage() {
         id: "tipo_frete",
         header: "Tipo",
         sortable: false,
+        pinAfter: "motorista",
         align: "center",
+
         accessor: (r) => tipoFreteOf(r) ?? "",
         render: (r) => {
           const tipo = tipoFreteOf(r);
