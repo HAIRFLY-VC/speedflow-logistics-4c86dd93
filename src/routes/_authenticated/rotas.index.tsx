@@ -22,6 +22,7 @@ import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEd
 import {
   listarResponsaveisErp,
   listarResponsaveisDeRotasErp,
+  listarNaturezasPorCodigoErp,
   type ResponsavelErp,
 } from "@/lib/rota-erp.functions";
 
