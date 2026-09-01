@@ -276,12 +276,15 @@ function FreightInput({
 
   const qc = useQueryClient();
   const initial = Number(route.total_freight ?? 0);
-  const isEstimate = initial <= 0 && estimate != null;
+  const isEstimate = tipo === "T" && initial <= 0 && estimate != null;
   const [value, setValue] = useState<string>(
-    initial > 0 ? String(initial) : isEstimate ? String(estimate!.total) : "",
+    initial > 0 ? String(initial) : estimate ? String(estimate.total) : "",
   );
   const [estimated, setEstimated] = useState(isEstimate);
   const [dirty, setDirty] = useState(false);
+
+  const editable = tipo === "F";
+
 
   const save = useMutation({
     mutationFn: async (next: number) => {
