@@ -804,7 +804,7 @@ function RotasPage() {
             );
           }
           const carregando =
-            codsRotaQ.isPending || (naturezasQ.isPending && codsParaNatureza.length > 0);
+            codsRotaQ.isFetching || naturezasQ.isFetching || responsaveisQ.isFetching;
           if (carregando) return <span className="text-muted-foreground">…</span>;
           const erro = codsRotaQ.error ?? naturezasQ.error ?? responsaveisQ.error;
           if (erro) {
