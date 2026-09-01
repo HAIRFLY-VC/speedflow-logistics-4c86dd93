@@ -929,7 +929,7 @@ function RotasPage() {
           ) : null,
       },
     ],
-    [depot, estimativas, freteOf, transpPorRota],
+    [depot, estimativas, freteOf, responsavelPorRota, transpPorRota],
   );
 
 
