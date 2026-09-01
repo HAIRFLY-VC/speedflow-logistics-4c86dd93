@@ -710,6 +710,24 @@ function RotasPage() {
           ),
       },
       {
+        id: "tipo_frete",
+        header: "Tipo",
+        sortable: false,
+        align: "center",
+        accessor: (r) => tipoFreteOf(r) ?? "",
+        render: (r) => {
+          const tipo = tipoFreteOf(r);
+          return tipo ? (
+            <span
+              title={TIPO_FRETE_LABEL[tipo]}
+              className={`inline-flex h-6 w-6 items-center justify-center rounded-md border text-xs font-bold ${TIPO_FRETE_TONE[tipo]}`}
+            >
+              {tipo}
+            </span>
+          ) : <span className="text-muted-foreground">—</span>;
+        },
+      },
+      {
         id: "paradas",
         header: "Qtd Entregas",
         sortable: false,
