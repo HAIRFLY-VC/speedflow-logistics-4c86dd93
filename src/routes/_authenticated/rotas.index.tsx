@@ -19,6 +19,8 @@ import {
   type TabelaSim,
 } from "@/lib/frete-simulacao";
 import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEditDialog";
+import { listarResponsaveisErp, type ResponsavelErp } from "@/lib/rota-erp.functions";
+
 
 
 
@@ -183,6 +185,19 @@ function resolveTransportadora(
   );
 }
 
+export type TipoFrete = "F" | "T" | "P";
+const TIPO_FRETE_LABEL: Record<TipoFrete, string> = {
+  F: "Fretista",
+  T: "Transportadora",
+  P: "Frota própria",
+};
+const TIPO_FRETE_TONE: Record<TipoFrete, string> = {
+  F: "bg-violet-500/15 text-violet-600 border-violet-500/30",
+  T: "bg-sky-500/15 text-sky-600 border-sky-500/30",
+  P: "bg-slate-500/15 text-slate-600 border-slate-500/30",
+};
+
+
 function paradasOf(r: RouteRow) {
   const set = new Set<string>();
   for (const ro of r.route_orders ?? []) {
@@ -252,18 +267,24 @@ function StatusList({ map }: { map: Map<string, number> }) {
 function FreightInput({
   route,
   estimate,
+  tipo,
 }: {
   route: RouteRow;
   estimate: SimulacaoRota | null;
+  tipo: TipoFrete | null;
 }) {
+
   const qc = useQueryClient();
   const initial = Number(route.total_freight ?? 0);
-  const isEstimate = initial <= 0 && estimate != null;
+  const isEstimate = tipo === "T" && initial <= 0 && estimate != null;
   const [value, setValue] = useState<string>(
-    initial > 0 ? String(initial) : isEstimate ? String(estimate!.total) : "",
+    initial > 0 ? String(initial) : estimate ? String(estimate.total) : "",
   );
   const [estimated, setEstimated] = useState(isEstimate);
   const [dirty, setDirty] = useState(false);
+
+  const editable = tipo === "F";
+
 
   const save = useMutation({
     mutationFn: async (next: number) => {
@@ -291,8 +312,18 @@ function FreightInput({
   };
 
   const title = estimate
-    ? `Estimativa calculada pela tabela de preço "${estimate.tabelaNome}" (${estimate.entregasCalculadas} de ${estimate.entregasTotal} entregas${estimate.parcial ? " — praça não identificada nas demais" : ""}). Edite para confirmar o valor real.`
+    ? `Estimativa calculada pela tabela de preço "${estimate.tabelaNome}" (${estimate.entregasCalculadas} de ${estimate.entregasTotal} entregas${estimate.parcial ? " — praça não identificada nas demais" : ""}).`
     : undefined;
+
+  if (!editable) {
+    if (!value) return <span className="text-muted-foreground">—</span>;
+    return (
+      <span className={`inline-flex items-center gap-1 tabular-nums ${estimated ? "italic text-amber-600" : ""}`} title={estimated ? title : undefined}>
+        {estimated && <Calculator className="h-3 w-3" />}
+        {Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </span>
+    );
+  }
 
   return (
     <span className="inline-flex items-center gap-1 justify-end">
@@ -559,12 +590,44 @@ function RotasPage() {
     return map;
   }, [data, transportadorasQ.data]);
 
+  const listarResponsaveis = useServerFn(listarResponsaveisErp);
+  const responsaveisQ = useQuery({
+    queryKey: ["responsaveis-erp"],
+    queryFn: () => listarResponsaveis(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const responsavelPorRota = useMemo(() => {
+    const map = new Map<string, ResponsavelErp>();
+    const responsaveis = responsaveisQ.data ?? [];
+    const porCodigo = new Map(responsaveis.map((item) => [normalizaCod(item.codErp), item]));
+    for (const r of data ?? []) {
+      const cod = transpPorRota.get(r.id)?.cod_erp;
+      const porCod = cod ? porCodigo.get(normalizaCod(cod)) : undefined;
+      if (porCod) {
+        map.set(r.id, porCod);
+        continue;
+      }
+      const nome = normalizaNome(r.driver_name ?? r.freight_carriers?.full_name ?? "");
+      const porNome = responsaveis.find((item) => {
+        const alvo = normalizaNome(item.razaoSocial);
+        return alvo === nome || (alvo.length >= 4 && nome.length >= 4 && (alvo.startsWith(nome) || nome.startsWith(alvo)));
+      });
+      if (porNome) map.set(r.id, porNome);
+    }
+    return map;
+  }, [data, responsaveisQ.data, transpPorRota]);
+
+  const tipoFreteOf = (r: RouteRow): TipoFrete | null =>
+    responsavelPorRota.get(r.id)?.tipoFrete ?? null;
+
   const estimativas = useMemo(() => {
     const map = new Map<string, SimulacaoRota>();
     const tabelas = tabelasQ.data ?? [];
     const vinculos = vinculosQ.data ?? [];
     if (!tabelas.length) return map;
     for (const r of data ?? []) {
+      if (tipoFreteOf(r) !== "T") continue;
       const transportadoraId = transpPorRota.get(r.id)?.id;
       if (!transportadoraId) continue;
       const tabela = tabelaVigenteDaTransportadora(tabelas, vinculos, transportadoraId);
@@ -647,6 +710,24 @@ function RotasPage() {
           ),
       },
       {
+        id: "tipo_frete",
+        header: "Tipo",
+        sortable: false,
+        align: "center",
+        accessor: (r) => tipoFreteOf(r) ?? "",
+        render: (r) => {
+          const tipo = tipoFreteOf(r);
+          return tipo ? (
+            <span
+              title={TIPO_FRETE_LABEL[tipo]}
+              className={`inline-flex h-6 w-6 items-center justify-center rounded-md border text-xs font-bold ${TIPO_FRETE_TONE[tipo]}`}
+            >
+              {tipo}
+            </span>
+          ) : <span className="text-muted-foreground">—</span>;
+        },
+      },
+      {
         id: "paradas",
         header: "Qtd Entregas",
         sortable: false,
@@ -718,9 +799,10 @@ function RotasPage() {
         render: (r) => (
           <span onClick={(e) => e.stopPropagation()}>
             <FreightInput
-              key={`${r.id}-${r.total_freight ?? 0}-${estimativas.get(r.id)?.total ?? 0}`}
+              key={`${r.id}-${r.total_freight ?? 0}-${estimativas.get(r.id)?.total ?? 0}-${tipoFreteOf(r) ?? ""}`}
               route={r}
               estimate={estimativas.get(r.id) ?? null}
+              tipo={tipoFreteOf(r)}
             />
           </span>
         ),
@@ -847,7 +929,7 @@ function RotasPage() {
           ) : null,
       },
     ],
-    [depot, estimativas, freteOf, transpPorRota],
+    [depot, estimativas, freteOf, responsavelPorRota, transpPorRota],
   );
 
 
