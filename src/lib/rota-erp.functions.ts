@@ -109,6 +109,55 @@ export const buscarResponsavelRotaErp = createServerFn({ method: "POST" })
     }
   });
 
+/**
+ * Busca no ERP o código do responsável (COD_FRT_TRP) de várias rotas de uma vez.
+ */
+export const listarResponsaveisDeRotasErp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { idsRota: number[] }) => {
+    const ids = Array.from(
+      new Set((input?.idsRota ?? []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)),
+    );
+    return { idsRota: ids.slice(0, 1000) };
+  })
+  .handler(async ({ data }) => {
+    const out: Record<string, string> = {};
+    if (data.idsRota.length === 0) return out;
+
+    const baseUrl = process.env["ERP_API_BASE_URL"];
+    const apiKey = process.env["ERP_API_KEY"];
+    if (!baseUrl || !apiKey) throw new Error("Integração com o ERP não configurada");
+    const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
+
+    const lista = data.idsRota.join(",");
+    const sql = `select R.ID, R.COD_FRT_TRP COD from gks.a_ger_rotas R where R.ID in (${lista})`;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+    try {
+      const res = await fetch(`${cleanBase}/v1/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+        body: JSON.stringify({ sql, binds: {}, limit: 5000 }),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        const texto = (await res.text()).replace(/\s+/g, " ").slice(0, 200);
+        throw new Error(`ERP API ${res.status}${texto ? `: ${texto}` : ""}`);
+      }
+      const json = (await res.json()) as ErpQueryResponse;
+      for (const linha of json.rows ?? []) {
+        const id = String(getField(linha, "ID") ?? "").trim();
+        const cod = String(getField(linha, "COD") ?? "").trim();
+        if (id && cod) out[id] = cod;
+      }
+      return out;
+    } finally {
+      clearTimeout(timeout);
+    }
+  });
+
+
 type AtualizarCapaRotaInput = {
   id: number;
   dtPrevExpYyyyMMdd: string | null;
