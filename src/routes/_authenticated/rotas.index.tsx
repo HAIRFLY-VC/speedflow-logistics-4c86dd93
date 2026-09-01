@@ -590,6 +590,37 @@ function RotasPage() {
     return map;
   }, [data, transportadorasQ.data]);
 
+  const listarResponsaveis = useServerFn(listarResponsaveisErp);
+  const responsaveisQ = useQuery({
+    queryKey: ["responsaveis-erp"],
+    queryFn: () => listarResponsaveis(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const responsavelPorRota = useMemo(() => {
+    const map = new Map<string, ResponsavelErp>();
+    const responsaveis = responsaveisQ.data ?? [];
+    const porCodigo = new Map(responsaveis.map((item) => [normalizaCod(item.codErp), item]));
+    for (const r of data ?? []) {
+      const cod = transpPorRota.get(r.id)?.cod_erp;
+      const porCod = cod ? porCodigo.get(normalizaCod(cod)) : undefined;
+      if (porCod) {
+        map.set(r.id, porCod);
+        continue;
+      }
+      const nome = normalizaNome(r.driver_name ?? r.freight_carriers?.full_name ?? "");
+      const porNome = responsaveis.find((item) => {
+        const alvo = normalizaNome(item.razaoSocial);
+        return alvo === nome || (alvo.length >= 4 && nome.length >= 4 && (alvo.startsWith(nome) || nome.startsWith(alvo)));
+      });
+      if (porNome) map.set(r.id, porNome);
+    }
+    return map;
+  }, [data, responsaveisQ.data, transpPorRota]);
+
+  const tipoFreteOf = (r: RouteRow): TipoFrete | null =>
+    responsavelPorRota.get(r.id)?.tipoFrete ?? null;
+
   const estimativas = useMemo(() => {
     const map = new Map<string, SimulacaoRota>();
     const tabelas = tabelasQ.data ?? [];
