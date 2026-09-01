@@ -22,6 +22,7 @@ import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEd
 import {
   listarResponsaveisErp,
   listarResponsaveisDeRotasErp,
+  listarNaturezasPorCodigoErp,
   type ResponsavelErp,
 } from "@/lib/rota-erp.functions";
 
@@ -622,19 +623,37 @@ function RotasPage() {
     staleTime: 60 * 1000,
   });
 
+  /** Código do responsável efetivamente usado por rota (ERP → local). */
+  const codResponsavelPorRota = useMemo(() => {
+    const map = new Map<string, string>();
+    const codsErp = codsRotaQ.data ?? {};
+    for (const r of data ?? []) {
+      const codRota = r.erp_route_id ? codsErp[String(Number(r.erp_route_id))] : undefined;
+      const cod = codRota ?? transpPorRota.get(r.id)?.cod_erp ?? null;
+      if (cod && String(cod).trim()) map.set(r.id, String(cod).trim());
+    }
+    return map;
+  }, [data, codsRotaQ.data, transpPorRota]);
+
+  /** Naturezas buscadas diretamente por código, sem filtro de natureza. */
+  const listarNaturezas = useServerFn(listarNaturezasPorCodigoErp);
+  const codsParaNatureza = useMemo(
+    () => Array.from(new Set(codResponsavelPorRota.values())).sort(),
+    [codResponsavelPorRota],
+  );
+  const naturezasQ = useQuery({
+    queryKey: ["naturezas-erp", codsParaNatureza],
+    queryFn: () => listarNaturezas({ data: { cods: codsParaNatureza } }),
+    enabled: codsParaNatureza.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const responsavelPorRota = useMemo(() => {
     const map = new Map<string, ResponsavelErp>();
     const responsaveis = responsaveisQ.data ?? [];
     const porCodigo = new Map(responsaveis.map((item) => [normalizaCod(item.codErp), item]));
-    const codsErp = codsRotaQ.data ?? {};
     for (const r of data ?? []) {
-      const codRota = r.erp_route_id ? codsErp[String(Number(r.erp_route_id))] : undefined;
-      const porCodRota = codRota ? porCodigo.get(normalizaCod(codRota)) : undefined;
-      if (porCodRota) {
-        map.set(r.id, porCodRota);
-        continue;
-      }
-      const cod = transpPorRota.get(r.id)?.cod_erp;
+      const cod = codResponsavelPorRota.get(r.id);
       const porCod = cod ? porCodigo.get(normalizaCod(cod)) : undefined;
       if (porCod) {
         map.set(r.id, porCod);
@@ -648,11 +667,22 @@ function RotasPage() {
       if (porNome) map.set(r.id, porNome);
     }
     return map;
-  }, [data, responsaveisQ.data, transpPorRota, codsRotaQ.data]);
+  }, [data, responsaveisQ.data, codResponsavelPorRota]);
 
+  /** Natureza bruta do responsável da rota (quando encontrada por código). */
+  const naturezaDaRota = (r: RouteRow) => {
+    const cod = codResponsavelPorRota.get(r.id);
+    if (!cod) return null;
+    const mapa = naturezasQ.data ?? {};
+    return (
+      mapa[cod] ??
+      Object.values(mapa).find((n) => normalizaCod(n.codErp) === normalizaCod(cod)) ??
+      null
+    );
+  };
 
   const tipoFreteOf = (r: RouteRow): TipoFrete | null =>
-    responsavelPorRota.get(r.id)?.tipoFrete ?? null;
+    naturezaDaRota(r)?.tipoFrete ?? responsavelPorRota.get(r.id)?.tipoFrete ?? null;
 
   const estimativas = useMemo(() => {
     const map = new Map<string, SimulacaoRota>();
@@ -752,14 +782,50 @@ function RotasPage() {
         accessor: (r) => tipoFreteOf(r) ?? "",
         render: (r) => {
           const tipo = tipoFreteOf(r);
-          return tipo ? (
+          if (tipo) {
+            return (
+              <span
+                title={TIPO_FRETE_LABEL[tipo]}
+                className={`inline-flex h-6 w-6 items-center justify-center rounded-md border text-xs font-bold ${TIPO_FRETE_TONE[tipo]}`}
+              >
+                {tipo}
+              </span>
+            );
+          }
+          const nat = naturezaDaRota(r);
+          if (nat) {
+            return (
+              <span
+                title={`Natureza ${nat.natureza || "?"} no ERP (código ${nat.codErp})`}
+                className="inline-flex h-6 min-w-6 items-center justify-center rounded-md border border-amber-500/30 bg-amber-500/15 px-1 text-[10px] font-bold text-amber-600"
+              >
+                {nat.natureza || "?"}
+              </span>
+            );
+          }
+          const carregando =
+            codsRotaQ.isFetching || naturezasQ.isFetching || responsaveisQ.isFetching;
+          if (carregando) return <span className="text-muted-foreground">…</span>;
+          const erro = codsRotaQ.error ?? naturezasQ.error ?? responsaveisQ.error;
+          if (erro) {
+            return (
+              <span
+                title={`Falha ao consultar o ERP: ${(erro as Error).message}`}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-destructive/30 bg-destructive/10 text-xs font-bold text-destructive"
+              >
+                !
+              </span>
+            );
+          }
+          const cod = codResponsavelPorRota.get(r.id);
+          return (
             <span
-              title={TIPO_FRETE_LABEL[tipo]}
-              className={`inline-flex h-6 w-6 items-center justify-center rounded-md border text-xs font-bold ${TIPO_FRETE_TONE[tipo]}`}
+              className="text-muted-foreground"
+              title={cod ? `Código ${cod} não identificado no ERP` : "Responsável sem código no ERP"}
             >
-              {tipo}
+              —
             </span>
-          ) : <span className="text-muted-foreground">—</span>;
+          );
         },
       },
       {
@@ -964,7 +1030,21 @@ function RotasPage() {
           ) : null,
       },
     ],
-    [depot, estimativas, freteOf, responsavelPorRota, transpPorRota],
+    [
+      depot,
+      estimativas,
+      freteOf,
+      responsavelPorRota,
+      transpPorRota,
+      codResponsavelPorRota,
+      naturezasQ.data,
+      naturezasQ.isFetching,
+      naturezasQ.error,
+      codsRotaQ.isFetching,
+      codsRotaQ.error,
+      responsaveisQ.isFetching,
+      responsaveisQ.error,
+    ],
   );
 
 
