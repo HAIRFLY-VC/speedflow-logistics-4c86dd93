@@ -627,6 +627,7 @@ function RotasPage() {
     const vinculos = vinculosQ.data ?? [];
     if (!tabelas.length) return map;
     for (const r of data ?? []) {
+      if (tipoFreteOf(r) !== "T") continue;
       const transportadoraId = transpPorRota.get(r.id)?.id;
       if (!transportadoraId) continue;
       const tabela = tabelaVigenteDaTransportadora(tabelas, vinculos, transportadoraId);
