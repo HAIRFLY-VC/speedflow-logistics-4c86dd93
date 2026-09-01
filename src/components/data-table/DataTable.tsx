@@ -132,14 +132,29 @@ export function DataTable<T>(props: DataTableProps<T>) {
     orderedColumns,
   } = useTablePrefs(tableKey, columns, defaultSort);
 
-  const visibleColumns = orderedColumns
-    .filter(({ state: cs }) => cs?.visible !== false)
-    .map(({ def }) => def)
-    // Colunas fixadas ficam sempre no início, mesmo com ordem salva antiga.
-    .sort((a, b) => Number(!!b.pinFirst) - Number(!!a.pinFirst));
+  const visibleColumns = (() => {
+    const base = orderedColumns
+      .filter(({ state: cs }) => cs?.visible !== false)
+      .map(({ def }) => def)
+      // Colunas fixadas ficam sempre no início, mesmo com ordem salva antiga.
+      .sort((a, b) => Number(!!b.pinFirst) - Number(!!a.pinFirst));
+
+    // Colunas com pinAfter são reposicionadas logo após a coluna alvo.
+    const pinned = base.filter((c) => c.pinAfter);
+    if (pinned.length === 0) return base;
+    const rest = base.filter((c) => !c.pinAfter);
+    const out: typeof base = [];
+    for (const col of rest) {
+      out.push(col);
+      for (const p of pinned) if (p.pinAfter === col.id) out.push(p);
+    }
+    for (const p of pinned) if (!out.includes(p)) out.push(p);
+    return out;
+  })();
 
   /** Colunas exibidas no card mobile (a coluna de ações fica fora). */
   const cardColumns = visibleColumns.filter((c) => !c.hideOnCard);
+
 
 
   // Per-column distinct value catalog, computed from the full dataset.

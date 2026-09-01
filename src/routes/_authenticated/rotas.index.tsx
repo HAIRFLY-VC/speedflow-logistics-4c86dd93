@@ -19,7 +19,12 @@ import {
   type TabelaSim,
 } from "@/lib/frete-simulacao";
 import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEditDialog";
-import { listarResponsaveisErp, type ResponsavelErp } from "@/lib/rota-erp.functions";
+import {
+  listarResponsaveisErp,
+  listarResponsaveisDeRotasErp,
+  type ResponsavelErp,
+} from "@/lib/rota-erp.functions";
+
 
 
 
@@ -597,11 +602,38 @@ function RotasPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  /** Códigos de responsável (COD_FRT_TRP) direto do ERP, por ID de rota. */
+  const listarCodsRotas = useServerFn(listarResponsaveisDeRotasErp);
+  const idsRotaErp = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (data ?? [])
+            .map((r) => Number(r.erp_route_id))
+            .filter((v) => Number.isFinite(v) && v > 0),
+        ),
+      ).sort((a, b) => a - b),
+    [data],
+  );
+  const codsRotaQ = useQuery({
+    queryKey: ["rotas-responsaveis-erp", idsRotaErp],
+    queryFn: () => listarCodsRotas({ data: { idsRota: idsRotaErp } }),
+    enabled: idsRotaErp.length > 0,
+    staleTime: 60 * 1000,
+  });
+
   const responsavelPorRota = useMemo(() => {
     const map = new Map<string, ResponsavelErp>();
     const responsaveis = responsaveisQ.data ?? [];
     const porCodigo = new Map(responsaveis.map((item) => [normalizaCod(item.codErp), item]));
+    const codsErp = codsRotaQ.data ?? {};
     for (const r of data ?? []) {
+      const codRota = r.erp_route_id ? codsErp[String(Number(r.erp_route_id))] : undefined;
+      const porCodRota = codRota ? porCodigo.get(normalizaCod(codRota)) : undefined;
+      if (porCodRota) {
+        map.set(r.id, porCodRota);
+        continue;
+      }
       const cod = transpPorRota.get(r.id)?.cod_erp;
       const porCod = cod ? porCodigo.get(normalizaCod(cod)) : undefined;
       if (porCod) {
@@ -616,7 +648,8 @@ function RotasPage() {
       if (porNome) map.set(r.id, porNome);
     }
     return map;
-  }, [data, responsaveisQ.data, transpPorRota]);
+  }, [data, responsaveisQ.data, transpPorRota, codsRotaQ.data]);
+
 
   const tipoFreteOf = (r: RouteRow): TipoFrete | null =>
     responsavelPorRota.get(r.id)?.tipoFrete ?? null;
@@ -713,7 +746,9 @@ function RotasPage() {
         id: "tipo_frete",
         header: "Tipo",
         sortable: false,
+        pinAfter: "motorista",
         align: "center",
+
         accessor: (r) => tipoFreteOf(r) ?? "",
         render: (r) => {
           const tipo = tipoFreteOf(r);
