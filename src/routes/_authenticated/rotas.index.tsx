@@ -267,10 +267,13 @@ function StatusList({ map }: { map: Map<string, number> }) {
 function FreightInput({
   route,
   estimate,
+  tipo,
 }: {
   route: RouteRow;
   estimate: SimulacaoRota | null;
+  tipo: TipoFrete | null;
 }) {
+
   const qc = useQueryClient();
   const initial = Number(route.total_freight ?? 0);
   const isEstimate = initial <= 0 && estimate != null;
