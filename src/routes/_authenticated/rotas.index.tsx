@@ -799,9 +799,10 @@ function RotasPage() {
         render: (r) => (
           <span onClick={(e) => e.stopPropagation()}>
             <FreightInput
-              key={`${r.id}-${r.total_freight ?? 0}-${estimativas.get(r.id)?.total ?? 0}`}
+              key={`${r.id}-${r.total_freight ?? 0}-${estimativas.get(r.id)?.total ?? 0}-${tipoFreteOf(r) ?? ""}`}
               route={r}
               estimate={estimativas.get(r.id) ?? null}
+              tipo={tipoFreteOf(r)}
             />
           </span>
         ),
