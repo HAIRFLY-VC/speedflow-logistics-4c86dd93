@@ -19,7 +19,7 @@ import {
   type TabelaSim,
 } from "@/lib/frete-simulacao";
 import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEditDialog";
-import { listarResponsaveisErp } from "@/lib/rota-erp.functions";
+import { listarResponsaveisErp, type ResponsavelErp } from "@/lib/rota-erp.functions";
 
 
 
