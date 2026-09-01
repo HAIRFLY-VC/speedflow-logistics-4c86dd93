@@ -782,14 +782,50 @@ function RotasPage() {
         accessor: (r) => tipoFreteOf(r) ?? "",
         render: (r) => {
           const tipo = tipoFreteOf(r);
-          return tipo ? (
+          if (tipo) {
+            return (
+              <span
+                title={TIPO_FRETE_LABEL[tipo]}
+                className={`inline-flex h-6 w-6 items-center justify-center rounded-md border text-xs font-bold ${TIPO_FRETE_TONE[tipo]}`}
+              >
+                {tipo}
+              </span>
+            );
+          }
+          const nat = naturezaDaRota(r);
+          if (nat) {
+            return (
+              <span
+                title={`Natureza ${nat.natureza || "?"} no ERP (código ${nat.codErp})`}
+                className="inline-flex h-6 min-w-6 items-center justify-center rounded-md border border-amber-500/30 bg-amber-500/15 px-1 text-[10px] font-bold text-amber-600"
+              >
+                {nat.natureza || "?"}
+              </span>
+            );
+          }
+          const carregando =
+            codsRotaQ.isPending || (naturezasQ.isPending && codsParaNatureza.length > 0);
+          if (carregando) return <span className="text-muted-foreground">…</span>;
+          const erro = codsRotaQ.error ?? naturezasQ.error ?? responsaveisQ.error;
+          if (erro) {
+            return (
+              <span
+                title={`Falha ao consultar o ERP: ${(erro as Error).message}`}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-destructive/30 bg-destructive/10 text-xs font-bold text-destructive"
+              >
+                !
+              </span>
+            );
+          }
+          const cod = codResponsavelPorRota.get(r.id);
+          return (
             <span
-              title={TIPO_FRETE_LABEL[tipo]}
-              className={`inline-flex h-6 w-6 items-center justify-center rounded-md border text-xs font-bold ${TIPO_FRETE_TONE[tipo]}`}
+              className="text-muted-foreground"
+              title={cod ? `Código ${cod} não identificado no ERP` : "Responsável sem código no ERP"}
             >
-              {tipo}
+              —
             </span>
-          ) : <span className="text-muted-foreground">—</span>;
+          );
         },
       },
       {
