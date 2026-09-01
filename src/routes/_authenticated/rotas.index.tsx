@@ -183,6 +183,19 @@ function resolveTransportadora(
   );
 }
 
+export type TipoFrete = "F" | "T" | "P";
+const TIPO_FRETE_LABEL: Record<TipoFrete, string> = {
+  F: "Fretista",
+  T: "Transportadora",
+  P: "Frota própria",
+};
+const TIPO_FRETE_TONE: Record<TipoFrete, string> = {
+  F: "bg-violet-500/15 text-violet-600 border-violet-500/30",
+  T: "bg-sky-500/15 text-sky-600 border-sky-500/30",
+  P: "bg-slate-500/15 text-slate-600 border-slate-500/30",
+};
+
+
 function paradasOf(r: RouteRow) {
   const set = new Set<string>();
   for (const ro of r.route_orders ?? []) {
