@@ -135,6 +135,48 @@ async function fetchPendingOrdersFromErp(): Promise<ErpOrderRow[]> {
   throw lastErr ?? new Error("Falha desconhecida ao consultar o ERP");
 }
 
+const RESPONSAVEIS_SQL = `
+  SELECT TRIM(T.DBA_TIP_CODIGO_1) COD_ERP,
+         TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOCIAL,
+         T.DBA_TIP_NATUREZA COD_NAT
+    FROM GKS.A_CADCTIPO T
+   WHERE T.DBA_TIP_CODIGO_1 IS NOT NULL
+`;
+
+async function sincronizarEspelhoResponsaveis() {
+  const baseUrl = process.env.ERP_API_BASE_URL;
+  const apiKey = process.env.ERP_API_KEY;
+  if (!baseUrl || !apiKey) throw new Error("ERP_API_BASE_URL ou ERP_API_KEY não configurados");
+  const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
+  const res = await fetch(`${cleanBase}/v1/query`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+    body: JSON.stringify({ sql: RESPONSAVEIS_SQL, binds: {}, limit: 10000 }),
+  });
+  if (!res.ok) throw new Error(friendlyErpError(res.status, await res.text()));
+  const json = (await res.json()) as ErpQueryResponse;
+  const byCode = new Map<string, { cod_erp: string; razao_social: string | null; natureza: string; tipo_frete: "F" | "T" | "P" | null }>();
+  for (const row of json.rows ?? []) {
+    const cod = String(row.COD_ERP ?? row.cod_erp ?? "").trim();
+    if (!cod || byCode.has(cod)) continue;
+    const natureza = String(row.COD_NAT ?? row.cod_nat ?? "").trim().toUpperCase();
+    byCode.set(cod, {
+      cod_erp: cod,
+      razao_social: String(row.RAZAO_SOCIAL ?? row.razao_social ?? "").trim() || null,
+      natureza,
+      tipo_frete: natureza === "EF" ? "F" : natureza === "ET" ? "T" : natureza === "EM" ? "P" : null,
+    });
+  }
+  const payload = Array.from(byCode.values());
+  if (payload.length === 0) return 0;
+  const { error } = await centralDb.from("erp_responsaveis").upsert(
+    payload.map((item) => ({ ...item, atualizado_em: new Date().toISOString() })),
+    { onConflict: "cod_erp" },
+  );
+  if (error) throw error;
+  return payload.length;
+}
+
 type SyncResult = {
   runId: string;
   fetched: number;
@@ -302,6 +344,11 @@ export async function syncErpOrders(opts: {
   try {
     const rows = await fetchPendingOrdersFromErp();
     fetched = rows.length;
+    try {
+      await sincronizarEspelhoResponsaveis();
+    } catch (e) {
+      errors.push({ pedido: 0, message: `Atualizar responsáveis do ERP: ${describeError(e)}` });
+    }
 
     const CONCURRENCY = 15;
     for (let i = 0; i < rows.length; i += CONCURRENCY) {

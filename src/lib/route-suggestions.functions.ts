@@ -341,8 +341,8 @@ export const suggestRoutes = createServerFn({ method: "POST" })
       const stops = rows
         .map((ro) => ro.orders)
         .filter((o): o is NonNullable<typeof o> => !!o);
-      const existingStops: SuggestionStop[] = stops
-        .map((o) => {
+      const existingStops = stops
+        .map((o): SuggestionStop | null => {
           const geo = geoByCode.get(String(o.erp_cod_cliente ?? ""));
           let lat: number | null = null;
           let lng: number | null = null;
@@ -365,9 +365,9 @@ export const suggestRoutes = createServerFn({ method: "POST" })
             amount: Number(o.total_amount ?? 0),
             lat,
             lng,
-          } satisfies SuggestionStop;
+          };
         })
-        .filter((s): s is SuggestionStop => !!s);
+        .filter((s): s is SuggestionStop => s !== null);
       const centroid = existingStops.length
         ? {
             lat: existingStops.reduce((s, p) => s + p.lat, 0) / existingStops.length,
