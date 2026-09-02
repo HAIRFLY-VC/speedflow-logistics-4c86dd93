@@ -139,38 +139,25 @@ export const listarResponsaveisDeRotasErp = createServerFn({ method: "POST" })
     const out: Record<string, string> = {};
     if (data.idsRota.length === 0) return out;
 
-    const baseUrl = process.env["ERP_API_BASE_URL"];
-    const apiKey = process.env["ERP_API_KEY"];
-    if (!baseUrl || !apiKey) throw new Error("Integração com o ERP não configurada");
-    const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
-
-    const lista = data.idsRota.join(",");
-    const sql = `select R.ID, R.COD_FRT_TRP COD from gks.a_ger_rotas R where R.ID in (${lista})`;
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30_000);
-    try {
-      const res = await fetch(`${cleanBase}/v1/query`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
-        body: JSON.stringify({ sql, binds: {}, limit: 5000 }),
-        signal: controller.signal,
-      });
-      if (!res.ok) {
-        const texto = (await res.text()).replace(/\s+/g, " ").slice(0, 200);
-        throw new Error(`ERP API ${res.status}${texto ? `: ${texto}` : ""}`);
+    // Lotes menores + timeout maior: a consulta no ERP é lenta e estourava (AbortError).
+    for (let i = 0; i < data.idsRota.length; i += 100) {
+      const lote = data.idsRota.slice(i, i + 100);
+      const sql = `select R.ID, R.COD_FRT_TRP COD from gks.a_ger_rotas R where R.ID in (${lote.join(",")})`;
+      try {
+        const rows = await consultarErp(sql, 5000, 60_000);
+        for (const linha of rows) {
+          const id = String(getField(linha, "ID") ?? "").trim();
+          const cod = String(getField(linha, "COD") ?? "").trim();
+          if (id && cod) out[id] = cod;
+        }
+      } catch (error) {
+        // Não derrubar a tela por falha/timeout pontual do ERP.
+        console.error("listarResponsaveisDeRotasErp", error);
       }
-      const json = (await res.json()) as ErpQueryResponse;
-      for (const linha of json.rows ?? []) {
-        const id = String(getField(linha, "ID") ?? "").trim();
-        const cod = String(getField(linha, "COD") ?? "").trim();
-        if (id && cod) out[id] = cod;
-      }
-      return out;
-    } finally {
-      clearTimeout(timeout);
     }
+    return out;
   });
+
 
 
 export type NaturezaErp = {
