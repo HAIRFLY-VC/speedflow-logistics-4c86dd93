@@ -346,27 +346,24 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         .filter((o): o is NonNullable<typeof o> => !!o);
       const existingStops: SuggestionStop[] = stops
         .map((o) => {
-          const oAny = o as typeof o & { delivery_latitude: number | null; delivery_longitude: number | null };
-          const c = o.customers;
-          const dLat = oAny.delivery_latitude;
-          const dLng = oAny.delivery_longitude;
+          const geo = geoByCode.get(String(o.erp_cod_cliente ?? ""));
           let lat: number | null = null;
           let lng: number | null = null;
-          if (dLat != null && dLng != null) {
-            lat = Number(dLat);
-            lng = Number(dLng);
-          } else if (c && c.latitude != null && c.longitude != null) {
-            lat = Number(c.latitude);
-            lng = Number(c.longitude);
+          if (o.delivery_latitude != null && o.delivery_longitude != null) {
+            lat = Number(o.delivery_latitude);
+            lng = Number(o.delivery_longitude);
+          } else if (geo?.latitude != null && geo?.longitude != null) {
+            lat = Number(geo.latitude);
+            lng = Number(geo.longitude);
           }
           if (lat == null || lng == null) return null;
           return {
             orderId: o.id,
             orderNumber: o.order_number,
-            customerId: o.customer_id ?? "",
-            customerName: c?.trade_name || c?.legal_name || "Cliente",
-            city: c?.city ?? null,
-            state: c?.state ?? null,
+            customerId: o.customer_id ?? o.erp_cod_cliente ?? "",
+            customerName: o.erp_cod_cliente ? `Cliente ${o.erp_cod_cliente}` : "Cliente",
+            city: null,
+            state: null,
             weight: Number(o.weight ?? 0),
             amount: Number(o.total_amount ?? 0),
             lat,
