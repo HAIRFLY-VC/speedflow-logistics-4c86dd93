@@ -89,7 +89,7 @@ function SugestaoRotasPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, order_number, total_amount, weight, delivery_address, delivery_latitude, delivery_longitude, customers(trade_name, legal_name, city, state, latitude, longitude)",
+          "id, order_number, total_amount, weight, erp_cod_cliente, delivery_address, delivery_latitude, delivery_longitude",
         )
         .gte("dt_prev_exp", "3999-01-01")
         .order("order_number");
@@ -102,8 +102,8 @@ function SugestaoRotasPage() {
     queryKey: ["customers-missing-coords"],
     queryFn: async () => {
       const { count, error } = await supabase
-        .from("customers")
-        .select("*", { count: "exact", head: true })
+        .from("customer_geo")
+        .select("cod_cliente", { count: "exact", head: true })
         .or("latitude.is.null,longitude.is.null");
       if (error) throw error;
       return count ?? 0;
@@ -182,9 +182,7 @@ function SugestaoRotasPage() {
   const hasCoord = (r: typeof pendingRows[number]) => {
     const dLat = (r as { delivery_latitude?: number | null }).delivery_latitude;
     const dLng = (r as { delivery_longitude?: number | null }).delivery_longitude;
-    if (dLat != null && dLng != null) return true;
-    const c = r.customers;
-    return !!(c && c.latitude != null && c.longitude != null);
+    return dLat != null && dLng != null;
   };
   const missingCoords = pendingRows.filter((r) => !hasCoord(r)).length;
 
@@ -246,7 +244,6 @@ function SugestaoRotasPage() {
                 ) : (
                   <ul className="text-sm divide-y">
                     {pendingRows.map((r) => {
-                      const c = r.customers;
                       const noCoord = !hasCoord(r);
                       return (
                         <li key={r.id} className="px-3 py-2 flex flex-col gap-0.5">
@@ -259,7 +256,7 @@ function SugestaoRotasPage() {
                             )}
                           </div>
                           <span className="text-muted-foreground text-xs">
-                            {c?.trade_name || c?.legal_name || "—"} · {c?.city ?? "?"}/{c?.state ?? "?"}
+                            Cliente {r.erp_cod_cliente ?? "—"}
                           </span>
                           <span className="text-muted-foreground text-xs tabular-nums">
                             {currencyFmt.format(Number(r.total_amount ?? 0))} ·{" "}
@@ -796,7 +793,7 @@ function ExistingRouteDetailDialog({
       const { data, error } = await supabase
         .from("route_orders")
         .select(
-          "stop_order, orders(id, order_number, total_amount, weight, customer_id, customers(trade_name, legal_name, erp_id, city, state))",
+          "stop_order, orders(id, order_number, total_amount, weight, customer_id, erp_cod_cliente)",
         )
         .eq("route_id", route!.id)
         .order("stop_order");
@@ -826,13 +823,7 @@ function ExistingRouteDetailDialog({
         total_amount: number | null;
         weight: number | null;
         customer_id: string | null;
-        customers: {
-          trade_name: string | null;
-          legal_name: string | null;
-          erp_id: string | null;
-          city: string | null;
-          state: string | null;
-        } | null;
+        erp_cod_cliente: string | null;
       } | null;
       if (!o) continue;
       const key = o.customer_id ?? o.id;
@@ -840,10 +831,10 @@ function ExistingRouteDetailDialog({
       if (!g) {
         g = {
           customerId: key,
-          customerName: o.customers?.trade_name || o.customers?.legal_name || "Cliente",
-          erpId: o.customers?.erp_id ?? null,
-          city: o.customers?.city ?? null,
-          state: o.customers?.state ?? null,
+          customerName: o.erp_cod_cliente ? `Cliente ${o.erp_cod_cliente}` : "Cliente",
+          erpId: o.erp_cod_cliente ?? null,
+          city: null,
+          state: null,
           orders: [],
           totalWeight: 0,
           totalAmount: 0,
