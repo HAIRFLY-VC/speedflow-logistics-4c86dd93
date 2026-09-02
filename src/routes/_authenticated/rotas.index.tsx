@@ -396,22 +396,15 @@ function DistanceCell({
       const order = (Array.isArray(ordersRaw) ? ordersRaw[0] : ordersRaw) as
         | {
             order_number?: string | null;
-            customers?: unknown;
             delivery_latitude?: number | string | null;
             delivery_longitude?: number | string | null;
           }
         | null
         | undefined;
       if (!order) continue;
-      const customersRaw = order.customers;
-      const c = (Array.isArray(customersRaw) ? customersRaw[0] : customersRaw) as
-        | { latitude?: number | string | null; longitude?: number | string | null }
-        | null
-        | undefined;
       const coord = getOrderCoord({
         delivery_latitude: order.delivery_latitude,
         delivery_longitude: order.delivery_longitude,
-        customers: c ?? null,
       });
       if (!coord) continue;
       pts.push({
