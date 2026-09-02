@@ -30,8 +30,7 @@ function MinhasRotasPage() {
            route_orders(
              id, stop_order,
              orders(
-               id, order_number, status, total_amount, sla_deliver_by, notes,
-               customers(trade_name, legal_name, address_line, city, state, zip_code, phone, contact_name)
+               id, order_number, status, total_amount, sla_deliver_by, notes, erp_cod_cliente, delivery_address
              )
            )`,
         )
