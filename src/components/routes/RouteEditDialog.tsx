@@ -55,6 +55,7 @@ type RouteEditDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialCodErp: string | null;
+  initialResponsavel?: ResponsavelErp | null;
   onSuccess?: () => void;
 };
 
@@ -98,6 +99,7 @@ export function RouteEditDialog({
   open,
   onOpenChange,
   initialCodErp,
+  initialResponsavel = null,
   onSuccess,
 }: RouteEditDialogProps) {
   const qc = useQueryClient();
@@ -137,11 +139,25 @@ export function RouteEditDialog({
     if (codErpRota) setCodFrtTrp(codErpRota);
   }, [codErpRota]);
 
-  const responsaveis = responsaveisQ.data ?? [];
-  const selected = useMemo(
-    () => responsaveis.find((r) => r.codErp === codFrtTrp) ?? null,
-    [responsaveis, codFrtTrp],
-  );
+  const responsaveisErp = responsaveisQ.data ?? [];
+  // Responsável já resolvido pela listagem (espelho local do ERP): garante a
+  // pré-seleção mesmo quando o código não aparece na lista carregada aqui.
+  const responsaveis = useMemo(() => {
+    if (!initialResponsavel) return responsaveisErp;
+    if (responsaveisErp.some((r) => normalizaCod(r.codErp) === normalizaCod(initialResponsavel.codErp))) {
+      return responsaveisErp;
+    }
+    return [initialResponsavel, ...responsaveisErp];
+  }, [responsaveisErp, initialResponsavel]);
+
+  const selected = useMemo(() => {
+    if (!codFrtTrp) return null;
+    return (
+      responsaveis.find((r) => r.codErp === codFrtTrp) ??
+      responsaveis.find((r) => normalizaCod(r.codErp) === normalizaCod(codFrtTrp)) ??
+      null
+    );
+  }, [responsaveis, codFrtTrp]);
 
   // Pré-seleciona o responsável quando o código do ERP não bate exatamente
   // (zeros à esquerda/espaços) ou quando só temos a razão social na rota.
@@ -178,8 +194,7 @@ export function RouteEditDialog({
 
       const nome = nomeRota.trim().toUpperCase();
       if (!nome) throw new Error("Informe o nome da rota");
-      const responsavel = responsaveis.find((r) => r.codErp === codFrtTrp) ?? null;
-      const nomeMotorista = responsavel?.razaoSocial?.trim().toUpperCase() || null;
+      const nomeMotorista = selected?.razaoSocial?.trim().toUpperCase() || null;
 
       await doAtualizar({
         data: {

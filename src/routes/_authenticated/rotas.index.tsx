@@ -499,6 +499,7 @@ function RotasPage() {
   const [filteredData, setFilteredData] = useState<RouteRow[] | undefined>();
   const [editRoute, setEditRoute] = useState<RouteRow | null>(null);
   const [editCodErp, setEditCodErp] = useState<string | null>(null);
+  const [editResponsavel, setEditResponsavel] = useState<ResponsavelErp | null>(null);
 
   const depotQ = useQuery({
     queryKey: ["company_settings", "depot"],
@@ -1052,7 +1053,8 @@ function RotasPage() {
               className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
               onClick={(e) => {
                 e.stopPropagation();
-                setEditCodErp(transpPorRota.get(r.id)?.cod_erp ?? null);
+                setEditCodErp(codResponsavelPorRota.get(r.id) ?? transpPorRota.get(r.id)?.cod_erp ?? null);
+                setEditResponsavel(responsavelPorRota.get(r.id) ?? null);
                 setEditRoute(r);
               }}
             >
@@ -1179,7 +1181,8 @@ function RotasPage() {
                 className="inline-flex h-10 w-10 items-center justify-center rounded-md border text-muted-foreground hover:bg-accent hover:text-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setEditCodErp(transpPorRota.get(r.id)?.cod_erp ?? null);
+                  setEditCodErp(codResponsavelPorRota.get(r.id) ?? transpPorRota.get(r.id)?.cod_erp ?? null);
+                  setEditResponsavel(responsavelPorRota.get(r.id) ?? null);
                   setEditRoute(r);
                 }}
               >
@@ -1231,6 +1234,7 @@ function RotasPage() {
           if (!o) setEditRoute(null);
         }}
         initialCodErp={editCodErp}
+        initialResponsavel={editResponsavel}
         onSuccess={() => {
           qc.invalidateQueries({ queryKey: ["routes"] });
           setEditRoute(null);
