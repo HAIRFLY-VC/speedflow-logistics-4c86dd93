@@ -5,13 +5,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Pencil, Loader2, Search, Table2, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Loader2, Search, Table2, ExternalLink, RefreshCw } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/central/client";
 import { buscarCodErpTransportadora } from "@/lib/transportadora-erp.functions";
+import { sincronizarResponsaveisErp } from "@/lib/rota-erp.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -205,7 +206,17 @@ function TransportadorasPage() {
   });
 
   const buscarCodErp = useServerFn(buscarCodErpTransportadora);
+  const sincronizarCadastro = useServerFn(sincronizarResponsaveisErp);
   const [buscandoId, setBuscandoId] = useState<string | null>(null);
+
+  const atualizarCadastro = useMutation({
+    mutationFn: () => sincronizarCadastro(),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["erp-responsaveis"] });
+      toast.success(`${r.atualizados} responsáveis atualizados a partir do ERP`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const consultarErp = useMutation({
     mutationFn: async (t: Transportadora) => {
@@ -371,14 +382,28 @@ function TransportadorasPage() {
               Cadastro das transportadoras emissoras de CT-e e seus dados de pagamento.
             </p>
           </div>
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4 mr-1" /> Nova transportadora
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => atualizarCadastro.mutate()}
+              disabled={atualizarCadastro.isPending}
+            >
+              {atualizarCadastro.isPending ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-1" />
+              )}
+              Atualizar cadastro do ERP
+            </Button>
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Nova transportadora
+            </Button>
+          </div>
         </div>
 
         <DataTable

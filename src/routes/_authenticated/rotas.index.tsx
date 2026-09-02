@@ -23,6 +23,7 @@ import {
   listarResponsaveisErp,
   listarResponsaveisDeRotasErp,
   listarNaturezasPorCodigoErp,
+  sincronizarResponsaveisPorCodigo,
   type ResponsavelErp,
 } from "@/lib/rota-erp.functions";
 
@@ -142,14 +143,15 @@ function nomeRotaOf(r: RouteRow) {
 function normalizaCod(v: string | null | undefined): string {
   return String(v ?? "").trim().replace(/^0+/, "");
 }
-function motoristaOf(r: RouteRow, codFallback?: string | null) {
-  const name = r.driver_name ?? r.freight_carriers?.full_name ?? "";
-  const cod =
-    r.freight_carriers?.transportadoras?.cod_erp ??
-    codFallback ??
-    null;
+function motoristaOf(
+  r: RouteRow,
+  codFallback?: string | null,
+  responsavel?: { razaoSocial: string; codErp: string },
+) {
+  const name = responsavel?.razaoSocial || r.driver_name || r.freight_carriers?.full_name || "";
+  const cod = responsavel?.codErp || r.freight_carriers?.transportadoras?.cod_erp || codFallback || null;
   if (name && cod) return `${name} (${cod})`;
-  return name;
+  return name; 
 }
 
 type TransportadoraLite = { id: string; razao_social: string; cod_erp: string | null };
@@ -593,7 +595,19 @@ function RotasPage() {
   const responsaveisQ = useQuery({
     queryKey: ["responsaveis-erp"],
     queryFn: () => listarResponsaveis(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 60 * 1000,
+  });
+  const responsaveisLocaisQ = useQuery({
+    queryKey: ["erp-responsaveis"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("erp_responsaveis")
+        .select("cod_erp,razao_social,natureza,tipo_frete")
+        .order("razao_social");
+      if (error) throw error;
+      return (data ?? []) as { cod_erp: string; razao_social: string | null; natureza: string | null; tipo_frete: TipoFrete | null }[];
+    },
+    staleTime: 30 * 60 * 1000,
   });
 
   /** Códigos de responsável (COD_FRT_TRP) direto do ERP, por ID de rota. */
@@ -628,6 +642,22 @@ function RotasPage() {
     return map;
   }, [data, codsRotaQ.data, transpPorRota]);
 
+  const sincronizarAusentes = useServerFn(sincronizarResponsaveisPorCodigo);
+  const codigosLocais = useMemo(
+    () => new Set((responsaveisLocaisQ.data ?? []).map((item) => normalizaCod(item.cod_erp))),
+    [responsaveisLocaisQ.data],
+  );
+  const codigosAusentes = useMemo(
+    () => Array.from(new Set(Array.from(codResponsavelPorRota.values()).filter((cod) => !codigosLocais.has(normalizaCod(cod))))),
+    [codResponsavelPorRota, codigosLocais],
+  );
+  useEffect(() => {
+    if (codigosAusentes.length === 0 || responsaveisLocaisQ.isFetching) return;
+    sincronizarAusentes({ data: { cods: codigosAusentes } })
+      .then(() => qc.invalidateQueries({ queryKey: ["erp-responsaveis"] }))
+      .catch(() => undefined);
+  }, [codigosAusentes, responsaveisLocaisQ.isFetching, sincronizarAusentes, qc]);
+
   /** Naturezas buscadas diretamente por código, sem filtro de natureza. */
   const listarNaturezas = useServerFn(listarNaturezasPorCodigoErp);
   const codsParaNatureza = useMemo(
@@ -644,12 +674,20 @@ function RotasPage() {
   const responsavelPorRota = useMemo(() => {
     const map = new Map<string, ResponsavelErp>();
     const responsaveis = responsaveisQ.data ?? [];
-    const porCodigo = new Map(responsaveis.map((item) => [normalizaCod(item.codErp), item]));
+    const locais = (responsaveisLocaisQ.data ?? [])
+      .filter((item): item is typeof item & { tipo_frete: TipoFrete } => Boolean(item.tipo_frete))
+      .map((item): ResponsavelErp => ({
+        razaoSocial: item.razao_social ?? `Código ${item.cod_erp}`,
+        codErp: item.cod_erp,
+        tipoFrete: item.tipo_frete,
+      }));
+    const porCodigo = new Map(locais.map((item) => [normalizaCod(item.codErp), item]));
+    for (const item of responsaveis) porCodigo.set(normalizaCod(item.codErp), item);
     for (const r of data ?? []) {
       const cod = codResponsavelPorRota.get(r.id);
-      const porCod = cod ? porCodigo.get(normalizaCod(cod)) : undefined;
-      if (porCod) {
-        map.set(r.id, porCod);
+      const local = cod ? porCodigo.get(normalizaCod(cod)) : undefined;
+      if (local) {
+        map.set(r.id, local);
         continue;
       }
       const nome = normalizaNome(r.driver_name ?? r.freight_carriers?.full_name ?? "");
@@ -660,7 +698,7 @@ function RotasPage() {
       if (porNome) map.set(r.id, porNome);
     }
     return map;
-  }, [data, responsaveisQ.data, codResponsavelPorRota]);
+  }, [data, responsaveisQ.data, responsaveisLocaisQ.data, codResponsavelPorRota]);
 
   /** Natureza bruta do responsável da rota (quando encontrada por código). */
   const naturezaDaRota = (r: RouteRow) => {
@@ -759,9 +797,9 @@ function RotasPage() {
         id: "motorista",
         header: "Fret / Transp",
         sortable: false,
-        accessor: (r) => motoristaOf(r, transpPorRota.get(r.id)?.cod_erp),
+        accessor: (r) => motoristaOf(r, transpPorRota.get(r.id)?.cod_erp, responsavelPorRota.get(r.id)),
         render: (r) =>
-          motoristaOf(r, transpPorRota.get(r.id)?.cod_erp) || (
+          motoristaOf(r, transpPorRota.get(r.id)?.cod_erp, responsavelPorRota.get(r.id)) || (
             <span className="text-muted-foreground">—</span>
           ),
       },
@@ -797,7 +835,7 @@ function RotasPage() {
             );
           }
           const carregando =
-            codsRotaQ.isFetching || naturezasQ.isFetching || responsaveisQ.isFetching;
+            codsRotaQ.isFetching || naturezasQ.isFetching || responsaveisQ.isFetching || responsaveisLocaisQ.isFetching;
           if (carregando) return <span className="text-muted-foreground">…</span>;
           const erro = codsRotaQ.error ?? naturezasQ.error ?? responsaveisQ.error;
           if (erro) {
@@ -1037,6 +1075,7 @@ function RotasPage() {
       codsRotaQ.error,
       responsaveisQ.isFetching,
       responsaveisQ.error,
+      responsaveisLocaisQ.data,
     ],
   );
 

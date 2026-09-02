@@ -131,7 +131,22 @@ function RouteDetailPage() {
         .eq("route_id", routeId)
         .order("stop_order");
       if (error) throw error;
-      return (data ?? []) as unknown as Stop[];
+      const rawStops = (data ?? []) as unknown as Stop[];
+      const codes = Array.from(new Set(rawStops.map((s) => s.orders?.erp_cod_cliente).filter((v): v is string => Boolean(v))));
+      if (codes.length === 0) return rawStops;
+      const { data: geoRows, error: geoError } = await supabase
+        .from("customer_geo")
+        .select("cod_cliente,latitude,longitude")
+        .in("cod_cliente", codes);
+      if (geoError) throw geoError;
+      const geoByCode = new Map(
+        (geoRows ?? []).map((row) => [String(row.cod_cliente), { latitude: row.latitude, longitude: row.longitude }]),
+      );
+      return rawStops.map((stop) => {
+        const order = stop.orders;
+        const geo = order?.erp_cod_cliente ? geoByCode.get(String(order.erp_cod_cliente)) : undefined;
+        return geo && order ? { ...stop, orders: { ...order, customer_geo: geo } } : stop;
+      });
     },
   });
 

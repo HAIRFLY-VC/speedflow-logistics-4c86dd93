@@ -130,6 +130,14 @@ type TabelaTransportadoraRow = {
   created_at: string;
 };
 
+type ErpResponsavelRow = {
+  cod_erp: string;
+  razao_social: string | null;
+  natureza: string | null;
+  tipo_frete: string | null;
+  atualizado_em: string;
+};
+
 type SimpleTable<Row> = {
   Row: Row;
   Insert: Partial<Row>;
@@ -175,6 +183,7 @@ export type CentralDatabase = Omit<Database, "public"> & {
         Update: Partial<CustomerGeoRow>;
         Relationships: [];
       };
+      erp_responsaveis: SimpleTable<ErpResponsavelRow>;
       fila_lancamento_erp_frete: SimpleTable<FilaValoresRow>;
       fila_provisionamento_financeiro: SimpleTable<FilaFinanceiroRow>;
       mapeamento_componentes_erp: SimpleTable<MapeamentoRow>;
