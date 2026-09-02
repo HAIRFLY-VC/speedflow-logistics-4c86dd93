@@ -317,7 +317,7 @@ export const suggestRoutes = createServerFn({ method: "POST" })
     const { data: routes, error: rErr } = await supabase
       .from("routes")
       .select(
-        "id, code, route_date, status, driver_name, notes, route_orders(stop_order, orders(id, order_number, weight, total_amount, customer_id, delivery_latitude, delivery_longitude, customers(trade_name, legal_name, city, state, latitude, longitude)))",
+        "id, code, route_date, status, driver_name, notes, route_orders(stop_order, orders(id, order_number, weight, total_amount, customer_id, erp_cod_cliente, delivery_latitude, delivery_longitude))",
       )
       .eq("status", "planejada")
       .gte("route_date", today);
