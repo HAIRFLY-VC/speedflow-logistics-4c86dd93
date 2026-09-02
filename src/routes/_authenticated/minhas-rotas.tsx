@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Route as RouteIcon, MapPin, Phone, Package } from "lucide-react";
+import { Route as RouteIcon, MapPin, Package } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -76,9 +76,7 @@ function MinhasRotasPage() {
                     <div>
                       <CardTitle className="text-base">{r.code}</CardTitle>
                       <div className="text-xs text-muted-foreground mt-0.5">
-                        {format(new Date(r.route_date), "EEEE, dd/MM/yyyy", {
-                          locale: ptBR,
-                        })}
+                        {format(new Date(r.route_date), "EEEE, dd/MM/yyyy", { locale: ptBR })}
                       </div>
                     </div>
                     <Badge variant={r.status === "em_andamento" ? "default" : "secondary"}>
@@ -124,14 +122,7 @@ function MinhasRotasPage() {
                                 <span>{o.delivery_address}</span>
                               </div>
                             ) : null}
-                            {false ? (
-                                <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                  <Phone className="h-3 w-3" />
-                                  <span>Telefone não informado</span>
-                                </div>
-                              ) : null}
-                            </div>
-                          ) : null}
+                          </div>
                           <div className="flex justify-between items-center mt-2 ml-8 text-xs">
                             <span className="text-muted-foreground">
                               {o.sla_deliver_by

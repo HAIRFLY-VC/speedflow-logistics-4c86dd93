@@ -486,7 +486,6 @@ function PedidosPage() {
   );
 }
 
-type CustomerOption = Pick<Tables<"customers">, "id" | "legal_name" | "trade_name">;
 type ProductOption = Pick<Tables<"products">, "id" | "sku" | "name" | "unit_price">;
 type ItemDraft = { id: string; product_id: string; quantity: number; unit_price: number };
 
@@ -504,20 +503,6 @@ function NewOrderDialog({
   const [freight, setFreight] = useState("0");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<ItemDraft[]>([]);
-
-  const customersQ = useQuery({
-    queryKey: ["customers", "options"],
-    enabled: open,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("customers")
-        .select("id,legal_name,trade_name")
-        .eq("is_active", true)
-        .order("legal_name");
-      if (error) throw error;
-      return data as CustomerOption[];
-    },
-  });
 
   const productsQ = useQuery({
     queryKey: ["products", "options"],
@@ -623,19 +608,12 @@ function NewOrderDialog({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5 md:col-span-2">
-            <Label className="text-xs">Cliente *</Label>
-            <Select value={customerId} onValueChange={setCustomerId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {(customersQ.data ?? []).map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.trade_name || c.legal_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="text-xs">Código do cliente no ERP *</Label>
+            <Input
+              value={customerId}
+              onChange={(e) => setCustomerId(e.target.value)}
+              placeholder="Informe o código do cliente"
+            />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">SLA de entrega</Label>

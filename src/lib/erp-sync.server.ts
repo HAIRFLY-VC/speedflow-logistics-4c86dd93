@@ -646,22 +646,29 @@ export async function syncErpOrders(opts: {
     if (lovableKey && gmKey) {
       const { data: comPedido } = await centralDb
         .from("orders")
-        .select("erp_cod_cliente")
+        .select("erp_cod_cliente, delivery_address")
         .not("erp_cod_cliente", "is", null)
         .limit(5000);
       const codigos = Array.from(
-        new Set((comPedido ?? []).map((o) => String(o.erp_cod_cliente))),
+        new Set((comPedido ?? []).map((o) => String(o.erp_cod_cliente)).filter(Boolean)),
       );
-      const { data: pending } = codigos.length
+      const { data: geoRows } = codigos.length
         ? await centralDb
-            .from("customers")
-            .select("id, address_line, city, state, zip_code")
-            .in("id", codigos)
-            .or("latitude.is.null,longitude.is.null")
-            .limit(200)
+            .from("customer_geo")
+            .select("cod_cliente, latitude, longitude, endereco_usado")
+            .in("cod_cliente", codigos)
+            .limit(5000)
         : { data: [] };
-      for (const c of pending ?? []) {
-        const q = [c.address_line, c.city, c.state, c.zip_code, "Brasil"]
+      const geoByCode = new Map((geoRows ?? []).map((g) => [String(g.cod_cliente), g]));
+      const pending = codigos
+        .map((code) => {
+          const geo = geoByCode.get(code);
+          const order = (comPedido ?? []).find((o) => String(o.erp_cod_cliente) === code);
+          return { id: code, address_line: order?.delivery_address ?? geo?.endereco_usado ?? null, latitude: geo?.latitude ?? null, longitude: geo?.longitude ?? null };
+        })
+        .filter((c) => c.latitude == null || c.longitude == null);
+      for (const c of pending) {
+        const q = [c.address_line, "Brasil"]
           .filter((p) => p && String(p).trim())
           .join(", ");
         if (!q) continue;
@@ -684,7 +691,7 @@ export async function syncErpOrders(opts: {
             .from("customer_geo")
             .upsert(
               {
-                cod_cliente: String(c.id),
+                 cod_cliente: String(c.id),
                 latitude: loc.lat,
                 longitude: loc.lng,
                 endereco_usado: q,
