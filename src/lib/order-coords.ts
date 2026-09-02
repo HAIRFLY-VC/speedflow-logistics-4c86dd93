@@ -1,6 +1,6 @@
 // Helper client-safe para resolver a coordenada efetiva de entrega de um pedido.
 // Se o pedido tiver delivery_latitude/longitude (vindo de OBS_LOGIST do ERP),
-// usa essas; caso contrário, usa a latitude/longitude cadastrada no cliente.
+// usa essas; caso contrário, usa a latitude/longitude do cache por código.
 
 export type CoordSource = { lat: number; lng: number; source: "order" | "customer" };
 
@@ -23,7 +23,7 @@ export function getOrderCoord(order: {
   if (dLat !== null && dLng !== null) {
     return { lat: dLat, lng: dLng, source: "order" };
   }
-  const c = order.customers ?? order.customer_geo;
+  const c = order.customer_geo;
   if (c) {
     const cLat = toNum(c.latitude);
     const cLng = toNum(c.longitude);

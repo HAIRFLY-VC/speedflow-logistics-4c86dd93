@@ -41,20 +41,9 @@ type OrderDetail = {
   sla_deliver_by: string | null;
   notes: string | null;
   erp_id: string | null;
+  erp_cod_cliente: string | null;
+  delivery_address: string | null;
   created_at: string;
-  customers: {
-    id: string;
-    legal_name: string;
-    trade_name: string | null;
-    cnpj: string | null;
-    contact_name: string | null;
-    phone: string | null;
-    email: string | null;
-    address_line: string | null;
-    city: string | null;
-    state: string | null;
-    zip_code: string | null;
-  } | null;
   order_items: Array<{
     id: string;
     quantity: number;
@@ -81,7 +70,7 @@ function OrderDetailPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id,order_number,status,status_since,total_amount,freight_amount,sla_deliver_by,notes,erp_id,created_at,customers(id,legal_name,trade_name,cnpj,contact_name,phone,email,address_line,city,state,zip_code),order_items(id,quantity,unit_price,total_price,products(sku,name))",
+          "id,order_number,status,status_since,total_amount,freight_amount,sla_deliver_by,notes,erp_id,erp_cod_cliente,delivery_address,created_at,order_items(id,quantity,unit_price,total_price,products(sku,name))",
         )
         .eq("id", orderId)
         .maybeSingle();
@@ -162,33 +151,12 @@ function OrderDetailPage() {
                 </CardHeader>
                 <CardContent className="text-sm space-y-1">
                   <div className="font-medium">
-                    {order.customers?.trade_name || order.customers?.legal_name || "—"}
+                    Cliente {order.erp_cod_cliente ?? "—"}
                   </div>
-                  {order.customers?.trade_name ? (
-                    <div className="text-xs text-muted-foreground">
-                      {order.customers.legal_name}
-                    </div>
-                  ) : null}
-                  {order.customers?.cnpj ? (
-                    <div className="text-xs text-muted-foreground">
-                      CNPJ: {order.customers.cnpj}
-                    </div>
-                  ) : null}
-                  {order.customers?.contact_name || order.customers?.phone ? (
-                    <div className="text-xs">
-                      {order.customers?.contact_name}
-                      {order.customers?.phone ? ` · ${order.customers.phone}` : ""}
-                    </div>
-                  ) : null}
-                  {order.customers?.address_line ? (
+                  {order.delivery_address ? (
                     <div className="flex gap-1 text-xs text-muted-foreground items-start mt-1">
                       <MapPin className="h-3 w-3 mt-0.5" />
-                      <span>
-                        {order.customers.address_line}
-                        {order.customers.city ? `, ${order.customers.city}` : ""}
-                        {order.customers.state ? `/${order.customers.state}` : ""}
-                        {order.customers.zip_code ? ` · ${order.customers.zip_code}` : ""}
-                      </span>
+                      <span>{order.delivery_address}</span>
                     </div>
                   ) : null}
                 </CardContent>
