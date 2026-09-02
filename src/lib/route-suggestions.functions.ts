@@ -94,31 +94,38 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
     }
 
     // Clientes envolvidos em pedidos sem rota
+    // O cadastro de clientes pertence ao ERP. No banco central, o app mantém
+    // apenas pedidos e o cache de coordenadas por código do cliente.
     const { data: orders, error: oErr } = await supabase
       .from("orders")
-      .select("customer_id, customers(id, address_line, city, state, zip_code, latitude, longitude)")
-      .gte("dt_prev_exp", "3999-01-01");
+      .select("erp_cod_cliente, delivery_address")
+      .gte("dt_prev_exp", "3999-01-01")
+      .not("erp_cod_cliente", "is", null);
     if (oErr) throw oErr;
 
-    for (const o of orders ?? []) {
-      const c = (o as { customers: unknown }).customers as {
-        id: string;
-        address_line: string | null;
-        city: string | null;
-        state: string | null;
-        zip_code: string | null;
-        latitude: number | null;
-        longitude: number | null;
-      } | null;
-      addTarget(c);
-    }
+    const codes = Array.from(
+      new Set((orders ?? []).map((o) => String(o.erp_cod_cliente ?? "")).filter(Boolean)),
+    );
+    const { data: cached, error: geoErr } = codes.length
+      ? await supabase.from("customer_geo").select("cod_cliente,latitude,longitude,endereco_usado").in("cod_cliente", codes)
+      : { data: [], error: null };
+    if (geoErr) throw geoErr;
+    const geoByCode = new Map((cached ?? []).map((c) => [String(c.cod_cliente), c]));
 
-    // Todos os clientes da base sem lat/lng
-    const { data: allCustomers, error: cErr } = await supabase
-      .from("customers")
-      .select("id, address_line, city, state, zip_code, latitude, longitude")
-      .or("latitude.is.null,longitude.is.null");
-    if (cErr) throw cErr;
+    for (const o of orders ?? []) {
+      const code = String(o.erp_cod_cliente ?? "");
+      if (!code) continue;
+      const geo = geoByCode.get(code);
+      addTarget({
+        id: code,
+        address_line: o.delivery_address ?? geo?.endereco_usado ?? null,
+        city: null,
+        state: null,
+        zip_code: null,
+        latitude: geo?.latitude ?? null,
+        longitude: geo?.longitude ?? null,
+      });
+    }
     for (const c of allCustomers ?? []) {
       addTarget(c);
     }
@@ -132,10 +139,16 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
           failed++;
           continue;
         }
-        const { error } = await supabase
-          .from("customers")
-          .update({ latitude: coord.lat, longitude: coord.lng })
-          .eq("id", t.id);
+        const { error } = await supabase.from("customer_geo").upsert(
+          {
+            cod_cliente: t.id,
+            latitude: coord.lat,
+            longitude: coord.lng,
+            endereco_usado: t.query,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "cod_cliente" },
+        );
         if (error) {
           failed++;
         } else {
@@ -255,37 +268,39 @@ export const suggestRoutes = createServerFn({ method: "POST" })
     const { data: orders, error: oErr } = await supabase
       .from("orders")
       .select(
-        "id, order_number, total_amount, weight, customer_id, delivery_latitude, delivery_longitude, customers(id, trade_name, legal_name, city, state, latitude, longitude)",
+        "id, order_number, total_amount, weight, customer_id, erp_cod_cliente, delivery_address, delivery_latitude, delivery_longitude",
       )
       .gte("dt_prev_exp", "3999-01-01");
     if (oErr) throw oErr;
+
+    const customerCodes = Array.from(new Set((orders ?? []).map((o) => String(o.erp_cod_cliente ?? "")).filter(Boolean)));
+    const { data: geoRows, error: geoErr } = customerCodes.length
+      ? await supabase.from("customer_geo").select("cod_cliente,latitude,longitude").in("cod_cliente", customerCodes)
+      : { data: [], error: null };
+    if (geoErr) throw geoErr;
+    const geoByCode = new Map((geoRows ?? []).map((g) => [String(g.cod_cliente), g]));
 
     type Pending = NonNullable<typeof orders>[number];
     const withCoords: (Pending & { _coord: Coord; _weight: number; _amount: number })[] = [];
     const missing: { id: string; order_number: string; customer: string; city: string | null }[] = [];
 
     for (const o of orders ?? []) {
-      const oAny = o as Pending & {
-        delivery_latitude: number | null;
-        delivery_longitude: number | null;
-        customers: { latitude: number | null; longitude: number | null; trade_name: string | null; legal_name: string | null; city: string | null } | null;
-      };
-      const c = oAny.customers;
-      const name = c?.trade_name || c?.legal_name || "Cliente";
-      const dLat = oAny.delivery_latitude;
-      const dLng = oAny.delivery_longitude;
+      const geo = geoByCode.get(String(o.erp_cod_cliente ?? ""));
+      const name = o.erp_cod_cliente ? `Cliente ${o.erp_cod_cliente}` : "Cliente";
+      const dLat = o.delivery_latitude;
+      const dLng = o.delivery_longitude;
       let coord: Coord | null = null;
       if (dLat != null && dLng != null) {
         coord = { lat: Number(dLat), lng: Number(dLng) };
-      } else if (c && c.latitude != null && c.longitude != null) {
-        coord = { lat: Number(c.latitude), lng: Number(c.longitude) };
+      } else if (geo?.latitude != null && geo?.longitude != null) {
+        coord = { lat: Number(geo.latitude), lng: Number(geo.longitude) };
       }
       if (!coord) {
         missing.push({
           id: o.id,
           order_number: o.order_number,
           customer: name,
-          city: c?.city ?? null,
+          city: null,
         });
         continue;
       }
