@@ -696,16 +696,16 @@ function RotasPage() {
       >();
       for (const ro of r.route_orders ?? []) {
         const o = ro.orders;
-        if (!o?.customer_id) continue;
-        const atual = porCliente.get(o.customer_id) ?? {
+        const chaveCliente = o?.customer_id ?? o?.erp_cod_cliente ?? null;
+        if (!chaveCliente) continue;
+        const atual = porCliente.get(chaveCliente) ?? {
           peso: 0,
           valorMercadoria: 0,
-          municipio: o.customers?.city ?? null,
+          municipio: null,
         };
-        atual.peso += Number(o.weight ?? 0);
-        atual.valorMercadoria += Number(o.total_amount ?? 0);
-        if (!atual.municipio) atual.municipio = o.customers?.city ?? null;
-        porCliente.set(o.customer_id, atual);
+        atual.peso += Number(o?.weight ?? 0);
+        atual.valorMercadoria += Number(o?.total_amount ?? 0);
+        porCliente.set(chaveCliente, atual);
       }
       const sim = simularRota(tabela, Array.from(porCliente.values()));
       if (sim) map.set(r.id, sim);
