@@ -812,11 +812,18 @@ function RotasPage() {
         id: "motorista",
         header: "Fret / Transp",
         sortable: false,
-        accessor: (r) => motoristaOf(r, transpPorRota.get(r.id)?.cod_erp, responsavelPorRota.get(r.id)),
-        render: (r) =>
-          motoristaOf(r, transpPorRota.get(r.id)?.cod_erp, responsavelPorRota.get(r.id)) || (
-            <span className="text-muted-foreground">—</span>
+        accessor: (r) =>
+          motoristaOf(
+            r,
+            codResponsavelPorRota.get(r.id) ?? transpPorRota.get(r.id)?.cod_erp,
+            responsavelPorRota.get(r.id),
           ),
+        render: (r) =>
+          motoristaOf(
+            r,
+            codResponsavelPorRota.get(r.id) ?? transpPorRota.get(r.id)?.cod_erp,
+            responsavelPorRota.get(r.id),
+          ) || <span className="text-muted-foreground">—</span>,
       },
       {
         id: "tipo_frete",
