@@ -684,11 +684,25 @@ function RotasPage() {
       }));
     const porCodigo = new Map(locais.map((item) => [normalizaCod(item.codErp), item]));
     for (const item of responsaveis) porCodigo.set(normalizaCod(item.codErp), item);
+    const naturezas = Object.values(naturezasQ.data ?? {});
     for (const r of data ?? []) {
       const cod = codResponsavelPorRota.get(r.id);
       const local = cod ? porCodigo.get(normalizaCod(cod)) : undefined;
       if (local) {
         map.set(r.id, local);
+        continue;
+      }
+      // Fallback: a consulta de natureza por código traz razão social + código
+      // mesmo para cadastros ausentes do espelho local / lista de responsáveis.
+      const natureza = cod
+        ? naturezas.find((n) => normalizaCod(n.codErp) === normalizaCod(cod))
+        : undefined;
+      if (natureza?.tipoFrete && natureza.razaoSocial) {
+        map.set(r.id, {
+          razaoSocial: natureza.razaoSocial,
+          codErp: natureza.codErp,
+          tipoFrete: natureza.tipoFrete,
+        });
         continue;
       }
       const nome = normalizaNome(r.driver_name ?? r.freight_carriers?.full_name ?? "");
@@ -699,7 +713,7 @@ function RotasPage() {
       if (porNome) map.set(r.id, porNome);
     }
     return map;
-  }, [data, responsaveisQ.data, responsaveisLocaisQ.data, codResponsavelPorRota]);
+  }, [data, responsaveisQ.data, responsaveisLocaisQ.data, codResponsavelPorRota, naturezasQ.data]);
 
   /** Natureza bruta do responsável da rota (quando encontrada por código). */
   const naturezaDaRota = (r: RouteRow) => {
@@ -798,11 +812,18 @@ function RotasPage() {
         id: "motorista",
         header: "Fret / Transp",
         sortable: false,
-        accessor: (r) => motoristaOf(r, transpPorRota.get(r.id)?.cod_erp, responsavelPorRota.get(r.id)),
-        render: (r) =>
-          motoristaOf(r, transpPorRota.get(r.id)?.cod_erp, responsavelPorRota.get(r.id)) || (
-            <span className="text-muted-foreground">—</span>
+        accessor: (r) =>
+          motoristaOf(
+            r,
+            codResponsavelPorRota.get(r.id) ?? transpPorRota.get(r.id)?.cod_erp,
+            responsavelPorRota.get(r.id),
           ),
+        render: (r) =>
+          motoristaOf(
+            r,
+            codResponsavelPorRota.get(r.id) ?? transpPorRota.get(r.id)?.cod_erp,
+            responsavelPorRota.get(r.id),
+          ) || <span className="text-muted-foreground">—</span>,
       },
       {
         id: "tipo_frete",
