@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Route as RouteIcon, MapPin, Phone, Package } from "lucide-react";
+import { Route as RouteIcon, MapPin, Package } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -30,8 +30,7 @@ function MinhasRotasPage() {
            route_orders(
              id, stop_order,
              orders(
-               id, order_number, status, total_amount, sla_deliver_by, notes,
-               customers(trade_name, legal_name, address_line, city, state, zip_code, phone, contact_name)
+               id, order_number, status, total_amount, sla_deliver_by, notes, erp_cod_cliente, delivery_address
              )
            )`,
         )
@@ -77,9 +76,7 @@ function MinhasRotasPage() {
                     <div>
                       <CardTitle className="text-base">{r.code}</CardTitle>
                       <div className="text-xs text-muted-foreground mt-0.5">
-                        {format(new Date(r.route_date), "EEEE, dd/MM/yyyy", {
-                          locale: ptBR,
-                        })}
+                        {format(new Date(r.route_date), "EEEE, dd/MM/yyyy", { locale: ptBR })}
                       </div>
                     </div>
                     <Badge variant={r.status === "em_andamento" ? "default" : "secondary"}>
@@ -94,7 +91,6 @@ function MinhasRotasPage() {
                     stops.map((s) => {
                       const o = s.orders;
                       if (!o) return null;
-                      const c = o.customers;
                       return (
                         <Link
                           key={s.id}
@@ -118,34 +114,15 @@ function MinhasRotasPage() {
                               {ORDER_STATUS_LABEL[o.status]}
                             </span>
                           </div>
-                          {c ? (
-                            <div className="text-sm space-y-0.5 ml-8">
-                              <div className="font-medium">
-                                {c.trade_name || c.legal_name}
-                              </div>
+                          <div className="text-sm space-y-0.5 ml-8">
+                            <div className="font-medium">Cliente {o.erp_cod_cliente ?? "—"}</div>
+                            {o.delivery_address ? (
                               <div className="text-xs text-muted-foreground flex items-start gap-1">
                                 <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
-                                <span>
-                                  {c.address_line}
-                                  {c.city ? `, ${c.city}` : ""}
-                                  {c.state ? `/${c.state}` : ""}
-                                  {c.zip_code ? ` — ${c.zip_code}` : ""}
-                                </span>
+                                <span>{o.delivery_address}</span>
                               </div>
-                              {c.phone ? (
-                                <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                  <Phone className="h-3 w-3" />
-                                  <a
-                                    href={`tel:${c.phone}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="hover:underline"
-                                  >
-                                    {c.phone}
-                                  </a>
-                                </div>
-                              ) : null}
-                            </div>
-                          ) : null}
+                            ) : null}
+                          </div>
                           <div className="flex justify-between items-center mt-2 ml-8 text-xs">
                             <span className="text-muted-foreground">
                               {o.sla_deliver_by

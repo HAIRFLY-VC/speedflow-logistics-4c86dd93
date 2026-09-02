@@ -30,7 +30,7 @@ type KanbanOrder = {
   weight: number | null;
   status_since: string;
   sla_deliver_by: string | null;
-  customers: { trade_name: string | null; legal_name: string } | null;
+  erp_cod_cliente: string | null;
 };
 
 function formatWeight(kg: number) {
@@ -44,7 +44,7 @@ function KanbanPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id,order_number,status,total_amount,weight,status_since,sla_deliver_by,customers(trade_name,legal_name)",
+          "id,order_number,status,total_amount,weight,status_since,sla_deliver_by,erp_cod_cliente",
         )
         .order("status_since", { ascending: false })
         .limit(500);
@@ -149,8 +149,7 @@ function KanbanPage() {
 }
 
 function OrderCard({ order, sla }: { order: KanbanOrder; sla: SlaSettings | null }) {
-  const customer =
-    order.customers?.trade_name || order.customers?.legal_name || "Cliente";
+  const customer = order.erp_cod_cliente ? `Cliente ${order.erp_cod_cliente}` : "Cliente";
   const since = formatDistanceToNow(new Date(order.status_since), {
     addSuffix: true,
     locale: ptBR,

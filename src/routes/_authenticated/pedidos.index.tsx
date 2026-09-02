@@ -65,13 +65,13 @@ type OrderRow = {
   cod_agenda: number | null;
   erp_status: string | null;
   qtd_dias: number | null;
-  customers: { trade_name: string | null; legal_name: string; erp_id: string | null } | null;
+  erp_cod_cliente: string | null;
 };
 
 const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
 
 function customerName(o: OrderRow) {
-  return o.customers?.trade_name || o.customers?.legal_name || "";
+  return o.erp_cod_cliente ? `Cliente ${o.erp_cod_cliente}` : "Cliente";
 }
 
 function formatDateBR(v: string | null | undefined) {
@@ -106,7 +106,7 @@ function PedidosPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id,order_number,customer_id,salesperson_id,status,status_since,total_amount,freight_amount,sla_deliver_by,erp_id,notes,created_at,updated_at,dt_prev_exp,nome_rota,nome_motorista,weight,cod_agenda,erp_status,qtd_dias,customers(trade_name,legal_name,erp_id)",
+          "id,order_number,customer_id,salesperson_id,status,status_since,total_amount,freight_amount,sla_deliver_by,erp_id,notes,created_at,updated_at,dt_prev_exp,nome_rota,nome_motorista,weight,cod_agenda,erp_status,qtd_dias,erp_cod_cliente",
         )
         .limit(500);
       if (error) throw error;
@@ -122,7 +122,7 @@ function PedidosPage() {
       rows.sort((a, b) =>
         cmp(a.dt_prev_exp, b.dt_prev_exp) ||
         cmp(a.nome_rota, b.nome_rota) ||
-        cmp(a.customers?.erp_id, b.customers?.erp_id)
+        cmp(a.erp_cod_cliente, b.erp_cod_cliente)
       );
       return rows;
     },
@@ -205,7 +205,7 @@ function PedidosPage() {
       {
         id: "customer_erp_id",
         header: "Cód. Cliente ERP",
-        accessor: (o) => o.customers?.erp_id ?? "",
+        accessor: (o) => o.erp_cod_cliente ?? "",
         defaultVisible: false,
         sortable: false,
         className: "text-xs font-mono text-muted-foreground",
@@ -486,7 +486,6 @@ function PedidosPage() {
   );
 }
 
-type CustomerOption = Pick<Tables<"customers">, "id" | "legal_name" | "trade_name">;
 type ProductOption = Pick<Tables<"products">, "id" | "sku" | "name" | "unit_price">;
 type ItemDraft = { id: string; product_id: string; quantity: number; unit_price: number };
 
@@ -504,20 +503,6 @@ function NewOrderDialog({
   const [freight, setFreight] = useState("0");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<ItemDraft[]>([]);
-
-  const customersQ = useQuery({
-    queryKey: ["customers", "options"],
-    enabled: open,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("customers")
-        .select("id,legal_name,trade_name")
-        .eq("is_active", true)
-        .order("legal_name");
-      if (error) throw error;
-      return data as CustomerOption[];
-    },
-  });
 
   const productsQ = useQuery({
     queryKey: ["products", "options"],
@@ -623,19 +608,12 @@ function NewOrderDialog({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5 md:col-span-2">
-            <Label className="text-xs">Cliente *</Label>
-            <Select value={customerId} onValueChange={setCustomerId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {(customersQ.data ?? []).map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.trade_name || c.legal_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="text-xs">Código do cliente no ERP *</Label>
+            <Input
+              value={customerId}
+              onChange={(e) => setCustomerId(e.target.value)}
+              placeholder="Informe o código do cliente"
+            />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">SLA de entrega</Label>

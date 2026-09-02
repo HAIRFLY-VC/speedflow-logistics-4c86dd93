@@ -202,13 +202,6 @@ export function CteDetailView({
         .limit(1)
         .maybeSingle();
       if (nfe?.nome_destinatario) return nfe.nome_destinatario;
-      const { data: cli } = await supabase
-        .from("customers")
-        .select("legal_name")
-        .eq("cnpj", cnpj)
-        .limit(1)
-        .maybeSingle();
-      if (cli?.legal_name) return cli.legal_name;
       const { data: emp } = await supabase
         .from("empresas")
         .select("razao_social")

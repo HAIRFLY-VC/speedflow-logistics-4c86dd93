@@ -90,13 +90,13 @@ type RouteRow = {
     stop_order: number | null;
     orders: {
       customer_id: string | null;
+      erp_cod_cliente: string | null;
       order_number: string | null;
       total_amount: number | null;
       weight: number | null;
       erp_status: string | null;
       delivery_latitude: number | null;
       delivery_longitude: number | null;
-      customers: { latitude: number | null; longitude: number | null; city: string | null } | null;
     } | null;
   }[];
 };
@@ -396,22 +396,15 @@ function DistanceCell({
       const order = (Array.isArray(ordersRaw) ? ordersRaw[0] : ordersRaw) as
         | {
             order_number?: string | null;
-            customers?: unknown;
             delivery_latitude?: number | string | null;
             delivery_longitude?: number | string | null;
           }
         | null
         | undefined;
       if (!order) continue;
-      const customersRaw = order.customers;
-      const c = (Array.isArray(customersRaw) ? customersRaw[0] : customersRaw) as
-        | { latitude?: number | string | null; longitude?: number | string | null }
-        | null
-        | undefined;
       const coord = getOrderCoord({
         delivery_latitude: order.delivery_latitude,
         delivery_longitude: order.delivery_longitude,
-        customers: c ?? null,
       });
       if (!coord) continue;
       pts.push({
@@ -530,7 +523,7 @@ function RotasPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,erp_route_id,erp_status,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate,transportadoras(id,cod_erp)),route_orders(stop_order,orders(customer_id,order_number,total_amount,weight,erp_status,delivery_latitude,delivery_longitude,customers(latitude,longitude,city)))",
+          "id,code,erp_route_id,erp_status,route_date,status,total_freight,total_distance_km,driver_name,notes,freight_carriers(full_name,vehicle_plate,transportadoras(id,cod_erp)),route_orders(stop_order,orders(customer_id,erp_cod_cliente,order_number,total_amount,weight,erp_status,delivery_latitude,delivery_longitude))",
         );
       if (error) throw error;
       const rows = ((data ?? []) as unknown as RouteRow[]).filter(
@@ -703,16 +696,16 @@ function RotasPage() {
       >();
       for (const ro of r.route_orders ?? []) {
         const o = ro.orders;
-        if (!o?.customer_id) continue;
-        const atual = porCliente.get(o.customer_id) ?? {
+        const chaveCliente = o?.customer_id ?? o?.erp_cod_cliente ?? null;
+        if (!chaveCliente) continue;
+        const atual = porCliente.get(chaveCliente) ?? {
           peso: 0,
           valorMercadoria: 0,
-          municipio: o.customers?.city ?? null,
+          municipio: null,
         };
-        atual.peso += Number(o.weight ?? 0);
-        atual.valorMercadoria += Number(o.total_amount ?? 0);
-        if (!atual.municipio) atual.municipio = o.customers?.city ?? null;
-        porCliente.set(o.customer_id, atual);
+        atual.peso += Number(o?.weight ?? 0);
+        atual.valorMercadoria += Number(o?.total_amount ?? 0);
+        porCliente.set(chaveCliente, atual);
       }
       const sim = simularRota(tabela, Array.from(porCliente.values()));
       if (sim) map.set(r.id, sim);

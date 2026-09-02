@@ -83,17 +83,11 @@ type Stop = {
     total_amount: number;
     weight: number | null;
     customer_id: string | null;
+    erp_cod_cliente: string | null;
     delivery_address: string | null;
     delivery_latitude: number | null;
     delivery_longitude: number | null;
-    customers: {
-      trade_name: string | null;
-      legal_name: string;
-      city: string | null;
-      state: string | null;
-      latitude: number | null;
-      longitude: number | null;
-    } | null;
+    customer_geo: { latitude: number | null; longitude: number | null } | null;
   } | null;
 };
 
@@ -132,7 +126,7 @@ function RouteDetailPage() {
       const { data, error } = await supabase
         .from("route_orders")
         .select(
-          "id,stop_order,orders(id,order_number,status,total_amount,weight,customer_id,delivery_address,delivery_latitude,delivery_longitude,customers(trade_name,legal_name,city,state,latitude,longitude))",
+          "id,stop_order,orders(id,order_number,status,total_amount,weight,customer_id,erp_cod_cliente,delivery_address,delivery_latitude,delivery_longitude)",
         )
         .eq("route_id", routeId)
         .order("stop_order");
@@ -185,7 +179,7 @@ function RouteDetailPage() {
       let q = supabase
         .from("orders")
         .select(
-          "id,order_number,total_amount,customers(trade_name,legal_name,city,state)",
+          "id,order_number,total_amount,erp_cod_cliente",
         )
         .eq("status", "faturado" as OrderStatus)
         .order("created_at", { ascending: false });
@@ -538,9 +532,7 @@ function RouteDetailPage() {
                     ) : (
                       (availableQ.data ?? []).map((o) => (
                         <SelectItem key={o.id} value={o.id}>
-                          {o.order_number} —{" "}
-                          {o.customers?.trade_name || o.customers?.legal_name}
-                          {o.customers?.city ? ` · ${o.customers.city}` : ""}
+                          {o.order_number} — Cliente {o.erp_cod_cliente ?? "—"}
                         </SelectItem>
                       ))
                     )}
@@ -603,20 +595,19 @@ function RouteMapSection({
     .map((s) => {
       const o = s.orders;
       if (!o) return null;
-      const coord = getOrderCoord({
-        delivery_latitude: o.delivery_latitude,
-        delivery_longitude: o.delivery_longitude,
-        customers: o.customers,
-      });
-      if (!coord) return null;
-      const c = o.customers;
-      return {
-        lat: coord.lat,
-        lng: coord.lng,
-        orderNumber: o.order_number,
-        customerName: c?.trade_name || c?.legal_name || "—",
-        city: c?.city ?? null,
-        state: c?.state ?? null,
+       const coord = getOrderCoord({
+         delivery_latitude: o.delivery_latitude,
+         delivery_longitude: o.delivery_longitude,
+         customer_geo: o.customer_geo,
+       });
+       if (!coord) return null;
+       return {
+         lat: coord.lat,
+         lng: coord.lng,
+         orderNumber: o.order_number,
+         customerName: o.erp_cod_cliente ? `Cliente ${o.erp_cod_cliente}` : "—",
+         city: null,
+         state: null,
         weight: Number(o.weight ?? 0),
         amount: Number(o.total_amount ?? 0),
         orderId: o.id,
