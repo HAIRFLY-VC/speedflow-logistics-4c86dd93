@@ -33,10 +33,10 @@ function erpConfig() {
   return { cleanBase: baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, ""), apiKey };
 }
 
-async function consultarErp(sql: string, limit: number) {
+async function consultarErp(sql: string, limit: number, timeoutMs = 30_000) {
   const { cleanBase, apiKey } = erpConfig();
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`${cleanBase}/v1/query`, {
       method: "POST",
@@ -290,16 +290,30 @@ export const sincronizarResponsaveisPorCodigo = createServerFn({ method: "POST" 
     cods: Array.from(new Set((input?.cods ?? []).map((v) => String(v ?? "").trim()).filter(Boolean))).slice(0, 500),
   }))
   .handler(async ({ data }) => {
-    if (data.cods.length === 0) return { total: 0 };
-    const lista = data.cods.map((cod) => `'${cod.replace(/'/g, "''")}'`).join(",");
-    const rows = await consultarErp(
-      `select T.DBA_TIP_CODIGO_1 COD_ERP, TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOCIAL,
+    if (data.cods.length === 0) return { total: 0, parcial: false };
+    let total = 0;
+    let parcial = false;
+    // Lotes pequenos: a consulta no ERP é lenta e estourava o timeout (AbortError).
+    for (let i = 0; i < data.cods.length; i += 50) {
+      const lote = data.cods.slice(i, i + 50);
+      const lista = lote.map((cod) => `'${cod.replace(/'/g, "''")}'`).join(",");
+      try {
+        const rows = await consultarErp(
+          `select T.DBA_TIP_CODIGO_1 COD_ERP, TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOCIAL,
               T.DBA_TIP_NATUREZA COD_NAT
          from gks.a_cadctipo T
         where TRIM(T.DBA_TIP_CODIGO_1) in (${lista})`,
-      1000,
-    );
-    return { total: await salvarResponsaveis(rows) };
+          1000,
+          60_000,
+        );
+        total += await salvarResponsaveis(rows);
+      } catch (error) {
+        // Sincronização em segundo plano: não derrubar a tela por falha/timeout do ERP.
+        parcial = true;
+        console.error("sincronizarResponsaveisPorCodigo", error);
+      }
+    }
+    return { total, parcial };
   });
 
 type AtualizarCapaRotaInput = {
