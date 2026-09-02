@@ -90,13 +90,13 @@ type RouteRow = {
     stop_order: number | null;
     orders: {
       customer_id: string | null;
+      erp_cod_cliente: string | null;
       order_number: string | null;
       total_amount: number | null;
       weight: number | null;
       erp_status: string | null;
       delivery_latitude: number | null;
       delivery_longitude: number | null;
-      customers: { latitude: number | null; longitude: number | null; city: string | null } | null;
     } | null;
   }[];
 };
