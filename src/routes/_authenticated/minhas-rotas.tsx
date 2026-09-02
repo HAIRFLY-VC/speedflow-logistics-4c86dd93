@@ -93,7 +93,6 @@ function MinhasRotasPage() {
                     stops.map((s) => {
                       const o = s.orders;
                       if (!o) return null;
-                      const c = o.customers;
                       return (
                         <Link
                           key={s.id}
@@ -117,30 +116,18 @@ function MinhasRotasPage() {
                               {ORDER_STATUS_LABEL[o.status]}
                             </span>
                           </div>
-                          {c ? (
-                            <div className="text-sm space-y-0.5 ml-8">
-                              <div className="font-medium">
-                                {c.trade_name || c.legal_name}
-                              </div>
+                          <div className="text-sm space-y-0.5 ml-8">
+                            <div className="font-medium">Cliente {o.erp_cod_cliente ?? "—"}</div>
+                            {o.delivery_address ? (
                               <div className="text-xs text-muted-foreground flex items-start gap-1">
                                 <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
-                                <span>
-                                  {c.address_line}
-                                  {c.city ? `, ${c.city}` : ""}
-                                  {c.state ? `/${c.state}` : ""}
-                                  {c.zip_code ? ` — ${c.zip_code}` : ""}
-                                </span>
+                                <span>{o.delivery_address}</span>
                               </div>
-                              {c.phone ? (
+                            ) : null}
+                            {false ? (
                                 <div className="text-xs text-muted-foreground flex items-center gap-1">
                                   <Phone className="h-3 w-3" />
-                                  <a
-                                    href={`tel:${c.phone}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="hover:underline"
-                                  >
-                                    {c.phone}
-                                  </a>
+                                  <span>Telefone não informado</span>
                                 </div>
                               ) : null}
                             </div>

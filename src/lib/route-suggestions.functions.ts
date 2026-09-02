@@ -126,9 +126,6 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
         longitude: geo?.longitude ?? null,
       });
     }
-    for (const c of allCustomers ?? []) {
-      addTarget(c);
-    }
 
     let geocoded = 0;
     let failed = 0;
@@ -440,15 +437,14 @@ export const suggestRoutes = createServerFn({ method: "POST" })
           };
           suggestions.push(s);
         }
-        const c = (o as { customers: { trade_name: string | null; legal_name: string | null; city: string | null; state: string | null } | null }).customers!;
         s.orderIds.push(o.id);
         s.stops.push({
           orderId: o.id,
           orderNumber: o.order_number,
-          customerId: o.customer_id,
-          customerName: c.trade_name || c.legal_name || "Cliente",
-          city: c.city,
-          state: c.state,
+          customerId: o.customer_id ?? o.erp_cod_cliente ?? "",
+          customerName: o.erp_cod_cliente ? `Cliente ${o.erp_cod_cliente}` : "Cliente",
+          city: null,
+          state: null,
           weight: o._weight,
           amount: o._amount,
           lat: o._coord.lat,
@@ -501,9 +497,8 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         })),
       );
 
-      const cityOfSeed = (seed as { customers: { city: string | null } | null }).customers?.city ?? "";
-      const label = cityOfSeed
-        ? `M-${cityOfSeed.toUpperCase()}`
+      const label = seed.erp_cod_cliente
+        ? `M-CLIENTE ${String(seed.erp_cod_cliente).toUpperCase()}`
         : `M-SUGESTAO ${groupIdx}`;
 
       suggestions.push({
@@ -515,14 +510,13 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         driverName: null,
         orderIds: ordered.map((p) => p.o.id),
         stops: ordered.map((p) => {
-          const c = (p.o as { customers: { trade_name: string | null; legal_name: string | null; city: string | null; state: string | null } | null }).customers!;
           return {
             orderId: p.o.id,
             orderNumber: p.o.order_number,
-            customerId: p.o.customer_id,
-            customerName: c.trade_name || c.legal_name || "Cliente",
-            city: c.city,
-            state: c.state,
+            customerId: p.o.customer_id ?? p.o.erp_cod_cliente ?? "",
+            customerName: p.o.erp_cod_cliente ? `Cliente ${p.o.erp_cod_cliente}` : "Cliente",
+            city: null,
+            state: null,
             weight: p.o._weight,
             amount: p.o._amount,
             lat: p.o._coord.lat,
