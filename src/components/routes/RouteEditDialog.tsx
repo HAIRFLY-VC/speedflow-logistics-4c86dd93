@@ -351,6 +351,7 @@ export function RouteEditDialog({
                 className="h-11 w-11 shrink-0"
                 onClick={(e) => {
                   e.stopPropagation();
+                  setLimpoPeloUsuario(true);
                   setCodFrtTrp(null);
                 }}
               >
