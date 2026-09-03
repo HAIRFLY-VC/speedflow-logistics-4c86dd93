@@ -184,7 +184,7 @@ export function RouteEditDialog({
       });
       if (porNome) setCodFrtTrp(porNome.codErp);
     }
-  }, [open, responsaveis, codFrtTrp, initialCodErp, codErpRota, route?.driver_name]);
+  }, [open, limpoPeloUsuario, responsaveis, codFrtTrp, initialCodErp, codErpRota, route?.driver_name]);
 
   const filteredBySearch = useMemo(() => {
     return responsaveis;
