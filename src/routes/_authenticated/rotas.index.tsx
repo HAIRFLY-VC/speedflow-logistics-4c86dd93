@@ -495,6 +495,7 @@ function DistanceCell({
 
 function RotasPage() {
   const qc = useQueryClient();
+  const { cidadeCliente } = useClientesErp();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [filteredData, setFilteredData] = useState<RouteRow[] | undefined>();
