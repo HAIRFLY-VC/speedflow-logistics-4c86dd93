@@ -317,6 +317,7 @@ export function RouteEditDialog({
                         key={r.codErp}
                         value={`${r.razaoSocial} ${r.codErp} ${TIPO_LABEL[r.tipoFrete]}`}
                         onSelect={() => {
+                          setLimpoPeloUsuario(false);
                           setCodFrtTrp(r.codErp);
                           setSearchOpen(false);
                         }}
