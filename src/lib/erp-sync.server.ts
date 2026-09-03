@@ -384,6 +384,12 @@ export async function syncErpOrders(opts: {
     } catch (e) {
       errors.push({ pedido: 0, message: `Atualizar responsáveis do ERP: ${describeError(e)}` });
     }
+    try {
+      await sincronizarEspelhoClientes(rows);
+    } catch (e) {
+      errors.push({ pedido: 0, message: `Atualizar clientes do ERP: ${describeError(e)}` });
+    }
+
 
     const CONCURRENCY = 15;
     for (let i = 0; i < rows.length; i += CONCURRENCY) {
