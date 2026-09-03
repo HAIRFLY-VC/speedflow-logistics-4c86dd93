@@ -165,7 +165,7 @@ export function RouteEditDialog({
   // Pré-seleciona o responsável quando o código do ERP não bate exatamente
   // (zeros à esquerda/espaços) ou quando só temos a razão social na rota.
   useEffect(() => {
-    if (!open || responsaveis.length === 0) return;
+    if (!open || limpoPeloUsuario || responsaveis.length === 0) return;
     if (codFrtTrp && responsaveis.some((r) => r.codErp === codFrtTrp)) return;
 
     const alvoCod = normalizaCod(codFrtTrp ?? codErpRota ?? initialCodErp);
