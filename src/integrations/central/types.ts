@@ -183,7 +183,14 @@ export type CentralDatabase = Omit<Database, "public"> & {
         Update: Partial<CustomerGeoRow>;
         Relationships: [];
       };
+      clientes_erp: {
+        Row: ClienteErpRow;
+        Insert: Partial<ClienteErpRow> & { cod_cliente: string };
+        Update: Partial<ClienteErpRow>;
+        Relationships: [];
+      };
       erp_responsaveis: SimpleTable<ErpResponsavelRow>;
+
       fila_lancamento_erp_frete: SimpleTable<FilaValoresRow>;
       fila_provisionamento_financeiro: SimpleTable<FilaFinanceiroRow>;
       mapeamento_componentes_erp: SimpleTable<MapeamentoRow>;
