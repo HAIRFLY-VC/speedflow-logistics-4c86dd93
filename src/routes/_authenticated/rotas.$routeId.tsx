@@ -103,6 +103,7 @@ function RouteDetailPage() {
   const { routeId } = Route.useParams();
   const qc = useQueryClient();
   const { user, role } = useAuth();
+  const { nomeCliente } = useClientesErp();
   const canOperate = role === "adm" || role === "gestor" || role === "operador";
   const [editOpen, setEditOpen] = useState(false);
 
