@@ -652,12 +652,19 @@ function RotasPage() {
     () => Array.from(new Set(Array.from(codResponsavelPorRota.values()).filter((cod) => !codigosLocais.has(normalizaCod(cod))))),
     [codResponsavelPorRota, codigosLocais],
   );
+  // Códigos já tentados nesta sessão: sem isso, um código que o ERP não resolve
+  // mantém `codigosAusentes` preenchido e o efeito repete a sincronização em loop.
+  const codsTentadosRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    if (codigosAusentes.length === 0 || responsaveisLocaisQ.isFetching) return;
-    sincronizarAusentes({ data: { cods: codigosAusentes } })
+    if (responsaveisLocaisQ.isFetching) return;
+    const pendentes = codigosAusentes.filter((cod) => !codsTentadosRef.current.has(normalizaCod(cod)));
+    if (pendentes.length === 0) return;
+    for (const cod of pendentes) codsTentadosRef.current.add(normalizaCod(cod));
+    sincronizarAusentes({ data: { cods: pendentes } })
       .then(() => qc.invalidateQueries({ queryKey: ["erp-responsaveis"] }))
       .catch(() => undefined);
   }, [codigosAusentes, responsaveisLocaisQ.isFetching, sincronizarAusentes, qc]);
+
 
   /** Naturezas buscadas diretamente por código, sem filtro de natureza. */
   const listarNaturezas = useServerFn(listarNaturezasPorCodigoErp);
