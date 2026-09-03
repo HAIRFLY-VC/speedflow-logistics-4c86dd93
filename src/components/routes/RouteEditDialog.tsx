@@ -111,12 +111,15 @@ export function RouteEditDialog({
   const [nomeRota, setNomeRota] = useState("");
   const [codFrtTrp, setCodFrtTrp] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  /** Usuário limpou o campo: impede que as pré-seleções o preencham de novo. */
+  const [limpoPeloUsuario, setLimpoPeloUsuario] = useState(false);
 
   useEffect(() => {
     if (!route) return;
     setDtPrevExp(toDateInput(route.route_date));
     setNomeRota((route.nomeRota ?? route.code ?? "").trim());
     setCodFrtTrp(initialCodErp ?? null);
+    setLimpoPeloUsuario(false);
   }, [route, initialCodErp]);
 
   const responsaveisQ = useQuery({
