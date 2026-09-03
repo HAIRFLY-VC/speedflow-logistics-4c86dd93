@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
+import { useClientesErp } from "@/hooks/useClientesErp";
 import { supabase } from "@/integrations/central/client";
 import {
   KANBAN_COLUMNS,
@@ -149,7 +150,8 @@ function KanbanPage() {
 }
 
 function OrderCard({ order, sla }: { order: KanbanOrder; sla: SlaSettings | null }) {
-  const customer = order.erp_cod_cliente ? `Cliente ${order.erp_cod_cliente}` : "Cliente";
+  const { nomeCliente } = useClientesErp();
+  const customer = nomeCliente(order.erp_cod_cliente);
   const since = formatDistanceToNow(new Date(order.status_since), {
     addSuffix: true,
     locale: ptBR,

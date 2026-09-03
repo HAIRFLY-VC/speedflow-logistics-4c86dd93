@@ -177,6 +177,41 @@ async function sincronizarEspelhoResponsaveis() {
   return payload.length;
 }
 
+/** Atualiza o espelho local de clientes com os dados que já vêm na consulta de pedidos. */
+async function sincronizarEspelhoClientes(rows: ErpOrderRow[]) {
+  const byCode = new Map<string, {
+    cod_cliente: string;
+    razao_social: string | null;
+    nome_nf: string | null;
+    bairro: string | null;
+    cidade: string | null;
+    uf: string | null;
+  }>();
+  for (const row of rows) {
+    const cod = String(row.COD_CLIENTE ?? "").trim();
+    if (!cod || cod === "null" || byCode.has(cod)) continue;
+    const txt = (v: unknown) => (typeof v === "string" ? v.trim() || null : null);
+    byCode.set(cod, {
+      cod_cliente: cod,
+      razao_social: txt(row.CLIENTE_RS),
+      nome_nf: txt(row.CLIENTE_NF),
+      bairro: txt(row.BAIRRO),
+      cidade: txt(row.CIDADE),
+      uf: txt(row.UF),
+    });
+  }
+  const payload = Array.from(byCode.values());
+  if (payload.length === 0) return 0;
+  const { error } = await centralDb.from("clientes_erp").upsert(
+    payload.map((item) => ({ ...item, atualizado_em: new Date().toISOString() })),
+    { onConflict: "cod_cliente" },
+  );
+  if (error) throw error;
+  return payload.length;
+}
+
+
+
 type SyncResult = {
   runId: string;
   fetched: number;
@@ -349,6 +384,12 @@ export async function syncErpOrders(opts: {
     } catch (e) {
       errors.push({ pedido: 0, message: `Atualizar responsáveis do ERP: ${describeError(e)}` });
     }
+    try {
+      await sincronizarEspelhoClientes(rows);
+    } catch (e) {
+      errors.push({ pedido: 0, message: `Atualizar clientes do ERP: ${describeError(e)}` });
+    }
+
 
     const CONCURRENCY = 15;
     for (let i = 0; i < rows.length; i += CONCURRENCY) {

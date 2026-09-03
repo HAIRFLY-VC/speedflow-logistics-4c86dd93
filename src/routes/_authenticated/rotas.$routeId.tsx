@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { useClientesErp } from "@/hooks/useClientesErp";
 import { supabase } from "@/integrations/central/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -102,6 +103,7 @@ function RouteDetailPage() {
   const { routeId } = Route.useParams();
   const qc = useQueryClient();
   const { user, role } = useAuth();
+  const { nomeCliente } = useClientesErp();
   const canOperate = role === "adm" || role === "gestor" || role === "operador";
   const [editOpen, setEditOpen] = useState(false);
 
@@ -525,7 +527,7 @@ function RouteDetailPage() {
           </Card>
         ) : null}
 
-        <RouteMapSection stops={stops} depot={depot} />
+        <RouteMapSection stops={stops} depot={depot} nomeCliente={nomeCliente} />
 
 
         {editable && canOperate ? (
@@ -547,7 +549,7 @@ function RouteDetailPage() {
                     ) : (
                       (availableQ.data ?? []).map((o) => (
                         <SelectItem key={o.id} value={o.id}>
-                          {o.order_number} — Cliente {o.erp_cod_cliente ?? "—"}
+                          {o.order_number} — {nomeCliente(o.erp_cod_cliente)}
                         </SelectItem>
                       ))
                     )}
@@ -602,9 +604,11 @@ function RouteDetailPage() {
 function RouteMapSection({
   stops,
   depot,
+  nomeCliente,
 }: {
   stops: Stop[];
   depot: { lat: number; lng: number } | null;
+  nomeCliente: (cod: string | null | undefined) => string;
 }) {
   const mapStops = stops
     .map((s) => {
@@ -620,7 +624,7 @@ function RouteMapSection({
          lat: coord.lat,
          lng: coord.lng,
          orderNumber: o.order_number,
-         customerName: o.erp_cod_cliente ? `Cliente ${o.erp_cod_cliente}` : "—",
+         customerName: o.erp_cod_cliente ? nomeCliente(o.erp_cod_cliente) : "—",
          city: null,
          state: null,
         weight: Number(o.weight ?? 0),

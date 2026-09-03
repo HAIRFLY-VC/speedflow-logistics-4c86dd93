@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { useClientesErp } from "@/hooks/useClientesErp";
 import { supabase } from "@/integrations/central/client";
 import { computeRoutePolyline } from "@/lib/route-directions.functions";
 import { sequenceStops } from "@/components/route-suggestions/SuggestionMap";
@@ -494,6 +495,7 @@ function DistanceCell({
 
 function RotasPage() {
   const qc = useQueryClient();
+  const { cidadeCliente } = useClientesErp();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [filteredData, setFilteredData] = useState<RouteRow[] | undefined>();
@@ -758,11 +760,14 @@ function RotasPage() {
         const o = ro.orders;
         const chaveCliente = o?.customer_id ?? o?.erp_cod_cliente ?? null;
         if (!chaveCliente) continue;
+        // A praça da tabela de frete é resolvida pelo município do cliente
+        // (espelho local do ERP); sem ele, nenhuma linha da tabela casa.
         const atual = porCliente.get(chaveCliente) ?? {
           peso: 0,
           valorMercadoria: 0,
-          municipio: null,
+          municipio: cidadeCliente(o?.erp_cod_cliente ?? null),
         };
+        if (!atual.municipio) atual.municipio = cidadeCliente(o?.erp_cod_cliente ?? null);
         atual.peso += Number(o?.weight ?? 0);
         atual.valorMercadoria += Number(o?.total_amount ?? 0);
         porCliente.set(chaveCliente, atual);
@@ -781,6 +786,7 @@ function RotasPage() {
     naturezasQ.data,
     responsavelPorRota,
     codResponsavelPorRota,
+    cidadeCliente,
   ]);
 
   /** Frete informado; na ausência, a estimativa da tabela da transportadora. */

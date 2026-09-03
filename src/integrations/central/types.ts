@@ -24,6 +24,18 @@ type CustomerGeoRow = {
   updated_at: string;
 };
 
+/** Espelho do cadastro de clientes do ERP (nome + cidade/UF). */
+type ClienteErpRow = {
+  cod_cliente: string;
+  razao_social: string | null;
+  nome_nf: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  atualizado_em: string;
+};
+
+
 type EmpresasRow = Pub["Tables"]["empresas"]["Row"] & { cod_erp: string | null };
 type EmpresasWrite = Pub["Tables"]["empresas"]["Insert"] & { cod_erp?: string | null };
 
@@ -183,7 +195,14 @@ export type CentralDatabase = Omit<Database, "public"> & {
         Update: Partial<CustomerGeoRow>;
         Relationships: [];
       };
+      clientes_erp: {
+        Row: ClienteErpRow;
+        Insert: Partial<ClienteErpRow> & { cod_cliente: string };
+        Update: Partial<ClienteErpRow>;
+        Relationships: [];
+      };
       erp_responsaveis: SimpleTable<ErpResponsavelRow>;
+
       fila_lancamento_erp_frete: SimpleTable<FilaValoresRow>;
       fila_provisionamento_financeiro: SimpleTable<FilaFinanceiroRow>;
       mapeamento_componentes_erp: SimpleTable<MapeamentoRow>;

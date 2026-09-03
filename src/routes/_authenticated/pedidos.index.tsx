@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 
 import { AppShell } from "@/components/layout/AppShell";
+import { useClientesErp } from "@/hooks/useClientesErp";
 import { supabase } from "@/integrations/central/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,8 +71,8 @@ type OrderRow = {
 
 const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
 
-function customerName(o: OrderRow) {
-  return o.erp_cod_cliente ? `Cliente ${o.erp_cod_cliente}` : "Cliente";
+function codigoCliente(o: OrderRow) {
+  return o.erp_cod_cliente ? String(o.erp_cod_cliente).trim() : "";
 }
 
 function formatDateBR(v: string | null | undefined) {
@@ -98,6 +99,9 @@ function PedidosPage() {
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [visibleRows, setVisibleRows] = useState<OrderRow[]>([]);
+  // Nome do cliente vem do espelho local do ERP; sem ele, mostra só o código.
+  const { nomeCliente } = useClientesErp();
+  const customerName = useMemo(() => (o: OrderRow) => nomeCliente(codigoCliente(o)), [nomeCliente]);
 
 
   const ordersQ = useQuery({
@@ -366,7 +370,7 @@ function PedidosPage() {
         className: "tabular-nums text-xs",
       },
     ],
-    [],
+    [customerName],
   );
 
   function exportCsv() {
