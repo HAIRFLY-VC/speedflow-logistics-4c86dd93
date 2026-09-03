@@ -44,11 +44,13 @@ Ao confirmar:
 ## Detalhes técnicos
 
 - Rota nova: `src/routes/_authenticated/pedidos-sem-rota.tsx`; entrada em `NAV` de `src/components/layout/AppShell.tsx`.
-- Leitura: `orders` filtrando `dt_prev_exp` no dia 4000-01-01, com `erp_cod_cliente`, `order_number`, `total_amount`, `weight`, `erp_id`; nome/cidade via hook existente `useClientesErp`.
+- Leitura: `orders` filtrando `dt_prev_exp` no dia 4000-01-01, com `erp_cod_cliente`, `order_number`, `total_amount`, `weight`, `erp_id`, `cod_agenda`, `cod_filial`; nome, bairro, cidade e UF via hook existente `useClientesErp` (espelho `speedflow.clientes_erp`, que já tem esses campos).
+- Filial: hoje `COD_FILIAL` vem do ERP mas não é gravada — adiciono a coluna `cod_filial` em `orders` (migração) e passo a gravá-la em `src/lib/erp-sync.server.ts`. Até a próxima sincronização o filtro de filial fica vazio.
+- Filtros: derivados em memória a partir dos pedidos carregados (nada de round-trip por filtro); estado dos filtros em `useState` com componentes existentes (Popover/Sheet + Checkbox).
 - Lista renderizada como cartões próprios (não o `DataTable`), para manter a tela realmente compacta no celular.
 - Gravação local: `routes` (quando nova) + `route_orders`, seguindo o mesmo padrão do detalhe de rota.
 - Gravação no ERP: reutiliza `atualizarCapaRotaErp` (`/v1/execute/update_capa_rota`) para a capa. O vínculo pedido↔rota no ERP vive em `A_GER_ROTAS_PEDIDOS` e hoje **não existe endpoint** para gravá-lo — será preciso expor uma procedure nova na API do ERP (proposta: `/v1/execute/insert_rota_pedido` com binds `id_rota` e `pedido`, e `/v1/execute/insert_capa_rota` para criar a capa). Vou implementar a função de servidor `vincularPedidosRotaErp` já chamando esse endpoint; enquanto a procedure não estiver publicada no ERP, a tela grava no app e avisa que a replicação no ERP falhou, sem perder a seleção.
-- Sem mudanças de schema: `routes` e `route_orders` já atendem.
+- Única mudança de banco: a coluna `cod_filial` em `orders`; `routes` e `route_orders` já atendem.
 
 ## Validação
 
