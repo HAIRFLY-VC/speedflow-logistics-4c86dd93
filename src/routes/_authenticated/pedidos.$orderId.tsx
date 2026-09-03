@@ -6,6 +6,7 @@ import { FulfillmentActions } from "@/components/orders/FulfillmentActions";
 import { DeliveryActions } from "@/components/orders/DeliveryActions";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { useClientesErp } from "@/hooks/useClientesErp";
 import { supabase } from "@/integrations/central/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -150,9 +151,15 @@ function OrderDetailPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm space-y-1">
-                  <div className="font-medium">
-                    Cliente {order.erp_cod_cliente ?? "—"}
-                  </div>
+                  <div className="font-medium">{nomeCliente(order.erp_cod_cliente)}</div>
+                  {order.erp_cod_cliente ? (
+                    <div className="text-xs text-muted-foreground">
+                      Código ERP: {order.erp_cod_cliente}
+                      {cidadeCliente(order.erp_cod_cliente)
+                        ? ` — ${cidadeCliente(order.erp_cod_cliente)}`
+                        : ""}
+                    </div>
+                  ) : null}
                   {order.delivery_address ? (
                     <div className="flex gap-1 text-xs text-muted-foreground items-start mt-1">
                       <MapPin className="h-3 w-3 mt-0.5" />
