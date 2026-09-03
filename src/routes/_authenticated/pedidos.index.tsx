@@ -204,7 +204,7 @@ function PedidosPage() {
         id: "customer",
         header: "Cliente",
         accessor: (o) => customerName(o),
-        sortable: true,
+        sortable: false,
       },
       {
         id: "customer_erp_id",
