@@ -64,6 +64,9 @@ type HistoryRow = {
 
 function OrderDetailPage() {
   const { orderId } = Route.useParams();
+  const { nomeCliente, cidadeCliente } = useClientesErp();
+
+
 
   const orderQ = useQuery({
     queryKey: ["orders", orderId],
