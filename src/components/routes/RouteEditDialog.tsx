@@ -341,7 +341,7 @@ export function RouteEditDialog({
                 </Command>
               </PopoverContent>
             </Popover>
-            {selected ? (
+            {codFrtTrp ? (
               <Button
                 type="button"
                 variant="outline"
