@@ -111,12 +111,15 @@ export function RouteEditDialog({
   const [nomeRota, setNomeRota] = useState("");
   const [codFrtTrp, setCodFrtTrp] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  /** Usuário limpou o campo: impede que as pré-seleções o preencham de novo. */
+  const [limpoPeloUsuario, setLimpoPeloUsuario] = useState(false);
 
   useEffect(() => {
     if (!route) return;
     setDtPrevExp(toDateInput(route.route_date));
     setNomeRota((route.nomeRota ?? route.code ?? "").trim());
     setCodFrtTrp(initialCodErp ?? null);
+    setLimpoPeloUsuario(false);
   }, [route, initialCodErp]);
 
   const responsaveisQ = useQuery({
@@ -136,8 +139,8 @@ export function RouteEditDialog({
   const codErpRota = codRotaErpQ.data?.codErp ?? null;
 
   useEffect(() => {
-    if (codErpRota) setCodFrtTrp(codErpRota);
-  }, [codErpRota]);
+    if (codErpRota && !limpoPeloUsuario) setCodFrtTrp(codErpRota);
+  }, [codErpRota, limpoPeloUsuario]);
 
   const responsaveisErp = responsaveisQ.data ?? [];
   // Responsável já resolvido pela listagem (espelho local do ERP): garante a
@@ -162,7 +165,7 @@ export function RouteEditDialog({
   // Pré-seleciona o responsável quando o código do ERP não bate exatamente
   // (zeros à esquerda/espaços) ou quando só temos a razão social na rota.
   useEffect(() => {
-    if (!open || responsaveis.length === 0) return;
+    if (!open || limpoPeloUsuario || responsaveis.length === 0) return;
     if (codFrtTrp && responsaveis.some((r) => r.codErp === codFrtTrp)) return;
 
     const alvoCod = normalizaCod(codFrtTrp ?? codErpRota ?? initialCodErp);
@@ -181,7 +184,7 @@ export function RouteEditDialog({
       });
       if (porNome) setCodFrtTrp(porNome.codErp);
     }
-  }, [open, responsaveis, codFrtTrp, initialCodErp, codErpRota, route?.driver_name]);
+  }, [open, limpoPeloUsuario, responsaveis, codFrtTrp, initialCodErp, codErpRota, route?.driver_name]);
 
   const filteredBySearch = useMemo(() => {
     return responsaveis;
@@ -314,6 +317,7 @@ export function RouteEditDialog({
                         key={r.codErp}
                         value={`${r.razaoSocial} ${r.codErp} ${TIPO_LABEL[r.tipoFrete]}`}
                         onSelect={() => {
+                          setLimpoPeloUsuario(false);
                           setCodFrtTrp(r.codErp);
                           setSearchOpen(false);
                         }}
@@ -337,7 +341,7 @@ export function RouteEditDialog({
                 </Command>
               </PopoverContent>
             </Popover>
-            {selected ? (
+            {codFrtTrp ? (
               <Button
                 type="button"
                 variant="outline"
@@ -347,6 +351,7 @@ export function RouteEditDialog({
                 className="h-11 w-11 shrink-0"
                 onClick={(e) => {
                   e.stopPropagation();
+                  setLimpoPeloUsuario(true);
                   setCodFrtTrp(null);
                 }}
               >
