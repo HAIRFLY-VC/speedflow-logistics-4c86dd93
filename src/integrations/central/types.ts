@@ -24,6 +24,18 @@ type CustomerGeoRow = {
   updated_at: string;
 };
 
+/** Espelho do cadastro de clientes do ERP (nome + cidade/UF). */
+type ClienteErpRow = {
+  cod_cliente: string;
+  razao_social: string | null;
+  nome_nf: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  atualizado_em: string;
+};
+
+
 type EmpresasRow = Pub["Tables"]["empresas"]["Row"] & { cod_erp: string | null };
 type EmpresasWrite = Pub["Tables"]["empresas"]["Insert"] & { cod_erp?: string | null };
 
