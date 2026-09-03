@@ -139,8 +139,8 @@ export function RouteEditDialog({
   const codErpRota = codRotaErpQ.data?.codErp ?? null;
 
   useEffect(() => {
-    if (codErpRota) setCodFrtTrp(codErpRota);
-  }, [codErpRota]);
+    if (codErpRota && !limpoPeloUsuario) setCodFrtTrp(codErpRota);
+  }, [codErpRota, limpoPeloUsuario]);
 
   const responsaveisErp = responsaveisQ.data ?? [];
   // Responsável já resolvido pela listagem (espelho local do ERP): garante a
