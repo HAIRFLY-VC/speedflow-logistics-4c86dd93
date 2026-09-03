@@ -13,6 +13,19 @@ Nova tela no menu, otimizada para celular, para roteirizar rapidamente os pedido
 - Barra fixa no rodapé enquanto houver seleção: "N selecionados · peso · valor" e o botão **Atribuir a uma rota**.
 - Ações auxiliares: "Selecionar todos os visíveis" e "Limpar seleção".
 
+## Filtros
+
+Botão **Filtros** ao lado da busca (com contador de filtros ativos) que abre um painel por baixo, com cinco listas de **múltipla seleção**, cada uma mostrando as opções realmente presentes nos pedidos da tela e a quantidade de pedidos por opção:
+
+- Estado (UF)
+- Cidade
+- Bairro
+- Agenda
+- Filial
+
+Regras: dentro de um mesmo filtro as opções somam (OU); entre filtros elas se cruzam (E). Cidade e bairro se restringem às opções compatíveis com o que já estiver selecionado acima. Botão "Limpar filtros" e resumo em chips removíveis logo abaixo da busca. Selecionar todos os visíveis respeita os filtros ativos.
+
+
 ## Atribuição
 
 O botão abre uma folha (sheet) com duas abas:
