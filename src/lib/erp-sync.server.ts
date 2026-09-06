@@ -712,8 +712,27 @@ export async function syncErpOrders(opts: {
     };
   }
 
+  // Fecha a execução assim que os pedidos e rotas estão gravados. As etapas de
+  // geocodificação abaixo são complementares e não devem manter a execução aberta.
+  const status: SyncResult["status"] =
+    errors.length === 0 ? "success" : errors.length === fetched ? "failed" : "partial";
+  await centralDb
+    .from("erp_sync_runs")
+    .update({
+      finished_at: new Date().toISOString(),
+      orders_fetched: fetched,
+      orders_created: created,
+      orders_updated: updated,
+      orders_skipped: skipped,
+      customers_created,
+      errors,
+      status,
+    })
+    .eq("id", run.id);
+
   // Geocodifica clientes sem latitude/longitude
   let geocoded_customers = 0;
+
   try {
     const lovableKey = process.env.LOVABLE_API_KEY;
     const gmKey = process.env.GOOGLE_MAPS_API_KEY;
