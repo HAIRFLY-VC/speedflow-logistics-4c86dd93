@@ -37,8 +37,29 @@ export function ErpSyncButton() {
     staleTime: 30_000,
   });
 
+  type SyncOutcome = {
+    created: number;
+    updated: number;
+    skipped: number;
+    errors: unknown[];
+  };
+
   const sync = useMutation({
-    mutationFn: () => syncFn(),
+    mutationFn: async (): Promise<SyncOutcome> => {
+      const clickedAt = new Date(Date.now() - 5_000).toISOString();
+      try {
+        return await syncFn();
+      } catch (e) {
+        const err = e instanceof Error ? e : new Error(String(e));
+        if (!isConnectionDrop(err.message)) throw err;
+        // A requisição caiu, mas o servidor pode ter continuado: acompanha o histórico.
+        const finished = await waitForRun(clickedAt);
+        if (finished) return finished;
+        throw new Error(
+          "A conexão caiu e a sincronização não terminou em 2 minutos. Verifique o histórico mais tarde.",
+        );
+      }
+    },
     onSuccess: async (r) => {
       toast.success(
         `ERP: ${r.created} criado(s), ${r.updated} atualizado(s), ${r.skipped} ignorado(s)` +
@@ -52,6 +73,48 @@ export function ErpSyncButton() {
     },
     onError: (e: Error) => toast.error(`Falha ao importar: ${e.message}`),
   });
+
+  function isConnectionDrop(message: string): boolean {
+    const m = message.toLowerCase();
+    return (
+      m.includes("502") ||
+      m.includes("504") ||
+      m.includes("internal server error") ||
+      m.includes("failed to fetch") ||
+      m.includes("load failed") ||
+      m.includes("network") ||
+      m.includes("aborted") ||
+      m.includes("unexpected token") ||
+      m.includes("json")
+    );
+  }
+
+  async function waitForRun(sinceIso: string): Promise<SyncOutcome | null> {
+    const deadline = Date.now() + 120_000;
+    while (Date.now() < deadline) {
+      const { data } = await supabase
+        .from("erp_sync_runs")
+        .select("finished_at, status, orders_created, orders_updated, orders_skipped, errors")
+        .gte("started_at", sinceIso)
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data?.finished_at) {
+        if (data.status === "failed" && !data.orders_created && !data.orders_updated) {
+          const errs = (data.errors as { message?: string }[] | null) ?? [];
+          throw new Error(errs[0]?.message ?? "A sincronização falhou.");
+        }
+        return {
+          created: data.orders_created ?? 0,
+          updated: data.orders_updated ?? 0,
+          skipped: data.orders_skipped ?? 0,
+          errors: (data.errors as unknown[] | null) ?? [],
+        };
+      }
+      await new Promise((r) => setTimeout(r, 5_000));
+    }
+    return null;
+  }
 
   if (cfgQ.isLoading || !cfgQ.data) return null;
   if (!cfgQ.data.allowed) return null;

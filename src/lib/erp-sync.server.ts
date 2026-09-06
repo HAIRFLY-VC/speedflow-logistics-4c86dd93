@@ -144,15 +144,30 @@ const RESPONSAVEIS_SQL = `
    WHERE T.DBA_TIP_CODIGO_1 IS NOT NULL
 `;
 
-async function sincronizarEspelhoResponsaveis() {
+/**
+ * Atualiza o espelho local de responsáveis (fretistas/transportadoras) do ERP.
+ * Como a lista é grande (>10 mil linhas) e muda pouco, só é renovada quando a
+ * última atualização tem mais de `maxAgeMs`.
+ */
+async function sincronizarEspelhoResponsaveis(opts: { maxAgeMs: number }) {
   const baseUrl = process.env.ERP_API_BASE_URL;
   const apiKey = process.env.ERP_API_KEY;
   if (!baseUrl || !apiKey) throw new Error("ERP_API_BASE_URL ou ERP_API_KEY não configurados");
+
+  const { data: ultimo } = await centralDb
+    .from("erp_responsaveis")
+    .select("atualizado_em")
+    .order("atualizado_em", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const ultimoMs = ultimo?.atualizado_em ? new Date(ultimo.atualizado_em as string).getTime() : 0;
+  if (ultimoMs && Date.now() - ultimoMs < opts.maxAgeMs) return 0;
+
   const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
   const res = await fetch(`${cleanBase}/v1/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
-    body: JSON.stringify({ sql: RESPONSAVEIS_SQL, binds: {}, limit: 10000 }),
+    body: JSON.stringify({ sql: RESPONSAVEIS_SQL, binds: {}, limit: 50000 }),
   });
   if (!res.ok) throw new Error(friendlyErpError(res.status, await res.text()));
   const json = (await res.json()) as ErpQueryResponse;
@@ -228,6 +243,27 @@ export async function syncErpOrders(opts: {
   trigger: "manual" | "cron";
   triggeredBy: string | null;
 }): Promise<SyncResult> {
+  const startedAtMs = Date.now();
+  const elapsedMs = () => Date.now() - startedAtMs;
+  // Orçamento de tempo: acima disso as etapas opcionais são puladas para a
+  // requisição não estourar o limite do servidor (~50 s).
+  const BUDGET_MS = 35_000;
+
+  // 0) Fecha execuções anteriores presas em "em andamento" (interrompidas pelo servidor).
+  try {
+    await centralDb
+      .from("erp_sync_runs")
+      .update({
+        status: "failed",
+        finished_at: new Date().toISOString(),
+        errors: [{ pedido: 0, message: "Execução interrompida pelo tempo limite do servidor" }],
+      })
+      .eq("status", "running")
+      .lt("started_at", new Date(Date.now() - 10 * 60 * 1000).toISOString());
+  } catch (e) {
+    console.warn("[erp-sync] não foi possível fechar execuções presas:", e);
+  }
+
   // 1) Abre execução
   const { data: run, error: runErr } = await centralDb
     .from("erp_sync_runs")
@@ -338,18 +374,22 @@ export async function syncErpOrders(opts: {
   }
 
   try {
+    // Responsáveis do ERP em paralelo com a consulta de pedidos (etapa opcional,
+    // renovada no máximo uma vez por hora).
+    const responsaveisPromise = sincronizarEspelhoResponsaveis({ maxAgeMs: 60 * 60 * 1000 }).catch(
+      (e) => {
+        errors.push({ pedido: 0, message: `Atualizar responsáveis do ERP: ${describeError(e)}` });
+        return 0;
+      },
+    );
     const rows = await fetchPendingOrdersFromErp();
     fetched = rows.length;
-    try {
-      await sincronizarEspelhoResponsaveis();
-    } catch (e) {
-      errors.push({ pedido: 0, message: `Atualizar responsáveis do ERP: ${describeError(e)}` });
-    }
     try {
       await sincronizarEspelhoClientes(rows);
     } catch (e) {
       errors.push({ pedido: 0, message: `Atualizar clientes do ERP: ${describeError(e)}` });
     }
+    await responsaveisPromise;
 
     // 1) Estado atual dos pedidos já gravados (uma consulta por bloco de 300).
     const erpIds = rows.map((r) => String(r.PEDIDO));
@@ -468,41 +508,60 @@ export async function syncErpOrders(opts: {
       g.pedidos.push(String(row.PEDIDO));
     }
 
-    // Cache de resolução COD_FRT_TRP -> freight_carriers.id
-    const carrierCache = new Map<string, string | null>();
-    async function resolveCarrierId(codErp: string): Promise<string | null> {
-      if (carrierCache.has(codErp)) return carrierCache.get(codErp) ?? null;
-      const { data: transp } = await centralDb
-        .from("transportadoras")
-        .select("id,razao_social")
-        .eq("cod_erp", codErp)
-        .maybeSingle();
-      if (!transp) {
-        carrierCache.set(codErp, null);
-        return null;
-      }
-      const { data: carrier } = await centralDb
-        .from("freight_carriers")
-        .select("id")
-        .eq("transportadora_id", transp.id)
-        .maybeSingle();
-      let id = carrier?.id ?? null;
-      if (!id) {
-        // Transportadora cadastrada sem fretista correspondente: cria o vínculo
+    // Resolução em lote COD_FRT_TRP -> freight_carriers.id (uma consulta por tabela).
+    const carrierByCode = new Map<string, string | null>();
+    const carrierCodes = Array.from(
+      new Set(
+        Array.from(groups.values())
+          .map((g) => g.carrierCode)
+          .filter((c): c is string => Boolean(c)),
+      ),
+    );
+    if (carrierCodes.length > 0) {
+      try {
+        const { data: transps, error: tErr } = await centralDb
+          .from("transportadoras")
+          .select("id,razao_social,cod_erp")
+          .in("cod_erp", carrierCodes);
+        if (tErr) throw tErr;
+        const transpIds = (transps ?? []).map((t) => t.id as string);
+        const carrierByTransp = new Map<string, string>();
+        if (transpIds.length > 0) {
+          const { data: carriers, error: cErr } = await centralDb
+            .from("freight_carriers")
+            .select("id,transportadora_id")
+            .in("transportadora_id", transpIds);
+          if (cErr) throw cErr;
+          for (const c of carriers ?? []) {
+            const tid = c.transportadora_id ? String(c.transportadora_id) : null;
+            if (tid && !carrierByTransp.has(tid)) carrierByTransp.set(tid, c.id as string);
+          }
+        }
+        // Transportadora cadastrada sem fretista correspondente: cria o vínculo em lote
         // para que a rota fique associada (e a simulação de frete funcione).
-        const { data: novo } = await centralDb
-          .from("freight_carriers")
-          .insert({
-            full_name: transp.razao_social,
-            transportadora_id: transp.id,
-            is_active: true,
-          })
-          .select("id")
-          .single();
-        id = novo?.id ?? null;
+        const faltantes = (transps ?? []).filter((t) => !carrierByTransp.has(t.id as string));
+        if (faltantes.length > 0) {
+          const { data: novos, error: nErr } = await centralDb
+            .from("freight_carriers")
+            .insert(
+              faltantes.map((t) => ({
+                full_name: t.razao_social,
+                transportadora_id: t.id,
+                is_active: true,
+              })),
+            )
+            .select("id,transportadora_id");
+          if (nErr) throw nErr;
+          for (const c of novos ?? []) {
+            if (c.transportadora_id) carrierByTransp.set(String(c.transportadora_id), c.id as string);
+          }
+        }
+        for (const t of transps ?? []) {
+          carrierByCode.set(String(t.cod_erp), carrierByTransp.get(t.id as string) ?? null);
+        }
+      } catch (e) {
+        errors.push({ pedido: 0, message: `Transportadoras das rotas: ${describeError(e)}` });
       }
-      carrierCache.set(codErp, id);
-      return id;
     }
 
 
@@ -565,100 +624,143 @@ export async function syncErpOrders(opts: {
       errors.push({ pedido: 0, message: `Reinserção de rotas pendentes: ${describeError(e)}` });
     }
 
-    for (const g of groups.values()) {
-      try {
-        const code = g.erpRouteId
-          ? `erp-${g.erpRouteId}`
-          : `${slugify(g.nome)}-${g.date.replace(/-/g, "")}`;
+    // Planejamento das rotas: código final, código alternativo (slug) e transportadora.
+    type GroupPlan = RouteGroup & { code: string; slugCode: string; carrierId: string | null };
+    const plans: GroupPlan[] = Array.from(groups.values()).map((g) => {
+      const slugCode = `${slugify(g.nome)}-${g.date.replace(/-/g, "")}`;
+      return {
+        ...g,
+        slugCode,
+        code: g.erpRouteId ? `erp-${g.erpRouteId}` : slugCode,
+        carrierId: g.carrierCode ? (carrierByCode.get(g.carrierCode) ?? null) : null,
+      };
+    });
 
-        const carrierId = g.carrierCode ? await resolveCarrierId(g.carrierCode) : null;
-
-        let existing: { id: string } | null = null;
-        if (g.erpRouteId) {
-          const { data } = await centralDb
-            .from("routes")
-            .select("id")
-            .eq("erp_route_id", g.erpRouteId)
-            .maybeSingle();
-          existing = data ?? null;
+    // Rotas já existentes (concluídas/canceladas ou criadas antes do ID_ROTA): uma consulta só.
+    const existingByErpId = new Map<string, string>();
+    const existingByCode = new Map<string, string>();
+    const quote = (v: string) => `"${v.replace(/"/g, '\\"')}"`;
+    try {
+      const erpIdsList = Array.from(
+        new Set(plans.map((p) => p.erpRouteId).filter((v): v is string => Boolean(v))),
+      );
+      const codesList = Array.from(new Set(plans.flatMap((p) => [p.code, p.slugCode])));
+      const orParts: string[] = [];
+      if (erpIdsList.length > 0) orParts.push(`erp_route_id.in.(${erpIdsList.map(quote).join(",")})`);
+      if (codesList.length > 0) orParts.push(`code.in.(${codesList.map(quote).join(",")})`);
+      if (orParts.length > 0) {
+        const { data, error } = await centralDb
+          .from("routes")
+          .select("id,erp_route_id,code")
+          .or(orParts.join(","));
+        if (error) throw error;
+        for (const r of data ?? []) {
+          if (r.erp_route_id) existingByErpId.set(String(r.erp_route_id), r.id as string);
+          existingByCode.set(String(r.code), r.id as string);
         }
-        if (!existing) {
-          // Tenta achar por código erp-* (caso erp_route_id ainda não esteja preenchido)
-          if (g.erpRouteId) {
-            const { data } = await centralDb
-              .from("routes")
-              .select("id")
-              .eq("code", `erp-${g.erpRouteId}`)
-              .maybeSingle();
-            existing = data ?? null;
-          }
-        }
-        if (!existing) {
-          // Fallback: rota slug-based pré-existente (criada antes do ERP retornar ID_ROTA)
-          const slugCode = `${slugify(g.nome)}-${g.date.replace(/-/g, "")}`;
-          const { data } = await centralDb
-            .from("routes")
-            .select("id")
-            .eq("code", slugCode)
-            .maybeSingle();
-          existing = data ?? null;
-        }
+      }
+    } catch (e) {
+      errors.push({ pedido: 0, message: `Consulta de rotas existentes: ${describeError(e)}` });
+    }
 
+    const routeIdByPlan = new Map<GroupPlan, string>();
+    const insertByCode = new Map<
+      string,
+      {
+        plans: GroupPlan[];
+        row: {
+          code: string;
+          route_date: string;
+          driver_name: string | null;
+          notes: string;
+          erp_route_id: string | null;
+          erp_status: string;
+          carrier_id: string | null;
+          total_freight: number;
+          total_distance_km: number | null;
+          status: "planejada" | "em_andamento";
+        };
+      }
+    >();
 
-        let routeId: string;
-        if (existing) {
-          // Rota finalizada (concluída/cancelada) reencontrada: apenas atualiza
-          routeId = existing.id;
-          await centralDb
-            .from("routes")
-            .update({
-              driver_name: g.driver,
-              route_date: g.date,
-              erp_route_id: g.erpRouteId,
-              erp_status: g.erpStatus,
-              carrier_id: carrierId ?? undefined,
-              code: g.erpRouteId ? `erp-${g.erpRouteId}` : undefined,
-            })
-            .eq("id", routeId);
+    for (const p of plans) {
+      const existingId =
+        (p.erpRouteId
+          ? (existingByErpId.get(p.erpRouteId) ?? existingByCode.get(`erp-${p.erpRouteId}`))
+          : undefined) ?? existingByCode.get(p.slugCode);
 
+      if (existingId) {
+        // Rota finalizada (concluída/cancelada) reencontrada: apenas atualiza (casos raros).
+        const { error } = await centralDb
+          .from("routes")
+          .update({
+            driver_name: p.driver,
+            route_date: p.date,
+            erp_route_id: p.erpRouteId,
+            erp_status: p.erpStatus,
+            carrier_id: p.carrierId ?? undefined,
+            code: p.erpRouteId ? `erp-${p.erpRouteId}` : undefined,
+          })
+          .eq("id", existingId);
+        if (error) {
+          errors.push({ pedido: 0, message: `Rota ${p.nome} (${p.date}): ${describeError(error)}` });
         } else {
-          const snap =
-            (g.erpRouteId ? snapshotByErpId.get(g.erpRouteId) : undefined) ??
-            snapshotByCode.get(code);
-          const { data: ins, error } = await centralDb
-            .from("routes")
-            .insert({
-              code,
-              route_date: g.date,
-              driver_name: g.driver,
-              notes: snap?.notes ?? `Rota ${g.nome}`,
-              erp_route_id: g.erpRouteId,
-              erp_status: snap?.erp_status ?? g.erpStatus,
-              carrier_id: carrierId ?? snap?.carrier_id ?? null,
-              total_freight: snap?.total_freight ?? 0,
-              total_distance_km: snap?.total_distance_km ?? null,
-              status: (snap?.status as "planejada" | "em_andamento") ?? "planejada",
-            })
-            .select("id")
-            .single();
-          if (error || !ins) throw error ?? new Error("insert route falhou");
-          routeId = ins.id;
+          routeIdByPlan.set(p, existingId);
+        }
+        continue;
+      }
+
+      const pendingEntry = insertByCode.get(p.code);
+      if (pendingEntry) {
+        // Mesmo código gerado por mais de um grupo: compartilham a mesma rota.
+        pendingEntry.plans.push(p);
+        continue;
+      }
+      const snap =
+        (p.erpRouteId ? snapshotByErpId.get(p.erpRouteId) : undefined) ?? snapshotByCode.get(p.code);
+      insertByCode.set(p.code, {
+        plans: [p],
+        row: {
+          code: p.code,
+          route_date: p.date,
+          driver_name: p.driver,
+          notes: snap?.notes ?? `Rota ${p.nome}`,
+          erp_route_id: p.erpRouteId,
+          erp_status: snap?.erp_status ?? p.erpStatus,
+          carrier_id: p.carrierId ?? snap?.carrier_id ?? null,
+          total_freight: snap?.total_freight ?? 0,
+          total_distance_km: snap?.total_distance_km ?? null,
+          status: (snap?.status as "planejada" | "em_andamento") ?? "planejada",
+        },
+      });
+    }
+
+    // Inserção em lote de todas as rotas novas (uma única gravação).
+    if (insertByCode.size > 0) {
+      const entries = Array.from(insertByCode.values());
+      const { data: ins, error } = await centralDb
+        .from("routes")
+        .insert(entries.map((e) => e.row))
+        .select("id,code");
+      if (error) {
+        errors.push({ pedido: 0, message: `Criar rotas (${entries.length}): ${describeError(error)}` });
+      } else {
+        const idByCode = new Map((ins ?? []).map((r) => [String(r.code), r.id as string]));
+        for (const e of entries) {
+          const id = idByCode.get(e.row.code);
+          if (!id) continue;
           routes_created++;
+          for (const p of e.plans) routeIdByPlan.set(p, id);
         }
+      }
+    }
 
-        const orderRows = g.pedidos
-          .map((p) => ({ id: orderIdByErpId.get(p), erp_id: p }))
-          .filter((o): o is { id: string; erp_id: string } => Boolean(o.id));
-
-        if (orderRows.length > 0) {
-          for (const [idx, o] of orderRows.entries()) {
-            pendingLinks.push({ route_id: routeId, order_id: o.id, stop_order: idx + 1 });
-          }
-        }
-
-      } catch (e) {
-        const msg = describeError(e);
-        errors.push({ pedido: 0, message: `Rota ${g.nome} (${g.date}): ${msg}` });
+    for (const [p, routeId] of routeIdByPlan) {
+      const orderRows = p.pedidos
+        .map((ped) => ({ id: orderIdByErpId.get(ped), erp_id: ped }))
+        .filter((o): o is { id: string; erp_id: string } => Boolean(o.id));
+      for (const [idx, o] of orderRows.entries()) {
+        pendingLinks.push({ route_id: routeId, order_id: o.id, stop_order: idx + 1 });
       }
     }
 
@@ -730,13 +832,19 @@ export async function syncErpOrders(opts: {
     })
     .eq("id", run.id);
 
+  // Geocodificação é opcional: só roda se ainda houver tempo dentro do orçamento.
+  const geocodeAllowed = elapsedMs() < BUDGET_MS;
+  if (!geocodeAllowed) {
+    console.log(`[erp-sync] geocodificação pulada (tempo decorrido ${Math.round(elapsedMs() / 1000)}s)`);
+  }
+
   // Geocodifica clientes sem latitude/longitude
   let geocoded_customers = 0;
 
   try {
     const lovableKey = process.env.LOVABLE_API_KEY;
     const gmKey = process.env.GOOGLE_MAPS_API_KEY;
-    if (lovableKey && gmKey) {
+    if (geocodeAllowed && lovableKey && gmKey) {
       const { data: comPedido } = await centralDb
         .from("orders")
         .select("erp_cod_cliente, delivery_address")
@@ -823,7 +931,7 @@ export async function syncErpOrders(opts: {
   try {
     const lovableKey = process.env.LOVABLE_API_KEY;
     const gmKey = process.env.GOOGLE_MAPS_API_KEY;
-    if (lovableKey && gmKey) {
+    if (geocodeAllowed && lovableKey && gmKey) {
       const { data: pendingOrders } = await centralDb
         .from("orders")
         .select("id, delivery_address")
