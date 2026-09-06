@@ -259,6 +259,7 @@ function PedidosSemRotaPage() {
     const escolhidas = linhas.filter((l) => sel.has(l.id));
     return {
       qtd: escolhidas.length,
+      entregas: new Set(escolhidas.map((l) => l.codCliente || l.cliente)).size,
       peso: escolhidas.reduce((s, l) => s + l.peso, 0),
       valor: escolhidas.reduce((s, l) => s + l.valor, 0),
     };
