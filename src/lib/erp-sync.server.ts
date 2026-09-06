@@ -847,23 +847,7 @@ export async function syncErpOrders(opts: {
 
 
 
-  const status: SyncResult["status"] =
-    errors.length === 0 ? "success" : errors.length === fetched ? "failed" : "partial";
-
-  await centralDb
-    .from("erp_sync_runs")
-    .update({
-      finished_at: new Date().toISOString(),
-      orders_fetched: fetched,
-      orders_created: created,
-      orders_updated: updated,
-      orders_skipped: skipped,
-      customers_created,
-      errors,
-      status,
-    })
-    .eq("id", run.id);
-
   console.log(`[erp-sync] rotas: ${routes_created} criadas, ${routes_linked} pedidos vinculados`);
   return { runId: run.id, fetched, created, updated, skipped, customers_created, errors, status };
 }
+
