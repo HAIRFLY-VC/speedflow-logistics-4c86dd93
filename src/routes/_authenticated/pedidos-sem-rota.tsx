@@ -87,6 +87,38 @@ function PedidosSemRotaPage() {
     },
   });
 
+  const depositoQ = useQuery({
+    queryKey: ["deposito-coords"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_settings")
+        .select("depot_latitude, depot_longitude")
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      const lat = Number(data?.depot_latitude);
+      const lng = Number(data?.depot_longitude);
+      return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+    },
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const geoQ = useQuery({
+    queryKey: ["customer-geo-todos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("customer_geo")
+        .select("cod_cliente, latitude, longitude");
+      if (error) throw error;
+      return (data ?? []) as {
+        cod_cliente: string;
+        latitude: number | null;
+        longitude: number | null;
+      }[];
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
   const rotasQ = useQuery({
     queryKey: ["rotas-planejadas-sem-rota"],
     queryFn: async () => {
