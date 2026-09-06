@@ -16,6 +16,7 @@ import {
   LogOut,
   Menu,
   Wand2,
+  MapPinned,
   ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
