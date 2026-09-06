@@ -338,18 +338,22 @@ export async function syncErpOrders(opts: {
   }
 
   try {
+    // Responsáveis do ERP em paralelo com a consulta de pedidos (etapa opcional,
+    // renovada no máximo uma vez por hora).
+    const responsaveisPromise = sincronizarEspelhoResponsaveis({ maxAgeMs: 60 * 60 * 1000 }).catch(
+      (e) => {
+        errors.push({ pedido: 0, message: `Atualizar responsáveis do ERP: ${describeError(e)}` });
+        return 0;
+      },
+    );
     const rows = await fetchPendingOrdersFromErp();
     fetched = rows.length;
-    try {
-      await sincronizarEspelhoResponsaveis();
-    } catch (e) {
-      errors.push({ pedido: 0, message: `Atualizar responsáveis do ERP: ${describeError(e)}` });
-    }
     try {
       await sincronizarEspelhoClientes(rows);
     } catch (e) {
       errors.push({ pedido: 0, message: `Atualizar clientes do ERP: ${describeError(e)}` });
     }
+    await responsaveisPromise;
 
     // 1) Estado atual dos pedidos já gravados (uma consulta por bloco de 300).
     const erpIds = rows.map((r) => String(r.PEDIDO));
