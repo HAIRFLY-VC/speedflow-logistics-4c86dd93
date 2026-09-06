@@ -689,6 +689,32 @@ export async function syncErpOrders(opts: {
       }
     }
 
+    // Vínculos pedido↔rota gravados em lote (um pedido só pode estar em uma rota).
+    if (pendingLinks.length > 0) {
+      try {
+        const ids = pendingLinks.map((l) => l.order_id);
+        for (let i = 0; i < ids.length; i += 300) {
+          const { error: delErr } = await centralDb
+            .from("route_orders")
+            .delete()
+            .in("order_id", ids.slice(i, i + 300));
+          if (delErr) throw delErr;
+        }
+        for (let i = 0; i < pendingLinks.length; i += 300) {
+          const chunk = pendingLinks.slice(i, i + 300);
+          const { error: linkErr, count } = await centralDb
+            .from("route_orders")
+            .upsert(chunk, { onConflict: "order_id", ignoreDuplicates: true, count: "exact" });
+          if (linkErr) throw linkErr;
+          routes_linked += count ?? chunk.length;
+        }
+      } catch (e) {
+        errors.push({ pedido: 0, message: `Vínculo pedidos↔rotas: ${describeError(e)}` });
+      }
+    }
+
+
+
 
 
   } catch (e) {
