@@ -295,16 +295,12 @@ export async function syncErpOrders(opts: {
     return Number.isFinite(n) ? Math.trunc(n) : null;
   }
 
-  async function processRow(row: ErpOrderRow) {
-    const codCliente = String(row.COD_CLIENTE);
-    // O cadastro de clientes é do banco central (public.clientes). Aqui apenas
-    // referenciamos o código do ERP; nada é duplicado no app.
-    const customerId = codCliente;
-    const customerCreated = false;
+  // Mapa erp_id -> orders.id, preenchido durante a gravação em lote e reutilizado
+  // depois pelo vínculo com as rotas (evita novas consultas por rota).
+  const orderIdByErpId = new Map<string, string>();
+  const pendingLinks: { route_id: string; order_id: string; stop_order: number }[] = [];
 
-
-
-
+  function buildOrderPayload(row: ErpOrderRow, prevAddress: string | null | undefined) {
     const pedidoStr = String(row.PEDIDO);
     const totalAmount = Number(row.VALOR ?? row.VALOR_PEDIDO ?? 0);
     const notes = [
@@ -316,50 +312,16 @@ export async function syncErpOrders(opts: {
       .filter(Boolean)
       .join("\n");
 
-    const qtdDias = parseErpInteger(getErpField(row as unknown as Record<string, unknown>, "QTD_DIAS"));
+    const qtdDias = parseErpInteger(
+      getErpField(row as unknown as Record<string, unknown>, "QTD_DIAS"),
+    );
     const deliveryAddress = parseDeliveryOverride(row.OBS_LOGIST);
+    const addrChanged = (deliveryAddress ?? null) !== (prevAddress ?? null);
 
-    const { data: existingOrder } = await centralDb
-      .from("orders")
-      .select("id, delivery_address")
-      .eq("erp_id", pedidoStr)
-      .maybeSingle();
-
-    if (existingOrder) {
-      const prevAddr = (existingOrder as { delivery_address: string | null }).delivery_address ?? null;
-      const addrChanged = (deliveryAddress ?? null) !== prevAddr;
-      const updatePayload = {
-        erp_cod_cliente: customerId,
-        total_amount: totalAmount,
-        weight: row.PESO,
-        cod_agenda: row.COD_AGENDA,
-        cod_filial: row.COD_FILIAL != null ? String(row.COD_FILIAL).trim() : null,
-        notes: notes || null,
-        dt_prev_exp: parseErpDate(row.DT_PREV_EXP),
-        nome_rota: row.NOME_ROTA || null,
-        nome_motorista: row.NOME_MOTORISTA || null,
-        erp_status: row.STATUS || null,
-        qtd_dias: qtdDias,
-        ...(addrChanged
-          ? {
-              delivery_address: deliveryAddress,
-              delivery_latitude: null,
-              delivery_longitude: null,
-            }
-          : {}),
-      };
-      const { error } = await centralDb
-        .from("orders")
-        .update(updatePayload)
-        .eq("id", existingOrder.id);
-      if (error) throw error;
-      return { customerCreated, outcome: "updated" as const };
-    }
-
-    const { error } = await centralDb.from("orders").insert({
+    return {
       order_number: pedidoStr,
       erp_id: pedidoStr,
-      erp_cod_cliente: customerId,
+      erp_cod_cliente: String(row.COD_CLIENTE),
       total_amount: totalAmount,
       weight: row.PESO,
       cod_agenda: row.COD_AGENDA,
@@ -371,12 +333,8 @@ export async function syncErpOrders(opts: {
       erp_status: row.STATUS || null,
       qtd_dias: qtdDias,
       delivery_address: deliveryAddress,
-    });
-    if (error) {
-      if (error.code === "23505") return { customerCreated, outcome: "skipped" as const };
-      throw error;
-    }
-    return { customerCreated, outcome: "created" as const };
+      ...(addrChanged ? { delivery_latitude: null, delivery_longitude: null } : {}),
+    };
   }
 
   try {
@@ -393,32 +351,47 @@ export async function syncErpOrders(opts: {
       errors.push({ pedido: 0, message: `Atualizar clientes do ERP: ${describeError(e)}` });
     }
 
-
-    const CONCURRENCY = 15;
-    for (let i = 0; i < rows.length; i += CONCURRENCY) {
-      const batch = rows.slice(i, i + CONCURRENCY);
-      const results = await Promise.all(
-        batch.map(async (row) => {
-          try {
-            const r = await processRow(row);
-            return { ok: true as const, row, ...r };
-          } catch (e) {
-            const msg = describeError(e);
-            return { ok: false as const, row, message: msg };
-          }
-        }),
-      );
-      for (const r of results) {
-        if (!r.ok) {
-          errors.push({ pedido: r.row.PEDIDO, message: r.message });
-          continue;
-        }
-        if (r.customerCreated) customers_created++;
-        if (r.outcome === "created") created++;
-        else if (r.outcome === "updated") updated++;
-        else skipped++;
+    // 1) Estado atual dos pedidos já gravados (uma consulta por bloco de 300).
+    const erpIds = rows.map((r) => String(r.PEDIDO));
+    const existentes = new Map<string, { id: string; delivery_address: string | null }>();
+    for (let i = 0; i < erpIds.length; i += 300) {
+      const { data, error } = await centralDb
+        .from("orders")
+        .select("id, erp_id, delivery_address")
+        .in("erp_id", erpIds.slice(i, i + 300));
+      if (error) throw error;
+      for (const o of data ?? []) {
+        existentes.set(String(o.erp_id), {
+          id: o.id as string,
+          delivery_address: (o.delivery_address as string | null) ?? null,
+        });
       }
     }
+
+    // 2) Gravação em lote (inserir ou atualizar pelo código do pedido no ERP).
+    const CHUNK = 200;
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const batch = rows.slice(i, i + CHUNK);
+      const payloads = batch.map((row) =>
+        buildOrderPayload(row, existentes.get(String(row.PEDIDO))?.delivery_address),
+      );
+      const { data, error } = await centralDb
+        .from("orders")
+        .upsert(payloads, { onConflict: "erp_id" })
+        .select("id, erp_id");
+      if (error) {
+        for (const row of batch) {
+          errors.push({ pedido: row.PEDIDO, message: describeError(error) });
+        }
+        continue;
+      }
+      for (const o of data ?? []) orderIdByErpId.set(String(o.erp_id), o.id as string);
+      for (const row of batch) {
+        if (existentes.has(String(row.PEDIDO))) updated++;
+        else created++;
+      }
+    }
+
 
     // Pedidos que não retornaram na consulta do ERP são considerados expedidos.
     try {
@@ -673,37 +646,47 @@ export async function syncErpOrders(opts: {
           routes_created++;
         }
 
-        const { data: orderRows } = await centralDb
-          .from("orders")
-          .select("id,erp_id")
-          .in("erp_id", g.pedidos);
+        const orderRows = g.pedidos
+          .map((p) => ({ id: orderIdByErpId.get(p), erp_id: p }))
+          .filter((o): o is { id: string; erp_id: string } => Boolean(o.id));
 
-        if (orderRows && orderRows.length > 0) {
-          const orderIds = orderRows.map((o) => o.id);
-          // Remove vínculos antigos em outras rotas (pedido só pode estar em 1 rota)
-          const { error: delErr } = await centralDb
-            .from("route_orders")
-            .delete()
-            .in("order_id", orderIds)
-            .neq("route_id", routeId);
-          if (delErr) throw delErr;
-
-          const links = orderRows.map((o, idx) => ({
-            route_id: routeId,
-            order_id: o.id,
-            stop_order: idx + 1,
-          }));
-          const { error: linkErr, count } = await centralDb
-            .from("route_orders")
-            .upsert(links, { onConflict: "order_id", ignoreDuplicates: true, count: "exact" });
-          if (linkErr) throw linkErr;
-          routes_linked += count ?? 0;
+        if (orderRows.length > 0) {
+          for (const [idx, o] of orderRows.entries()) {
+            pendingLinks.push({ route_id: routeId, order_id: o.id, stop_order: idx + 1 });
+          }
         }
+
       } catch (e) {
         const msg = describeError(e);
         errors.push({ pedido: 0, message: `Rota ${g.nome} (${g.date}): ${msg}` });
       }
     }
+
+    // Vínculos pedido↔rota gravados em lote (um pedido só pode estar em uma rota).
+    if (pendingLinks.length > 0) {
+      try {
+        const ids = pendingLinks.map((l) => l.order_id);
+        for (let i = 0; i < ids.length; i += 300) {
+          const { error: delErr } = await centralDb
+            .from("route_orders")
+            .delete()
+            .in("order_id", ids.slice(i, i + 300));
+          if (delErr) throw delErr;
+        }
+        for (let i = 0; i < pendingLinks.length; i += 300) {
+          const chunk = pendingLinks.slice(i, i + 300);
+          const { error: linkErr, count } = await centralDb
+            .from("route_orders")
+            .upsert(chunk, { onConflict: "order_id", ignoreDuplicates: true, count: "exact" });
+          if (linkErr) throw linkErr;
+          routes_linked += count ?? chunk.length;
+        }
+      } catch (e) {
+        errors.push({ pedido: 0, message: `Vínculo pedidos↔rotas: ${describeError(e)}` });
+      }
+    }
+
+
 
 
 
@@ -729,8 +712,27 @@ export async function syncErpOrders(opts: {
     };
   }
 
+  // Fecha a execução assim que os pedidos e rotas estão gravados. As etapas de
+  // geocodificação abaixo são complementares e não devem manter a execução aberta.
+  const status: SyncResult["status"] =
+    errors.length === 0 ? "success" : errors.length === fetched ? "failed" : "partial";
+  await centralDb
+    .from("erp_sync_runs")
+    .update({
+      finished_at: new Date().toISOString(),
+      orders_fetched: fetched,
+      orders_created: created,
+      orders_updated: updated,
+      orders_skipped: skipped,
+      customers_created,
+      errors,
+      status,
+    })
+    .eq("id", run.id);
+
   // Geocodifica clientes sem latitude/longitude
   let geocoded_customers = 0;
+
   try {
     const lovableKey = process.env.LOVABLE_API_KEY;
     const gmKey = process.env.GOOGLE_MAPS_API_KEY;
@@ -751,14 +753,26 @@ export async function syncErpOrders(opts: {
             .limit(5000)
         : { data: [] };
       const geoByCode = new Map((geoRows ?? []).map((g) => [String(g.cod_cliente), g]));
+      const addrByCode = new Map<string, string | null>();
+      for (const o of comPedido ?? []) {
+        const code = String(o.erp_cod_cliente);
+        if (!addrByCode.has(code)) addrByCode.set(code, o.delivery_address ?? null);
+      }
       const pending = codigos
         .map((code) => {
           const geo = geoByCode.get(code);
-          const order = (comPedido ?? []).find((o) => String(o.erp_cod_cliente) === code);
-          return { id: code, address_line: order?.delivery_address ?? geo?.endereco_usado ?? null, latitude: geo?.latitude ?? null, longitude: geo?.longitude ?? null };
+          return {
+            id: code,
+            address_line: addrByCode.get(code) ?? geo?.endereco_usado ?? null,
+            latitude: geo?.latitude ?? null,
+            longitude: geo?.longitude ?? null,
+          };
         })
-        .filter((c) => c.latitude == null || c.longitude == null);
+        .filter((c) => c.latitude == null || c.longitude == null)
+        // Limite por execução: geocodificar tudo de uma vez estoura o tempo do servidor.
+        .slice(0, 30);
       for (const c of pending) {
+
         const q = [c.address_line, "Brasil"]
           .filter((p) => p && String(p).trim())
           .join(", ");
@@ -815,7 +829,7 @@ export async function syncErpOrders(opts: {
         .select("id, delivery_address")
         .not("delivery_address", "is", null)
         .is("delivery_latitude", null)
-        .limit(200);
+        .limit(30);
       for (const o of pendingOrders ?? []) {
         const addr = (o as { delivery_address: string | null }).delivery_address;
         if (!addr || !addr.trim()) continue;
@@ -852,23 +866,7 @@ export async function syncErpOrders(opts: {
 
 
 
-  const status: SyncResult["status"] =
-    errors.length === 0 ? "success" : errors.length === fetched ? "failed" : "partial";
-
-  await centralDb
-    .from("erp_sync_runs")
-    .update({
-      finished_at: new Date().toISOString(),
-      orders_fetched: fetched,
-      orders_created: created,
-      orders_updated: updated,
-      orders_skipped: skipped,
-      customers_created,
-      errors,
-      status,
-    })
-    .eq("id", run.id);
-
   console.log(`[erp-sync] rotas: ${routes_created} criadas, ${routes_linked} pedidos vinculados`);
   return { runId: run.id, fetched, created, updated, skipped, customers_created, errors, status };
 }
+
