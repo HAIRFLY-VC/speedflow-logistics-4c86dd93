@@ -734,14 +734,26 @@ export async function syncErpOrders(opts: {
             .limit(5000)
         : { data: [] };
       const geoByCode = new Map((geoRows ?? []).map((g) => [String(g.cod_cliente), g]));
+      const addrByCode = new Map<string, string | null>();
+      for (const o of comPedido ?? []) {
+        const code = String(o.erp_cod_cliente);
+        if (!addrByCode.has(code)) addrByCode.set(code, o.delivery_address ?? null);
+      }
       const pending = codigos
         .map((code) => {
           const geo = geoByCode.get(code);
-          const order = (comPedido ?? []).find((o) => String(o.erp_cod_cliente) === code);
-          return { id: code, address_line: order?.delivery_address ?? geo?.endereco_usado ?? null, latitude: geo?.latitude ?? null, longitude: geo?.longitude ?? null };
+          return {
+            id: code,
+            address_line: addrByCode.get(code) ?? geo?.endereco_usado ?? null,
+            latitude: geo?.latitude ?? null,
+            longitude: geo?.longitude ?? null,
+          };
         })
-        .filter((c) => c.latitude == null || c.longitude == null);
+        .filter((c) => c.latitude == null || c.longitude == null)
+        // Limite por execução: geocodificar tudo de uma vez estoura o tempo do servidor.
+        .slice(0, 30);
       for (const c of pending) {
+
         const q = [c.address_line, "Brasil"]
           .filter((p) => p && String(p).trim())
           .join(", ");
