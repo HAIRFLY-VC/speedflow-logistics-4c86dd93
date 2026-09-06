@@ -931,7 +931,7 @@ export async function syncErpOrders(opts: {
   try {
     const lovableKey = process.env.LOVABLE_API_KEY;
     const gmKey = process.env.GOOGLE_MAPS_API_KEY;
-    if (lovableKey && gmKey) {
+    if (geocodeAllowed && lovableKey && gmKey) {
       const { data: pendingOrders } = await centralDb
         .from("orders")
         .select("id, delivery_address")
