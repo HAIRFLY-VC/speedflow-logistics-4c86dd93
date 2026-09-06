@@ -100,7 +100,8 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
       .from("orders")
       .select("erp_cod_cliente, delivery_address")
       .gte("dt_prev_exp", "3999-01-01")
-      .not("erp_cod_cliente", "is", null);
+      .not("erp_cod_cliente", "is", null)
+      .limit(2000);
     if (oErr) throw oErr;
 
     const codes = Array.from(
