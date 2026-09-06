@@ -928,6 +928,16 @@ export async function syncErpOrders(opts: {
     })
     .eq("id", run.id);
 
+  // Completa o cadastro dos clientes que aparecem em pedidos antigos e ainda
+  // não têm razão social/cidade/bairro no espelho local. Roda depois do
+  // fechamento da execução para não atrasar a sincronização de pedidos.
+  try {
+    const completados = await completarCadastroClientesFaltantes();
+    if (completados > 0) console.log(`[erp-sync] cadastro de ${completados} clientes completado`);
+  } catch (err) {
+    console.warn("[erp-sync] completar cadastro de clientes falhou:", err);
+  }
+
   // Geocodificação é opcional: só roda se ainda houver tempo dentro do orçamento.
   const geocodeAllowed = elapsedMs() < BUDGET_MS;
   if (!geocodeAllowed) {
