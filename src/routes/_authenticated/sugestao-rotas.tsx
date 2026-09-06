@@ -113,7 +113,10 @@ function SugestaoRotasPage() {
   const geocode = useMutation({
     mutationFn: () => geocodeFn({}),
     onSuccess: (r) => {
-      toast.success(`Geocodificados: ${r.geocoded} | Falhas: ${r.failed}`);
+      toast.success(
+        `Geocodificados: ${r.geocoded} | Falhas: ${r.failed}` +
+          (r.restantes ? ` | Restam ${r.restantes} — clique novamente` : ""),
+      );
       qc.invalidateQueries({ queryKey: ["unrouted-orders"] });
       qc.invalidateQueries({ queryKey: ["customers-missing-coords"] });
     },
