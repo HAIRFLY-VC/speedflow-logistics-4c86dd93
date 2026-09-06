@@ -65,6 +65,7 @@ const NAV: NavItem[] = [
 
 
   { title: "Rotas", url: "/rotas", icon: RouteIcon, roles: ["adm", "gestor", "operador"] },
+  { title: "Pedidos sem rota", url: "/pedidos-sem-rota", icon: MapPinned, roles: ["adm", "gestor", "operador"] },
   { title: "Sugestão de rotas", url: "/sugestao-rotas", icon: Wand2, roles: ["adm", "gestor", "operador"] },
   { title: "Minhas Rotas", url: "/minhas-rotas", icon: RouteIcon, roles: ["fretista"] },
   { title: "Borderôs", url: "/borderos", icon: FileText, roles: ["adm", "gestor", "operador"] },
