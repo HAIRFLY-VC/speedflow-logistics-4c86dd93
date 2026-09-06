@@ -829,7 +829,7 @@ export async function syncErpOrders(opts: {
         .select("id, delivery_address")
         .not("delivery_address", "is", null)
         .is("delivery_latitude", null)
-        .limit(200);
+        .limit(30);
       for (const o of pendingOrders ?? []) {
         const addr = (o as { delivery_address: string | null }).delivery_address;
         if (!addr || !addr.trim()) continue;
