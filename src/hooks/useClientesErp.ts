@@ -6,6 +6,7 @@ export type ClienteErp = {
   cod_cliente: string;
   razao_social: string | null;
   nome_nf: string | null;
+  bairro: string | null;
   cidade: string | null;
   uf: string | null;
 };
@@ -21,7 +22,7 @@ export function useClientesErp() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clientes_erp")
-        .select("cod_cliente,razao_social,nome_nf,cidade,uf");
+        .select("cod_cliente,razao_social,nome_nf,bairro,cidade,uf");
       if (error) throw error;
       return (data ?? []) as ClienteErp[];
     },
@@ -53,5 +54,23 @@ export function useClientesErp() {
     [porCodigo],
   );
 
-  return { clientes: query.data ?? [], porCodigo, nomeCliente, cidadeCliente, query };
+  const bairroCliente = useMemo(
+    () => (cod: string | null | undefined) => {
+      const codigo = cod == null ? "" : String(cod).trim();
+      if (!codigo) return null;
+      return porCodigo.get(codigo)?.bairro?.trim() || null;
+    },
+    [porCodigo],
+  );
+
+  const ufCliente = useMemo(
+    () => (cod: string | null | undefined) => {
+      const codigo = cod == null ? "" : String(cod).trim();
+      if (!codigo) return null;
+      return porCodigo.get(codigo)?.uf?.trim() || null;
+    },
+    [porCodigo],
+  );
+
+  return { bairroCliente, ufCliente, clientes: query.data ?? [], porCodigo, nomeCliente, cidadeCliente, query };
 }
