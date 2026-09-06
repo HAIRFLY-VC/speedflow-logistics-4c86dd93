@@ -127,34 +127,45 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
       });
     }
 
+    // Limite por chamada: o worker tem orçamento de CPU/tempo curto e uma
+    // geocodificação sequencial de centenas de clientes estourava (502).
+    const MAX_POR_CHAMADA = 40;
+    const CONCORRENCIA = 5;
+    const lote = targets.slice(0, MAX_POR_CHAMADA);
+    const restantes = Math.max(0, targets.length - lote.length);
+
     let geocoded = 0;
     let failed = 0;
-    for (const t of targets) {
-      try {
-        const coord = await geocodeAddress(t.query);
-        if (!coord) {
-          failed++;
-          continue;
-        }
-        const { error } = await supabase.from("customer_geo").upsert(
-          {
-            cod_cliente: t.id,
-            latitude: coord.lat,
-            longitude: coord.lng,
-            endereco_usado: t.query,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "cod_cliente" },
-        );
-        if (error) {
-          failed++;
-        } else {
-          geocoded++;
-        }
-      } catch {
-        failed++;
+
+    for (let i = 0; i < lote.length; i += CONCORRENCIA) {
+      const bloco = lote.slice(i, i + CONCORRENCIA);
+      const resultados = await Promise.all(
+        bloco.map(async (t) => {
+          try {
+            const coord = await geocodeAddress(t.query);
+            if (!coord) return false;
+            const { error } = await supabase.from("customer_geo").upsert(
+              {
+                cod_cliente: t.id,
+                latitude: coord.lat,
+                longitude: coord.lng,
+                endereco_usado: t.query,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "cod_cliente" },
+            );
+            return !error;
+          } catch {
+            return false;
+          }
+        }),
+      );
+      for (const ok of resultados) {
+        if (ok) geocoded++;
+        else failed++;
       }
     }
+
 
     // Geocodifica também o depósito, se configurado e sem lat/lng
     const { data: cfg } = await supabase
