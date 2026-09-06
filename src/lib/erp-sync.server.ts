@@ -144,15 +144,30 @@ const RESPONSAVEIS_SQL = `
    WHERE T.DBA_TIP_CODIGO_1 IS NOT NULL
 `;
 
-async function sincronizarEspelhoResponsaveis() {
+/**
+ * Atualiza o espelho local de responsáveis (fretistas/transportadoras) do ERP.
+ * Como a lista é grande (>10 mil linhas) e muda pouco, só é renovada quando a
+ * última atualização tem mais de `maxAgeMs`.
+ */
+async function sincronizarEspelhoResponsaveis(opts: { maxAgeMs: number }) {
   const baseUrl = process.env.ERP_API_BASE_URL;
   const apiKey = process.env.ERP_API_KEY;
   if (!baseUrl || !apiKey) throw new Error("ERP_API_BASE_URL ou ERP_API_KEY não configurados");
+
+  const { data: ultimo } = await centralDb
+    .from("erp_responsaveis")
+    .select("atualizado_em")
+    .order("atualizado_em", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const ultimoMs = ultimo?.atualizado_em ? new Date(ultimo.atualizado_em as string).getTime() : 0;
+  if (ultimoMs && Date.now() - ultimoMs < opts.maxAgeMs) return 0;
+
   const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
   const res = await fetch(`${cleanBase}/v1/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
-    body: JSON.stringify({ sql: RESPONSAVEIS_SQL, binds: {}, limit: 10000 }),
+    body: JSON.stringify({ sql: RESPONSAVEIS_SQL, binds: {}, limit: 50000 }),
   });
   if (!res.ok) throw new Error(friendlyErpError(res.status, await res.text()));
   const json = (await res.json()) as ErpQueryResponse;
