@@ -242,6 +242,14 @@ function PedidosSemRotaPage() {
     });
   }, [linhas, uf, cidade, bairro, agenda, filial, busca]);
 
+  // Grupos visíveis: mantém a ordenação por distância e só pedidos filtrados.
+  const gruposFiltrados = useMemo(() => {
+    const ids = new Set(filtradas.map((l) => l.id));
+    return grupos
+      .map((g) => ({ ...g, pedidos: g.pedidos.filter((p) => ids.has(p.id)) }))
+      .filter((g) => g.pedidos.length > 0);
+  }, [grupos, filtradas]);
+
   const idsFiltrados = filtradas.map((l) => l.id);
   const todosMarcados =
     idsFiltrados.length > 0 && idsFiltrados.every((id) => selecionados.includes(id));
