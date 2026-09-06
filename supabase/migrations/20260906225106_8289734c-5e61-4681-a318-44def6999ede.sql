@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.__set_erp_cron(text);
