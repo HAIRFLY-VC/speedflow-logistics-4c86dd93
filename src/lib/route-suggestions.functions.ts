@@ -273,12 +273,17 @@ export const suggestRoutes = createServerFn({ method: "POST" })
         ? { lat: Number(cfg.depot_latitude), lng: Number(cfg.depot_longitude) }
         : null;
 
+    // Teto de pedidos por execução: o agrupamento é O(n²) e sem limite
+    // o worker estourava o tempo de CPU (502).
+    const MAX_PEDIDOS = 400;
     const { data: orders, error: oErr } = await supabase
       .from("orders")
       .select(
         "id, order_number, total_amount, weight, customer_id, erp_cod_cliente, delivery_address, delivery_latitude, delivery_longitude",
       )
-      .gte("dt_prev_exp", "3999-01-01");
+      .gte("dt_prev_exp", "3999-01-01")
+      .order("created_at", { ascending: true })
+      .limit(MAX_PEDIDOS);
     if (oErr) throw oErr;
 
     const customerCodes = Array.from(new Set((orders ?? []).map((o) => String(o.erp_cod_cliente ?? "")).filter(Boolean)));
