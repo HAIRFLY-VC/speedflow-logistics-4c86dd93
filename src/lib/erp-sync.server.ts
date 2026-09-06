@@ -832,13 +832,19 @@ export async function syncErpOrders(opts: {
     })
     .eq("id", run.id);
 
+  // Geocodificação é opcional: só roda se ainda houver tempo dentro do orçamento.
+  const geocodeAllowed = elapsedMs() < BUDGET_MS;
+  if (!geocodeAllowed) {
+    console.log(`[erp-sync] geocodificação pulada (tempo decorrido ${Math.round(elapsedMs() / 1000)}s)`);
+  }
+
   // Geocodifica clientes sem latitude/longitude
   let geocoded_customers = 0;
 
   try {
     const lovableKey = process.env.LOVABLE_API_KEY;
     const gmKey = process.env.GOOGLE_MAPS_API_KEY;
-    if (lovableKey && gmKey) {
+    if (geocodeAllowed && lovableKey && gmKey) {
       const { data: comPedido } = await centralDb
         .from("orders")
         .select("erp_cod_cliente, delivery_address")
