@@ -228,6 +228,27 @@ export async function syncErpOrders(opts: {
   trigger: "manual" | "cron";
   triggeredBy: string | null;
 }): Promise<SyncResult> {
+  const startedAtMs = Date.now();
+  const elapsedMs = () => Date.now() - startedAtMs;
+  // Orçamento de tempo: acima disso as etapas opcionais são puladas para a
+  // requisição não estourar o limite do servidor (~50 s).
+  const BUDGET_MS = 35_000;
+
+  // 0) Fecha execuções anteriores presas em "em andamento" (interrompidas pelo servidor).
+  try {
+    await centralDb
+      .from("erp_sync_runs")
+      .update({
+        status: "failed",
+        finished_at: new Date().toISOString(),
+        errors: [{ pedido: 0, message: "Execução interrompida pelo tempo limite do servidor" }],
+      })
+      .eq("status", "running")
+      .lt("started_at", new Date(Date.now() - 10 * 60 * 1000).toISOString());
+  } catch (e) {
+    console.warn("[erp-sync] não foi possível fechar execuções presas:", e);
+  }
+
   // 1) Abre execução
   const { data: run, error: runErr } = await centralDb
     .from("erp_sync_runs")
