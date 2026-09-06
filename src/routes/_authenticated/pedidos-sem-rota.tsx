@@ -57,6 +57,16 @@ const SEM_ROTA_DATE = "4000-01-01";
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const rad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * rad;
+  const dLng = (lng2 - lng1) * rad;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 function PedidosSemRotaPage() {
   const qc = useQueryClient();
   const { nomeCliente, cidadeCliente, bairroCliente, ufCliente } = useClientesErp();
@@ -75,6 +85,38 @@ function PedidosSemRotaPage() {
       if (error) throw error;
       return data ?? [];
     },
+  });
+
+  const depositoQ = useQuery({
+    queryKey: ["deposito-coords"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("company_settings")
+        .select("depot_latitude, depot_longitude")
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) throw error;
+      const lat = Number(data?.depot_latitude);
+      const lng = Number(data?.depot_longitude);
+      return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+    },
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const geoQ = useQuery({
+    queryKey: ["customer-geo-todos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("customer_geo")
+        .select("cod_cliente, latitude, longitude");
+      if (error) throw error;
+      return (data ?? []) as {
+        cod_cliente: string;
+        latitude: number | null;
+        longitude: number | null;
+      }[];
+    },
+    staleTime: 10 * 60 * 1000,
   });
 
   const rotasQ = useQuery({
@@ -114,6 +156,7 @@ function PedidosSemRotaPage() {
     return (pedidosQ.data ?? []).map((p) => ({
       id: p.id,
       numero: p.erp_id ?? p.order_number,
+      codCliente: p.erp_cod_cliente ? String(p.erp_cod_cliente).trim() : "",
       cliente: nomeCliente(p.erp_cod_cliente),
       cidade: cidadeCliente(p.erp_cod_cliente) ?? "",
       bairro: bairroCliente(p.erp_cod_cliente) ?? "",
@@ -124,6 +167,54 @@ function PedidosSemRotaPage() {
       peso: Number(p.weight ?? 0),
     }));
   }, [pedidosQ.data, nomeCliente, cidadeCliente, bairroCliente, ufCliente]);
+
+  // Agrupa pedidos por cliente e ordena os clientes pela distância até o CD.
+  const grupos = useMemo(() => {
+    const geoPorCliente = new Map<string, { lat: number; lng: number }>();
+    for (const g of geoQ.data ?? []) {
+      const lat = Number(g.latitude);
+      const lng = Number(g.longitude);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        geoPorCliente.set(String(g.cod_cliente).trim(), { lat, lng });
+      }
+    }
+    const deposito = depositoQ.data ?? null;
+
+    const porCliente = new Map<string, typeof linhas>();
+    for (const l of linhas) {
+      const chave = l.codCliente || l.cliente;
+      const arr = porCliente.get(chave) ?? [];
+      arr.push(l);
+      porCliente.set(chave, arr);
+    }
+
+    return Array.from(porCliente.entries())
+      .map(([chave, pedidos]) => {
+        const ref = pedidos[0];
+        const geo = ref.codCliente ? geoPorCliente.get(ref.codCliente) : undefined;
+        const distanciaKm =
+          deposito && geo ? haversineKm(deposito.lat, deposito.lng, geo.lat, geo.lng) : null;
+        return {
+          chave,
+          pedidos,
+          codCliente: ref.codCliente,
+          cliente: ref.cliente,
+          cidade: ref.cidade,
+          bairro: ref.bairro,
+          uf: ref.uf,
+          distanciaKm,
+          valor: pedidos.reduce((s, p) => s + p.valor, 0),
+          peso: pedidos.reduce((s, p) => s + p.peso, 0),
+        };
+      })
+      .sort((a, b) => {
+        if (a.distanciaKm == null && b.distanciaKm == null)
+          return a.cliente.localeCompare(b.cliente);
+        if (a.distanciaKm == null) return 1;
+        if (b.distanciaKm == null) return -1;
+        return a.distanciaKm - b.distanciaKm;
+      });
+  }, [linhas, geoQ.data, depositoQ.data]);
 
   const opcoes = useMemo(() => {
     const unicos = (fn: (l: (typeof linhas)[number]) => string) =>
@@ -150,6 +241,14 @@ function PedidosSemRotaPage() {
       return true;
     });
   }, [linhas, uf, cidade, bairro, agenda, filial, busca]);
+
+  // Grupos visíveis: mantém a ordenação por distância e só pedidos filtrados.
+  const gruposFiltrados = useMemo(() => {
+    const ids = new Set(filtradas.map((l) => l.id));
+    return grupos
+      .map((g) => ({ ...g, pedidos: g.pedidos.filter((p) => ids.has(p.id)) }))
+      .filter((g) => g.pedidos.length > 0);
+  }, [grupos, filtradas]);
 
   const idsFiltrados = filtradas.map((l) => l.id);
   const todosMarcados =
@@ -300,46 +399,106 @@ function PedidosSemRotaPage() {
           </p>
         ) : (
           <ul className="divide-y">
-            {filtradas.map((l) => {
-              const marcado = selecionados.includes(l.id);
+            {gruposFiltrados.map((g) => {
+              const idsGrupo = g.pedidos.map((p) => p.id);
+              const marcadosGrupo = idsGrupo.filter((id) => selecionados.includes(id));
+              const todosDoGrupo = marcadosGrupo.length === idsGrupo.length;
+              const algumDoGrupo = marcadosGrupo.length > 0;
+              const unico = g.pedidos.length === 1 ? g.pedidos[0] : null;
               return (
-                <li key={l.id}>
+                <li key={g.chave} className="py-2">
                   <button
                     type="button"
                     onClick={() =>
                       setSelecionados((prev) =>
-                        marcado ? prev.filter((id) => id !== l.id) : [...prev, l.id],
+                        todosDoGrupo
+                          ? prev.filter((id) => !idsGrupo.includes(id))
+                          : Array.from(new Set([...prev, ...idsGrupo])),
                       )
                     }
-                    className="flex w-full items-start gap-2 py-2 text-left"
+                    className="flex w-full items-start gap-2 text-left"
                   >
-                    <Checkbox checked={marcado} className="mt-0.5 pointer-events-none" />
+                    <Checkbox
+                      checked={todosDoGrupo ? true : algumDoGrupo ? "indeterminate" : false}
+                      className="mt-0.5 pointer-events-none"
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-sm font-medium">{l.cliente}</span>
-                        <span className="shrink-0 text-xs text-muted-foreground">#{l.numero}</span>
+                        <span className="truncate text-sm font-medium">
+                          {g.codCliente ? `${g.codCliente} · ` : ""}
+                          {g.cliente}
+                        </span>
+                        <span className="shrink-0 text-[11px] text-muted-foreground">
+                          {g.distanciaKm != null ? `${g.distanciaKm.toFixed(0)} km` : ""}
+                          {g.pedidos.length > 1 ? ` · ${g.pedidos.length} pedidos` : ""}
+                        </span>
                       </div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
-                        {(l.cidade || l.uf) && (
-                          <span className="truncate">
-                            {[l.bairro, l.cidade, l.uf].filter(Boolean).join(" · ")}
-                          </span>
-                        )}
-                        {l.agenda && (
-                          <Badge variant="outline" className="h-4 px-1 text-[10px]">
-                            Ag. {l.agenda}
-                          </Badge>
-                        )}
-                        {l.filial && (
-                          <Badge variant="outline" className="h-4 px-1 text-[10px]">
-                            Filial {l.filial}
-                          </Badge>
-                        )}
-                        <span>{brl(l.valor)}</span>
-                        {l.peso > 0 && <span>{l.peso.toFixed(0)} kg</span>}
-                      </div>
+                      {(g.uf || g.cidade || g.bairro) && (
+                        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                          {[g.uf, g.cidade, g.bairro].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
+                      {unico && (
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                          <span className="text-xs text-muted-foreground">#{unico.numero}</span>
+                          {unico.agenda && (
+                            <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                              Ag. {unico.agenda}
+                            </Badge>
+                          )}
+                          {unico.filial && (
+                            <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                              Filial {unico.filial}
+                            </Badge>
+                          )}
+                          <span>{brl(unico.valor)}</span>
+                          {unico.peso > 0 && <span>{unico.peso.toFixed(0)} kg</span>}
+                        </div>
+                      )}
                     </div>
                   </button>
+
+                  {!unico && (
+                    <ul className="mt-1 space-y-0.5 pl-6">
+                      {g.pedidos.map((p) => {
+                        const marcado = selecionados.includes(p.id);
+                        return (
+                          <li key={p.id}>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelecionados((prev) =>
+                                  marcado
+                                    ? prev.filter((id) => id !== p.id)
+                                    : [...prev, p.id],
+                                )
+                              }
+                              className="flex w-full items-center gap-2 rounded px-1 py-1 text-left"
+                            >
+                              <Checkbox checked={marcado} className="pointer-events-none" />
+                              <span className="shrink-0 text-xs text-muted-foreground">
+                                #{p.numero}
+                              </span>
+                              {p.agenda && (
+                                <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                                  Ag. {p.agenda}
+                                </Badge>
+                              )}
+                              {p.filial && (
+                                <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                                  Filial {p.filial}
+                                </Badge>
+                              )}
+                              <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+                                {brl(p.valor)}
+                                {p.peso > 0 ? ` · ${p.peso.toFixed(0)} kg` : ""}
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </li>
               );
             })}
