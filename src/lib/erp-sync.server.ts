@@ -673,32 +673,16 @@ export async function syncErpOrders(opts: {
           routes_created++;
         }
 
-        const { data: orderRows } = await centralDb
-          .from("orders")
-          .select("id,erp_id")
-          .in("erp_id", g.pedidos);
+        const orderRows = g.pedidos
+          .map((p) => ({ id: orderIdByErpId.get(p), erp_id: p }))
+          .filter((o): o is { id: string; erp_id: string } => Boolean(o.id));
 
-        if (orderRows && orderRows.length > 0) {
-          const orderIds = orderRows.map((o) => o.id);
-          // Remove vínculos antigos em outras rotas (pedido só pode estar em 1 rota)
-          const { error: delErr } = await centralDb
-            .from("route_orders")
-            .delete()
-            .in("order_id", orderIds)
-            .neq("route_id", routeId);
-          if (delErr) throw delErr;
-
-          const links = orderRows.map((o, idx) => ({
-            route_id: routeId,
-            order_id: o.id,
-            stop_order: idx + 1,
-          }));
-          const { error: linkErr, count } = await centralDb
-            .from("route_orders")
-            .upsert(links, { onConflict: "order_id", ignoreDuplicates: true, count: "exact" });
-          if (linkErr) throw linkErr;
-          routes_linked += count ?? 0;
+        if (orderRows.length > 0) {
+          for (const [idx, o] of orderRows.entries()) {
+            pendingLinks.push({ route_id: routeId, order_id: o.id, stop_order: idx + 1 });
+          }
         }
+
       } catch (e) {
         const msg = describeError(e);
         errors.push({ pedido: 0, message: `Rota ${g.nome} (${g.date}): ${msg}` });
