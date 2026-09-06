@@ -156,6 +156,7 @@ function PedidosSemRotaPage() {
     return (pedidosQ.data ?? []).map((p) => ({
       id: p.id,
       numero: p.erp_id ?? p.order_number,
+      codCliente: p.erp_cod_cliente ? String(p.erp_cod_cliente).trim() : "",
       cliente: nomeCliente(p.erp_cod_cliente),
       cidade: cidadeCliente(p.erp_cod_cliente) ?? "",
       bairro: bairroCliente(p.erp_cod_cliente) ?? "",
@@ -166,6 +167,54 @@ function PedidosSemRotaPage() {
       peso: Number(p.weight ?? 0),
     }));
   }, [pedidosQ.data, nomeCliente, cidadeCliente, bairroCliente, ufCliente]);
+
+  // Agrupa pedidos por cliente e ordena os clientes pela distância até o CD.
+  const grupos = useMemo(() => {
+    const geoPorCliente = new Map<string, { lat: number; lng: number }>();
+    for (const g of geoQ.data ?? []) {
+      const lat = Number(g.latitude);
+      const lng = Number(g.longitude);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        geoPorCliente.set(String(g.cod_cliente).trim(), { lat, lng });
+      }
+    }
+    const deposito = depositoQ.data ?? null;
+
+    const porCliente = new Map<string, typeof linhas>();
+    for (const l of linhas) {
+      const chave = l.codCliente || l.cliente;
+      const arr = porCliente.get(chave) ?? [];
+      arr.push(l);
+      porCliente.set(chave, arr);
+    }
+
+    return Array.from(porCliente.entries())
+      .map(([chave, pedidos]) => {
+        const ref = pedidos[0];
+        const geo = ref.codCliente ? geoPorCliente.get(ref.codCliente) : undefined;
+        const distanciaKm =
+          deposito && geo ? haversineKm(deposito.lat, deposito.lng, geo.lat, geo.lng) : null;
+        return {
+          chave,
+          pedidos,
+          codCliente: ref.codCliente,
+          cliente: ref.cliente,
+          cidade: ref.cidade,
+          bairro: ref.bairro,
+          uf: ref.uf,
+          distanciaKm,
+          valor: pedidos.reduce((s, p) => s + p.valor, 0),
+          peso: pedidos.reduce((s, p) => s + p.peso, 0),
+        };
+      })
+      .sort((a, b) => {
+        if (a.distanciaKm == null && b.distanciaKm == null)
+          return a.cliente.localeCompare(b.cliente);
+        if (a.distanciaKm == null) return 1;
+        if (b.distanciaKm == null) return -1;
+        return a.distanciaKm - b.distanciaKm;
+      });
+  }, [linhas, geoQ.data, depositoQ.data]);
 
   const opcoes = useMemo(() => {
     const unicos = (fn: (l: (typeof linhas)[number]) => string) =>
