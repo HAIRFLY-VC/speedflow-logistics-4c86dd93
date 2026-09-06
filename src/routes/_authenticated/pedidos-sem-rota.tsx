@@ -259,6 +259,7 @@ function PedidosSemRotaPage() {
     const escolhidas = linhas.filter((l) => sel.has(l.id));
     return {
       qtd: escolhidas.length,
+      entregas: new Set(escolhidas.map((l) => l.codCliente || l.cliente)).size,
       peso: escolhidas.reduce((s, l) => s + l.peso, 0),
       valor: escolhidas.reduce((s, l) => s + l.valor, 0),
     };
@@ -510,7 +511,9 @@ function PedidosSemRotaPage() {
         <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-3 py-2 backdrop-blur">
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
             <div className="text-xs leading-tight">
-              <p className="font-medium">{resumoSelecao.qtd} selecionado(s)</p>
+              <p className="font-medium">
+                {resumoSelecao.qtd} pedido(s) · {resumoSelecao.entregas} entrega(s)
+              </p>
               <p className="text-muted-foreground">
                 {brl(resumoSelecao.valor)} · {resumoSelecao.peso.toFixed(0)} kg
               </p>
