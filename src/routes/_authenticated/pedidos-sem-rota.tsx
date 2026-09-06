@@ -399,46 +399,106 @@ function PedidosSemRotaPage() {
           </p>
         ) : (
           <ul className="divide-y">
-            {filtradas.map((l) => {
-              const marcado = selecionados.includes(l.id);
+            {gruposFiltrados.map((g) => {
+              const idsGrupo = g.pedidos.map((p) => p.id);
+              const marcadosGrupo = idsGrupo.filter((id) => selecionados.includes(id));
+              const todosDoGrupo = marcadosGrupo.length === idsGrupo.length;
+              const algumDoGrupo = marcadosGrupo.length > 0;
+              const unico = g.pedidos.length === 1 ? g.pedidos[0] : null;
               return (
-                <li key={l.id}>
+                <li key={g.chave} className="py-2">
                   <button
                     type="button"
                     onClick={() =>
                       setSelecionados((prev) =>
-                        marcado ? prev.filter((id) => id !== l.id) : [...prev, l.id],
+                        todosDoGrupo
+                          ? prev.filter((id) => !idsGrupo.includes(id))
+                          : Array.from(new Set([...prev, ...idsGrupo])),
                       )
                     }
-                    className="flex w-full items-start gap-2 py-2 text-left"
+                    className="flex w-full items-start gap-2 text-left"
                   >
-                    <Checkbox checked={marcado} className="mt-0.5 pointer-events-none" />
+                    <Checkbox
+                      checked={todosDoGrupo ? true : algumDoGrupo ? "indeterminate" : false}
+                      className="mt-0.5 pointer-events-none"
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-sm font-medium">{l.cliente}</span>
-                        <span className="shrink-0 text-xs text-muted-foreground">#{l.numero}</span>
+                        <span className="truncate text-sm font-medium">
+                          {g.codCliente ? `${g.codCliente} · ` : ""}
+                          {g.cliente}
+                        </span>
+                        <span className="shrink-0 text-[11px] text-muted-foreground">
+                          {g.distanciaKm != null ? `${g.distanciaKm.toFixed(0)} km` : ""}
+                          {g.pedidos.length > 1 ? ` · ${g.pedidos.length} pedidos` : ""}
+                        </span>
                       </div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
-                        {(l.cidade || l.uf) && (
-                          <span className="truncate">
-                            {[l.bairro, l.cidade, l.uf].filter(Boolean).join(" · ")}
-                          </span>
-                        )}
-                        {l.agenda && (
-                          <Badge variant="outline" className="h-4 px-1 text-[10px]">
-                            Ag. {l.agenda}
-                          </Badge>
-                        )}
-                        {l.filial && (
-                          <Badge variant="outline" className="h-4 px-1 text-[10px]">
-                            Filial {l.filial}
-                          </Badge>
-                        )}
-                        <span>{brl(l.valor)}</span>
-                        {l.peso > 0 && <span>{l.peso.toFixed(0)} kg</span>}
-                      </div>
+                      {(g.uf || g.cidade || g.bairro) && (
+                        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                          {[g.uf, g.cidade, g.bairro].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
+                      {unico && (
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                          <span className="text-xs text-muted-foreground">#{unico.numero}</span>
+                          {unico.agenda && (
+                            <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                              Ag. {unico.agenda}
+                            </Badge>
+                          )}
+                          {unico.filial && (
+                            <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                              Filial {unico.filial}
+                            </Badge>
+                          )}
+                          <span>{brl(unico.valor)}</span>
+                          {unico.peso > 0 && <span>{unico.peso.toFixed(0)} kg</span>}
+                        </div>
+                      )}
                     </div>
                   </button>
+
+                  {!unico && (
+                    <ul className="mt-1 space-y-0.5 pl-6">
+                      {g.pedidos.map((p) => {
+                        const marcado = selecionados.includes(p.id);
+                        return (
+                          <li key={p.id}>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelecionados((prev) =>
+                                  marcado
+                                    ? prev.filter((id) => id !== p.id)
+                                    : [...prev, p.id],
+                                )
+                              }
+                              className="flex w-full items-center gap-2 rounded px-1 py-1 text-left"
+                            >
+                              <Checkbox checked={marcado} className="pointer-events-none" />
+                              <span className="shrink-0 text-xs text-muted-foreground">
+                                #{p.numero}
+                              </span>
+                              {p.agenda && (
+                                <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                                  Ag. {p.agenda}
+                                </Badge>
+                              )}
+                              {p.filial && (
+                                <Badge variant="outline" className="h-4 px-1 text-[10px]">
+                                  Filial {p.filial}
+                                </Badge>
+                              )}
+                              <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+                                {brl(p.valor)}
+                                {p.peso > 0 ? ` · ${p.peso.toFixed(0)} kg` : ""}
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </li>
               );
             })}
