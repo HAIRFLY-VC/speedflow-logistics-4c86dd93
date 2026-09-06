@@ -11,9 +11,11 @@ type Pub = Database["public"];
 
 type OrdersRow = Pub["Tables"]["orders"]["Row"] & {
   erp_cod_cliente: string | null;
+  cod_filial: string | null;
 };
 type OrdersWrite = Omit<Pub["Tables"]["orders"]["Insert"], "customer_id"> & {
   erp_cod_cliente?: string | null;
+  cod_filial?: string | null;
 };
 
 type CustomerGeoRow = {
