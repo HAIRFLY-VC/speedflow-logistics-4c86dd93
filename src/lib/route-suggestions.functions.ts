@@ -187,7 +187,7 @@ export const geocodePendingCustomers = createServerFn({ method: "POST" })
       }
     }
 
-    return { totalPending: targets.length, geocoded, failed };
+    return { totalPending: targets.length, geocoded, failed, restantes };
   });
 
 export type SuggestionStop = {
