@@ -226,6 +226,102 @@ async function sincronizarEspelhoClientes(rows: ErpOrderRow[]) {
   return payload.length;
 }
 
+/**
+ * Completa o espelho de clientes buscando no cadastro do ERP (GKS.A_CADCTIPO)
+ * os códigos que aparecem em pedidos já gravados mas ainda não têm cadastro
+ * local. Necessário porque a consulta de pedidos pendentes só traz os clientes
+ * do momento — pedidos antigos ficavam sem razão social/cidade/bairro.
+ */
+async function completarCadastroClientesFaltantes(limitePorExecucao = 2000): Promise<number> {
+  const baseUrl = process.env.ERP_API_BASE_URL;
+  const apiKey = process.env.ERP_API_KEY;
+  if (!baseUrl || !apiKey) return 0;
+
+  // Códigos presentes em pedidos
+  const codigosPedidos = new Set<string>();
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await centralDb
+      .from("orders")
+      .select("erp_cod_cliente")
+      .not("erp_cod_cliente", "is", null)
+      .range(offset, offset + 999);
+    if (error) throw error;
+    for (const r of data ?? []) {
+      const cod = String((r as { erp_cod_cliente: string | null }).erp_cod_cliente ?? "").trim();
+      if (cod) codigosPedidos.add(cod);
+    }
+    if (!data || data.length < 1000) break;
+  }
+  if (codigosPedidos.size === 0) return 0;
+
+  // Códigos já espelhados
+  const jaTem = new Set<string>();
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await centralDb
+      .from("clientes_erp")
+      .select("cod_cliente")
+      .range(offset, offset + 999);
+    if (error) throw error;
+    for (const r of data ?? []) jaTem.add(String((r as { cod_cliente: string }).cod_cliente).trim());
+    if (!data || data.length < 1000) break;
+  }
+
+  const faltantes = Array.from(codigosPedidos).filter((c) => !jaTem.has(c)).slice(0, limitePorExecucao);
+  if (faltantes.length === 0) return 0;
+
+  const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
+  let gravados = 0;
+  // Oracle limita listas IN a 1000 itens.
+  for (let i = 0; i < faltantes.length; i += 500) {
+    const bloco = faltantes.slice(i, i + 500);
+    const lista = bloco
+      .filter((c) => /^[0-9A-Za-z._-]+$/.test(c))
+      .map((c) => `'${c}'`)
+      .join(",");
+    if (!lista) continue;
+    const sql = `
+      SELECT TRIM(T.DBA_TIP_CODIGO_1) COD_CLIENTE,
+             TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOCIAL,
+             TRIM(T.DBA_TIP_NOME_FANTASIA) NOME_NF,
+             TRIM(T.DBA_TIP_BAIRRO) BAIRRO,
+             TRIM(T.DBA_TIP_CIDADE) CIDADE,
+             TRIM(T.DBA_TIP_ESTADO) UF
+        FROM GKS.A_CADCTIPO T
+       WHERE TRIM(T.DBA_TIP_CODIGO_1) IN (${lista})
+    `;
+    const res = await fetch(`${cleanBase}/v1/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+      body: JSON.stringify({ sql, binds: {}, limit: 1000 }),
+    });
+    if (!res.ok) throw new Error(friendlyErpError(res.status, await res.text()));
+    const json = (await res.json()) as ErpQueryResponse;
+    const byCode = new Map<string, Record<string, string | null>>();
+    for (const row of json.rows ?? []) {
+      const cod = String(row.COD_CLIENTE ?? "").trim();
+      if (!cod || byCode.has(cod)) continue;
+      const txt = (v: unknown) => (typeof v === "string" ? v.trim() || null : null);
+      byCode.set(cod, {
+        cod_cliente: cod,
+        razao_social: txt(row.RAZAO_SOCIAL),
+        nome_nf: txt(row.NOME_NF),
+        bairro: txt(row.BAIRRO),
+        cidade: txt(row.CIDADE),
+        uf: txt(row.UF),
+      });
+    }
+    const payload = Array.from(byCode.values());
+    if (payload.length === 0) continue;
+    const { error } = await centralDb.from("clientes_erp").upsert(
+      payload.map((item) => ({ ...item, atualizado_em: new Date().toISOString() })) as never,
+      { onConflict: "cod_cliente" },
+    );
+    if (error) throw error;
+    gravados += payload.length;
+  }
+  return gravados;
+}
+
 
 
 type SyncResult = {
