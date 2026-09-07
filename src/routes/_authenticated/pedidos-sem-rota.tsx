@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Loader2, RefreshCw, Search } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { MultiFiltro } from "@/components/pedidos-sem-rota/MultiFiltro";
+import { MultiFiltro, type OpcaoFiltro } from "@/components/pedidos-sem-rota/MultiFiltro";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
