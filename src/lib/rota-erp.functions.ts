@@ -61,12 +61,53 @@ function tipoFreteDaNatureza(natureza: string): "P" | "F" | "T" | null {
   return null;
 }
 
+/** Idade máxima do espelho local antes de consultar o ERP de novo. */
+const ESPELHO_MAX_IDADE_MS = 24 * 60 * 60 * 1000;
+
 /**
- * Lista transportadoras / fretistas / frota própria do ERP para vincular a uma rota.
+ * Lista transportadoras / fretistas / frota própria para vincular a uma rota.
+ *
+ * Lê o espelho local (`erp_responsaveis`), mantido atualizado pela
+ * sincronização do ERP. Só consulta o ERP (10 mil linhas + regravação do
+ * espelho) quando o espelho está vazio ou muito antigo — antes isso rodava a
+ * cada abertura de tela e estourava o tempo de CPU do servidor (erro 502).
  */
 export const listarResponsaveisErp = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
+    const { data: espelho } = await centralDb
+      .from("erp_responsaveis")
+      .select("cod_erp, razao_social, tipo_frete, atualizado_em")
+      .not("tipo_frete", "is", null)
+      .order("razao_social", { ascending: true })
+      .limit(20000);
+
+    const linhas = (espelho ?? []) as {
+      cod_erp: string;
+      razao_social: string | null;
+      tipo_frete: "P" | "F" | "T" | null;
+      atualizado_em: string | null;
+    }[];
+    const maisRecente = linhas.reduce(
+      (acc, l) => Math.max(acc, l.atualizado_em ? new Date(l.atualizado_em).getTime() : 0),
+      0,
+    );
+    const espelhoValido =
+      linhas.length > 0 && maisRecente > 0 && Date.now() - maisRecente < ESPELHO_MAX_IDADE_MS;
+
+    if (espelhoValido) {
+      const doEspelho = linhas
+        .filter((l) => l.razao_social && l.cod_erp && l.tipo_frete)
+        .map((l) => ({
+          razaoSocial: String(l.razao_social).trim(),
+          codErp: String(l.cod_erp).trim(),
+          tipoFrete: l.tipo_frete as "P" | "F" | "T",
+        }));
+      if (doEspelho.length > 0) {
+        return doEspelho.sort((a, b) => a.razaoSocial.localeCompare(b.razaoSocial));
+      }
+    }
+
     const rows = await consultarErp(SQL_CADASTRO_RESPONSAVEIS, 10000);
     await salvarResponsaveis(rows);
     const map = new Map<string, ResponsavelErp>();
@@ -80,6 +121,7 @@ export const listarResponsaveisErp = createServerFn({ method: "GET" })
     }
     return Array.from(map.values()).sort((a, b) => a.razaoSocial.localeCompare(b.razaoSocial));
   });
+
 
 const SQL_ROTA_RESPONSAVEL = `select R.COD_FRT_TRP COD from gks.a_ger_rotas R where R.ID = :id`;
 
