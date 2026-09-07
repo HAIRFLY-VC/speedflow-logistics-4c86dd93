@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Loader2, RefreshCw, Search } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { MultiFiltro } from "@/components/pedidos-sem-rota/MultiFiltro";
+import { MultiFiltro, type OpcaoFiltro } from "@/components/pedidos-sem-rota/MultiFiltro";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -217,16 +217,35 @@ function PedidosSemRotaPage() {
   }, [linhas, geoQ.data, depositoQ.data]);
 
   const opcoes = useMemo(() => {
-    const unicos = (fn: (l: (typeof linhas)[number]) => string) =>
-      Array.from(new Set(linhas.map(fn).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+    const termo = busca.trim().toLowerCase();
+
+    function agrupar(campo: "uf" | "cidade" | "bairro" | "agenda" | "filial"): OpcaoFiltro[] {
+      const map = new Map<string, OpcaoFiltro>();
+      for (const l of linhas) {
+        if (termo && !`${l.numero} ${l.cliente} ${l.cidade}`.toLowerCase().includes(termo)) continue;
+        if (campo !== "uf" && uf.length && !uf.includes(l.uf)) continue;
+        if (campo !== "cidade" && cidade.length && !cidade.includes(l.cidade)) continue;
+        if (campo !== "bairro" && bairro.length && !bairro.includes(l.bairro)) continue;
+        if (campo !== "agenda" && agenda.length && !agenda.includes(l.agenda)) continue;
+        if (campo !== "filial" && filial.length && !filial.includes(l.filial)) continue;
+        const v = String(l[campo] || "(vazio)");
+        const atual = map.get(v) ?? { valor: v, qtd: 0, peso: 0, valorTotal: 0 };
+        atual.qtd += 1;
+        atual.peso += l.peso;
+        atual.valorTotal += l.valor;
+        map.set(v, atual);
+      }
+      return Array.from(map.values()).sort((a, b) => a.valor.localeCompare(b.valor));
+    }
+
     return {
-      uf: unicos((l) => l.uf),
-      cidade: unicos((l) => l.cidade),
-      bairro: unicos((l) => l.bairro),
-      agenda: unicos((l) => l.agenda),
-      filial: unicos((l) => l.filial),
+      uf: agrupar("uf"),
+      cidade: agrupar("cidade"),
+      bairro: agrupar("bairro"),
+      agenda: agrupar("agenda"),
+      filial: agrupar("filial"),
     };
-  }, [linhas]);
+  }, [linhas, uf, cidade, bairro, agenda, filial, busca]);
 
   const filtradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
