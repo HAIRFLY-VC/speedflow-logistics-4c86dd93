@@ -553,11 +553,22 @@ export const suggestRoutes = createServerFn({ method: "POST" })
       });
     }
 
+    // Quantos pedidos sem rota existem no total — para avisar quando o teto
+    // por execução deixa parte deles de fora.
+    const { count: totalPendentes } = await supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .gte("dt_prev_exp", "3999-01-01");
+
     return {
       suggestions,
       missingGeocode: missing,
       depot,
       config: { maxWeight, maxValue, radiusKm },
+      pedidosConsiderados: (orders ?? []).length,
+      pedidosTotal: totalPendentes ?? (orders ?? []).length,
+      restantesPedidos: Math.max(0, (totalPendentes ?? 0) - (orders ?? []).length),
+
       existingRoutes: existing.map((r) => ({
         id: r.id,
         label: r.label,

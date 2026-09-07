@@ -129,9 +129,16 @@ function SugestaoRotasPage() {
       setState(r);
       if (!r.suggestions.length) toast.info("Nenhuma sugestão gerada.");
       else toast.success(`${r.suggestions.length} sugestão(ões) geradas`);
+      if (r.restantesPedidos > 0) {
+        toast.warning(
+          `Foram considerados ${r.pedidosConsiderados} de ${r.pedidosTotal} pedidos sem rota. ` +
+            `Restam ${r.restantesPedidos} — gere novamente após confirmar estas sugestões.`,
+        );
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const confirm = useMutation({
     mutationFn: (s: RouteSuggestion) => confirmFn({ data: { suggestion: s } }),
