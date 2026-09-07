@@ -269,6 +269,7 @@ function PedidosSemRotaPage() {
       primeiraCarga.current = false;
       return;
     }
+    if (!filtrosKey) return;
     setSelecionados(filtradas.map((l) => l.id));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtrosKey, pedidosQ.data]);
