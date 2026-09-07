@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -250,16 +250,29 @@ function PedidosSemRotaPage() {
   const filtradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return linhas.filter((l) => {
-      if (uf.length && !uf.includes(l.uf)) return false;
-      if (cidade.length && !cidade.includes(l.cidade)) return false;
-      if (bairro.length && !bairro.includes(l.bairro)) return false;
-      if (agenda.length && !agenda.includes(l.agenda)) return false;
-      if (filial.length && !filial.includes(l.filial)) return false;
+      if (uf.length && !uf.includes(l.uf || "(vazio)")) return false;
+      if (cidade.length && !cidade.includes(l.cidade || "(vazio)")) return false;
+      if (bairro.length && !bairro.includes(l.bairro || "(vazio)")) return false;
+      if (agenda.length && !agenda.includes(l.agenda || "(vazio)")) return false;
+      if (filial.length && !filial.includes(l.filial || "(vazio)")) return false;
       if (termo && !`${l.numero} ${l.cliente} ${l.cidade}`.toLowerCase().includes(termo))
         return false;
       return true;
     });
   }, [linhas, uf, cidade, bairro, agenda, filial, busca]);
+
+  // Ao mexer nos filtros, marca automaticamente todos os pedidos filtrados.
+  const filtrosKey = [uf, cidade, bairro, agenda, filial].map((f) => f.join("|")).join("~");
+  const primeiraCarga = useRef(true);
+  useEffect(() => {
+    if (primeiraCarga.current) {
+      primeiraCarga.current = false;
+      return;
+    }
+    if (!filtrosKey) return;
+    setSelecionados(filtradas.map((l) => l.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtrosKey, pedidosQ.data]);
 
   // Grupos visíveis: mantém a ordenação por distância e só pedidos filtrados.
   const gruposFiltrados = useMemo(() => {

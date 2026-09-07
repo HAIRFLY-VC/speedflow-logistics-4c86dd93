@@ -1,7 +1,6 @@
 import { Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 export type OpcaoFiltro = {
@@ -63,37 +62,35 @@ export function MultiFiltro({ label, opcoes, selecionados, onChange }: Props) {
             Limpar
           </Button>
         </div>
-        <ScrollArea className="max-h-64">
-          <div className="p-1">
-            {opcoes.length === 0 && (
-              <p className="px-2 py-3 text-xs text-muted-foreground">Nada a filtrar</p>
-            )}
-            {opcoes.map((o) => {
-              const ativo = selecionados.includes(o.valor);
-              return (
-                <button
-                  key={o.valor}
-                  type="button"
-                  onClick={() => alternar(o.valor)}
-                  className={cn(
-                    "flex w-full flex-col gap-0.5 rounded px-2 py-1.5 text-left text-xs hover:bg-muted",
-                    ativo && "bg-muted",
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <Check
-                      className={cn("h-3.5 w-3.5 shrink-0", ativo ? "opacity-100" : "opacity-0")}
-                    />
-                    <span className={cn("truncate", ativo && "font-medium")}>{o.valor}</span>
-                  </div>
-                  <div className="pl-5 text-[10px] text-muted-foreground">
-                    {o.qtd} ped · {o.peso.toFixed(0)} kg · {fmtBrl(o.valorTotal)}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </ScrollArea>
+        <div className="max-h-64 overflow-y-auto overscroll-contain p-1">
+          {opcoes.length === 0 && (
+            <p className="px-2 py-3 text-xs text-muted-foreground">Nada a filtrar</p>
+          )}
+          {opcoes.map((o) => {
+            const ativo = selecionados.includes(o.valor);
+            return (
+              <button
+                key={o.valor}
+                type="button"
+                onClick={() => alternar(o.valor)}
+                className={cn(
+                  "flex w-full flex-col gap-0.5 rounded px-2 py-1.5 text-left text-xs hover:bg-muted",
+                  ativo && "bg-muted",
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <Check
+                    className={cn("h-3.5 w-3.5 shrink-0", ativo ? "opacity-100" : "opacity-0")}
+                  />
+                  <span className={cn("truncate", ativo && "font-medium")}>{o.valor}</span>
+                </div>
+                <div className="pl-5 text-[10px] text-muted-foreground">
+                  {o.qtd} ped · {o.peso.toFixed(0)} kg · {fmtBrl(o.valorTotal)}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </PopoverContent>
     </Popover>
   );
