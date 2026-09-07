@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -260,6 +260,24 @@ function PedidosSemRotaPage() {
       return true;
     });
   }, [linhas, uf, cidade, bairro, agenda, filial, busca]);
+
+  // Ao mexer nos filtros, marca automaticamente todos os pedidos filtrados.
+  // A primeira carga da tela fica sem seleção; limpar todos os filtros não
+  // recria a seleção sozinho.
+  const filtrosKey = useMemo(
+    () => [uf, cidade, bairro, agenda, filial].map((f) => f.join("|")).join("~"),
+    [uf, cidade, bairro, agenda, filial],
+  );
+  const primeiraCarga = useRef(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (primeiraCarga.current) {
+      primeiraCarga.current = false;
+      return;
+    }
+    if (!filtrosKey.replace(/[|~]/g, "")) return;
+    setSelecionados(filtradas.map((l) => l.id));
+  }, [filtrosKey, pedidosQ.data]);
 
   // Grupos visíveis: mantém a ordenação por distância e só pedidos filtrados.
   const gruposFiltrados = useMemo(() => {
