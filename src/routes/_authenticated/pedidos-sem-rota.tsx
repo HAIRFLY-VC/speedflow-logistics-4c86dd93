@@ -261,19 +261,6 @@ function PedidosSemRotaPage() {
     });
   }, [linhas, uf, cidade, bairro, agenda, filial, busca]);
 
-  // Ao mexer nos filtros, marca automaticamente todos os pedidos filtrados.
-  const filtrosKey = [uf, cidade, bairro, agenda, filial].map((f) => f.join("|")).join("~");
-  const primeiraCarga = useRef(true);
-  useEffect(() => {
-    if (primeiraCarga.current) {
-      primeiraCarga.current = false;
-      return;
-    }
-    if (!filtrosKey) return;
-    setSelecionados(filtradas.map((l) => l.id));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtrosKey, pedidosQ.data]);
-
   // Grupos visíveis: mantém a ordenação por distância e só pedidos filtrados.
   const gruposFiltrados = useMemo(() => {
     const ids = new Set(filtradas.map((l) => l.id));
