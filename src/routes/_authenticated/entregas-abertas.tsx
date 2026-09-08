@@ -517,17 +517,27 @@ function EntregasAbertasPage() {
     if (!grid || filtrados.length === 0) return;
 
     const areaPrincipal = grid.closest("main");
+    if (!areaPrincipal) return;
     let frame = 0;
 
     const ajustarAltura = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const topoGrid = grid.getBoundingClientRect().top;
+        const topoAreaPrincipal = areaPrincipal.getBoundingClientRect().top;
+        const espacamentoSuperior = Number.parseFloat(
+          window.getComputedStyle(areaPrincipal).paddingTop,
+        );
         const alturaTotalizador = totalizadorRef.current?.getBoundingClientRect().height ?? 0;
         const margemInferior = 8;
         const alturaDisponivel = Math.max(
           220,
-          Math.floor(window.innerHeight - topoGrid - alturaTotalizador - margemInferior),
+          Math.floor(
+            window.innerHeight -
+              topoAreaPrincipal -
+              espacamentoSuperior -
+              alturaTotalizador -
+              margemInferior,
+          ),
         );
         setAlturaGrid((atual) => (atual === alturaDisponivel ? atual : alturaDisponivel));
       });
@@ -536,23 +546,22 @@ function EntregasAbertasPage() {
     ajustarAltura();
     window.addEventListener("resize", ajustarAltura);
     window.addEventListener("orientationchange", ajustarAltura);
-    areaPrincipal?.addEventListener("scroll", ajustarAltura, { passive: true });
 
     const observador = new ResizeObserver(ajustarAltura);
     if (totalizadorRef.current) observador.observe(totalizadorRef.current);
+    observador.observe(areaPrincipal);
 
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", ajustarAltura);
       window.removeEventListener("orientationchange", ajustarAltura);
-      areaPrincipal?.removeEventListener("scroll", ajustarAltura);
       observador.disconnect();
     };
   }, [filtrados.length, carregandoTudo]);
 
   return (
     <AppShell>
-      <div className="space-y-3 pb-28">
+      <div className="space-y-3 pb-12">
         <div>
           <h1 className="text-xl font-semibold">Entregas em aberto</h1>
           <p className="text-xs text-muted-foreground">
@@ -644,7 +653,7 @@ function EntregasAbertasPage() {
           <div
             ref={gridRef}
             className="relative overflow-auto rounded-lg border"
-            style={{ maxHeight: alturaGrid ? `${alturaGrid}px` : "calc(100dvh - 280px)" }}
+            style={{ height: alturaGrid ? `${alturaGrid}px` : "calc(100dvh - 112px)" }}
           >
             <Table
               wrapperClassName="overflow-visible"
