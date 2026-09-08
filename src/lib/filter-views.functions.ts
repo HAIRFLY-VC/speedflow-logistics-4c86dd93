@@ -16,6 +16,8 @@ export type FilterViewDefinition = {
   sort?: { id: string; dir: "asc" | "desc" } | null;
   /** Ids das colunas visíveis (ausente = manter as colunas atuais). */
   visibleColumns?: string[] | null;
+  /** Ordem completa das colunas (ausente = manter a ordem atual). */
+  columnOrder?: string[] | null;
 };
 
 export type FilterView = {

@@ -15,6 +15,7 @@ type Persistido = {
   columnFilters: ColumnFilters;
   sort: SortPref;
   visibleColumns: string[] | null;
+  columnOrder: string[] | null;
 };
 
 /**
@@ -36,6 +37,8 @@ export function useColumnFilterPrefs(tableKey: string, defaultSort: SortPref = n
   const [sort, setSortState] = useState<SortPref>(defaultSort);
   /** null = usar as colunas padrão da tela. */
   const [colunasVisiveis, setColunasVisiveisState] = useState<string[] | null>(null);
+  /** null = usar a ordem original de definição das colunas. */
+  const [ordemColunas, setOrdemColunasState] = useState<string[] | null>(null);
   const carregado = useRef(false);
 
   useEffect(() => {
@@ -47,6 +50,9 @@ export function useColumnFilterPrefs(tableKey: string, defaultSort: SortPref = n
     if (p?.sort !== undefined) setSortState(p.sort ?? null);
     if (Array.isArray(p?.visibleColumns)) {
       setColunasVisiveisState(p.visibleColumns.map(String));
+    }
+    if (Array.isArray(p?.columnOrder)) {
+      setOrdemColunasState(p.columnOrder.map(String));
     }
     carregado.current = true;
   }, [prefsQ.isSuccess, prefsQ.data]);
@@ -67,14 +73,14 @@ export function useColumnFilterPrefs(tableKey: string, defaultSort: SortPref = n
       const next = { ...prev };
       if (!f) delete next[id];
       else next[id] = f;
-      persistir({ columnFilters: next, sort, visibleColumns: colunasVisiveis });
+      persistir({ columnFilters: next, sort, visibleColumns: colunasVisiveis, columnOrder: ordemColunas });
       return next;
     });
   }
 
   function limparFiltros() {
     setFiltrosState(() => {
-      persistir({ columnFilters: {}, sort, visibleColumns: colunasVisiveis });
+      persistir({ columnFilters: {}, sort, visibleColumns: colunasVisiveis, columnOrder: ordemColunas });
       return {};
     });
   }
@@ -84,27 +90,37 @@ export function useColumnFilterPrefs(tableKey: string, defaultSort: SortPref = n
     columnFilters: ColumnFilters;
     sort: SortPref;
     visibleColumns?: string[] | null;
+    columnOrder?: string[] | null;
   }) {
     const cols = next.visibleColumns === undefined ? colunasVisiveis : next.visibleColumns;
+    const ordem = next.columnOrder === undefined ? ordemColunas : next.columnOrder;
     setFiltrosState(next.columnFilters ?? {});
     setSortState(next.sort ?? null);
     setColunasVisiveisState(cols);
+    setOrdemColunasState(ordem);
     persistir({
       columnFilters: next.columnFilters ?? {},
       sort: next.sort ?? null,
       visibleColumns: cols,
+      columnOrder: ordem,
     });
   }
 
   function setSort(next: SortPref) {
     setSortState(next);
-    persistir({ columnFilters: filtros, sort: next, visibleColumns: colunasVisiveis });
+    persistir({ columnFilters: filtros, sort: next, visibleColumns: colunasVisiveis, columnOrder: ordemColunas });
   }
 
   function setColunasVisiveis(next: string[] | null) {
     setColunasVisiveisState(next);
-    persistir({ columnFilters: filtros, sort, visibleColumns: next });
+    persistir({ columnFilters: filtros, sort, visibleColumns: next, columnOrder: ordemColunas });
   }
+
+  function setOrdemColunas(next: string[] | null) {
+    setOrdemColunasState(next);
+    persistir({ columnFilters: filtros, sort, visibleColumns: colunasVisiveis, columnOrder: next });
+  }
+
 
   const resetar = useMutation({
     mutationFn: () => resetFn({ data: { tableKey } }),
@@ -112,6 +128,7 @@ export function useColumnFilterPrefs(tableKey: string, defaultSort: SortPref = n
       setFiltrosState({});
       setSortState(defaultSort);
       setColunasVisiveisState(null);
+      setOrdemColunasState(null);
     },
   });
 
@@ -120,6 +137,8 @@ export function useColumnFilterPrefs(tableKey: string, defaultSort: SortPref = n
     sort,
     colunasVisiveis,
     setColunasVisiveis,
+    ordemColunas,
+    setOrdemColunas,
     setFiltro,
     aplicarConjunto,
     limparFiltros,
