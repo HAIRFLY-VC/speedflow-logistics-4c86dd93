@@ -232,7 +232,10 @@ async function sincronizarEspelhoClientes(rows: ErpOrderRow[]) {
  * local. Necessário porque a consulta de pedidos pendentes só traz os clientes
  * do momento — pedidos antigos ficavam sem razão social/cidade/bairro.
  */
-async function completarCadastroClientesFaltantes(limitePorExecucao = 2000): Promise<number> {
+async function completarCadastroClientesFaltantes(
+  limitePorExecucao = 2000,
+  codigosExtras?: Iterable<string>,
+): Promise<number> {
   const baseUrl = process.env.ERP_API_BASE_URL;
   const apiKey = process.env.ERP_API_KEY;
   if (!baseUrl || !apiKey) return 0;
