@@ -242,6 +242,8 @@ function EntregasAbertasPage() {
     cell: (i: Item) => React.ReactNode;
     align?: "right";
     className?: string;
+    /** false = coluna extra, oculta até o usuário marcá-la. */
+    padrao?: boolean;
   };
 
   const colunas: Coluna[] = useMemo(
