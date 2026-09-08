@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -121,6 +121,9 @@ function EntregasAbertasPage() {
   const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState<string | null>(null);
   const [form, setForm] = useState({ acao: "", responsavel: "", prazo: "" });
+  const [alturaGrid, setAlturaGrid] = useState<number | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const totalizadorRef = useRef<HTMLDivElement>(null);
 
   const {
     filtros,
@@ -509,6 +512,44 @@ function EntregasAbertasPage() {
   const emEdicao = filtrados.find((i) => i.chave === editando);
   const carregandoTudo = entregasQ.isLoading || carregando;
 
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid || filtrados.length === 0) return;
+
+    const areaPrincipal = grid.closest("main");
+    let frame = 0;
+
+    const ajustarAltura = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const topoGrid = grid.getBoundingClientRect().top;
+        const alturaTotalizador = totalizadorRef.current?.getBoundingClientRect().height ?? 0;
+        const margemInferior = 8;
+        const alturaDisponivel = Math.max(
+          220,
+          Math.floor(window.innerHeight - topoGrid - alturaTotalizador - margemInferior),
+        );
+        setAlturaGrid((atual) => (atual === alturaDisponivel ? atual : alturaDisponivel));
+      });
+    };
+
+    ajustarAltura();
+    window.addEventListener("resize", ajustarAltura);
+    window.addEventListener("orientationchange", ajustarAltura);
+    areaPrincipal?.addEventListener("scroll", ajustarAltura, { passive: true });
+
+    const observador = new ResizeObserver(ajustarAltura);
+    if (totalizadorRef.current) observador.observe(totalizadorRef.current);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", ajustarAltura);
+      window.removeEventListener("orientationchange", ajustarAltura);
+      areaPrincipal?.removeEventListener("scroll", ajustarAltura);
+      observador.disconnect();
+    };
+  }, [filtrados.length, carregandoTudo]);
+
   return (
     <AppShell>
       <div className="space-y-3 pb-28">
@@ -600,7 +641,11 @@ function EntregasAbertasPage() {
         )}
 
         {!carregandoTudo && filtrados.length > 0 && (
-          <div className="relative max-h-[calc(100dvh-320px)] sm:max-h-[calc(100dvh-280px)] overflow-auto rounded-lg border">
+          <div
+            ref={gridRef}
+            className="relative overflow-auto rounded-lg border"
+            style={{ maxHeight: alturaGrid ? `${alturaGrid}px` : "calc(100dvh - 280px)" }}
+          >
             <Table
               wrapperClassName="overflow-visible"
               className="min-w-[1400px] text-xs border-separate border-spacing-0"
@@ -658,7 +703,10 @@ function EntregasAbertasPage() {
       </div>
 
       {filtrados.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/95 px-3 py-2 text-xs backdrop-blur">
+        <div
+          ref={totalizadorRef}
+          className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/95 px-3 py-2 text-xs backdrop-blur"
+        >
           <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-1">
             <span>
               <strong>{totais.nfs}</strong> notas · <strong>{totais.clientes}</strong> entregas
