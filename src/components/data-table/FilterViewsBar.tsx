@@ -179,12 +179,34 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
                 className="flex items-center justify-between gap-2 text-xs"
                 onSelect={(e) => {
                   e.preventDefault();
-                  onAplicar(v.definition);
-                  setAplicada(v.name);
+                  aplicarVisao(v);
                 }}
               >
                 <span className="truncate">{v.name}</span>
                 <span className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    title="Atualizar com os filtros e colunas atuais"
+                    className="rounded p-1 hover:bg-muted"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      atualizar.mutate({ id: v.id, name: v.name });
+                    }}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Renomear"
+                    className="rounded p-1 hover:bg-muted"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNovoNome(v.name);
+                      setRenomeando({ id: v.id, nome: v.name });
+                    }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
                   <button
                     type="button"
                     title="Compartilhar"
@@ -196,6 +218,7 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
                   >
                     <Share2 className="h-3.5 w-3.5" />
                   </button>
+
                   <button
                     type="button"
                     title="Excluir"
