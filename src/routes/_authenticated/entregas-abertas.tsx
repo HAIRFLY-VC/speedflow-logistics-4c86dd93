@@ -122,6 +122,7 @@ function EntregasAbertasPage() {
   const [editando, setEditando] = useState<string | null>(null);
   const [form, setForm] = useState({ acao: "", responsavel: "", prazo: "" });
   const [alturaGrid, setAlturaGrid] = useState<number | null>(null);
+  const [deslocamentoGrid, setDeslocamentoGrid] = useState(0);
   const gridRef = useRef<HTMLDivElement>(null);
   const totalizadorRef = useRef<HTMLDivElement>(null);
 
@@ -519,8 +520,9 @@ function EntregasAbertasPage() {
     const areaPrincipal = grid.closest("main");
     if (!areaPrincipal) return;
     let frame = 0;
+    let topoOriginal = grid.getBoundingClientRect().top - areaPrincipal.getBoundingClientRect().top;
 
-    const ajustarAltura = () => {
+    const ajustarGrid = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const topoAreaPrincipal = areaPrincipal.getBoundingClientRect().top;
@@ -536,21 +538,29 @@ function EntregasAbertasPage() {
           ),
         );
         setAlturaGrid((atual) => (atual === alturaDisponivel ? atual : alturaDisponivel));
+        setDeslocamentoGrid(Math.max(0, areaPrincipal.scrollTop - topoOriginal));
       });
     };
 
-    ajustarAltura();
-    window.addEventListener("resize", ajustarAltura);
-    window.addEventListener("orientationchange", ajustarAltura);
+    const ajustarMedidas = () => {
+      topoOriginal = grid.getBoundingClientRect().top - areaPrincipal.getBoundingClientRect().top + areaPrincipal.scrollTop;
+      ajustarGrid();
+    };
 
-    const observador = new ResizeObserver(ajustarAltura);
+    ajustarMedidas();
+    window.addEventListener("resize", ajustarMedidas);
+    window.addEventListener("orientationchange", ajustarMedidas);
+    areaPrincipal.addEventListener("scroll", ajustarGrid, { passive: true });
+
+    const observador = new ResizeObserver(ajustarMedidas);
     if (totalizadorRef.current) observador.observe(totalizadorRef.current);
     observador.observe(areaPrincipal);
 
     return () => {
       cancelAnimationFrame(frame);
-      window.removeEventListener("resize", ajustarAltura);
-      window.removeEventListener("orientationchange", ajustarAltura);
+      window.removeEventListener("resize", ajustarMedidas);
+      window.removeEventListener("orientationchange", ajustarMedidas);
+      areaPrincipal.removeEventListener("scroll", ajustarGrid);
       observador.disconnect();
     };
   }, [filtrados.length, carregandoTudo]);
@@ -648,8 +658,11 @@ function EntregasAbertasPage() {
         {!carregandoTudo && filtrados.length > 0 && (
           <div
             ref={gridRef}
-            className="sticky top-0 rounded-lg border bg-background"
-            style={{ height: alturaGrid ? `${alturaGrid}px` : "calc(100dvh - 112px)" }}
+            className="relative rounded-lg border bg-background"
+            style={{
+              height: alturaGrid ? `${alturaGrid}px` : "calc(100dvh - 112px)",
+              transform: deslocamentoGrid ? `translateY(${deslocamentoGrid}px)` : undefined,
+            }}
           >
             <div className="h-full overflow-auto rounded-[inherit]">
               <Table
