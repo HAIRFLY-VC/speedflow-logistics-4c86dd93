@@ -557,7 +557,7 @@ function EntregasAbertasPage() {
       return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * mult;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itens, busca, filtros, sort, colunas]);
+  }, [itens, busca, filtros, sort, colunas, visiveis]);
 
   const totais = useMemo(
     () => ({
@@ -576,9 +576,9 @@ function EntregasAbertasPage() {
       toast.info("Nada para exportar com os filtros atuais.");
       return;
     }
-    const headers = colunas.map((c) => c.header);
+    const headers = visiveis.map((c) => c.header);
     const rows = filtrados.map((i) =>
-      colunas.map((c) => {
+      visiveis.map((c) => {
         if (c.id === "acao") {
           const a = i.acao;
           return [a?.acao, a?.responsavel, a?.prazo ? dataBr(a.prazo) : null]
@@ -591,7 +591,7 @@ function EntregasAbertasPage() {
         return v == null ? "" : String(v);
       }),
     );
-    const footer = colunas.map((c) => {
+    const footer = visiveis.map((c) => {
       if (c.id === "nro_nf") return `Total: ${totais.nfs} notas / ${totais.clientes} entregas`;
       if (c.id === "valor") return totais.valor;
       if (c.id === "peso") return totais.peso;
@@ -787,7 +787,7 @@ function EntregasAbertasPage() {
               >
                 <TableHeader className="sticky top-0 z-30 bg-card shadow-sm">
                   <TableRow>
-                    {colunas.map((c) => (
+                    {visiveis.map((c) => (
                       <TableHead
                         key={c.id}
                         className={`bg-card whitespace-nowrap border-b ${c.align === "right" ? "text-right" : ""}`}
@@ -818,7 +818,7 @@ function EntregasAbertasPage() {
                     const atrasada = i.dias !== null && i.dias > 10;
                     return (
                       <TableRow key={i.chave} className={atrasada ? "bg-destructive/5" : undefined}>
-                        {colunas.map((c) => (
+                        {visiveis.map((c) => (
                           <TableCell
                             key={c.id}
                             className={`${c.align === "right" ? "text-right " : ""}${
