@@ -72,15 +72,21 @@ type EntregaRow = {
   cod_vendedor: string | null;
   cod_filial: string | null;
   cod_agenda: string | null;
+  bordero: string | null;
   dt_pedido: string | null;
   dt_fatur: string | null;
   dt_saida: string | null;
+  dt_entrega_cli: string | null;
+  dt_agendamento: string | null;
   entrega_agend: string | null;
   cod_transp_ent: string | null;
   tipo_transp_ent: string | null;
   placa_veiculo_ent: string | null;
   valor: number;
   peso: number;
+  tipos_ocorrencia: string | null;
+  status: string | null;
+  atualizado_em: string | null;
 };
 
 type AcaoRow = {
@@ -144,7 +150,7 @@ function EntregasAbertasPage() {
       const { data, error } = await supabase
         .from("entregas_abertas")
         .select(
-          "nro_nf, cod_pedido, cod_cliente, cod_vendedor, cod_filial, cod_agenda, dt_pedido, dt_fatur, dt_saida, entrega_agend, cod_transp_ent, tipo_transp_ent, placa_veiculo_ent, valor, peso",
+          "nro_nf, cod_pedido, cod_cliente, cod_vendedor, cod_filial, cod_agenda, bordero, dt_pedido, dt_fatur, dt_saida, dt_entrega_cli, dt_agendamento, entrega_agend, cod_transp_ent, tipo_transp_ent, placa_veiculo_ent, valor, peso, tipos_ocorrencia, status, atualizado_em",
         )
         .order("dt_saida", { ascending: true })
         .limit(5000);
