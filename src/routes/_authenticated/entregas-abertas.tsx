@@ -12,6 +12,7 @@ import {
   Pencil,
   RotateCcw,
   Search,
+  FileSpreadsheet,
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -22,6 +23,8 @@ import {
   type ColunaTipo,
 } from "@/components/data-table/column-filters";
 import { useColumnFilterPrefs } from "@/components/data-table/useColumnFilterPrefs";
+import { FilterViewsBar } from "@/components/data-table/FilterViewsBar";
+import { exportarXlsx, nomeArquivoComData } from "@/components/data-table/export-xlsx";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -119,7 +122,16 @@ function EntregasAbertasPage() {
   const [editando, setEditando] = useState<string | null>(null);
   const [form, setForm] = useState({ acao: "", responsavel: "", prazo: "" });
 
-  const { filtros, sort, setFiltro, limparFiltros, setSort, restaurarPadrao, carregando } =
+  const {
+    filtros,
+    sort,
+    setFiltro,
+    aplicarConjunto,
+    limparFiltros,
+    setSort,
+    restaurarPadrao,
+    carregando,
+  } =
     useColumnFilterPrefs("entregas-abertas", { id: "dt_saida", dir: "asc" });
 
   const entregasQ = useQuery({
@@ -439,6 +451,41 @@ function EntregasAbertasPage() {
 
   const qtdFiltros = contarFiltros(filtros);
 
+  function exportar() {
+    if (!filtrados.length) {
+      toast.info("Nada para exportar com os filtros atuais.");
+      return;
+    }
+    const headers = colunas.map((c) => c.header);
+    const rows = filtrados.map((i) =>
+      colunas.map((c) => {
+        if (c.id === "acao") {
+          const a = i.acao;
+          return [a?.acao, a?.responsavel, a?.prazo ? dataBr(a.prazo) : null]
+            .filter(Boolean)
+            .join(" · ");
+        }
+        const v = c.valor(i);
+        if (c.tipo === "date") return dataBr(v == null ? null : String(v));
+        if (c.tipo === "number") return v == null ? null : Number(v);
+        return v == null ? "" : String(v);
+      }),
+    );
+    const footer = colunas.map((c) => {
+      if (c.id === "nro_nf") return `Total: ${totais.nfs} notas / ${totais.clientes} entregas`;
+      if (c.id === "valor") return totais.valor;
+      if (c.id === "peso") return totais.peso;
+      return "";
+    });
+    void exportarXlsx({
+      fileName: nomeArquivoComData("entregas-em-aberto"),
+      sheetName: "ABERTOS",
+      headers,
+      rows,
+      footer,
+    }).catch(() => toast.error("Não foi possível gerar o arquivo."));
+  }
+
   const mutSalvar = useMutation({
     mutationFn: async (vars: { nroNf: string; codPedido: string }) =>
       salvar({
@@ -495,6 +542,25 @@ function EntregasAbertasPage() {
             </CardContent>
           </Card>
           <div className="flex flex-col gap-1.5">
+            <FilterViewsBar
+              tableKey="entregas-abertas"
+              definicaoAtual={{ columnFilters: filtros, sort }}
+              onAplicar={(def) =>
+                aplicarConjunto({
+                  columnFilters: (def.columnFilters ?? {}) as typeof filtros,
+                  sort: def.sort ?? null,
+                })
+              }
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1 text-xs"
+              onClick={exportar}
+              disabled={!filtrados.length}
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" /> Exportar Excel
+            </Button>
             <Button
               variant="outline"
               size="sm"
