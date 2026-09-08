@@ -2,7 +2,17 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Bookmark, Check, Loader2, Save, Share2, Trash2, Users } from "lucide-react";
+import {
+  Bookmark,
+  Check,
+  Loader2,
+  Pencil,
+  RefreshCw,
+  Save,
+  Share2,
+  Trash2,
+  Users,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -51,6 +61,8 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
 
   const [salvarAberto, setSalvarAberto] = useState(false);
   const [nome, setNome] = useState("");
+  const [renomeando, setRenomeando] = useState<{ id: string; nome: string } | null>(null);
+  const [novoNome, setNovoNome] = useState("");
   const [compartilhando, setCompartilhando] = useState<{ id: string; nome: string } | null>(null);
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [aplicada, setAplicada] = useState<string | null>(null);
@@ -78,6 +90,30 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
       toast.error(e instanceof Error ? e.message : "Não foi possível salvar"),
   });
 
+  /** Regrava uma visão existente com os filtros/colunas atuais da tela. */
+  const atualizar = useMutation({
+    mutationFn: (v: { id: string; name: string }) =>
+      saveFn({ data: { id: v.id, tableKey, name: v.name, definition: definicaoAtual } }),
+    onSuccess: (_d, v) => {
+      toast.success(`“${v.name}” atualizada com os filtros e colunas atuais`);
+      void qc.invalidateQueries({ queryKey: ["filter-views", tableKey] });
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Não foi possível atualizar"),
+  });
+
+  const renomear = useMutation({
+    mutationFn: (v: { id: string; name: string; definition: FilterViewDefinition }) =>
+      saveFn({ data: { id: v.id, tableKey, name: v.name, definition: v.definition } }),
+    onSuccess: () => {
+      toast.success("Visão renomeada");
+      setRenomeando(null);
+      void qc.invalidateQueries({ queryKey: ["filter-views", tableKey] });
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Não foi possível renomear"),
+  });
+
   const excluir = useMutation({
     mutationFn: (id: string) => delFn({ data: { id } }),
     onSuccess: () => {
@@ -87,6 +123,18 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
     onError: (e: unknown) =>
       toast.error(e instanceof Error ? e.message : "Não foi possível excluir"),
   });
+
+  function aplicarVisao(v: FilterView) {
+    onAplicar(v.definition);
+    setAplicada(v.name);
+    const semColunas =
+      !Array.isArray(v.definition?.columnOrder) && !Array.isArray(v.definition?.visibleColumns);
+    if (semColunas) {
+      toast.info(
+        `“${v.name}” guarda apenas os filtros. Ajuste as colunas e use “Atualizar” para gravá-las nessa visão.`,
+      );
+    }
+  }
 
   const sharesQ = useQuery({
     queryKey: ["filter-view-shares", compartilhando?.id],
@@ -131,12 +179,34 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
                 className="flex items-center justify-between gap-2 text-xs"
                 onSelect={(e) => {
                   e.preventDefault();
-                  onAplicar(v.definition);
-                  setAplicada(v.name);
+                  aplicarVisao(v);
                 }}
               >
                 <span className="truncate">{v.name}</span>
                 <span className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    title="Atualizar com os filtros e colunas atuais"
+                    className="rounded p-1 hover:bg-muted"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      atualizar.mutate({ id: v.id, name: v.name });
+                    }}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Renomear"
+                    className="rounded p-1 hover:bg-muted"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNovoNome(v.name);
+                      setRenomeando({ id: v.id, nome: v.name });
+                    }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
                   <button
                     type="button"
                     title="Compartilhar"
@@ -148,6 +218,7 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
                   >
                     <Share2 className="h-3.5 w-3.5" />
                   </button>
+
                   <button
                     type="button"
                     title="Excluir"
@@ -172,10 +243,8 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
               <DropdownMenuItem
                 key={v.id}
                 className="text-xs"
-                onSelect={() => {
-                  onAplicar(v.definition);
-                  setAplicada(v.name);
-                }}
+                onSelect={() => aplicarVisao(v)}
+
               >
                 <Users className="mr-2 h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">
@@ -196,6 +265,38 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
           <Save className="h-3.5 w-3.5" /> Salvar visão
         </Button>
       </div>
+
+      <Dialog
+        open={!!renomeando}
+        onOpenChange={(o) => {
+          if (!o) setRenomeando(null);
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base">Renomear visão</DialogTitle>
+          </DialogHeader>
+          <Input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} />
+          <DialogFooter>
+            <Button
+              className="w-full"
+              disabled={!novoNome.trim() || renomear.isPending}
+              onClick={() => {
+                const atual = todas.find((v) => v.id === renomeando?.id);
+                renomear.mutate({
+                  id: renomeando!.id,
+                  name: novoNome,
+                  definition: atual?.definition ?? {},
+                });
+              }}
+            >
+              {renomear.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={salvarAberto} onOpenChange={setSalvarAberto}>
         <DialogContent className="max-w-sm">
