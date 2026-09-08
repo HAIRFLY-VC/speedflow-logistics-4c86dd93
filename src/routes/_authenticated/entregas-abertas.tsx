@@ -402,14 +402,120 @@ function EntregasAbertasPage() {
           </div>
         ),
       },
+      // ---- Colunas extras vindas do ERP (ocultas por padrão) ----
+      {
+        id: "cod_cliente",
+        header: "Cód. cliente",
+        tipo: "text",
+        padrao: false,
+        valor: (i) => i.cod_cliente,
+        cell: (i) => i.cod_cliente ?? "—",
+      },
+      {
+        id: "cod_vendedor",
+        header: "Cód. RCA",
+        tipo: "text",
+        padrao: false,
+        valor: (i) => i.cod_vendedor,
+        cell: (i) => i.cod_vendedor ?? "—",
+      },
+      {
+        id: "cod_agenda",
+        header: "Agenda",
+        tipo: "text",
+        padrao: false,
+        valor: (i) => i.cod_agenda,
+        cell: (i) => i.cod_agenda ?? "—",
+      },
+      {
+        id: "bordero",
+        header: "Borderô",
+        tipo: "text",
+        padrao: false,
+        valor: (i) => i.bordero,
+        cell: (i) => i.bordero ?? "—",
+      },
+      {
+        id: "dt_agendamento",
+        header: "Dt. agendamento",
+        tipo: "date",
+        padrao: false,
+        valor: (i) => i.dt_agendamento,
+        cell: (i) => dataBr(i.dt_agendamento),
+      },
+      {
+        id: "dt_entrega_cli",
+        header: "Dt. entrega cliente",
+        tipo: "date",
+        padrao: false,
+        valor: (i) => i.dt_entrega_cli,
+        cell: (i) => dataBr(i.dt_entrega_cli),
+      },
+      {
+        id: "cod_transp_ent",
+        header: "Cód. transportadora",
+        tipo: "text",
+        padrao: false,
+        valor: (i) => i.cod_transp_ent,
+        cell: (i) => i.cod_transp_ent ?? "—",
+      },
+      {
+        id: "tipo_transp_ent",
+        header: "Tipo de transporte",
+        tipo: "text",
+        padrao: false,
+        valor: (i) => i.tipo_transp_ent,
+        cell: (i) => i.tipo_transp_ent ?? "—",
+      },
+      {
+        id: "placa_veiculo_ent",
+        header: "Placa",
+        tipo: "text",
+        padrao: false,
+        valor: (i) => i.placa_veiculo_ent,
+        cell: (i) => i.placa_veiculo_ent ?? "—",
+      },
+      {
+        id: "tipos_ocorrencia",
+        header: "Ocorrências",
+        tipo: "text",
+        padrao: false,
+        className: "max-w-[200px] truncate",
+        valor: (i) => i.tipos_ocorrencia,
+        cell: (i) => i.tipos_ocorrencia ?? "—",
+      },
+      {
+        id: "status",
+        header: "Situação",
+        tipo: "text",
+        padrao: false,
+        valor: (i) => i.status,
+        cell: (i) => i.status ?? "—",
+      },
+      {
+        id: "atualizado_em",
+        header: "Atualizado em",
+        tipo: "date",
+        padrao: false,
+        valor: (i) => (i.atualizado_em ? i.atualizado_em.slice(0, 10) : null),
+        cell: (i) => dataBr(i.atualizado_em ? i.atualizado_em.slice(0, 10) : null),
+      },
     ],
     [],
   );
 
-  /** Aplica todos os filtros de coluna, opcionalmente ignorando uma coluna. */
+  const visiveis = useMemo(
+    () =>
+      colunas.filter((c) =>
+        colunasVisiveis ? colunasVisiveis.includes(c.id) : c.padrao !== false,
+      ),
+    [colunas, colunasVisiveis],
+  );
+
+  /** Aplica todos os filtros das colunas visíveis, opcionalmente ignorando uma. */
   function aplica(lista: Item[], exceto: string) {
     return lista.filter((i) =>
-      colunas.every((c) =>
+      visiveis.every((c) =>
         c.id === exceto ? true : combinaFiltro(filtros[c.id], c.valor(i)),
       ),
     );
