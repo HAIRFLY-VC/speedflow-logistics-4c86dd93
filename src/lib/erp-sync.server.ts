@@ -1037,11 +1037,21 @@ export async function syncErpOrders(opts: {
     })
     .eq("id", run.id);
 
+  // Espelha as entregas em aberto (NF expedida e ainda não entregue).
+  let clientesEntregas: Set<string> = new Set();
+  try {
+    const entregas = await sincronizarEntregasAbertas();
+    clientesEntregas = entregas.clientes;
+    console.log(`[erp-sync] ${entregas.total} entregas em aberto espelhadas`);
+  } catch (err) {
+    console.warn("[erp-sync] sincronizar entregas em aberto falhou:", err);
+  }
+
   // Completa o cadastro dos clientes que aparecem em pedidos antigos e ainda
   // não têm razão social/cidade/bairro no espelho local. Roda depois do
   // fechamento da execução para não atrasar a sincronização de pedidos.
   try {
-    const completados = await completarCadastroClientesFaltantes();
+    const completados = await completarCadastroClientesFaltantes(2000, clientesEntregas);
     if (completados > 0) console.log(`[erp-sync] cadastro de ${completados} clientes completado`);
   } catch (err) {
     console.warn("[erp-sync] completar cadastro de clientes falhou:", err);
