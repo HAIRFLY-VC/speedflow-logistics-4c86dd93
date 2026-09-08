@@ -14,6 +14,8 @@ export type FilterViewColumnFilter = {
 export type FilterViewDefinition = {
   columnFilters?: Record<string, FilterViewColumnFilter>;
   sort?: { id: string; dir: "asc" | "desc" } | null;
+  /** Ids das colunas visíveis (ausente = manter as colunas atuais). */
+  visibleColumns?: string[] | null;
 };
 
 export type FilterView = {

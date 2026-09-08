@@ -12,6 +12,7 @@ import {
   Pencil,
   RotateCcw,
   Search,
+  Settings2,
   FileSpreadsheet,
 } from "lucide-react";
 
@@ -28,6 +29,12 @@ import { exportarXlsx, nomeArquivoComData } from "@/components/data-table/export
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -72,15 +79,21 @@ type EntregaRow = {
   cod_vendedor: string | null;
   cod_filial: string | null;
   cod_agenda: string | null;
+  bordero: string | null;
   dt_pedido: string | null;
   dt_fatur: string | null;
   dt_saida: string | null;
+  dt_entrega_cli: string | null;
+  dt_agendamento: string | null;
   entrega_agend: string | null;
   cod_transp_ent: string | null;
   tipo_transp_ent: string | null;
   placa_veiculo_ent: string | null;
   valor: number;
   peso: number;
+  tipos_ocorrencia: string | null;
+  status: string | null;
+  atualizado_em: string | null;
 };
 
 type AcaoRow = {
@@ -129,6 +142,8 @@ function EntregasAbertasPage() {
   const {
     filtros,
     sort,
+    colunasVisiveis,
+    setColunasVisiveis,
     setFiltro,
     aplicarConjunto,
     limparFiltros,
@@ -144,7 +159,7 @@ function EntregasAbertasPage() {
       const { data, error } = await supabase
         .from("entregas_abertas")
         .select(
-          "nro_nf, cod_pedido, cod_cliente, cod_vendedor, cod_filial, cod_agenda, dt_pedido, dt_fatur, dt_saida, entrega_agend, cod_transp_ent, tipo_transp_ent, placa_veiculo_ent, valor, peso",
+          "nro_nf, cod_pedido, cod_cliente, cod_vendedor, cod_filial, cod_agenda, bordero, dt_pedido, dt_fatur, dt_saida, dt_entrega_cli, dt_agendamento, entrega_agend, cod_transp_ent, tipo_transp_ent, placa_veiculo_ent, valor, peso, tipos_ocorrencia, status, atualizado_em",
         )
         .order("dt_saida", { ascending: true })
         .limit(5000);
@@ -234,6 +249,8 @@ function EntregasAbertasPage() {
     cell: (i: Item) => React.ReactNode;
     align?: "right";
     className?: string;
+    /** false = coluna extra, oculta até o usuário marcá-la. */
+    padrao?: boolean;
   };
 
   const colunas: Coluna[] = useMemo(
@@ -392,14 +409,120 @@ function EntregasAbertasPage() {
           </div>
         ),
       },
+      // ---- Colunas extras vindas do ERP (ocultas por padrão) ----
+      {
+        id: "cod_cliente",
+        header: "Cód. cliente",
+        tipo: "text",
+        padrao: false,
+        valor: (i) => i.cod_cliente,
+        cell: (i) => i.cod_cliente ?? "—",
+      },
+      {
+        id: "cod_vendedor",
+        header: "Cód. RCA",
+        tipo: "text",
+        padrao: false,
+        valor: (i) => i.cod_vendedor,
+        cell: (i) => i.cod_vendedor ?? "—",
+      },
+      {
+        id: "cod_agenda",
+        header: "Agenda",
+        tipo: "text",
+        padrao: false,
+        valor: (i) => i.cod_agenda,
+        cell: (i) => i.cod_agenda ?? "—",
+      },
+      {
+        id: "bordero",
+        header: "Borderô",
+        tipo: "text",
+        padrao: false,
+        valor: (i) => i.bordero,
+        cell: (i) => i.bordero ?? "—",
+      },
+      {
+        id: "dt_agendamento",
+        header: "Dt. agendamento",
+        tipo: "date",
+        padrao: false,
+        valor: (i) => i.dt_agendamento,
+        cell: (i) => dataBr(i.dt_agendamento),
+      },
+      {
+        id: "dt_entrega_cli",
+        header: "Dt. entrega cliente",
+        tipo: "date",
+        padrao: false,
+        valor: (i) => i.dt_entrega_cli,
+        cell: (i) => dataBr(i.dt_entrega_cli),
+      },
+      {
+        id: "cod_transp_ent",
+        header: "Cód. transportadora",
+        tipo: "text",
+        padrao: false,
+        valor: (i) => i.cod_transp_ent,
+        cell: (i) => i.cod_transp_ent ?? "—",
+      },
+      {
+        id: "tipo_transp_ent",
+        header: "Tipo de transporte",
+        tipo: "text",
+        padrao: false,
+        valor: (i) => i.tipo_transp_ent,
+        cell: (i) => i.tipo_transp_ent ?? "—",
+      },
+      {
+        id: "placa_veiculo_ent",
+        header: "Placa",
+        tipo: "text",
+        padrao: false,
+        valor: (i) => i.placa_veiculo_ent,
+        cell: (i) => i.placa_veiculo_ent ?? "—",
+      },
+      {
+        id: "tipos_ocorrencia",
+        header: "Ocorrências",
+        tipo: "text",
+        padrao: false,
+        className: "max-w-[200px] truncate",
+        valor: (i) => i.tipos_ocorrencia,
+        cell: (i) => i.tipos_ocorrencia ?? "—",
+      },
+      {
+        id: "status",
+        header: "Situação",
+        tipo: "text",
+        padrao: false,
+        valor: (i) => i.status,
+        cell: (i) => i.status ?? "—",
+      },
+      {
+        id: "atualizado_em",
+        header: "Atualizado em",
+        tipo: "date",
+        padrao: false,
+        valor: (i) => (i.atualizado_em ? i.atualizado_em.slice(0, 10) : null),
+        cell: (i) => dataBr(i.atualizado_em ? i.atualizado_em.slice(0, 10) : null),
+      },
     ],
     [],
   );
 
-  /** Aplica todos os filtros de coluna, opcionalmente ignorando uma coluna. */
+  const visiveis = useMemo(
+    () =>
+      colunas.filter((c) =>
+        colunasVisiveis ? colunasVisiveis.includes(c.id) : c.padrao !== false,
+      ),
+    [colunas, colunasVisiveis],
+  );
+
+  /** Aplica todos os filtros das colunas visíveis, opcionalmente ignorando uma. */
   function aplica(lista: Item[], exceto: string) {
     return lista.filter((i) =>
-      colunas.every((c) =>
+      visiveis.every((c) =>
         c.id === exceto ? true : combinaFiltro(filtros[c.id], c.valor(i)),
       ),
     );
@@ -441,7 +564,7 @@ function EntregasAbertasPage() {
       return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * mult;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itens, busca, filtros, sort, colunas]);
+  }, [itens, busca, filtros, sort, colunas, visiveis]);
 
   const totais = useMemo(
     () => ({
@@ -460,9 +583,9 @@ function EntregasAbertasPage() {
       toast.info("Nada para exportar com os filtros atuais.");
       return;
     }
-    const headers = colunas.map((c) => c.header);
+    const headers = visiveis.map((c) => c.header);
     const rows = filtrados.map((i) =>
-      colunas.map((c) => {
+      visiveis.map((c) => {
         if (c.id === "acao") {
           const a = i.acao;
           return [a?.acao, a?.responsavel, a?.prazo ? dataBr(a.prazo) : null]
@@ -475,7 +598,7 @@ function EntregasAbertasPage() {
         return v == null ? "" : String(v);
       }),
     );
-    const footer = colunas.map((c) => {
+    const footer = visiveis.map((c) => {
       if (c.id === "nro_nf") return `Total: ${totais.nfs} notas / ${totais.clientes} entregas`;
       if (c.id === "valor") return totais.valor;
       if (c.id === "peso") return totais.peso;
@@ -600,14 +723,67 @@ function EntregasAbertasPage() {
           <div className="flex flex-col gap-1.5">
             <FilterViewsBar
               tableKey="entregas-abertas"
-              definicaoAtual={{ columnFilters: filtros, sort }}
+              definicaoAtual={{
+                columnFilters: filtros,
+                sort,
+                visibleColumns: visiveis.map((c) => c.id),
+              }}
               onAplicar={(def) =>
                 aplicarConjunto({
                   columnFilters: (def.columnFilters ?? {}) as typeof filtros,
                   sort: def.sort ?? null,
+                  visibleColumns: Array.isArray(def.visibleColumns)
+                    ? def.visibleColumns
+                    : undefined,
                 })
               }
             />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1 text-xs">
+                  <Settings2 className="h-3.5 w-3.5" /> Colunas ({visiveis.length}/
+                  {colunas.length})
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64 p-2">
+                <p className="px-1 pb-1 text-xs font-medium text-muted-foreground">
+                  Colunas exibidas no grid
+                </p>
+                <div className="max-h-72 space-y-0.5 overflow-y-auto">
+                  {colunas.map((c) => {
+                    const marcada = visiveis.some((v) => v.id === c.id);
+                    return (
+                      <label
+                        key={c.id}
+                        className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-xs hover:bg-muted"
+                      >
+                        <Checkbox
+                          checked={marcada}
+                          onCheckedChange={() => {
+                            const atuais = visiveis.map((v) => v.id);
+                            const proximas = marcada
+                              ? atuais.filter((id) => id !== c.id)
+                              : colunas
+                                  .filter((x) => atuais.includes(x.id) || x.id === c.id)
+                                  .map((x) => x.id);
+                            setColunasVisiveis(proximas);
+                          }}
+                        />
+                        <span className="truncate">{c.header}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-1 h-7 w-full gap-1 text-xs"
+                  onClick={() => setColunasVisiveis(null)}
+                >
+                  <RotateCcw className="h-3 w-3" /> Colunas padrão
+                </Button>
+              </PopoverContent>
+            </Popover>
             <Button
               variant="outline"
               size="sm"
@@ -671,7 +847,7 @@ function EntregasAbertasPage() {
               >
                 <TableHeader className="sticky top-0 z-30 bg-card shadow-sm">
                   <TableRow>
-                    {colunas.map((c) => (
+                    {visiveis.map((c) => (
                       <TableHead
                         key={c.id}
                         className={`bg-card whitespace-nowrap border-b ${c.align === "right" ? "text-right" : ""}`}
@@ -702,7 +878,7 @@ function EntregasAbertasPage() {
                     const atrasada = i.dias !== null && i.dias > 10;
                     return (
                       <TableRow key={i.chave} className={atrasada ? "bg-destructive/5" : undefined}>
-                        {colunas.map((c) => (
+                        {visiveis.map((c) => (
                           <TableCell
                             key={c.id}
                             className={`${c.align === "right" ? "text-right " : ""}${
