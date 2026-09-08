@@ -607,7 +607,7 @@ function EntregasAbertasPage() {
                   {colunas.map((c) => (
                     <TableHead
                       key={c.id}
-                      className={`sticky top-0 z-10 bg-card whitespace-nowrap shadow-sm ${c.align === "right" ? "text-right" : ""}`}
+                      className={`sticky top-0 z-20 bg-card whitespace-nowrap shadow-sm border-b ${c.align === "right" ? "text-right" : ""}`}
                     >
                       <span className="inline-flex items-center gap-0.5">
                         <ColumnFilter
