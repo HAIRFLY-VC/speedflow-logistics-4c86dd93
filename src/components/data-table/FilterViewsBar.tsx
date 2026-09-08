@@ -30,6 +30,7 @@ import {
   listFilterViews,
   saveFilterView,
   setFilterViewShares,
+  type FilterView,
   type FilterViewDefinition,
 } from "@/lib/filter-views.functions";
 
@@ -60,8 +61,9 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
     staleTime: 60_000,
   });
 
-  const minhas = (viewsQ.data ?? []).filter((v) => !v.shared);
-  const recebidas = (viewsQ.data ?? []).filter((v) => v.shared);
+  const todas: FilterView[] = (viewsQ.data ?? []) as FilterView[];
+  const minhas = todas.filter((v) => !v.shared);
+  const recebidas = todas.filter((v) => v.shared);
 
   const salvar = useMutation({
     mutationFn: () =>

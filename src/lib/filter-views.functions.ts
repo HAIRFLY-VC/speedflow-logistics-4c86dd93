@@ -3,8 +3,16 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /** Visões de filtro salvas por usuário, com compartilhamento pessoa a pessoa. */
 
+export type FilterViewColumnFilter = {
+  type: "text" | "number" | "date";
+  values?: string[];
+  op?: string;
+  value?: string | number | null;
+  value2?: string | number | null;
+};
+
 export type FilterViewDefinition = {
-  columnFilters?: Record<string, unknown>;
+  columnFilters?: Record<string, FilterViewColumnFilter>;
   sort?: { id: string; dir: "asc" | "desc" } | null;
 };
 
