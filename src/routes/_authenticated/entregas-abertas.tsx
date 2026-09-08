@@ -716,14 +716,67 @@ function EntregasAbertasPage() {
           <div className="flex flex-col gap-1.5">
             <FilterViewsBar
               tableKey="entregas-abertas"
-              definicaoAtual={{ columnFilters: filtros, sort }}
+              definicaoAtual={{
+                columnFilters: filtros,
+                sort,
+                visibleColumns: visiveis.map((c) => c.id),
+              }}
               onAplicar={(def) =>
                 aplicarConjunto({
                   columnFilters: (def.columnFilters ?? {}) as typeof filtros,
                   sort: def.sort ?? null,
+                  visibleColumns: Array.isArray(def.visibleColumns)
+                    ? def.visibleColumns
+                    : undefined,
                 })
               }
             />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1 text-xs">
+                  <Settings2 className="h-3.5 w-3.5" /> Colunas ({visiveis.length}/
+                  {colunas.length})
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64 p-2">
+                <p className="px-1 pb-1 text-xs font-medium text-muted-foreground">
+                  Colunas exibidas no grid
+                </p>
+                <div className="max-h-72 space-y-0.5 overflow-y-auto">
+                  {colunas.map((c) => {
+                    const marcada = visiveis.some((v) => v.id === c.id);
+                    return (
+                      <label
+                        key={c.id}
+                        className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-xs hover:bg-muted"
+                      >
+                        <Checkbox
+                          checked={marcada}
+                          onCheckedChange={() => {
+                            const atuais = visiveis.map((v) => v.id);
+                            const proximas = marcada
+                              ? atuais.filter((id) => id !== c.id)
+                              : colunas
+                                  .filter((x) => atuais.includes(x.id) || x.id === c.id)
+                                  .map((x) => x.id);
+                            setColunasVisiveis(proximas);
+                          }}
+                        />
+                        <span className="truncate">{c.header}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-1 h-7 w-full gap-1 text-xs"
+                  onClick={() => setColunasVisiveis(null)}
+                >
+                  <RotateCcw className="h-3 w-3" /> Colunas padrão
+                </Button>
+              </PopoverContent>
+            </Popover>
             <Button
               variant="outline"
               size="sm"
