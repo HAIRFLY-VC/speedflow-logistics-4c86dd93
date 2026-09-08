@@ -324,6 +324,108 @@ async function completarCadastroClientesFaltantes(limitePorExecucao = 2000): Pro
 
 
 
+// Entregas já expedidas e ainda não entregues (aba "ABERTOS" do modelo).
+const ENTREGAS_ABERTAS_SQL = `
+  SELECT G.NRO_NF, G.COD_PEDIDO, G.COD_CLIENTE, G.COD_VENDEDOR, G.COD_FILIAL,
+         G.COD_AGENDA, G.BORDERO, G.DT_PEDIDO, G.DT_FATUR, G.DT_SAIDA,
+         G.DT_ENTREGA_CLI, G.DT_AGENDAMENTO, G.ENTREGA_AGEND,
+         G.COD_TRANSP_ENT, G.TIPO_TRANSP_ENT, G.PLACA_VEICULO_ENT,
+         G.VALOR, G.PESO, G.TIPOS_OCORRENCIA, G.STATUS
+    FROM GKS.A_GERENTREGAS G
+   WHERE G.STATUS = 'A'
+     AND G.DT_SAIDA IS NOT NULL
+     AND G.DT_ENTREGA_CLI IS NULL
+`;
+
+function soData(v: unknown): string | null {
+  if (!v) return null;
+  const d = new Date(String(v));
+  if (Number.isNaN(d.getTime())) return null;
+  // As datas do ERP chegam em UTC-3 (meia-noite local); normaliza para a data local.
+  const local = new Date(d.getTime() - 3 * 3600_000);
+  return local.toISOString().slice(0, 10);
+}
+
+/**
+ * Atualiza o espelho de entregas em aberto (NF expedida e sem entrega).
+ * Retorna os códigos de cliente encontrados, para completar o cadastro local.
+ */
+async function sincronizarEntregasAbertas(): Promise<{ total: number; clientes: Set<string> }> {
+  const baseUrl = process.env.ERP_API_BASE_URL;
+  const apiKey = process.env.ERP_API_KEY;
+  const clientes = new Set<string>();
+  if (!baseUrl || !apiKey) return { total: 0, clientes };
+
+  const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
+  const res = await fetch(`${cleanBase}/v1/query`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+    body: JSON.stringify({ sql: ENTREGAS_ABERTAS_SQL, binds: {}, limit: 20000 }),
+  });
+  if (!res.ok) throw new Error(friendlyErpError(res.status, await res.text()));
+  const json = (await res.json()) as ErpQueryResponse;
+
+  const txt = (v: unknown) => {
+    if (v === null || v === undefined) return null;
+    const s = String(v).trim();
+    return s === "" ? null : s;
+  };
+  const num = (v: unknown) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const agora = new Date().toISOString();
+  const byKey = new Map<string, Record<string, unknown>>();
+  for (const row of json.rows ?? []) {
+    const nf = txt(row.NRO_NF);
+    const pedido = txt(row.COD_PEDIDO);
+    if (!nf || !pedido) continue;
+    const cod = txt(row.COD_CLIENTE);
+    if (cod) clientes.add(cod);
+    byKey.set(`${nf}|${pedido}`, {
+      nro_nf: nf,
+      cod_pedido: pedido,
+      cod_cliente: cod,
+      cod_vendedor: txt(row.COD_VENDEDOR),
+      cod_filial: txt(row.COD_FILIAL),
+      cod_agenda: txt(row.COD_AGENDA),
+      bordero: txt(row.BORDERO),
+      dt_pedido: soData(row.DT_PEDIDO),
+      dt_fatur: soData(row.DT_FATUR),
+      dt_saida: soData(row.DT_SAIDA),
+      dt_entrega_cli: soData(row.DT_ENTREGA_CLI),
+      dt_agendamento: soData(row.DT_AGENDAMENTO),
+      entrega_agend: txt(row.ENTREGA_AGEND),
+      cod_transp_ent: txt(row.COD_TRANSP_ENT),
+      tipo_transp_ent: txt(row.TIPO_TRANSP_ENT),
+      placa_veiculo_ent: txt(row.PLACA_VEICULO_ENT),
+      valor: num(row.VALOR),
+      peso: num(row.PESO),
+      tipos_ocorrencia: txt(row.TIPOS_OCORRENCIA),
+      status: txt(row.STATUS),
+      atualizado_em: agora,
+    });
+  }
+
+  const payload = Array.from(byKey.values());
+  for (let i = 0; i < payload.length; i += 200) {
+    const { error } = await centralDb
+      .from("entregas_abertas")
+      .upsert(payload.slice(i, i + 200) as never, { onConflict: "nro_nf,cod_pedido" });
+    if (error) throw error;
+  }
+
+  // Remove as notas que saíram da condição (entregues ou com ocorrência).
+  const { error: delErr } = await centralDb
+    .from("entregas_abertas")
+    .delete()
+    .lt("atualizado_em", agora);
+  if (delErr) throw delErr;
+
+  return { total: payload.length, clientes };
+}
+
 type SyncResult = {
   runId: string;
   fetched: number;
