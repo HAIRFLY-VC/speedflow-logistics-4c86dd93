@@ -301,6 +301,18 @@ function EntregasAbertasPage() {
           <MultiFiltro label="Filial" opcoes={opcoes("filial", (i) => i.filial)} selecionados={filiais} onChange={setFiliais} />
         </div>
 
+        <Card>
+          <CardContent className="flex items-center gap-3 p-3">
+            <PackageSearch className="h-8 w-8 text-primary" />
+            <div>
+              <p className="text-2xl font-semibold leading-none">{totais.nfs}</p>
+              <p className="text-xs text-muted-foreground">
+                entregas pendentes · {totais.peso.toFixed(0)} kg · {brl(totais.valor)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {entregasQ.isLoading && (
           <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando entregas…
@@ -318,63 +330,107 @@ function EntregasAbertasPage() {
           </div>
         )}
 
-        <ul className="space-y-2">
-          {filtrados.map((i) => (
-            <li key={i.chave} className="rounded-lg border bg-card p-2.5">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{i.cliente}</p>
-                  <p className="truncate text-[11px] text-muted-foreground">
-                    {[i.uf, i.cidade].filter(Boolean).join(" · ") || "Sem endereço"}
-                  </p>
-                </div>
-                <Badge variant={i.dias !== null && i.dias > 10 ? "destructive" : "secondary"} className="shrink-0 text-[10px]">
-                  {i.dias === null ? "sem data" : `${i.dias}d`}
-                </Badge>
-              </div>
-              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-                <span>NF {i.nro_nf}</span>
-                <span>Ped. {i.cod_pedido}</span>
-                <span>Saída {dataBr(i.dt_saida)}</span>
-                <span>{brl(Number(i.valor) || 0)}</span>
-                <span>{(Number(i.peso) || 0).toFixed(0)} kg</span>
-              </div>
-              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-                <span className="truncate">{i.transportadora}</span>
-                <span>{i.modal}</span>
-                {i.entrega_agend === "S" && <span className="text-primary">agendada</span>}
-              </div>
-              <div className="mt-1.5 flex items-end justify-between gap-2">
-                <div className="min-w-0 text-[11px]">
-                  {i.acao?.acao ? (
-                    <p className="truncate">
-                      <span className="font-medium">Ação:</span> {i.acao.acao}
-                      {i.acao.responsavel ? ` · ${i.acao.responsavel}` : ""}
-                      {i.acao.prazo ? ` · até ${dataBr(i.acao.prazo)}` : ""}
-                    </p>
-                  ) : (
-                    <p className="text-muted-foreground">Sem ação registrada</p>
-                  )}
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 shrink-0 gap-1 px-2 text-xs"
-                  onClick={() => {
-                    setEditando(i.chave);
-                    setForm({
-                      acao: i.acao?.acao ?? "",
-                      responsavel: i.acao?.responsavel ?? "",
-                      prazo: i.acao?.prazo ?? "",
-                    });
-                  }}
-                >
-                  <Pencil className="h-3 w-3" /> Ação
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
+        {filtrados.length > 0 && (
+          <div className="overflow-x-auto rounded-lg border">
+            <Table className="min-w-[1200px] text-xs">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">NF</TableHead>
+                  <TableHead className="whitespace-nowrap">Pedido</TableHead>
+                  <TableHead className="whitespace-nowrap">Cliente</TableHead>
+                  <TableHead className="whitespace-nowrap">UF</TableHead>
+                  <TableHead className="whitespace-nowrap">Cidade</TableHead>
+                  <TableHead className="whitespace-nowrap">RCA</TableHead>
+                  <TableHead className="whitespace-nowrap">Transportadora</TableHead>
+                  <TableHead className="whitespace-nowrap">Modal</TableHead>
+                  <TableHead className="whitespace-nowrap">Dt. pedido</TableHead>
+                  <TableHead className="whitespace-nowrap">Dt. fatur.</TableHead>
+                  <TableHead className="whitespace-nowrap">Dt. saída</TableHead>
+                  <TableHead className="whitespace-nowrap text-right">Dias</TableHead>
+                  <TableHead className="whitespace-nowrap">Faixa</TableHead>
+                  <TableHead className="whitespace-nowrap text-right">Valor</TableHead>
+                  <TableHead className="whitespace-nowrap text-right">Peso</TableHead>
+                  <TableHead className="whitespace-nowrap">Agendada</TableHead>
+                  <TableHead className="whitespace-nowrap">Ação / Responsável / Prazo</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtrados.map((i) => {
+                  const atrasada = i.dias !== null && i.dias > 10;
+                  return (
+                    <TableRow key={i.chave} className={atrasada ? "bg-destructive/5" : undefined}>
+                      <TableCell className="whitespace-nowrap font-medium">{i.nro_nf}</TableCell>
+                      <TableCell className="whitespace-nowrap">{i.cod_pedido}</TableCell>
+                      <TableCell className="max-w-[220px]">
+                        <p className="truncate font-medium">{i.cliente}</p>
+                        {i.cod_cliente && (
+                          <p className="text-[10px] text-muted-foreground">cód. {i.cod_cliente}</p>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">{i.uf ?? "—"}</TableCell>
+                      <TableCell className="max-w-[160px] truncate">{i.cidade ?? "—"}</TableCell>
+                      <TableCell className="max-w-[160px] truncate">{i.rca}</TableCell>
+                      <TableCell className="max-w-[180px] truncate">{i.transportadora}</TableCell>
+                      <TableCell className="whitespace-nowrap">{i.modal}</TableCell>
+                      <TableCell className="whitespace-nowrap">{dataBr(i.dt_pedido)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{dataBr(i.dt_fatur)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{dataBr(i.dt_saida)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-right">
+                        <Badge variant={atrasada ? "destructive" : "secondary"} className="text-[10px]">
+                          {i.dias === null ? "—" : `${i.dias}d`}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">{i.faixa}</TableCell>
+                      <TableCell className="whitespace-nowrap text-right">
+                        {brl(Number(i.valor) || 0)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-right">
+                        {(Number(i.peso) || 0).toFixed(0)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {i.entrega_agend === "S" ? (
+                          <span className="text-primary">Sim</span>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                      <TableCell className="min-w-[220px]">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            {i.acao?.acao ? (
+                              <p className="truncate">
+                                {i.acao.acao}
+                                {i.acao.responsavel ? ` · ${i.acao.responsavel}` : ""}
+                                {i.acao.prazo ? ` · até ${dataBr(i.acao.prazo)}` : ""}
+                              </p>
+                            ) : (
+                              <p className="text-muted-foreground">Sem ação</p>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 shrink-0 gap-1 px-2 text-xs"
+                            onClick={() => {
+                              setEditando(i.chave);
+                              setForm({
+                                acao: i.acao?.acao ?? "",
+                                responsavel: i.acao?.responsavel ?? "",
+                                prazo: i.acao?.prazo ?? "",
+                              });
+                            }}
+                          >
+                            <Pencil className="h-3 w-3" /> Ação
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
 
       {filtrados.length > 0 && (
