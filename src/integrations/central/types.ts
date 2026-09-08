@@ -240,6 +240,8 @@ export type CentralDatabase = Omit<Database, "public"> & {
         Relationships: [];
       };
       erp_responsaveis: SimpleTable<ErpResponsavelRow>;
+      entregas_abertas: SimpleTable<EntregaAbertaRow>;
+      entregas_acoes: SimpleTable<EntregaAcaoRow>;
 
       fila_lancamento_erp_frete: SimpleTable<FilaValoresRow>;
       fila_provisionamento_financeiro: SimpleTable<FilaFinanceiroRow>;
