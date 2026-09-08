@@ -255,6 +255,10 @@ async function completarCadastroClientesFaltantes(
     }
     if (!data || data.length < 1000) break;
   }
+  for (const c of codigosExtras ?? []) {
+    const cod = String(c).trim();
+    if (cod) codigosPedidos.add(cod);
+  }
   if (codigosPedidos.size === 0) return 0;
 
   // Códigos já espelhados
