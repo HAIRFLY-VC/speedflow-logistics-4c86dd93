@@ -548,7 +548,7 @@ function EntregasAbertasPage() {
       areaPrincipal?.removeEventListener("scroll", ajustarAltura);
       observador.disconnect();
     };
-  }, [filtrados.length]);
+  }, [filtrados.length, carregandoTudo]);
 
   return (
     <AppShell>
