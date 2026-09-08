@@ -14,6 +14,7 @@ import {
   Search,
   Settings2,
   FileSpreadsheet,
+  GripVertical,
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -144,6 +145,8 @@ function EntregasAbertasPage() {
     sort,
     colunasVisiveis,
     setColunasVisiveis,
+    ordemColunas,
+    setOrdemColunas,
     setFiltro,
     aplicarConjunto,
     limparFiltros,
@@ -511,13 +514,71 @@ function EntregasAbertasPage() {
     [],
   );
 
+  /** Todas as colunas na ordem escolhida pelo usuário (novas entram no fim). */
+  const colunasOrdenadas = useMemo(() => {
+    if (!ordemColunas?.length) return colunas;
+    const mapa = new Map(colunas.map((c) => [c.id, c]));
+    const ordenadas: Coluna[] = [];
+    for (const id of ordemColunas) {
+      const c = mapa.get(id);
+      if (c) {
+        ordenadas.push(c);
+        mapa.delete(id);
+      }
+    }
+    for (const c of colunas) if (mapa.has(c.id)) ordenadas.push(c);
+    return ordenadas;
+  }, [colunas, ordemColunas]);
+
   const visiveis = useMemo(
     () =>
-      colunas.filter((c) =>
+      colunasOrdenadas.filter((c) =>
         colunasVisiveis ? colunasVisiveis.includes(c.id) : c.padrao !== false,
       ),
-    [colunas, colunasVisiveis],
+    [colunasOrdenadas, colunasVisiveis],
   );
+
+  const [arrastando, setArrastando] = useState<string | null>(null);
+  const [alvoArraste, setAlvoArraste] = useState<string | null>(null);
+
+  /** Move a coluna `origem` para a posição da coluna `destino`. */
+  function moverColuna(origem: string, destino: string) {
+    if (!origem || origem === destino) return;
+    const ids = colunasOrdenadas.map((c) => c.id);
+    const de = ids.indexOf(origem);
+    const para = ids.indexOf(destino);
+    if (de < 0 || para < 0) return;
+    ids.splice(de, 1);
+    ids.splice(para, 0, origem);
+    setOrdemColunas(ids);
+  }
+
+  function propsArraste(id: string) {
+    return {
+      draggable: true,
+      onDragStart: (e: React.DragEvent) => {
+        setArrastando(id);
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", id);
+      },
+      onDragOver: (e: React.DragEvent) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        if (alvoArraste !== id) setAlvoArraste(id);
+      },
+      onDrop: (e: React.DragEvent) => {
+        e.preventDefault();
+        const origem = arrastando ?? e.dataTransfer.getData("text/plain");
+        moverColuna(origem, id);
+        setArrastando(null);
+        setAlvoArraste(null);
+      },
+      onDragEnd: () => {
+        setArrastando(null);
+        setAlvoArraste(null);
+      },
+    };
+  }
 
   /** Aplica todos os filtros das colunas visíveis, opcionalmente ignorando uma. */
   function aplica(lista: Item[], exceto: string) {
@@ -727,6 +788,7 @@ function EntregasAbertasPage() {
                 columnFilters: filtros,
                 sort,
                 visibleColumns: visiveis.map((c) => c.id),
+                columnOrder: colunasOrdenadas.map((c) => c.id),
               }}
               onAplicar={(def) =>
                 aplicarConjunto({
@@ -735,6 +797,7 @@ function EntregasAbertasPage() {
                   visibleColumns: Array.isArray(def.visibleColumns)
                     ? def.visibleColumns
                     : undefined,
+                  columnOrder: Array.isArray(def.columnOrder) ? def.columnOrder : undefined,
                 })
               }
             />
@@ -747,30 +810,38 @@ function EntregasAbertasPage() {
               </PopoverTrigger>
               <PopoverContent align="end" className="w-64 p-2">
                 <p className="px-1 pb-1 text-xs font-medium text-muted-foreground">
-                  Colunas exibidas no grid
+                  Colunas do grid · arraste para reordenar
                 </p>
                 <div className="max-h-72 space-y-0.5 overflow-y-auto">
-                  {colunas.map((c) => {
+                  {colunasOrdenadas.map((c) => {
                     const marcada = visiveis.some((v) => v.id === c.id);
                     return (
-                      <label
+                      <div
                         key={c.id}
-                        className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-xs hover:bg-muted"
+                        {...propsArraste(c.id)}
+                        className={`flex items-center gap-2 rounded px-1 py-1 text-xs hover:bg-muted ${
+                          arrastando === c.id ? "opacity-50" : ""
+                        } ${
+                          alvoArraste === c.id && arrastando && arrastando !== c.id
+                            ? "ring-1 ring-primary"
+                            : ""
+                        }`}
                       >
+                        <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground" />
                         <Checkbox
                           checked={marcada}
                           onCheckedChange={() => {
                             const atuais = visiveis.map((v) => v.id);
                             const proximas = marcada
                               ? atuais.filter((id) => id !== c.id)
-                              : colunas
+                              : colunasOrdenadas
                                   .filter((x) => atuais.includes(x.id) || x.id === c.id)
                                   .map((x) => x.id);
                             setColunasVisiveis(proximas);
                           }}
                         />
-                        <span className="truncate">{c.header}</span>
-                      </label>
+                        <span className="flex-1 cursor-grab truncate select-none">{c.header}</span>
+                      </div>
                     );
                   })}
                 </div>
@@ -778,7 +849,10 @@ function EntregasAbertasPage() {
                   variant="ghost"
                   size="sm"
                   className="mt-1 h-7 w-full gap-1 text-xs"
-                  onClick={() => setColunasVisiveis(null)}
+                  onClick={() => {
+                    setColunasVisiveis(null);
+                    setOrdemColunas(null);
+                  }}
                 >
                   <RotateCcw className="h-3 w-3" /> Colunas padrão
                 </Button>
@@ -850,9 +924,18 @@ function EntregasAbertasPage() {
                     {visiveis.map((c) => (
                       <TableHead
                         key={c.id}
-                        className={`bg-card whitespace-nowrap border-b ${c.align === "right" ? "text-right" : ""}`}
+                        {...propsArraste(c.id)}
+                        title="Arraste para mudar a ordem da coluna"
+                        className={`bg-card whitespace-nowrap border-b ${c.align === "right" ? "text-right" : ""} ${
+                          arrastando === c.id ? "opacity-50" : ""
+                        } ${
+                          alvoArraste === c.id && arrastando && arrastando !== c.id
+                            ? "ring-2 ring-inset ring-primary"
+                            : ""
+                        }`}
                       >
                         <span className="inline-flex items-center gap-0.5">
+                          <GripVertical className="h-3 w-3 shrink-0 cursor-grab text-muted-foreground/60" />
                           <ColumnFilter
                             label={c.header}
                             tipo={c.tipo}
