@@ -144,6 +144,42 @@ type TabelaTransportadoraRow = {
   created_at: string;
 };
 
+/** Espelho das entregas em aberto do ERP (NF expedida e não entregue). */
+export type EntregaAbertaRow = {
+  nro_nf: string;
+  cod_pedido: string;
+  cod_cliente: string | null;
+  cod_vendedor: string | null;
+  cod_filial: string | null;
+  cod_agenda: string | null;
+  bordero: string | null;
+  dt_pedido: string | null;
+  dt_fatur: string | null;
+  dt_saida: string | null;
+  dt_entrega_cli: string | null;
+  dt_agendamento: string | null;
+  entrega_agend: string | null;
+  cod_transp_ent: string | null;
+  tipo_transp_ent: string | null;
+  placa_veiculo_ent: string | null;
+  valor: number;
+  peso: number;
+  tipos_ocorrencia: string | null;
+  status: string | null;
+  atualizado_em: string;
+};
+
+/** Anotação do usuário (ação / responsável / prazo) por entrega em aberto. */
+export type EntregaAcaoRow = {
+  nro_nf: string;
+  cod_pedido: string;
+  acao: string | null;
+  responsavel: string | null;
+  prazo: string | null;
+  atualizado_por: string | null;
+  atualizado_em: string;
+};
+
 type ErpResponsavelRow = {
   cod_erp: string;
   razao_social: string | null;
