@@ -3,10 +3,25 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, PackageSearch, Pencil, Search } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  FilterX,
+  Loader2,
+  PackageSearch,
+  Pencil,
+  RotateCcw,
+  Search,
+} from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { MultiFiltro, type OpcaoFiltro } from "@/components/pedidos-sem-rota/MultiFiltro";
+import { ColumnFilter, type OpcaoColuna } from "@/components/data-table/ColumnFilter";
+import {
+  combinaFiltro,
+  contarFiltros,
+  type ColunaTipo,
+} from "@/components/data-table/column-filters";
+import { useColumnFilterPrefs } from "@/components/data-table/useColumnFilterPrefs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -76,8 +91,7 @@ type AcaoRow = {
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
-const dataBr = (v: string | null) =>
-  v ? v.split("-").reverse().join("/") : "—";
+const dataBr = (v: string | null) => (v ? v.split("-").reverse().join("/") : "—");
 
 function diasDesde(v: string | null): number | null {
   if (!v) return null;
@@ -102,15 +116,11 @@ function EntregasAbertasPage() {
   const salvar = useServerFn(salvarAcaoEntrega);
 
   const [busca, setBusca] = useState("");
-  const [ufs, setUfs] = useState<string[]>([]);
-  const [cidades, setCidades] = useState<string[]>([]);
-  const [transps, setTransps] = useState<string[]>([]);
-  const [rcas, setRcas] = useState<string[]>([]);
-  const [modais, setModais] = useState<string[]>([]);
-  const [faixas, setFaixas] = useState<string[]>([]);
-  const [filiais, setFiliais] = useState<string[]>([]);
   const [editando, setEditando] = useState<string | null>(null);
   const [form, setForm] = useState({ acao: "", responsavel: "", prazo: "" });
+
+  const { filtros, sort, setFiltro, limparFiltros, setSort, restaurarPadrao, carregando } =
+    useColumnFilterPrefs("entregas-abertas", { id: "dt_saida", dir: "asc" });
 
   const entregasQ = useQuery({
     queryKey: ["entregas-abertas"],
@@ -200,35 +210,200 @@ function EntregasAbertasPage() {
     });
   }, [entregasQ.data, nomeCliente, cidadeCliente, ufCliente, nomePorCodigo, acaoPorChave]);
 
+  type Coluna = {
+    id: string;
+    header: string;
+    tipo: ColunaTipo;
+    valor: (i: Item) => string | number | null;
+    cell: (i: Item) => React.ReactNode;
+    align?: "right";
+    className?: string;
+  };
+
+  const colunas: Coluna[] = useMemo(
+    () => [
+      {
+        id: "nro_nf",
+        header: "NF",
+        tipo: "text",
+        valor: (i) => i.nro_nf,
+        cell: (i) => <span className="font-medium">{i.nro_nf}</span>,
+      },
+      { id: "cod_pedido", header: "Pedido", tipo: "text", valor: (i) => i.cod_pedido, cell: (i) => i.cod_pedido },
+      {
+        id: "cliente",
+        header: "Cliente",
+        tipo: "text",
+        valor: (i) => i.cliente,
+        className: "max-w-[220px]",
+        cell: (i) => (
+          <>
+            <p className="truncate font-medium">{i.cliente}</p>
+            {i.cod_cliente && (
+              <p className="text-[10px] text-muted-foreground">cód. {i.cod_cliente}</p>
+            )}
+          </>
+        ),
+      },
+      { id: "uf", header: "UF", tipo: "text", valor: (i) => i.uf, cell: (i) => i.uf ?? "—" },
+      {
+        id: "cidade",
+        header: "Cidade",
+        tipo: "text",
+        valor: (i) => i.cidade,
+        className: "max-w-[160px] truncate",
+        cell: (i) => i.cidade ?? "—",
+      },
+      {
+        id: "rca",
+        header: "RCA",
+        tipo: "text",
+        valor: (i) => i.rca,
+        className: "max-w-[160px] truncate",
+        cell: (i) => i.rca,
+      },
+      {
+        id: "transportadora",
+        header: "Transportadora",
+        tipo: "text",
+        valor: (i) => i.transportadora,
+        className: "max-w-[180px] truncate",
+        cell: (i) => i.transportadora,
+      },
+      { id: "modal", header: "Modal", tipo: "text", valor: (i) => i.modal, cell: (i) => i.modal },
+      {
+        id: "filial",
+        header: "Filial",
+        tipo: "text",
+        valor: (i) => i.filial,
+        cell: (i) => i.filial,
+      },
+      {
+        id: "dt_pedido",
+        header: "Dt. pedido",
+        tipo: "date",
+        valor: (i) => i.dt_pedido,
+        cell: (i) => dataBr(i.dt_pedido),
+      },
+      {
+        id: "dt_fatur",
+        header: "Dt. fatur.",
+        tipo: "date",
+        valor: (i) => i.dt_fatur,
+        cell: (i) => dataBr(i.dt_fatur),
+      },
+      {
+        id: "dt_saida",
+        header: "Dt. saída",
+        tipo: "date",
+        valor: (i) => i.dt_saida,
+        cell: (i) => dataBr(i.dt_saida),
+      },
+      {
+        id: "dias",
+        header: "Dias",
+        tipo: "number",
+        align: "right",
+        valor: (i) => i.dias,
+        cell: (i) => (
+          <Badge
+            variant={i.dias !== null && i.dias > 10 ? "destructive" : "secondary"}
+            className="text-[10px]"
+          >
+            {i.dias === null ? "—" : `${i.dias}d`}
+          </Badge>
+        ),
+      },
+      { id: "faixa", header: "Faixa", tipo: "text", valor: (i) => i.faixa, cell: (i) => i.faixa },
+      {
+        id: "valor",
+        header: "Valor",
+        tipo: "number",
+        align: "right",
+        valor: (i) => Number(i.valor) || 0,
+        cell: (i) => brl(Number(i.valor) || 0),
+      },
+      {
+        id: "peso",
+        header: "Peso",
+        tipo: "number",
+        align: "right",
+        valor: (i) => Number(i.peso) || 0,
+        cell: (i) => (Number(i.peso) || 0).toFixed(0),
+      },
+      {
+        id: "agendada",
+        header: "Agendada",
+        tipo: "text",
+        valor: (i) => (i.entrega_agend === "S" ? "Sim" : "Não"),
+        cell: (i) =>
+          i.entrega_agend === "S" ? <span className="text-primary">Sim</span> : "—",
+      },
+      {
+        id: "acao",
+        header: "Ação / Responsável / Prazo",
+        tipo: "text",
+        valor: (i) => i.acao?.acao ?? "",
+        className: "min-w-[240px]",
+        cell: (i) => (
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              {i.acao?.acao ? (
+                <p className="truncate">
+                  {i.acao.acao}
+                  {i.acao.responsavel ? ` · ${i.acao.responsavel}` : ""}
+                  {i.acao.prazo ? ` · até ${dataBr(i.acao.prazo)}` : ""}
+                </p>
+              ) : (
+                <p className="text-muted-foreground">Sem ação</p>
+              )}
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 shrink-0 gap-1 px-2 text-xs"
+              onClick={() => {
+                setEditando(i.chave);
+                setForm({
+                  acao: i.acao?.acao ?? "",
+                  responsavel: i.acao?.responsavel ?? "",
+                  prazo: i.acao?.prazo ?? "",
+                });
+              }}
+            >
+              <Pencil className="h-3 w-3" /> Ação
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [],
+  );
+
+  /** Aplica todos os filtros de coluna, opcionalmente ignorando uma coluna. */
   function aplica(lista: Item[], exceto: string) {
-    return lista.filter(
-      (i) =>
-        (exceto === "uf" || !ufs.length || ufs.includes(i.uf ?? "(vazio)")) &&
-        (exceto === "cidade" || !cidades.length || cidades.includes(i.cidade ?? "(vazio)")) &&
-        (exceto === "transp" || !transps.length || transps.includes(i.transportadora)) &&
-        (exceto === "rca" || !rcas.length || rcas.includes(i.rca)) &&
-        (exceto === "modal" || !modais.length || modais.includes(i.modal)) &&
-        (exceto === "faixa" || !faixas.length || faixas.includes(i.faixa)) &&
-        (exceto === "filial" || !filiais.length || filiais.includes(i.filial)),
+    return lista.filter((i) =>
+      colunas.every((c) =>
+        c.id === exceto ? true : combinaFiltro(filtros[c.id], c.valor(i)),
+      ),
     );
   }
 
-  function opcoes(campo: string, get: (i: Item) => string): OpcaoFiltro[] {
-    const map = new Map<string, OpcaoFiltro>();
-    for (const i of aplica(itens, campo)) {
-      const valor = get(i) || "(vazio)";
-      const atual = map.get(valor) ?? { valor, qtd: 0, peso: 0, valorTotal: 0 };
-      atual.qtd += 1;
-      atual.peso += Number(i.peso) || 0;
-      atual.valorTotal += Number(i.valor) || 0;
-      map.set(valor, atual);
+  function opcoes(coluna: Coluna): OpcaoColuna[] {
+    const map = new Map<string, number>();
+    for (const i of aplica(itens, coluna.id)) {
+      const v = coluna.valor(i);
+      const texto = v === null || v === "" ? "(vazio)" : String(v);
+      map.set(texto, (map.get(texto) ?? 0) + 1);
     }
-    return Array.from(map.values()).sort((a, b) => a.valor.localeCompare(b.valor, "pt-BR"));
+    return Array.from(map.entries())
+      .map(([valor, qtd]) => ({ valor, qtd }))
+      .sort((a, b) => a.valor.localeCompare(b.valor, "pt-BR", { numeric: true }));
   }
 
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
-    return aplica(itens, "").filter((i) =>
+    const base = aplica(itens, "").filter((i) =>
       !termo
         ? true
         : [i.nro_nf, i.cod_pedido, i.cliente, i.cidade ?? "", i.transportadora]
@@ -236,8 +411,21 @@ function EntregasAbertasPage() {
             .toLowerCase()
             .includes(termo),
     );
+    if (!sort) return base;
+    const col = colunas.find((c) => c.id === sort.id);
+    if (!col) return base;
+    const mult = sort.dir === "asc" ? 1 : -1;
+    return [...base].sort((a, b) => {
+      const va = col.valor(a);
+      const vb = col.valor(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "number" && typeof vb === "number") return (va - vb) * mult;
+      return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * mult;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itens, busca, ufs, cidades, transps, rcas, modais, faixas, filiais]);
+  }, [itens, busca, filtros, sort, colunas]);
 
   const totais = useMemo(
     () => ({
@@ -248,6 +436,8 @@ function EntregasAbertasPage() {
     }),
     [filtrados],
   );
+
+  const qtdFiltros = contarFiltros(filtros);
 
   const mutSalvar = useMutation({
     mutationFn: async (vars: { nroNf: string; codPedido: string }) =>
@@ -270,6 +460,7 @@ function EntregasAbertasPage() {
   });
 
   const emEdicao = filtrados.find((i) => i.chave === editando);
+  const carregandoTudo = entregasQ.isLoading || carregando;
 
   return (
     <AppShell>
@@ -291,29 +482,41 @@ function EntregasAbertasPage() {
           />
         </div>
 
-        <div className="flex flex-wrap gap-1.5">
-          <MultiFiltro label="Estado" opcoes={opcoes("uf", (i) => i.uf ?? "")} selecionados={ufs} onChange={setUfs} />
-          <MultiFiltro label="Cidade" opcoes={opcoes("cidade", (i) => i.cidade ?? "")} selecionados={cidades} onChange={setCidades} />
-          <MultiFiltro label="Transportadora" opcoes={opcoes("transp", (i) => i.transportadora)} selecionados={transps} onChange={setTransps} />
-          <MultiFiltro label="RCA" opcoes={opcoes("rca", (i) => i.rca)} selecionados={rcas} onChange={setRcas} />
-          <MultiFiltro label="Modal" opcoes={opcoes("modal", (i) => i.modal)} selecionados={modais} onChange={setModais} />
-          <MultiFiltro label="Idade" opcoes={opcoes("faixa", (i) => i.faixa)} selecionados={faixas} onChange={setFaixas} />
-          <MultiFiltro label="Filial" opcoes={opcoes("filial", (i) => i.filial)} selecionados={filiais} onChange={setFiliais} />
+        <div className="flex flex-wrap items-center gap-2">
+          <Card className="flex-1">
+            <CardContent className="flex items-center gap-3 p-3">
+              <PackageSearch className="h-8 w-8 text-primary" />
+              <div>
+                <p className="text-2xl font-semibold leading-none">{totais.nfs}</p>
+                <p className="text-xs text-muted-foreground">
+                  entregas pendentes · {totais.peso.toFixed(0)} kg · {brl(totais.valor)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <div className="flex flex-col gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1 text-xs"
+              disabled={!qtdFiltros}
+              onClick={limparFiltros}
+            >
+              <FilterX className="h-3.5 w-3.5" />
+              Limpar filtros{qtdFiltros ? ` (${qtdFiltros})` : ""}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1 text-xs"
+              onClick={restaurarPadrao}
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Restaurar padrão
+            </Button>
+          </div>
         </div>
 
-        <Card>
-          <CardContent className="flex items-center gap-3 p-3">
-            <PackageSearch className="h-8 w-8 text-primary" />
-            <div>
-              <p className="text-2xl font-semibold leading-none">{totais.nfs}</p>
-              <p className="text-xs text-muted-foreground">
-                entregas pendentes · {totais.peso.toFixed(0)} kg · {brl(totais.valor)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {entregasQ.isLoading && (
+        {carregandoTudo && (
           <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando entregas…
           </div>
@@ -323,35 +526,42 @@ function EntregasAbertasPage() {
             Não foi possível carregar as entregas.
           </p>
         )}
-        {!entregasQ.isLoading && filtrados.length === 0 && (
+        {!carregandoTudo && filtrados.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-12 text-sm text-muted-foreground">
             <PackageSearch className="h-6 w-6" />
             Nenhuma entrega em aberto para os filtros escolhidos.
           </div>
         )}
 
-        {filtrados.length > 0 && (
+        {!carregandoTudo && filtrados.length > 0 && (
           <div className="overflow-x-auto rounded-lg border">
-            <Table className="min-w-[1200px] text-xs">
+            <Table className="min-w-[1400px] text-xs">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="whitespace-nowrap">NF</TableHead>
-                  <TableHead className="whitespace-nowrap">Pedido</TableHead>
-                  <TableHead className="whitespace-nowrap">Cliente</TableHead>
-                  <TableHead className="whitespace-nowrap">UF</TableHead>
-                  <TableHead className="whitespace-nowrap">Cidade</TableHead>
-                  <TableHead className="whitespace-nowrap">RCA</TableHead>
-                  <TableHead className="whitespace-nowrap">Transportadora</TableHead>
-                  <TableHead className="whitespace-nowrap">Modal</TableHead>
-                  <TableHead className="whitespace-nowrap">Dt. pedido</TableHead>
-                  <TableHead className="whitespace-nowrap">Dt. fatur.</TableHead>
-                  <TableHead className="whitespace-nowrap">Dt. saída</TableHead>
-                  <TableHead className="whitespace-nowrap text-right">Dias</TableHead>
-                  <TableHead className="whitespace-nowrap">Faixa</TableHead>
-                  <TableHead className="whitespace-nowrap text-right">Valor</TableHead>
-                  <TableHead className="whitespace-nowrap text-right">Peso</TableHead>
-                  <TableHead className="whitespace-nowrap">Agendada</TableHead>
-                  <TableHead className="whitespace-nowrap">Ação / Responsável / Prazo</TableHead>
+                  {colunas.map((c) => (
+                    <TableHead
+                      key={c.id}
+                      className={`whitespace-nowrap ${c.align === "right" ? "text-right" : ""}`}
+                    >
+                      <span className="inline-flex items-center gap-0.5">
+                        <ColumnFilter
+                          label={c.header}
+                          tipo={c.tipo}
+                          opcoes={c.tipo === "text" ? opcoes(c) : []}
+                          filtro={filtros[c.id]}
+                          onChange={(f) => setFiltro(c.id, f)}
+                          ordem={sort?.id === c.id ? sort.dir : null}
+                          onOrdenar={(dir) => setSort({ id: c.id, dir })}
+                        />
+                        {sort?.id === c.id &&
+                          (sort.dir === "asc" ? (
+                            <ArrowUp className="h-3 w-3 text-primary" />
+                          ) : (
+                            <ArrowDown className="h-3 w-3 text-primary" />
+                          ))}
+                      </span>
+                    </TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -359,71 +569,16 @@ function EntregasAbertasPage() {
                   const atrasada = i.dias !== null && i.dias > 10;
                   return (
                     <TableRow key={i.chave} className={atrasada ? "bg-destructive/5" : undefined}>
-                      <TableCell className="whitespace-nowrap font-medium">{i.nro_nf}</TableCell>
-                      <TableCell className="whitespace-nowrap">{i.cod_pedido}</TableCell>
-                      <TableCell className="max-w-[220px]">
-                        <p className="truncate font-medium">{i.cliente}</p>
-                        {i.cod_cliente && (
-                          <p className="text-[10px] text-muted-foreground">cód. {i.cod_cliente}</p>
-                        )}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">{i.uf ?? "—"}</TableCell>
-                      <TableCell className="max-w-[160px] truncate">{i.cidade ?? "—"}</TableCell>
-                      <TableCell className="max-w-[160px] truncate">{i.rca}</TableCell>
-                      <TableCell className="max-w-[180px] truncate">{i.transportadora}</TableCell>
-                      <TableCell className="whitespace-nowrap">{i.modal}</TableCell>
-                      <TableCell className="whitespace-nowrap">{dataBr(i.dt_pedido)}</TableCell>
-                      <TableCell className="whitespace-nowrap">{dataBr(i.dt_fatur)}</TableCell>
-                      <TableCell className="whitespace-nowrap">{dataBr(i.dt_saida)}</TableCell>
-                      <TableCell className="whitespace-nowrap text-right">
-                        <Badge variant={atrasada ? "destructive" : "secondary"} className="text-[10px]">
-                          {i.dias === null ? "—" : `${i.dias}d`}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">{i.faixa}</TableCell>
-                      <TableCell className="whitespace-nowrap text-right">
-                        {brl(Number(i.valor) || 0)}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-right">
-                        {(Number(i.peso) || 0).toFixed(0)}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {i.entrega_agend === "S" ? (
-                          <span className="text-primary">Sim</span>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                      <TableCell className="min-w-[220px]">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            {i.acao?.acao ? (
-                              <p className="truncate">
-                                {i.acao.acao}
-                                {i.acao.responsavel ? ` · ${i.acao.responsavel}` : ""}
-                                {i.acao.prazo ? ` · até ${dataBr(i.acao.prazo)}` : ""}
-                              </p>
-                            ) : (
-                              <p className="text-muted-foreground">Sem ação</p>
-                            )}
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 shrink-0 gap-1 px-2 text-xs"
-                            onClick={() => {
-                              setEditando(i.chave);
-                              setForm({
-                                acao: i.acao?.acao ?? "",
-                                responsavel: i.acao?.responsavel ?? "",
-                                prazo: i.acao?.prazo ?? "",
-                              });
-                            }}
-                          >
-                            <Pencil className="h-3 w-3" /> Ação
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {colunas.map((c) => (
+                        <TableCell
+                          key={c.id}
+                          className={`${c.align === "right" ? "text-right " : ""}${
+                            c.className ?? "whitespace-nowrap"
+                          }`}
+                        >
+                          {c.cell(i)}
+                        </TableCell>
+                      ))}
                     </TableRow>
                   );
                 })}
