@@ -69,6 +69,13 @@ export function useColumnFilterPrefs(tableKey: string, defaultSort: SortPref = n
     });
   }
 
+  /** Aplica de uma vez um conjunto salvo de filtros + ordenação. */
+  function aplicarConjunto(next: { columnFilters: ColumnFilters; sort: SortPref }) {
+    setFiltrosState(next.columnFilters ?? {});
+    setSortState(next.sort ?? null);
+    persistir({ columnFilters: next.columnFilters ?? {}, sort: next.sort ?? null });
+  }
+
   function setSort(next: SortPref) {
     setSortState(next);
     persistir({ columnFilters: filtros, sort: next });

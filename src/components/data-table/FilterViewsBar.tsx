@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -106,17 +106,6 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
   function abrirCompartilhar(id: string, nomeVisao: string) {
     setSelecionados([]);
     setCompartilhando({ id, nome: nomeVisao });
-  }
-
-  // Sincroniza as caixas quando os dados chegam.
-  if (
-    compartilhando &&
-    sharesQ.data &&
-    selecionados.length === 0 &&
-    sharesQ.data.selecionados.length > 0 &&
-    !gravarShares.isPending
-  ) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
   }
 
   return (
@@ -290,6 +279,12 @@ function SharesPicker({
 }) {
   const [sel, setSel] = useState<string[]>(iniciais);
   const [busca, setBusca] = useState("");
+
+  useEffect(() => {
+    setSel(iniciais);
+    onChange(iniciais);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [iniciais.join(",")]);
 
   function alternar(id: string) {
     const next = sel.includes(id) ? sel.filter((s) => s !== id) : [...sel, id];
