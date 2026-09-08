@@ -601,13 +601,16 @@ function EntregasAbertasPage() {
 
         {!carregandoTudo && filtrados.length > 0 && (
           <div className="relative max-h-[calc(100dvh-320px)] sm:max-h-[calc(100dvh-280px)] overflow-auto rounded-lg border">
-            <Table className="min-w-[1400px] text-xs border-separate border-spacing-0">
-              <TableHeader>
+            <Table
+              wrapperClassName="overflow-visible"
+              className="min-w-[1400px] text-xs border-separate border-spacing-0"
+            >
+              <TableHeader className="sticky top-0 z-30 bg-card shadow-sm">
                 <TableRow>
                   {colunas.map((c) => (
                     <TableHead
                       key={c.id}
-                      className={`sticky top-0 z-20 bg-card whitespace-nowrap shadow-sm border-b ${c.align === "right" ? "text-right" : ""}`}
+                      className={`bg-card whitespace-nowrap border-b ${c.align === "right" ? "text-right" : ""}`}
                     >
                       <span className="inline-flex items-center gap-0.5">
                         <ColumnFilter
