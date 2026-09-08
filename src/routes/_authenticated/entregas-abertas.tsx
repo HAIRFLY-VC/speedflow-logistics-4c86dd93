@@ -600,7 +600,7 @@ function EntregasAbertasPage() {
         )}
 
         {!carregandoTudo && filtrados.length > 0 && (
-          <div className="overflow-x-auto rounded-lg border">
+          <div className="relative max-h-[calc(100dvh-320px)] sm:max-h-[calc(100dvh-280px)] overflow-auto rounded-lg border">
             <Table className="min-w-[1400px] text-xs border-separate border-spacing-0">
               <TableHeader>
                 <TableRow>
