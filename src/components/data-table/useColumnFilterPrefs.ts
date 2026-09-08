@@ -93,6 +93,7 @@ export function useColumnFilterPrefs(tableKey: string, defaultSort: SortPref = n
     filtros,
     sort,
     setFiltro,
+    aplicarConjunto,
     limparFiltros,
     setSort,
     restaurarPadrao: () => resetar.mutate(),
