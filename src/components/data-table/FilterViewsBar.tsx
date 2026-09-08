@@ -243,10 +243,8 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
               <DropdownMenuItem
                 key={v.id}
                 className="text-xs"
-                onSelect={() => {
-                  onAplicar(v.definition);
-                  setAplicada(v.name);
-                }}
+                onSelect={() => aplicarVisao(v)}
+
               >
                 <Users className="mr-2 h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">
