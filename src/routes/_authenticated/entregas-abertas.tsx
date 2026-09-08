@@ -648,61 +648,63 @@ function EntregasAbertasPage() {
         {!carregandoTudo && filtrados.length > 0 && (
           <div
             ref={gridRef}
-            className="sticky top-0 overflow-auto rounded-lg border"
+            className="sticky top-0 rounded-lg border bg-background"
             style={{ height: alturaGrid ? `${alturaGrid}px` : "calc(100dvh - 112px)" }}
           >
-            <Table
-              wrapperClassName="overflow-visible"
-              className="min-w-[1400px] text-xs border-separate border-spacing-0"
-            >
-              <TableHeader className="sticky top-0 z-30 bg-card shadow-sm">
-                <TableRow>
-                  {colunas.map((c) => (
-                    <TableHead
-                      key={c.id}
-                      className={`bg-card whitespace-nowrap border-b ${c.align === "right" ? "text-right" : ""}`}
-                    >
-                      <span className="inline-flex items-center gap-0.5">
-                        <ColumnFilter
-                          label={c.header}
-                          tipo={c.tipo}
-                          opcoes={c.tipo === "text" ? opcoes(c) : []}
-                          filtro={filtros[c.id]}
-                          onChange={(f) => setFiltro(c.id, f)}
-                          ordem={sort?.id === c.id ? sort.dir : null}
-                          onOrdenar={(dir) => setSort({ id: c.id, dir })}
-                        />
-                        {sort?.id === c.id &&
-                          (sort.dir === "asc" ? (
-                            <ArrowUp className="h-3 w-3 text-primary" />
-                          ) : (
-                            <ArrowDown className="h-3 w-3 text-primary" />
-                          ))}
-                      </span>
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtrados.map((i) => {
-                  const atrasada = i.dias !== null && i.dias > 10;
-                  return (
-                    <TableRow key={i.chave} className={atrasada ? "bg-destructive/5" : undefined}>
-                      {colunas.map((c) => (
-                        <TableCell
-                          key={c.id}
-                          className={`${c.align === "right" ? "text-right " : ""}${
-                            c.className ?? "whitespace-nowrap"
-                          }`}
-                        >
-                          {c.cell(i)}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <div className="h-full overflow-auto rounded-[inherit]">
+              <Table
+                wrapperClassName="overflow-visible"
+                className="min-w-[1400px] text-xs border-separate border-spacing-0"
+              >
+                <TableHeader className="sticky top-0 z-30 bg-card shadow-sm">
+                  <TableRow>
+                    {colunas.map((c) => (
+                      <TableHead
+                        key={c.id}
+                        className={`bg-card whitespace-nowrap border-b ${c.align === "right" ? "text-right" : ""}`}
+                      >
+                        <span className="inline-flex items-center gap-0.5">
+                          <ColumnFilter
+                            label={c.header}
+                            tipo={c.tipo}
+                            opcoes={c.tipo === "text" ? opcoes(c) : []}
+                            filtro={filtros[c.id]}
+                            onChange={(f) => setFiltro(c.id, f)}
+                            ordem={sort?.id === c.id ? sort.dir : null}
+                            onOrdenar={(dir) => setSort({ id: c.id, dir })}
+                          />
+                          {sort?.id === c.id &&
+                            (sort.dir === "asc" ? (
+                              <ArrowUp className="h-3 w-3 text-primary" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3 text-primary" />
+                            ))}
+                        </span>
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtrados.map((i) => {
+                    const atrasada = i.dias !== null && i.dias > 10;
+                    return (
+                      <TableRow key={i.chave} className={atrasada ? "bg-destructive/5" : undefined}>
+                        {colunas.map((c) => (
+                          <TableCell
+                            key={c.id}
+                            className={`${c.align === "right" ? "text-right " : ""}${
+                              c.className ?? "whitespace-nowrap"
+                            }`}
+                          >
+                            {c.cell(i)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
       </div>
