@@ -142,6 +142,9 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
     enabled: !!compartilhando,
   });
 
+  const gravarShares = useMutation({
+    mutationFn: () =>
+      setSharesFn({ data: { id: compartilhando!.id, userIds: selecionados } }),
     onSuccess: () => {
       toast.success("Compartilhamento atualizado");
       setCompartilhando(null);
