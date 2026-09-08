@@ -122,6 +122,7 @@ function EntregasAbertasPage() {
   const [editando, setEditando] = useState<string | null>(null);
   const [form, setForm] = useState({ acao: "", responsavel: "", prazo: "" });
   const [alturaGrid, setAlturaGrid] = useState<number | null>(null);
+  const [deslocamentoGrid, setDeslocamentoGrid] = useState(0);
   const gridRef = useRef<HTMLDivElement>(null);
   const totalizadorRef = useRef<HTMLDivElement>(null);
 
@@ -517,41 +518,55 @@ function EntregasAbertasPage() {
     if (!grid || filtrados.length === 0) return;
 
     const areaPrincipal = grid.closest("main");
+    if (!areaPrincipal) return;
     let frame = 0;
+    let topoOriginal = grid.getBoundingClientRect().top - areaPrincipal.getBoundingClientRect().top;
 
-    const ajustarAltura = () => {
+    const ajustarGrid = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const topoGrid = grid.getBoundingClientRect().top;
+        const topoAreaPrincipal = areaPrincipal.getBoundingClientRect().top;
         const alturaTotalizador = totalizadorRef.current?.getBoundingClientRect().height ?? 0;
         const margemInferior = 8;
         const alturaDisponivel = Math.max(
           220,
-          Math.floor(window.innerHeight - topoGrid - alturaTotalizador - margemInferior),
+          Math.floor(
+            window.innerHeight -
+              topoAreaPrincipal -
+              alturaTotalizador -
+              margemInferior,
+          ),
         );
         setAlturaGrid((atual) => (atual === alturaDisponivel ? atual : alturaDisponivel));
+        setDeslocamentoGrid(Math.max(0, areaPrincipal.scrollTop - topoOriginal));
       });
     };
 
-    ajustarAltura();
-    window.addEventListener("resize", ajustarAltura);
-    window.addEventListener("orientationchange", ajustarAltura);
-    areaPrincipal?.addEventListener("scroll", ajustarAltura, { passive: true });
+    const ajustarMedidas = () => {
+      topoOriginal = grid.getBoundingClientRect().top - areaPrincipal.getBoundingClientRect().top + areaPrincipal.scrollTop;
+      ajustarGrid();
+    };
 
-    const observador = new ResizeObserver(ajustarAltura);
+    ajustarMedidas();
+    window.addEventListener("resize", ajustarMedidas);
+    window.addEventListener("orientationchange", ajustarMedidas);
+    areaPrincipal.addEventListener("scroll", ajustarGrid, { passive: true });
+
+    const observador = new ResizeObserver(ajustarMedidas);
     if (totalizadorRef.current) observador.observe(totalizadorRef.current);
+    observador.observe(areaPrincipal);
 
     return () => {
       cancelAnimationFrame(frame);
-      window.removeEventListener("resize", ajustarAltura);
-      window.removeEventListener("orientationchange", ajustarAltura);
-      areaPrincipal?.removeEventListener("scroll", ajustarAltura);
+      window.removeEventListener("resize", ajustarMedidas);
+      window.removeEventListener("orientationchange", ajustarMedidas);
+      areaPrincipal.removeEventListener("scroll", ajustarGrid);
       observador.disconnect();
     };
   }, [filtrados.length, carregandoTudo]);
 
   return (
-    <AppShell>
+    <AppShell constrainViewport>
       <div className="space-y-3 pb-28">
         <div>
           <h1 className="text-xl font-semibold">Entregas em aberto</h1>
@@ -643,61 +658,66 @@ function EntregasAbertasPage() {
         {!carregandoTudo && filtrados.length > 0 && (
           <div
             ref={gridRef}
-            className="relative overflow-auto rounded-lg border"
-            style={{ maxHeight: alturaGrid ? `${alturaGrid}px` : "calc(100dvh - 280px)" }}
+            className="relative rounded-lg border bg-background"
+            style={{
+              height: alturaGrid ? `${alturaGrid}px` : "calc(100dvh - 112px)",
+              transform: deslocamentoGrid ? `translateY(${deslocamentoGrid}px)` : undefined,
+            }}
           >
-            <Table
-              wrapperClassName="overflow-visible"
-              className="min-w-[1400px] text-xs border-separate border-spacing-0"
-            >
-              <TableHeader className="sticky top-0 z-30 bg-card shadow-sm">
-                <TableRow>
-                  {colunas.map((c) => (
-                    <TableHead
-                      key={c.id}
-                      className={`bg-card whitespace-nowrap border-b ${c.align === "right" ? "text-right" : ""}`}
-                    >
-                      <span className="inline-flex items-center gap-0.5">
-                        <ColumnFilter
-                          label={c.header}
-                          tipo={c.tipo}
-                          opcoes={c.tipo === "text" ? opcoes(c) : []}
-                          filtro={filtros[c.id]}
-                          onChange={(f) => setFiltro(c.id, f)}
-                          ordem={sort?.id === c.id ? sort.dir : null}
-                          onOrdenar={(dir) => setSort({ id: c.id, dir })}
-                        />
-                        {sort?.id === c.id &&
-                          (sort.dir === "asc" ? (
-                            <ArrowUp className="h-3 w-3 text-primary" />
-                          ) : (
-                            <ArrowDown className="h-3 w-3 text-primary" />
-                          ))}
-                      </span>
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtrados.map((i) => {
-                  const atrasada = i.dias !== null && i.dias > 10;
-                  return (
-                    <TableRow key={i.chave} className={atrasada ? "bg-destructive/5" : undefined}>
-                      {colunas.map((c) => (
-                        <TableCell
-                          key={c.id}
-                          className={`${c.align === "right" ? "text-right " : ""}${
-                            c.className ?? "whitespace-nowrap"
-                          }`}
-                        >
-                          {c.cell(i)}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <div className="h-full overflow-auto rounded-[inherit]">
+              <Table
+                wrapperClassName="overflow-visible"
+                className="min-w-[1400px] text-xs border-separate border-spacing-0"
+              >
+                <TableHeader className="sticky top-0 z-30 bg-card shadow-sm">
+                  <TableRow>
+                    {colunas.map((c) => (
+                      <TableHead
+                        key={c.id}
+                        className={`bg-card whitespace-nowrap border-b ${c.align === "right" ? "text-right" : ""}`}
+                      >
+                        <span className="inline-flex items-center gap-0.5">
+                          <ColumnFilter
+                            label={c.header}
+                            tipo={c.tipo}
+                            opcoes={c.tipo === "text" ? opcoes(c) : []}
+                            filtro={filtros[c.id]}
+                            onChange={(f) => setFiltro(c.id, f)}
+                            ordem={sort?.id === c.id ? sort.dir : null}
+                            onOrdenar={(dir) => setSort({ id: c.id, dir })}
+                          />
+                          {sort?.id === c.id &&
+                            (sort.dir === "asc" ? (
+                              <ArrowUp className="h-3 w-3 text-primary" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3 text-primary" />
+                            ))}
+                        </span>
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtrados.map((i) => {
+                    const atrasada = i.dias !== null && i.dias > 10;
+                    return (
+                      <TableRow key={i.chave} className={atrasada ? "bg-destructive/5" : undefined}>
+                        {colunas.map((c) => (
+                          <TableCell
+                            key={c.id}
+                            className={`${c.align === "right" ? "text-right " : ""}${
+                              c.className ?? "whitespace-nowrap"
+                            }`}
+                          >
+                            {c.cell(i)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
       </div>
