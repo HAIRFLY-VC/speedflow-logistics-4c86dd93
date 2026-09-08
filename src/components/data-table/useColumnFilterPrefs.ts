@@ -113,8 +113,14 @@ export function useColumnFilterPrefs(tableKey: string, defaultSort: SortPref = n
 
   function setColunasVisiveis(next: string[] | null) {
     setColunasVisiveisState(next);
-    persistir({ columnFilters: filtros, sort, visibleColumns: next });
+    persistir({ columnFilters: filtros, sort, visibleColumns: next, columnOrder: ordemColunas });
   }
+
+  function setOrdemColunas(next: string[] | null) {
+    setOrdemColunasState(next);
+    persistir({ columnFilters: filtros, sort, visibleColumns: colunasVisiveis, columnOrder: next });
+  }
+
 
   const resetar = useMutation({
     mutationFn: () => resetFn({ data: { tableKey } }),
