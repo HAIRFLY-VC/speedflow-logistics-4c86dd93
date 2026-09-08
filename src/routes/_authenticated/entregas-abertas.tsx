@@ -600,14 +600,14 @@ function EntregasAbertasPage() {
         )}
 
         {!carregandoTudo && filtrados.length > 0 && (
-          <div className="overflow-x-auto rounded-lg border">
+          <div className="relative max-h-[calc(100dvh-320px)] sm:max-h-[calc(100dvh-280px)] overflow-auto rounded-lg border">
             <Table className="min-w-[1400px] text-xs border-separate border-spacing-0">
               <TableHeader>
                 <TableRow>
                   {colunas.map((c) => (
                     <TableHead
                       key={c.id}
-                      className={`sticky top-0 z-10 bg-card whitespace-nowrap shadow-sm ${c.align === "right" ? "text-right" : ""}`}
+                      className={`sticky top-0 z-20 bg-card whitespace-nowrap shadow-sm border-b ${c.align === "right" ? "text-right" : ""}`}
                     >
                       <span className="inline-flex items-center gap-0.5">
                         <ColumnFilter
