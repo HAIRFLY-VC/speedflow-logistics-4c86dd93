@@ -78,7 +78,13 @@ const NAV: NavItem[] = [
   { title: "Captura de CT-e", url: "/captura-cte", icon: ShieldCheck, roles: ["adm"] },
 ];
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  constrainViewport = false,
+}: {
+  children: ReactNode;
+  constrainViewport?: boolean;
+}) {
   const loadPref = useServerFn(getSidebarPref);
   const savePref = useServerFn(saveSidebarPref);
   const [open, setOpen] = useState(true);
@@ -108,7 +114,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider open={open} onOpenChange={handleOpenChange}>
-      <div className="min-h-dvh flex w-full bg-background">
+      <div
+        className={`${constrainViewport ? "h-dvh overflow-hidden" : "min-h-dvh"} flex w-full bg-background`}
+      >
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-14 border-b flex items-center justify-between px-2 sm:px-3 gap-2 bg-card sticky top-0 z-10">

@@ -524,9 +524,6 @@ function EntregasAbertasPage() {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const topoAreaPrincipal = areaPrincipal.getBoundingClientRect().top;
-        const espacamentoSuperior = Number.parseFloat(
-          window.getComputedStyle(areaPrincipal).paddingTop,
-        );
         const alturaTotalizador = totalizadorRef.current?.getBoundingClientRect().height ?? 0;
         const margemInferior = 8;
         const alturaDisponivel = Math.max(
@@ -534,7 +531,6 @@ function EntregasAbertasPage() {
           Math.floor(
             window.innerHeight -
               topoAreaPrincipal -
-              espacamentoSuperior -
               alturaTotalizador -
               margemInferior,
           ),
@@ -560,8 +556,8 @@ function EntregasAbertasPage() {
   }, [filtrados.length, carregandoTudo]);
 
   return (
-    <AppShell>
-      <div className="space-y-3 pb-12">
+    <AppShell constrainViewport>
+      <div className="space-y-3 pb-28">
         <div>
           <h1 className="text-xl font-semibold">Entregas em aberto</h1>
           <p className="text-xs text-muted-foreground">
@@ -652,7 +648,7 @@ function EntregasAbertasPage() {
         {!carregandoTudo && filtrados.length > 0 && (
           <div
             ref={gridRef}
-            className="relative overflow-auto rounded-lg border"
+            className="sticky top-0 overflow-auto rounded-lg border"
             style={{ height: alturaGrid ? `${alturaGrid}px` : "calc(100dvh - 112px)" }}
           >
             <Table
