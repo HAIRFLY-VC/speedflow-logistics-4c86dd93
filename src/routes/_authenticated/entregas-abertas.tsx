@@ -12,6 +12,7 @@ import {
   Pencil,
   RotateCcw,
   Search,
+  Settings2,
   FileSpreadsheet,
 } from "lucide-react";
 
@@ -28,6 +29,12 @@ import { exportarXlsx, nomeArquivoComData } from "@/components/data-table/export
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
