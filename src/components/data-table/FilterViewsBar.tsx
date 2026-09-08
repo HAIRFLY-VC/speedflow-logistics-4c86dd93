@@ -61,6 +61,8 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
 
   const [salvarAberto, setSalvarAberto] = useState(false);
   const [nome, setNome] = useState("");
+  const [renomeando, setRenomeando] = useState<{ id: string; nome: string } | null>(null);
+  const [novoNome, setNovoNome] = useState("");
   const [compartilhando, setCompartilhando] = useState<{ id: string; nome: string } | null>(null);
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [aplicada, setAplicada] = useState<string | null>(null);
@@ -88,6 +90,30 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
       toast.error(e instanceof Error ? e.message : "Não foi possível salvar"),
   });
 
+  /** Regrava uma visão existente com os filtros/colunas atuais da tela. */
+  const atualizar = useMutation({
+    mutationFn: (v: { id: string; name: string }) =>
+      saveFn({ data: { id: v.id, tableKey, name: v.name, definition: definicaoAtual } }),
+    onSuccess: (_d, v) => {
+      toast.success(`“${v.name}” atualizada com os filtros e colunas atuais`);
+      void qc.invalidateQueries({ queryKey: ["filter-views", tableKey] });
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Não foi possível atualizar"),
+  });
+
+  const renomear = useMutation({
+    mutationFn: (v: { id: string; name: string; definition: FilterViewDefinition }) =>
+      saveFn({ data: { id: v.id, tableKey, name: v.name, definition: v.definition } }),
+    onSuccess: () => {
+      toast.success("Visão renomeada");
+      setRenomeando(null);
+      void qc.invalidateQueries({ queryKey: ["filter-views", tableKey] });
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Não foi possível renomear"),
+  });
+
   const excluir = useMutation({
     mutationFn: (id: string) => delFn({ data: { id } }),
     onSuccess: () => {
@@ -98,15 +124,24 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
       toast.error(e instanceof Error ? e.message : "Não foi possível excluir"),
   });
 
+  function aplicarVisao(v: FilterView) {
+    onAplicar(v.definition);
+    setAplicada(v.name);
+    const semColunas =
+      !Array.isArray(v.definition?.columnOrder) && !Array.isArray(v.definition?.visibleColumns);
+    if (semColunas) {
+      toast.info(
+        `“${v.name}” guarda apenas os filtros. Ajuste as colunas e use “Atualizar” para gravá-las nessa visão.`,
+      );
+    }
+  }
+
   const sharesQ = useQuery({
     queryKey: ["filter-view-shares", compartilhando?.id],
     queryFn: () => sharesFn({ data: { id: compartilhando!.id } }),
     enabled: !!compartilhando,
   });
 
-  const gravarShares = useMutation({
-    mutationFn: () =>
-      setSharesFn({ data: { id: compartilhando!.id, userIds: selecionados } }),
     onSuccess: () => {
       toast.success("Compartilhamento atualizado");
       setCompartilhando(null);
