@@ -7,6 +7,8 @@ export type TablePreferences = {
   filters?: Record<string, string[]>;
   /** Ids das colunas visíveis (null/ausente = padrão da tela). */
   visibleColumns?: string[] | null;
+  /** Ordem completa das colunas escolhida pelo usuário. */
+  columnOrder?: string[] | null;
   /** Filtros por coluna no estilo Excel (texto/número/data). */
   columnFilters?: Record<
     string,
