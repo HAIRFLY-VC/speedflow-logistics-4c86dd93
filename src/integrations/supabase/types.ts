@@ -1627,6 +1627,65 @@ export type Database = {
           },
         ]
       }
+      table_filter_view_shares: {
+        Row: {
+          created_at: string
+          id: string
+          shared_with: string
+          view_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          shared_with: string
+          view_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          shared_with?: string
+          view_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_filter_view_shares_view_id_fkey"
+            columns: ["view_id"]
+            isOneToOne: false
+            referencedRelation: "table_filter_views"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      table_filter_views: {
+        Row: {
+          created_at: string
+          definition: Json
+          id: string
+          name: string
+          owner_id: string
+          table_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          definition?: Json
+          id?: string
+          name: string
+          owner_id: string
+          table_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          definition?: Json
+          id?: string
+          name?: string
+          owner_id?: string
+          table_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transportadoras: {
         Row: {
           agencia: string | null
