@@ -1775,10 +1775,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      filter_view_shared_with: {
-        Args: { _user_id: string; _view_id: string }
-        Returns: boolean
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1787,10 +1783,6 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
-      owns_filter_view: {
-        Args: { _user_id: string; _view_id: string }
-        Returns: boolean
-      }
       pode_autorizar_frete: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
