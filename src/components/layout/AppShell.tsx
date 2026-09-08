@@ -17,6 +17,7 @@ import {
   Menu,
   Wand2,
   MapPinned,
+  PackageSearch,
   ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
@@ -67,6 +68,7 @@ const NAV: NavItem[] = [
 
   { title: "Rotas", url: "/rotas", icon: RouteIcon, roles: ["adm", "gestor", "operador"] },
   { title: "Pedidos sem rota", url: "/pedidos-sem-rota", icon: MapPinned, roles: ["adm", "gestor", "operador"] },
+  { title: "Entregas em aberto", url: "/entregas-abertas", icon: PackageSearch, roles: ["adm", "gestor", "operador"] },
   { title: "Sugestão de rotas", url: "/sugestao-rotas", icon: Wand2, roles: ["adm", "gestor", "operador"] },
   { title: "Minhas Rotas", url: "/minhas-rotas", icon: RouteIcon, roles: ["fretista"] },
   { title: "Borderôs", url: "/borderos", icon: FileText, roles: ["adm", "gestor", "operador"] },
