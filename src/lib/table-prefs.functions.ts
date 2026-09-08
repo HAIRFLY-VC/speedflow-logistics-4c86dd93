@@ -6,7 +6,16 @@ export type TablePreferences = {
   sort?: { id: string; dir: "asc" | "desc" } | null;
   filters?: Record<string, string[]>;
   /** Filtros por coluna no estilo Excel (texto/número/data). */
-  columnFilters?: Record<string, unknown>;
+  columnFilters?: Record<
+    string,
+    {
+      type: "text" | "number" | "date";
+      values?: string[];
+      op?: string;
+      value?: string | number | null;
+      value2?: string | number | null;
+    }
+  >;
 };
 
 export const getTablePrefs = createServerFn({ method: "GET" })
