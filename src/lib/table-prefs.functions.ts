@@ -5,6 +5,8 @@ export type TablePreferences = {
   columns?: Array<{ id: string; visible: boolean; order: number }>;
   sort?: { id: string; dir: "asc" | "desc" } | null;
   filters?: Record<string, string[]>;
+  /** Ids das colunas visíveis (null/ausente = padrão da tela). */
+  visibleColumns?: string[] | null;
   /** Filtros por coluna no estilo Excel (texto/número/data). */
   columnFilters?: Record<
     string,
