@@ -266,6 +266,38 @@ export function FilterViewsBar({ tableKey, definicaoAtual, onAplicar }: Props) {
         </Button>
       </div>
 
+      <Dialog
+        open={!!renomeando}
+        onOpenChange={(o) => {
+          if (!o) setRenomeando(null);
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base">Renomear visão</DialogTitle>
+          </DialogHeader>
+          <Input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} />
+          <DialogFooter>
+            <Button
+              className="w-full"
+              disabled={!novoNome.trim() || renomear.isPending}
+              onClick={() => {
+                const atual = todas.find((v) => v.id === renomeando?.id);
+                renomear.mutate({
+                  id: renomeando!.id,
+                  name: novoNome,
+                  definition: atual?.definition ?? {},
+                });
+              }}
+            >
+              {renomear.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       <Dialog open={salvarAberto} onOpenChange={setSalvarAberto}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
