@@ -135,6 +135,8 @@ function EntregasAbertasPage() {
   const {
     filtros,
     sort,
+    colunasVisiveis,
+    setColunasVisiveis,
     setFiltro,
     aplicarConjunto,
     limparFiltros,
