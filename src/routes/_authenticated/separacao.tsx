@@ -359,7 +359,7 @@ function SeparacaoPage() {
           </p>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <Indicador
                 titulo="Na fila"
                 valor={num(fila.length)}
@@ -384,12 +384,6 @@ function SeparacaoPage() {
                 titulo="Tempo médio de separação"
                 valor={dur(tSep)}
                 detalhe="inclusão → fim da separação"
-                icone={Clock}
-              />
-              <Indicador
-                titulo="Fila acima de 24h"
-                valor={num(envelhecimento[3]?.pedidos ?? 0)}
-                detalhe="pedidos parados há mais de um dia"
                 icone={Clock}
               />
             </div>
