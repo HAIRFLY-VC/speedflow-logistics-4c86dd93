@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Clock, Boxes, Loader2, PackageCheck, RefreshCw, Timer, Users } from "lucide-react";
+import { Clock, Boxes, Loader2, PackageCheck, RefreshCw, Timer } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { Badge } from "@/components/ui/badge";
@@ -176,8 +176,7 @@ function SeparacaoPage() {
   const periodo = useMemo(() => filtra(periodoTodos), [periodoTodos, separadores]);
   const abertos = useMemo(() => filtra(abertosTodos), [abertosTodos, separadores]);
 
-  // Em aberto = sem fim de separação. Fila = sem início; em andamento = com
-  // início e sem fim.
+  // Fila = em aberto (sem fim de separação) e ainda sem início de separação.
   const emAndamentoOuFila = abertos.filter((r) => !temData(r.dt_fim_sep));
   const fila = emAndamentoOuFila.filter((r) => !temData(r.dt_ini_sep));
 
@@ -380,7 +379,7 @@ function SeparacaoPage() {
               <Indicador
                 titulo="Caixas por hora"
                 valor={cxHora != null ? num(cxHora) : "—"}
-                detalhe="produtividade média da equipe"
+                detalhe="caixas ÷ horas entre inclusão e fim da separação"
                 icone={Boxes}
               />
               <Indicador titulo="Tempo médio de espera" valor={dur(tEspera)} detalhe="liberação → início" icone={Timer} />
