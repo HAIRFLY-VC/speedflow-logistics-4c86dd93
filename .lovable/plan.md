@@ -1,42 +1,29 @@
-# Corrigir o card "Caixas por hora"
+# Separacao: ajustar cards do painel
 
-## Problema
+## Mudancas pedidas
 
-Hoje o card divide o total de caixas pela soma das durações de cada pedido
-(início até fim da separação). No ERP a maioria dos pedidos tem início e fim
-gravados praticamente no mesmo instante, então essa soma dá zero e o card fica
-sem informação ("—"), mesmo havendo pedidos separados.
+1. Remover o card **Em separacao agora** do painel.
+2. O card **Caixas por hora** passa a ser calculado entre a inclusao do pedido
+   (`dt_inc`) e o fim da separacao (`dt_fim_sep`): para cada pedido concluido
+   no periodo, soma-se o tempo de `dt_inc` ate `dt_fim_sep` e divide-se o
+   total de caixas por esse tempo acumulado.
 
-## Como passa a calcular
+## Como fica
 
-Produtividade por tempo real de trabalho da equipe, não por duração de pedido:
+- O bloco de cards perde "Em separacao agora"; o card "Na fila" permanece.
+- Caixas por hora = total de caixas do periodo ÷ soma das horas
+  `dt_inc -> dt_fim_sep` dos pedidos concluidos no periodo. Pedidos sem
+  `dt_inc` ou sem `dt_fim_sep` nao entram na soma de horas.
+- Se nao houver horas apuraveis, o card mostra "—".
+- A mesma base (`dt_inc -> dt_fim_sep`) passa a valer na coluna de caixas/hora
+  da tabela por separador, para manter coerencia.
 
-1. Para cada separador, considerar os pedidos concluídos no período.
-2. Calcular a janela de trabalho desse separador: do primeiro horário
-   (início ou, se ausente, fim de separação) até o último fim de separação.
-3. Somar as janelas de todos os separadores = horas de equipe no período.
-4. Caixas por hora = total de caixas ÷ horas de equipe.
-
-Se um separador tiver apenas um pedido (janela zero), aplica-se um piso mínimo
-por pedido para não dividir por zero.
-
-Fallbacks:
-- Sem horas de equipe apuráveis mas com caixas e pedidos no período, o card
-  mostra a média de caixas por pedido como detalhe, deixando claro que é outra
-  base de cálculo.
-- Sem pedidos no período, continua exibindo "—".
-
-O detalhe abaixo do número passa a indicar a base usada, por exemplo
-"1.240 caixas em 6h30 de equipe".
-
-A mesma regra de janela é aplicada à coluna de caixas/hora por separador, para
-que a tabela fique coerente com o card.
-
-## Detalhes técnicos
+## Detalhes tecnicos
 
 - Arquivo: `src/routes/_authenticated/separacao.tsx`.
-- Substituir `horasTrabalhadas` (soma de `horas(dt_ini_sep, dt_fim_sep)`) por
-  uma função que agrupa por separador e soma `max(dt_fim_sep) - min(dt_ini_sep
-  ?? dt_fim_sep)`, com piso de 1 minuto por pedido.
-- Reutilizar a mesma função no agregado por separador (campo `cxHora`).
-- Nenhuma mudança na consulta ao ERP nem em `separacao.functions.ts`.
+- Remover o card/constante `andamento` usada apenas nele (manter `fila`).
+- Trocar `horasTrabalhadas` para somar `horas(r.dt_inc, r.dt_fim_sep)`.
+- No agregado por separador, trocar `horas(r.dt_ini_sep, r.dt_fim_sep)` por
+  `horas(r.dt_inc, r.dt_fim_sep)` no calculo de `cxHora`.
+- O KPI "Em separacao agora" e o detalhe de separadores ativos somem com o
+  card; nenhuma mudanca na consulta ao ERP.
