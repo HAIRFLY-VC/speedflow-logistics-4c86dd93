@@ -140,6 +140,8 @@ function SeparacaoPage() {
     queryKey: ["separacao", inicio, fim],
     queryFn: () => carregar({ data: { inicio: `${inicio}T00:00:00`, fim: `${fim}T23:59:59` } }),
     staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
   });
 
   const atualizadoEm = q.dataUpdatedAt
