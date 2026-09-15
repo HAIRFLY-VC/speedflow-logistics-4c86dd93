@@ -131,8 +131,15 @@ function SeparacaoPage() {
   const q = useQuery({
     queryKey: ["separacao", inicio, fim],
     queryFn: () => carregar({ data: { inicio: `${inicio}T00:00:00`, fim: `${fim}T23:59:59` } }),
-    staleTime: 60_000,
+    staleTime: 0,
   });
+
+  const atualizadoEm = q.dataUpdatedAt
+    ? new Date(q.dataUpdatedAt).toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
 
   const periodoTodos: SeparacaoRow[] = q.data?.periodo ?? [];
   const abertosTodos: SeparacaoRow[] = q.data?.abertos ?? [];
