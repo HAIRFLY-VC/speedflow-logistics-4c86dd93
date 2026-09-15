@@ -277,7 +277,9 @@ function PedidosSemRotaPage() {
     }
     if (!filtrosKey.replace(/[|~]/g, "")) return;
     setSelecionados(filtradas.map((l) => l.id));
-  }, [filtrosKey, pedidosQ.data]);
+    // Depende só dos filtros: recarregar a lista (atribuição, sync do ERP)
+    // não deve recriar a seleção que o usuário acabou de usar.
+  }, [filtrosKey]);
 
   // Grupos visíveis: mantém a ordenação por distância e só pedidos filtrados.
   const gruposFiltrados = useMemo(() => {
