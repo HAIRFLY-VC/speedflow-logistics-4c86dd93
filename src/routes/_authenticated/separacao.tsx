@@ -434,8 +434,26 @@ function SeparacaoPage() {
               </Card>
 
               <Card>
-                <CardHeader className="pb-2">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
                   <CardTitle className="text-base">Conclusões por hora do dia</CardTitle>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant={metricaHora === "pedidos" ? "default" : "outline"}
+                      className="h-7 px-2 text-xs"
+                      onClick={() => alterarMetrica("pedidos")}
+                    >
+                      Pedidos
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={metricaHora === "caixas" ? "default" : "outline"}
+                      className="h-7 px-2 text-xs"
+                      onClick={() => alterarMetrica("caixas")}
+                    >
+                      Caixas
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="h-[220px]">
                   <ResponsiveContainer width="100%" height="100%">
@@ -444,7 +462,12 @@ function SeparacaoPage() {
                       <XAxis dataKey="hora" fontSize={10} interval={1} />
                       <YAxis fontSize={11} />
                       <Tooltip />
-                      <Bar dataKey="pedidos" name="Pedidos" fill="hsl(var(--primary))" />
+                      <Bar
+                        dataKey={metricaHora}
+                        name={metricaHora === "caixas" ? "Caixas" : "Pedidos"}
+                        fill={metricaHora === "caixas" ? "var(--chart-1)" : "var(--chart-2)"}
+                        radius={[4, 4, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
