@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Clock, Boxes, Loader2, PackageCheck, RefreshCw, Timer } from "lucide-react";
+import { Clock, Boxes, Loader2, PackageCheck, RefreshCw } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { Badge } from "@/components/ui/badge";
@@ -186,9 +186,7 @@ function SeparacaoPage() {
   ]);
 
   const caixas = periodo.reduce((s, r) => s + (r.qtd_cx_sep ?? 0), 0);
-  const tEspera = media(periodo.map((r) => horas(r.dt_inc, r.dt_ini_sep)));
-  const tSep = media(periodo.map((r) => horas(r.dt_ini_sep, r.dt_fim_sep)));
-  const tConf = media(periodo.map((r) => horas(r.dt_fim_sep, r.dt_fim_conf)));
+  const tSep = media(periodo.map((r) => horas(r.dt_inc, r.dt_fim_sep)));
   // Caixas por hora: caixas do período ÷ tempo acumulado inclusão → fim da
   // separação dos pedidos concluídos.
   const horasTrabalhadas = periodo.reduce(
@@ -361,7 +359,7 @@ function SeparacaoPage() {
           </p>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <Indicador
                 titulo="Na fila"
                 valor={num(fila.length)}
@@ -382,9 +380,12 @@ function SeparacaoPage() {
                 detalhe="caixas ÷ horas entre inclusão e fim da separação"
                 icone={Boxes}
               />
-              <Indicador titulo="Tempo médio de espera" valor={dur(tEspera)} detalhe="liberação → início" icone={Timer} />
-              <Indicador titulo="Tempo médio de separação" valor={dur(tSep)} detalhe="início → fim" icone={Timer} />
-              <Indicador titulo="Tempo médio de conferência" valor={dur(tConf)} detalhe="fim da separação → conferido" icone={Timer} />
+              <Indicador
+                titulo="Tempo médio de separação"
+                valor={dur(tSep)}
+                detalhe="inclusão → fim da separação"
+                icone={Clock}
+              />
               <Indicador
                 titulo="Fila acima de 24h"
                 valor={num(envelhecimento[3]?.pedidos ?? 0)}
