@@ -418,14 +418,14 @@ function SeparacaoPage() {
                         dataKey="caixas"
                         name="Caixas"
                         yAxisId="caixas"
-                        fill="hsl(var(--primary))"
+                        fill="var(--chart-1)"
                         radius={[4, 4, 0, 0]}
                       />
                       <Bar
                         dataKey="pedidos"
                         name="Pedidos"
                         yAxisId="pedidos"
-                        fill="hsl(var(--muted-foreground))"
+                        fill="var(--chart-2)"
                         radius={[4, 4, 0, 0]}
                       />
                     </BarChart>
