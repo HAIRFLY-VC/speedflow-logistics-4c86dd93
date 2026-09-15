@@ -19,6 +19,7 @@ Ou seja: o card está certo na regra (fila = sem data de início), mas os dados 
 3. Manter todos os cards, gráficos e filtros atuais; nada muda na aparência, só a origem dos dados.
 4. Tratar o fuso: as datas vêm do ERP em UTC e serão exibidas no horário de Brasília, para que "há quanto tempo espera" fique correto.
 5. Se o ERP estiver indisponível, mostrar aviso claro na tela em vez de números zerados.
+6. Adicionar um botão **Atualizar** no topo do painel: relê os dados no ERP na hora, mostra giro enquanto carrega e exibe o horário da última atualização ao lado.
 
 ## Detalhes técnicos
 
