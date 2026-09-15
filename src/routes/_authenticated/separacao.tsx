@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { MultiFiltro, type OpcaoFiltro } from "@/components/pedidos-sem-rota/MultiFiltro";
 import { carregarSeparacao, type SeparacaoRow } from "@/lib/separacao.functions";
+import { getSeparacaoChartPref, saveSeparacaoChartPref } from "@/lib/ui-prefs.functions";
 
 export const Route = createFileRoute("/_authenticated/separacao")({
   component: SeparacaoPage,
