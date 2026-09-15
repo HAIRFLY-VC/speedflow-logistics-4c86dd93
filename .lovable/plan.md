@@ -1,15 +1,42 @@
-# Card "Em separação agora": separadores ativos por incidência no período
+# Corrigir o card "Caixas por hora"
 
-## O que mudar
+## Problema
 
-Atualmente o detalhe "X separador(es) ativo(s)" no card **Em separação agora** conta os separadores dos pedidos que estão literalmente em andamento (`dt_ini_sep` preenchido e `dt_fim_sep` vazio). O solicitante quer que esse número reflita a **incidência de separadores que tiveram atividade no período selecionado**, ou seja, separadores que aparecem em pedidos com `dt_ini_sep` ou `dt_fim_sep` dentro do intervalo escolhido.
+Hoje o card divide o total de caixas pela soma das durações de cada pedido
+(início até fim da separação). No ERP a maioria dos pedidos tem início e fim
+gravados praticamente no mesmo instante, então essa soma dá zero e o card fica
+sem informação ("—"), mesmo havendo pedidos separados.
 
-## Passos
+## Como passa a calcular
 
-1. **Adicionar helper de intervalo** em `src/routes/_authenticated/separacao.tsx` para testar se uma data ISO está entre `inicio` e `fim` do filtro (inclusive).
-2. **Recalcular `separadoresAtivos`** contando separadores distintos de:
-   - todos os registros de `periodo` (pois a consulta do ERP já garante `dt_fim_sep` no período);
-   - registros de `abertos` onde `dt_ini_sep` estiver dentro do período (separações iniciadas no período e ainda não concluídas).
-3. **Manter o valor principal do card** como a quantidade de pedidos em andamento (`andamento.length`); apenas o detalhe "separador(es) ativo(s)" passa a usar a nova regra.
-4. **Respeitar o filtro de separador** já aplicado: como `periodo` e `abertos` são filtrados previamente, o contador refletirá naturalmente a seleção do usuário.
-5. **Verificar** com `bunx tsgo --noEmit` e observar o card no preview para confirmar que o detalhe acompanha o período escolhido.
+Produtividade por tempo real de trabalho da equipe, não por duração de pedido:
+
+1. Para cada separador, considerar os pedidos concluídos no período.
+2. Calcular a janela de trabalho desse separador: do primeiro horário
+   (início ou, se ausente, fim de separação) até o último fim de separação.
+3. Somar as janelas de todos os separadores = horas de equipe no período.
+4. Caixas por hora = total de caixas ÷ horas de equipe.
+
+Se um separador tiver apenas um pedido (janela zero), aplica-se um piso mínimo
+por pedido para não dividir por zero.
+
+Fallbacks:
+- Sem horas de equipe apuráveis mas com caixas e pedidos no período, o card
+  mostra a média de caixas por pedido como detalhe, deixando claro que é outra
+  base de cálculo.
+- Sem pedidos no período, continua exibindo "—".
+
+O detalhe abaixo do número passa a indicar a base usada, por exemplo
+"1.240 caixas em 6h30 de equipe".
+
+A mesma regra de janela é aplicada à coluna de caixas/hora por separador, para
+que a tabela fique coerente com o card.
+
+## Detalhes técnicos
+
+- Arquivo: `src/routes/_authenticated/separacao.tsx`.
+- Substituir `horasTrabalhadas` (soma de `horas(dt_ini_sep, dt_fim_sep)`) por
+  uma função que agrupa por separador e soma `max(dt_fim_sep) - min(dt_ini_sep
+  ?? dt_fim_sep)`, com piso de 1 minuto por pedido.
+- Reutilizar a mesma função no agregado por separador (campo `cxHora`).
+- Nenhuma mudança na consulta ao ERP nem em `separacao.functions.ts`.
