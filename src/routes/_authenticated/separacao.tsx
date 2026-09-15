@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { MultiFiltro, type OpcaoFiltro } from "@/components/pedidos-sem-rota/MultiFiltro";
 import { carregarSeparacao, type SeparacaoRow } from "@/lib/separacao.functions";
+import { getSeparacaoChartPref, saveSeparacaoChartPref } from "@/lib/ui-prefs.functions";
 
 export const Route = createFileRoute("/_authenticated/separacao")({
   component: SeparacaoPage,
@@ -119,6 +120,24 @@ function Indicador({
 
 function SeparacaoPage() {
   const carregar = useServerFn(carregarSeparacao);
+  const lerPrefHora = useServerFn(getSeparacaoChartPref);
+  const salvarPrefHora = useServerFn(saveSeparacaoChartPref);
+
+  const [metricaHora, setMetricaHora] = useState<"pedidos" | "caixas">("pedidos");
+  const prefHoraQ = useQuery({
+    queryKey: ["pref", "separacao-hora"],
+    queryFn: () => lerPrefHora(),
+    staleTime: Infinity,
+  });
+  useEffect(() => {
+    if (prefHoraQ.data?.metrica) setMetricaHora(prefHoraQ.data.metrica);
+  }, [prefHoraQ.data?.metrica]);
+
+  function alterarMetrica(m: "pedidos" | "caixas") {
+    setMetricaHora(m);
+    void salvarPrefHora({ data: { metrica: m } }).catch(() => {});
+  }
+
 
   const hoje = new Date();
   const [preset, setPreset] = useState<"hoje" | "7" | "30" | "livre">("hoje");
@@ -434,8 +453,26 @@ function SeparacaoPage() {
               </Card>
 
               <Card>
-                <CardHeader className="pb-2">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
                   <CardTitle className="text-base">Conclusões por hora do dia</CardTitle>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant={metricaHora === "pedidos" ? "default" : "outline"}
+                      className="h-7 px-2 text-xs"
+                      onClick={() => alterarMetrica("pedidos")}
+                    >
+                      Pedidos
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={metricaHora === "caixas" ? "default" : "outline"}
+                      className="h-7 px-2 text-xs"
+                      onClick={() => alterarMetrica("caixas")}
+                    >
+                      Caixas
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="h-[220px]">
                   <ResponsiveContainer width="100%" height="100%">
@@ -444,7 +481,12 @@ function SeparacaoPage() {
                       <XAxis dataKey="hora" fontSize={10} interval={1} />
                       <YAxis fontSize={11} />
                       <Tooltip />
-                      <Bar dataKey="pedidos" name="Pedidos" fill="hsl(var(--primary))" />
+                      <Bar
+                        dataKey={metricaHora}
+                        name={metricaHora === "caixas" ? "Caixas" : "Pedidos"}
+                        fill={metricaHora === "caixas" ? "var(--chart-1)" : "var(--chart-2)"}
+                        radius={[4, 4, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
