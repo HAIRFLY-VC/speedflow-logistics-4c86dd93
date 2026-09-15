@@ -86,19 +86,33 @@ async function consultarErp(sql: string, limit: number): Promise<ErpRow[]> {
   throw lastErr ?? new Error("Falha desconhecida ao consultar o ERP");
 }
 
+/** Normaliza datas: string vazia ou inválida vira null. */
+function dataOuNulo(v: string | null | undefined): string | null {
+  if (!v) return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  return Number.isFinite(new Date(s).getTime()) ? s : null;
+}
+
 function mapear(rows: ErpRow[]): SeparacaoRow[] {
-  return rows.map((r) => ({
-    cod_pedido: Number(r.COD_PEDIDO),
-    cod_sep: r.COD_SEP == null ? null : Number(r.COD_SEP),
-    separador: r.SEPARADOR ?? null,
-    status: r.STATUS ?? null,
-    qtd_cx_sep: r.QTD_CX_SEP == null ? null : Number(r.QTD_CX_SEP),
-    dt_inc: r.DT_INC ?? null,
-    dt_ini_sep: r.DT_INI_SEP ?? null,
-    dt_fim_sep: r.DT_FIM_SEP ?? null,
-    dt_fim_conf: r.DT_FIM_CONF ?? null,
-    prioridade: r.PRIORIDADE == null ? null : String(r.PRIORIDADE),
-  }));
+  const porPedido = new Map<number, SeparacaoRow>();
+  for (const r of rows) {
+    const cod = Number(r.COD_PEDIDO);
+    if (porPedido.has(cod)) continue; // evita duplicidade do join com o cadastro
+    porPedido.set(cod, {
+      cod_pedido: cod,
+      cod_sep: r.COD_SEP == null ? null : Number(r.COD_SEP),
+      separador: r.SEPARADOR ?? null,
+      status: r.STATUS ?? null,
+      qtd_cx_sep: r.QTD_CX_SEP == null ? null : Number(r.QTD_CX_SEP),
+      dt_inc: dataOuNulo(r.DT_INC),
+      dt_ini_sep: dataOuNulo(r.DT_INI_SEP),
+      dt_fim_sep: dataOuNulo(r.DT_FIM_SEP),
+      dt_fim_conf: dataOuNulo(r.DT_FIM_CONF),
+      prioridade: r.PRIORIDADE == null ? null : String(r.PRIORIDADE),
+    });
+  }
+  return [...porPedido.values()];
 }
 
 /** Converte "2026-09-15T00:00:00" (horário de Brasília) em literal Oracle. */

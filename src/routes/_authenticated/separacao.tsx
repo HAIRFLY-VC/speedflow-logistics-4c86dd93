@@ -76,6 +76,14 @@ function dur(h: number | null | undefined): string {
   return `${horasInt}h${String(min).padStart(2, "0")}`;
 }
 
+/** Data preenchida e válida? Strings vazias/inválidas contam como ausentes. */
+function temData(v: string | null | undefined): boolean {
+  if (!v) return false;
+  const s = String(v).trim();
+  if (!s) return false;
+  return Number.isFinite(new Date(s).getTime());
+}
+
 function media(valores: (number | null)[]): number | null {
   const v = valores.filter((x): x is number => x != null);
   if (!v.length) return null;
@@ -132,6 +140,8 @@ function SeparacaoPage() {
     queryKey: ["separacao", inicio, fim],
     queryFn: () => carregar({ data: { inicio: `${inicio}T00:00:00`, fim: `${fim}T23:59:59` } }),
     staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
   });
 
   const atualizadoEm = q.dataUpdatedAt
@@ -166,8 +176,11 @@ function SeparacaoPage() {
   const periodo = useMemo(() => filtra(periodoTodos), [periodoTodos, separadores]);
   const abertos = useMemo(() => filtra(abertosTodos), [abertosTodos, separadores]);
 
-  const fila = abertos.filter((r) => !r.dt_ini_sep);
-  const andamento = abertos.filter((r) => r.dt_ini_sep);
+  // Em aberto = sem fim de separação. Fila = sem início; em andamento = com
+  // início e sem fim.
+  const emAndamentoOuFila = abertos.filter((r) => !temData(r.dt_fim_sep));
+  const fila = emAndamentoOuFila.filter((r) => !temData(r.dt_ini_sep));
+  const andamento = emAndamentoOuFila.filter((r) => temData(r.dt_ini_sep));
 
   const agora = new Date().toISOString();
   const esperaMaisAntigo = media([
