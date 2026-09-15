@@ -398,11 +398,36 @@ function SeparacaoPage() {
                     <BarChart data={porDia}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
                       <XAxis dataKey="dia" fontSize={11} />
-                      <YAxis fontSize={11} />
+                      <YAxis
+                        yAxisId="caixas"
+                        orientation="left"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        yAxisId="pedidos"
+                        orientation="right"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                      />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="pedidos" name="Pedidos" fill="hsl(var(--primary))" />
-                      <Bar dataKey="caixas" name="Caixas" fill="hsl(var(--muted-foreground))" />
+                      <Bar
+                        dataKey="caixas"
+                        name="Caixas"
+                        yAxisId="caixas"
+                        fill="var(--chart-1)"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="pedidos"
+                        name="Pedidos"
+                        yAxisId="pedidos"
+                        fill="var(--chart-2)"
+                        radius={[4, 4, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
