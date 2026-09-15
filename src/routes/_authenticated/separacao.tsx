@@ -176,8 +176,11 @@ function SeparacaoPage() {
   const periodo = useMemo(() => filtra(periodoTodos), [periodoTodos, separadores]);
   const abertos = useMemo(() => filtra(abertosTodos), [abertosTodos, separadores]);
 
-  const fila = abertos.filter((r) => !r.dt_ini_sep);
-  const andamento = abertos.filter((r) => r.dt_ini_sep);
+  // Em aberto = sem fim de separação. Fila = sem início; em andamento = com
+  // início e sem fim.
+  const emAndamentoOuFila = abertos.filter((r) => !temData(r.dt_fim_sep));
+  const fila = emAndamentoOuFila.filter((r) => !temData(r.dt_ini_sep));
+  const andamento = emAndamentoOuFila.filter((r) => temData(r.dt_ini_sep));
 
   const agora = new Date().toISOString();
   const esperaMaisAntigo = media([
