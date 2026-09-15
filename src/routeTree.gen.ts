@@ -27,6 +27,7 @@ import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedMinhasRotasRouteImport } from './routes/_authenticated/minhas-rotas'
 import { Route as AuthenticatedPagamentoFretesRouteImport } from './routes/_authenticated/pagamento-fretes'
 import { Route as AuthenticatedPedidosSemRotaRouteImport } from './routes/_authenticated/pedidos-sem-rota'
+import { Route as AuthenticatedSeparacaoRouteImport } from './routes/_authenticated/separacao'
 import { Route as AuthenticatedSugestaoRotasRouteImport } from './routes/_authenticated/sugestao-rotas'
 import { Route as AuthenticatedTabelasFreteRouteImport } from './routes/_authenticated/tabelas-frete'
 import { Route as AuthenticatedTransportadorasRouteImport } from './routes/_authenticated/transportadoras'
@@ -143,6 +144,11 @@ const AuthenticatedPedidosSemRotaRoute =
     path: '/pedidos-sem-rota',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSeparacaoRoute = AuthenticatedSeparacaoRouteImport.update({
+  id: '/separacao',
+  path: '/separacao',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSugestaoRotasRoute =
   AuthenticatedSugestaoRotasRouteImport.update({
     id: '/sugestao-rotas',
@@ -267,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/pagamento-fretes': typeof AuthenticatedPagamentoFretesRoute
   '/pedidos-sem-rota': typeof AuthenticatedPedidosSemRotaRoute
+  '/separacao': typeof AuthenticatedSeparacaoRoute
   '/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
   '/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
   '/transportadoras': typeof AuthenticatedTransportadorasRoute
@@ -304,6 +311,7 @@ export interface FileRoutesByTo {
   '/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/pagamento-fretes': typeof AuthenticatedPagamentoFretesRoute
   '/pedidos-sem-rota': typeof AuthenticatedPedidosSemRotaRoute
+  '/separacao': typeof AuthenticatedSeparacaoRoute
   '/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
   '/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
   '/transportadoras': typeof AuthenticatedTransportadorasRoute
@@ -344,6 +352,7 @@ export interface FileRoutesById {
   '/_authenticated/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/_authenticated/pagamento-fretes': typeof AuthenticatedPagamentoFretesRoute
   '/_authenticated/pedidos-sem-rota': typeof AuthenticatedPedidosSemRotaRoute
+  '/_authenticated/separacao': typeof AuthenticatedSeparacaoRoute
   '/_authenticated/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
   '/_authenticated/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
   '/_authenticated/transportadoras': typeof AuthenticatedTransportadorasRoute
@@ -384,6 +393,7 @@ export interface FileRouteTypes {
     | '/minhas-rotas'
     | '/pagamento-fretes'
     | '/pedidos-sem-rota'
+    | '/separacao'
     | '/sugestao-rotas'
     | '/tabelas-frete'
     | '/transportadoras'
@@ -421,6 +431,7 @@ export interface FileRouteTypes {
     | '/minhas-rotas'
     | '/pagamento-fretes'
     | '/pedidos-sem-rota'
+    | '/separacao'
     | '/sugestao-rotas'
     | '/tabelas-frete'
     | '/transportadoras'
@@ -460,6 +471,7 @@ export interface FileRouteTypes {
     | '/_authenticated/minhas-rotas'
     | '/_authenticated/pagamento-fretes'
     | '/_authenticated/pedidos-sem-rota'
+    | '/_authenticated/separacao'
     | '/_authenticated/sugestao-rotas'
     | '/_authenticated/tabelas-frete'
     | '/_authenticated/transportadoras'
@@ -621,6 +633,13 @@ declare module '@tanstack/react-router' {
       path: '/pedidos-sem-rota'
       fullPath: '/pedidos-sem-rota'
       preLoaderRoute: typeof AuthenticatedPedidosSemRotaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/separacao': {
+      id: '/_authenticated/separacao'
+      path: '/separacao'
+      fullPath: '/separacao'
+      preLoaderRoute: typeof AuthenticatedSeparacaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/sugestao-rotas': {
@@ -791,6 +810,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMinhasRotasRoute: typeof AuthenticatedMinhasRotasRoute
   AuthenticatedPagamentoFretesRoute: typeof AuthenticatedPagamentoFretesRoute
   AuthenticatedPedidosSemRotaRoute: typeof AuthenticatedPedidosSemRotaRoute
+  AuthenticatedSeparacaoRoute: typeof AuthenticatedSeparacaoRoute
   AuthenticatedSugestaoRotasRoute: typeof AuthenticatedSugestaoRotasRoute
   AuthenticatedTabelasFreteRoute: typeof AuthenticatedTabelasFreteRoute
   AuthenticatedTransportadorasRoute: typeof AuthenticatedTransportadorasRoute
@@ -818,6 +838,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMinhasRotasRoute: AuthenticatedMinhasRotasRoute,
   AuthenticatedPagamentoFretesRoute: AuthenticatedPagamentoFretesRoute,
   AuthenticatedPedidosSemRotaRoute: AuthenticatedPedidosSemRotaRoute,
+  AuthenticatedSeparacaoRoute: AuthenticatedSeparacaoRoute,
   AuthenticatedSugestaoRotasRoute: AuthenticatedSugestaoRotasRoute,
   AuthenticatedTabelasFreteRoute: AuthenticatedTabelasFreteRoute,
   AuthenticatedTransportadorasRoute: AuthenticatedTransportadorasRoute,
