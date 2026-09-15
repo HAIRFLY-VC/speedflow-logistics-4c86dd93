@@ -2,9 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /**
- * Leitura da tabela `separacao` do banco do ERP (esquema `public` do banco
- * central). Só devolve as colunas usadas pelo painel e limita o volume por
- * requisição para não estourar o tempo do servidor.
+ * Leitura da separação direto do ERP (GKS.A_SEPPEDIDO + cadastro do separador).
+ * Faz duas consultas: concluídos no período do filtro e todos os registros
+ * ainda não concluídos (fila + em andamento).
  */
 
 export type SeparacaoRow = {
@@ -22,10 +22,90 @@ export type SeparacaoRow = {
 
 type Input = { inicio: string; fim: string };
 
-const COLS =
-  "cod_pedido,cod_sep,separador,status,qtd_cx_sep,dt_inc,dt_ini_sep,dt_fim_sep,dt_fim_conf,prioridade";
-const PAGE = 1000;
-const MAX_ROWS = 8000;
+type ErpRow = {
+  COD_PEDIDO: number;
+  COD_SEP: number | null;
+  SEPARADOR: string | null;
+  STATUS: string | null;
+  QTD_CX_SEP: number | null;
+  DT_INC: string | null;
+  DT_INI_SEP: string | null;
+  DT_FIM_SEP: string | null;
+  DT_FIM_CONF: string | null;
+  PRIORIDADE: number | string | null;
+};
+
+const BASE_SQL = `
+  select s.cod_pedido,
+         s.cod_sep,
+         trim(t.dba_tip_nome_fantasia) separador,
+         s.status,
+         s.qtd_cx_sep,
+         s.dt_inc,
+         s.dt_ini_sep,
+         s.dt_fim_sep,
+         s.dt_fim_conf,
+         s.prioridade
+    from gks.a_seppedido s,
+         gks.a_cadctipo t
+   where s.dt_inc >= to_date('20250101','yyyyMMdd')
+     and t.dba_tip_codigo_1(+) = s.cod_sep
+`;
+
+const TRANSIENT = new Set([502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 527, 530]);
+
+async function consultarErp(sql: string, limit: number): Promise<ErpRow[]> {
+  const baseUrl = process.env["ERP_API_BASE_URL"];
+  const apiKey = process.env["ERP_API_KEY"];
+  if (!baseUrl || !apiKey) throw new Error("ERP não configurado (ERP_API_BASE_URL/ERP_API_KEY)");
+  const url = `${baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "")}/v1/query`;
+
+  let lastErr: Error | null = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+        body: JSON.stringify({ sql, binds: {}, limit }),
+      });
+      if (res.ok) {
+        const json = (await res.json()) as { rows?: ErpRow[] };
+        return json.rows ?? [];
+      }
+      lastErr = new Error(
+        TRANSIENT.has(res.status)
+          ? `ERP indisponível no momento (HTTP ${res.status}). Tente novamente em instantes.`
+          : `Falha ao consultar o ERP (HTTP ${res.status}).`,
+      );
+      if (!TRANSIENT.has(res.status) && res.status !== 429) break;
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e));
+    }
+    if (attempt < 3) await new Promise((r) => setTimeout(r, 1000 * attempt));
+  }
+  throw lastErr ?? new Error("Falha desconhecida ao consultar o ERP");
+}
+
+function mapear(rows: ErpRow[]): SeparacaoRow[] {
+  return rows.map((r) => ({
+    cod_pedido: Number(r.COD_PEDIDO),
+    cod_sep: r.COD_SEP == null ? null : Number(r.COD_SEP),
+    separador: r.SEPARADOR ?? null,
+    status: r.STATUS ?? null,
+    qtd_cx_sep: r.QTD_CX_SEP == null ? null : Number(r.QTD_CX_SEP),
+    dt_inc: r.DT_INC ?? null,
+    dt_ini_sep: r.DT_INI_SEP ?? null,
+    dt_fim_sep: r.DT_FIM_SEP ?? null,
+    dt_fim_conf: r.DT_FIM_CONF ?? null,
+    prioridade: r.PRIORIDADE == null ? null : String(r.PRIORIDADE),
+  }));
+}
+
+/** Converte "2026-09-15T00:00:00" (horário de Brasília) em literal Oracle. */
+function literalData(v: string): string {
+  const limpo = v.replace(/[^0-9]/g, "").slice(0, 14).padEnd(14, "0");
+  return `to_date('${limpo}','yyyyMMddHH24MiSS')`;
+}
 
 async function ensureStaff(context: { supabase: any; userId: string }) {
   for (const r of ["adm", "gestor", "operador"] as const) {
@@ -38,46 +118,25 @@ async function ensureStaff(context: { supabase: any; userId: string }) {
   throw new Error("Sem permissão para ver a separação");
 }
 
-async function buscar(query: string): Promise<SeparacaoRow[]> {
-  const { getCentralRestUrl, getCentralServiceKey } = await import(
-    "@/lib/central-rest.server"
-  );
-  const base = getCentralRestUrl();
-  const key = getCentralServiceKey();
-  const out: SeparacaoRow[] = [];
-  for (let from = 0; from < MAX_ROWS; from += PAGE) {
-    const res = await fetch(`${base}/rest/v1/separacao?${query}`, {
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
-        "Accept-Profile": "public",
-        "user-agent": "speedflow-server/1.0",
-        Range: `${from}-${from + PAGE - 1}`,
-        "Range-Unit": "items",
-      },
-    });
-    if (!res.ok) throw new Error(`Falha ao ler separação (${res.status})`);
-    const page = (await res.json()) as SeparacaoRow[];
-    out.push(...page);
-    if (page.length < PAGE) break;
-  }
-  return out;
-}
-
 export const carregarSeparacao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: Input) => input)
   .handler(async ({ data, context }) => {
     await ensureStaff(context as never);
 
+    // O ERP armazena as datas no horário local (Brasília); o filtro vem nesse
+    // mesmo fuso, então é comparado diretamente.
+    const periodoSql = `${BASE_SQL}
+     and s.dt_fim_sep between ${literalData(data.inicio)} and ${literalData(data.fim)}
+   order by s.dt_fim_sep desc`;
+    const abertosSql = `${BASE_SQL}
+     and s.dt_fim_sep is null
+   order by s.dt_inc asc`;
+
     const [periodo, abertos] = await Promise.all([
-      // Concluídos dentro do período (pela data de conclusão da separação).
-      buscar(
-        `select=${COLS}&dt_fim_sep=gte.${data.inicio}&dt_fim_sep=lte.${data.fim}&order=dt_fim_sep.desc`,
-      ),
-      // Fila e separações em andamento (volume pequeno, sempre completo).
-      buscar(`select=${COLS}&dt_fim_sep=is.null&order=dt_inc.asc`),
+      consultarErp(periodoSql, 20000),
+      consultarErp(abertosSql, 5000),
     ]);
 
-    return { periodo, abertos };
+    return { periodo: mapear(periodo), abertos: mapear(abertos) };
   });

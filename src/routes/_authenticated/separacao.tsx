@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Clock, Boxes, Loader2, PackageCheck, Timer, Users } from "lucide-react";
+import { Clock, Boxes, Loader2, PackageCheck, RefreshCw, Timer, Users } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { Badge } from "@/components/ui/badge";
@@ -131,8 +131,15 @@ function SeparacaoPage() {
   const q = useQuery({
     queryKey: ["separacao", inicio, fim],
     queryFn: () => carregar({ data: { inicio: `${inicio}T00:00:00`, fim: `${fim}T23:59:59` } }),
-    staleTime: 60_000,
+    staleTime: 0,
   });
+
+  const atualizadoEm = q.dataUpdatedAt
+    ? new Date(q.dataUpdatedAt).toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
 
   const periodoTodos: SeparacaoRow[] = q.data?.periodo ?? [];
   const abertosTodos: SeparacaoRow[] = q.data?.abertos ?? [];
@@ -312,6 +319,21 @@ function SeparacaoPage() {
               selecionados={separadores}
               onChange={setSeparadores}
             />
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                disabled={q.isFetching}
+                onClick={() => void q.refetch()}
+              >
+                <RefreshCw className={`mr-1 h-3.5 w-3.5 ${q.isFetching ? "animate-spin" : ""}`} />
+                Atualizar
+              </Button>
+              {atualizadoEm ? (
+                <span className="text-[11px] text-muted-foreground">às {atualizadoEm}</span>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -321,7 +343,9 @@ function SeparacaoPage() {
           </div>
         ) : q.isError ? (
           <p className="p-6 text-sm text-destructive">
-            Não foi possível carregar os dados da separação.
+            {q.error instanceof Error
+              ? q.error.message
+              : "Não foi possível carregar os dados da separação."}
           </p>
         ) : (
           <>
