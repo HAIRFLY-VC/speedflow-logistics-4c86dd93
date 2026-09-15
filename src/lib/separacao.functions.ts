@@ -49,7 +49,7 @@ const BASE_SQL = `
     from gks.a_seppedido s,
          gks.a_cadctipo t
    where s.dt_inc >= to_date('20250101','yyyyMMdd')
-     and t.dba_tip_codigo_1 = s.cod_sep
+     and t.dba_tip_codigo_1(+) = s.cod_sep
 `;
 
 const TRANSIENT = new Set([502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 527, 530]);
