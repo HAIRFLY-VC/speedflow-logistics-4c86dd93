@@ -76,6 +76,14 @@ function dur(h: number | null | undefined): string {
   return `${horasInt}h${String(min).padStart(2, "0")}`;
 }
 
+/** Data preenchida e válida? Strings vazias/inválidas contam como ausentes. */
+function temData(v: string | null | undefined): boolean {
+  if (!v) return false;
+  const s = String(v).trim();
+  if (!s) return false;
+  return Number.isFinite(new Date(s).getTime());
+}
+
 function media(valores: (number | null)[]): number | null {
   const v = valores.filter((x): x is number => x != null);
   if (!v.length) return null;
