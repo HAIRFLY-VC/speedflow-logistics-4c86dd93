@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Clock, Boxes, Loader2, PackageCheck, RefreshCw, Timer, Users } from "lucide-react";
+import { Clock, Boxes, Loader2, PackageCheck, RefreshCw, Timer } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { Badge } from "@/components/ui/badge";
@@ -176,11 +176,9 @@ function SeparacaoPage() {
   const periodo = useMemo(() => filtra(periodoTodos), [periodoTodos, separadores]);
   const abertos = useMemo(() => filtra(abertosTodos), [abertosTodos, separadores]);
 
-  // Em aberto = sem fim de separação. Fila = sem início; em andamento = com
-  // início e sem fim.
+  // Fila = em aberto (sem fim de separação) e ainda sem início de separação.
   const emAndamentoOuFila = abertos.filter((r) => !temData(r.dt_fim_sep));
   const fila = emAndamentoOuFila.filter((r) => !temData(r.dt_ini_sep));
-  const andamento = emAndamentoOuFila.filter((r) => temData(r.dt_ini_sep));
 
   const agora = new Date().toISOString();
   const esperaMaisAntigo = media([
@@ -191,12 +189,13 @@ function SeparacaoPage() {
   const tEspera = media(periodo.map((r) => horas(r.dt_inc, r.dt_ini_sep)));
   const tSep = media(periodo.map((r) => horas(r.dt_ini_sep, r.dt_fim_sep)));
   const tConf = media(periodo.map((r) => horas(r.dt_fim_sep, r.dt_fim_conf)));
+  // Caixas por hora: caixas do período ÷ tempo acumulado inclusão → fim da
+  // separação dos pedidos concluídos.
   const horasTrabalhadas = periodo.reduce(
-    (s, r) => s + (horas(r.dt_ini_sep, r.dt_fim_sep) ?? 0),
+    (s, r) => s + (horas(r.dt_inc, r.dt_fim_sep) ?? 0),
     0,
   );
   const cxHora = horasTrabalhadas > 0 ? caixas / horasTrabalhadas : null;
-  const separadoresAtivos = new Set(andamento.map((r) => r.separador)).size;
 
   /** Produtividade por separador dentro do período. */
   const produtividade = useMemo(() => {
@@ -210,7 +209,7 @@ function SeparacaoPage() {
         mapa.get(nome) ?? { pedidos: 0, caixas: 0, horas: 0, tempos: [], conf: [] };
       a.pedidos += 1;
       a.caixas += r.qtd_cx_sep ?? 0;
-      const t = horas(r.dt_ini_sep, r.dt_fim_sep);
+      const t = horas(r.dt_inc, r.dt_fim_sep);
       if (t != null) a.horas += t;
       a.tempos.push(t);
       a.conf.push(horas(r.dt_fim_sep, r.dt_fim_conf));
@@ -372,12 +371,6 @@ function SeparacaoPage() {
                 icone={Clock}
               />
               <Indicador
-                titulo="Em separação agora"
-                valor={num(andamento.length)}
-                detalhe={`${separadoresAtivos} separador(es) ativo(s)`}
-                icone={Users}
-              />
-              <Indicador
                 titulo="Concluídos no período"
                 valor={num(periodo.length)}
                 detalhe={`${num(caixas)} caixas separadas`}
@@ -386,7 +379,7 @@ function SeparacaoPage() {
               <Indicador
                 titulo="Caixas por hora"
                 valor={cxHora != null ? num(cxHora) : "—"}
-                detalhe="produtividade média da equipe"
+                detalhe="caixas ÷ horas entre inclusão e fim da separação"
                 icone={Boxes}
               />
               <Indicador titulo="Tempo médio de espera" valor={dur(tEspera)} detalhe="liberação → início" icone={Timer} />
