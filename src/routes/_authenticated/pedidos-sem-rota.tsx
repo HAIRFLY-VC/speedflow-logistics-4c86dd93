@@ -223,11 +223,11 @@ function PedidosSemRotaPage() {
       const map = new Map<string, OpcaoFiltro>();
       for (const l of linhas) {
         if (termo && !`${l.numero} ${l.cliente} ${l.cidade}`.toLowerCase().includes(termo)) continue;
-        if (campo !== "uf" && uf.length && !uf.includes(l.uf)) continue;
-        if (campo !== "cidade" && cidade.length && !cidade.includes(l.cidade)) continue;
-        if (campo !== "bairro" && bairro.length && !bairro.includes(l.bairro)) continue;
-        if (campo !== "agenda" && agenda.length && !agenda.includes(l.agenda)) continue;
-        if (campo !== "filial" && filial.length && !filial.includes(l.filial)) continue;
+        if (campo !== "uf" && uf.length && !uf.includes(l.uf || "(vazio)")) continue;
+        if (campo !== "cidade" && cidade.length && !cidade.includes(l.cidade || "(vazio)")) continue;
+        if (campo !== "bairro" && bairro.length && !bairro.includes(l.bairro || "(vazio)")) continue;
+        if (campo !== "agenda" && agenda.length && !agenda.includes(l.agenda || "(vazio)")) continue;
+        if (campo !== "filial" && filial.length && !filial.includes(l.filial || "(vazio)")) continue;
         const v = String(l[campo] || "(vazio)");
         const atual = map.get(v) ?? { valor: v, qtd: 0, peso: 0, valorTotal: 0 };
         atual.qtd += 1;
