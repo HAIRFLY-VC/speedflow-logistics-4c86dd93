@@ -186,9 +186,7 @@ function SeparacaoPage() {
   ]);
 
   const caixas = periodo.reduce((s, r) => s + (r.qtd_cx_sep ?? 0), 0);
-  const tEspera = media(periodo.map((r) => horas(r.dt_inc, r.dt_ini_sep)));
-  const tSep = media(periodo.map((r) => horas(r.dt_ini_sep, r.dt_fim_sep)));
-  const tConf = media(periodo.map((r) => horas(r.dt_fim_sep, r.dt_fim_conf)));
+  const tSep = media(periodo.map((r) => horas(r.dt_inc, r.dt_fim_sep)));
   // Caixas por hora: caixas do período ÷ tempo acumulado inclusão → fim da
   // separação dos pedidos concluídos.
   const horasTrabalhadas = periodo.reduce(
