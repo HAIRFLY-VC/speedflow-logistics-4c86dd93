@@ -119,6 +119,24 @@ function Indicador({
 
 function SeparacaoPage() {
   const carregar = useServerFn(carregarSeparacao);
+  const lerPrefHora = useServerFn(getSeparacaoChartPref);
+  const salvarPrefHora = useServerFn(saveSeparacaoChartPref);
+
+  const [metricaHora, setMetricaHora] = useState<"pedidos" | "caixas">("pedidos");
+  const prefHoraQ = useQuery({
+    queryKey: ["pref", "separacao-hora"],
+    queryFn: () => lerPrefHora(),
+    staleTime: Infinity,
+  });
+  useEffect(() => {
+    if (prefHoraQ.data?.metrica) setMetricaHora(prefHoraQ.data.metrica);
+  }, [prefHoraQ.data?.metrica]);
+
+  function alterarMetrica(m: "pedidos" | "caixas") {
+    setMetricaHora(m);
+    void salvarPrefHora({ data: { metrica: m } }).catch(() => {});
+  }
+
 
   const hoje = new Date();
   const [preset, setPreset] = useState<"hoje" | "7" | "30" | "livre">("hoje");
