@@ -1,31 +1,37 @@
-# Corrigir o card "Na fila" do painel de Separação
+# Painel de Separação: ler direto do ERP e corrigir o card "Na fila"
 
 ## O que está errado
 
-O painel lê uma **cópia** da separação guardada no banco central, e essa cópia está desatualizada e incompleta:
+O painel lê hoje uma **cópia** da separação guardada no banco central, e essa cópia está desatualizada e incompleta:
 
 - O pedido 4135089 **não existe** nessa cópia; no ERP ele existe (incluído 15:20, iniciado 15:51).
-- Na cópia, **nenhum** dos 13.520 registros está sem data de início — por isso "Na fila" sempre mostra zero.
-- Consultando o ERP direto (tabela `GKS.A_SEPPEDIDO`), nos últimos 30 dias há 828 registros, sendo **4 ainda sem início** (fila real) e 21 sem conclusão.
-
-Ou seja: o card está certo na regra (fila = sem data de início), mas os dados que ele lê não refletem o ERP.
+- Na cópia, **nenhum** registro está sem data de início — por isso "Na fila" sempre mostra zero.
+- Consultando o ERP direto, nos últimos 30 dias há 828 registros, sendo **4 ainda sem início** (fila real) e 21 sem conclusão.
 
 ## O que vou fazer
 
-1. Passar o painel a ler a separação **direto do ERP**, usando a mesma via já usada pelos outros painéis (consulta ao ERP no servidor), em vez da cópia no banco central.
-2. Duas consultas por carregamento:
-   - **Em aberto**: tudo que ainda não foi concluído (sem data de fim de separação) — alimenta "Na fila" (sem data de início) e "Em separação" (com início e sem fim).
-   - **Período**: concluídos dentro das datas escolhidas no filtro — alimenta tempos médios, produtividade, volume por dia e por hora.
-3. Manter todos os cards, gráficos e filtros atuais; nada muda na aparência, só a origem dos dados.
-4. Tratar o fuso: as datas vêm do ERP em UTC e serão exibidas no horário de Brasília, para que "há quanto tempo espera" fique correto.
-5. Se o ERP estiver indisponível, mostrar aviso claro na tela em vez de números zerados.
-6. Adicionar um botão **Atualizar** no topo do painel: relê os dados no ERP na hora, mostra giro enquanto carrega e exibe o horário da última atualização ao lado.
+1. Trocar a origem dos dados do painel para uma leitura **direta no ERP**, usando exatamente a consulta informada (separação a partir de 01/01/2025, já trazendo o nome do separador pelo cadastro).
+2. Usar esses dados para tudo: fila (sem data de início), em separação (com início e sem fim), concluídos do período, tempos médios, produtividade, volume por dia e por hora.
+3. Adicionar um botão **Atualizar** no topo do painel: relê os dados no ERP na hora, com indicação de carregamento e o horário da última atualização ao lado.
+4. Manter cards, gráficos e filtros como estão; muda apenas a origem e a atualização dos dados.
+5. Se o ERP estiver indisponível, exibir aviso claro em vez de números zerados.
+6. Ajustar o fuso: as datas do ERP são exibidas no horário de Brasília, para que os tempos de espera fiquem corretos.
 
 ## Detalhes técnicos
 
-- Origem: `GKS.A_SEPPEDIDO` (COD_PEDIDO, COD_SEP, STATUS, QTD_CX_SEP, DT_INC, DT_INI_SEP, DT_FIM_SEP, DT_FIM_CONF, PRIORIDADE). O ERP não tem o nome do separador nessa tabela — o nome hoje vem da cópia; será resolvido por `COD_SEP` cruzando com o espelho existente (`clientes_erp`/`erp_responsaveis` conforme o cadastro do separador) e, se não houver nome, exibe o código.
-- Botão Atualizar: `refetch()` da query (`staleTime: 0`), estado desabilitado durante a busca, ícone `RefreshCw` com animação e `dataUpdatedAt` formatado em horário de Brasília.
-- `src/lib/separacao.functions.ts`: substituir o `fetch` REST ao banco central por chamadas ao endpoint de consulta do ERP (`ERP_API_BASE_URL` + `X-API-Key`), no padrão de `src/lib/erp-sync.server.ts`, com binds de data e limite de linhas; manter `requireSupabaseAuth` + `ensureStaff`.
-- Filtro do período por `DT_FIM_SEP BETWEEN :inicio AND :fim`; consulta de abertos por `DT_FIM_SEP IS NULL` (sem limite de data).
-- `src/routes/_authenticated/separacao.tsx`: sem mudança de layout; apenas ajuste de tipos/campos caso o nome do separador passe a vir resolvido pelo servidor.
-- Verificação: conferir que o pedido 4135089 aparece como concluído hoje e que os registros sem `DT_INI_SEP` aparecem no card "Na fila".
+- `src/lib/separacao.functions.ts`: remover o `fetch` REST ao banco central e passar a chamar o endpoint de consulta do ERP (`ERP_API_BASE_URL` + header `X-API-Key`), no padrão de `src/lib/erp-sync.server.ts` (retry em erros transitórios, mensagem amigável). Mantém `requireSupabaseAuth` + `ensureStaff`.
+- SQL usado (com filtro de período adicional aplicado por bind quando o usuário restringe as datas, mantendo sempre os registros em aberto):
+
+```text
+select s.cod_pedido, s.cod_sep, trim(t.dba_tip_nome_fantasia) separador,
+       s.status, s.qtd_cx_sep, s.dt_inc, s.dt_ini_sep, s.dt_fim_sep,
+       s.dt_fim_conf, s.prioridade
+  from gks.a_seppedido s, gks.a_cadctipo t
+ where s.dt_inc >= to_date('20250101','yyyyMMdd')
+   and t.dba_tip_codigo_1 = s.cod_sep
+```
+
+- Duas leituras por carregamento, para não trafegar tudo: concluídos no período do filtro (`dt_fim_sep between :inicio and :fim`) e todos os não concluídos (`dt_fim_sep is null`), ambos sobre o SQL acima; `limit` alto no endpoint e aviso se houver truncamento.
+- Datas do ERP chegam em ISO UTC; converter para `America/Sao_Paulo` nos cálculos de tempo e nos gráficos por dia/hora.
+- `src/routes/_authenticated/separacao.tsx`: botão Atualizar com `refetch()` (`staleTime: 0`), ícone `RefreshCw` animado enquanto carrega e `dataUpdatedAt` formatado; sem mudanças de layout.
+- Verificação: pedido 4135089 aparece como concluído hoje e os registros sem `dt_ini_sep` aparecem no card "Na fila".
