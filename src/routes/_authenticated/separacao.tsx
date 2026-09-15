@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Clock, Boxes, Loader2, PackageCheck, Timer, Users } from "lucide-react";
+import { Clock, Boxes, Loader2, PackageCheck, RefreshCw, Timer, Users } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { Badge } from "@/components/ui/badge";
