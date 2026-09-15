@@ -319,6 +319,21 @@ function SeparacaoPage() {
               selecionados={separadores}
               onChange={setSeparadores}
             />
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                disabled={q.isFetching}
+                onClick={() => void q.refetch()}
+              >
+                <RefreshCw className={`mr-1 h-3.5 w-3.5 ${q.isFetching ? "animate-spin" : ""}`} />
+                Atualizar
+              </Button>
+              {atualizadoEm ? (
+                <span className="text-[11px] text-muted-foreground">às {atualizadoEm}</span>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -328,7 +343,9 @@ function SeparacaoPage() {
           </div>
         ) : q.isError ? (
           <p className="p-6 text-sm text-destructive">
-            Não foi possível carregar os dados da separação.
+            {q.error instanceof Error
+              ? q.error.message
+              : "Não foi possível carregar os dados da separação."}
           </p>
         ) : (
           <>
