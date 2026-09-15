@@ -143,11 +143,12 @@ function SeparacaoPage() {
       const nome = r.separador?.trim() || "(vazio)";
       const atual = mapa.get(nome) ?? { qtd: 0, kg: 0, valor: 0 };
       atual.qtd += 1;
+      atual.kg += r.qtd_cx_sep ?? 0;
       mapa.set(nome, atual);
     }
     return [...mapa.entries()]
-      .map(([valor, a]) => ({ valor, rotulo: valor, ...a }))
-      .sort((a, b) => a.rotulo.localeCompare(b.rotulo, "pt-BR"));
+      .map(([valor, a]) => ({ valor, qtd: a.qtd, peso: 0, valorTotal: 0 }))
+      .sort((a, b) => a.valor.localeCompare(b.valor, "pt-BR"));
   }, [periodoTodos, abertosTodos]);
 
   const filtra = (rows: SeparacaoRow[]) =>
@@ -306,7 +307,7 @@ function SeparacaoPage() {
               />
             </div>
             <MultiFiltro
-              titulo="Separador"
+              label="Separador"
               opcoes={opcoesSeparador}
               selecionados={separadores}
               onChange={setSeparadores}
