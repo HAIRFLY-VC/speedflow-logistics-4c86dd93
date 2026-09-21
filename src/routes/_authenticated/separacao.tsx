@@ -31,6 +31,7 @@ import {
 import { MultiFiltro, type OpcaoFiltro } from "@/components/pedidos-sem-rota/MultiFiltro";
 import { carregarSeparacao, type SeparacaoRow } from "@/lib/separacao.functions";
 import { getSeparacaoChartPref, saveSeparacaoChartPref } from "@/lib/ui-prefs.functions";
+import { agoraBrt, diaDe, horasUteis } from "@/lib/horas-uteis";
 
 export const Route = createFileRoute("/_authenticated/separacao")({
   component: SeparacaoPage,
@@ -195,21 +196,35 @@ function SeparacaoPage() {
   const periodo = useMemo(() => filtra(periodoTodos), [periodoTodos, separadores]);
   const abertos = useMemo(() => filtra(abertosTodos), [abertosTodos, separadores]);
 
+  // Dias (BRT) em que houve movimentação — usados para considerar domingos
+  // trabalhados no cálculo de horas de expediente.
+  const movimento = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of [...periodoTodos, ...abertosTodos]) {
+      for (const v of [r.dt_inc, r.dt_ini_sep, r.dt_fim_sep]) {
+        const d = diaDe(v);
+        if (d) s.add(d);
+      }
+    }
+    return s;
+  }, [periodoTodos, abertosTodos]);
+
   // Fila = em aberto (sem fim de separação) e ainda sem início de separação.
   const emAndamentoOuFila = abertos.filter((r) => !temData(r.dt_fim_sep));
   const fila = emAndamentoOuFila.filter((r) => !temData(r.dt_ini_sep));
 
-  const agora = new Date().toISOString();
+  const agora = agoraBrt();
+
   const esperaMaisAntigo = media([
-    fila.length ? horas(fila[0]?.dt_inc ?? null, agora) : null,
+    fila.length ? horasUteis(fila[0]?.dt_inc ?? null, agora, movimento) : null,
   ]);
 
   const caixas = periodo.reduce((s, r) => s + (r.qtd_cx_sep ?? 0), 0);
-  const tSep = media(periodo.map((r) => horas(r.dt_inc, r.dt_fim_sep)));
+  const tSep = media(periodo.map((r) => horasUteis(r.dt_inc, r.dt_fim_sep, movimento)));
   // Caixas por hora: caixas do período ÷ tempo acumulado inclusão → fim da
   // separação dos pedidos concluídos.
   const horasTrabalhadas = periodo.reduce(
-    (s, r) => s + (horas(r.dt_inc, r.dt_fim_sep) ?? 0),
+    (s, r) => s + (horasUteis(r.dt_inc, r.dt_fim_sep, movimento) ?? 0),
     0,
   );
   const cxHora = horasTrabalhadas > 0 ? caixas / horasTrabalhadas : null;
@@ -226,7 +241,7 @@ function SeparacaoPage() {
         mapa.get(nome) ?? { pedidos: 0, caixas: 0, horas: 0, tempos: [], conf: [] };
       a.pedidos += 1;
       a.caixas += r.qtd_cx_sep ?? 0;
-      const t = horas(r.dt_inc, r.dt_fim_sep);
+      const t = horasUteis(r.dt_inc, r.dt_fim_sep, movimento);
       if (t != null) a.horas += t;
       a.tempos.push(t);
       a.conf.push(horas(r.dt_fim_sep, r.dt_fim_conf));
@@ -242,7 +257,7 @@ function SeparacaoPage() {
         confMedia: media(a.conf),
       }))
       .sort((a, b) => b.caixas - a.caixas);
-  }, [periodo]);
+  }, [periodo, movimento]);
 
   /** Pedidos e caixas concluídos por dia. */
   const porDia = useMemo(() => {
@@ -258,7 +273,7 @@ function SeparacaoPage() {
     return [...mapa.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([dia, a]) => ({ dia: dia.slice(8, 10) + "/" + dia.slice(5, 7), ...a }));
-  }, [periodo]);
+  }, [periodo, movimento]);
 
   /** Distribuição da conclusão por hora do dia. */
   const porHora = useMemo(() => {
@@ -272,7 +287,7 @@ function SeparacaoPage() {
       item.caixas += r.qtd_cx_sep ?? 0;
     }
     return base;
-  }, [periodo]);
+  }, [periodo, movimento]);
 
   /** Envelhecimento da fila aguardando início. */
   const envelhecimento = useMemo(() => {
@@ -283,12 +298,12 @@ function SeparacaoPage() {
       { faixa: "+24h", max: Infinity, pedidos: 0 },
     ];
     for (const r of fila) {
-      const h = horas(r.dt_inc, agora) ?? 0;
+      const h = horasUteis(r.dt_inc, agora, movimento) ?? 0;
       const alvo = faixas.find((f) => h <= f.max) ?? faixas[3]!;
       alvo.pedidos += 1;
     }
     return faixas;
-  }, [fila, agora]);
+  }, [fila, agora, movimento]);
 
   const emAberto = [...abertos].sort(
     (a, b) => new Date(a.dt_inc ?? 0).getTime() - new Date(b.dt_inc ?? 0).getTime(),
@@ -396,13 +411,13 @@ function SeparacaoPage() {
               <Indicador
                 titulo="Caixas por hora"
                 valor={cxHora != null ? num(cxHora) : "—"}
-                detalhe="caixas ÷ horas entre inclusão e fim da separação"
+                detalhe="caixas ÷ horas de expediente (inclusão → fim)"
                 icone={Boxes}
               />
               <Indicador
                 titulo="Tempo médio de separação"
                 valor={dur(tSep)}
-                detalhe="inclusão → fim da separação"
+                detalhe="inclusão → fim da separação (horas de expediente)"
                 icone={Clock}
               />
             </div>
@@ -582,7 +597,7 @@ function SeparacaoPage() {
                       </TableRow>
                     ) : (
                       emAberto.map((r) => {
-                        const h = horas(r.dt_inc, agora) ?? 0;
+                        const h = horasUteis(r.dt_inc, agora, movimento) ?? 0;
                         return (
                           <TableRow key={`${r.cod_pedido}-${r.cod_sep}`} className={h > 24 ? "bg-destructive/5" : ""}>
                             <TableCell className="text-xs font-mono">{r.cod_pedido}</TableCell>
