@@ -257,7 +257,7 @@ function SeparacaoPage() {
         confMedia: media(a.conf),
       }))
       .sort((a, b) => b.caixas - a.caixas);
-  }, [periodo]);
+  }, [periodo, movimento]);
 
   /** Pedidos e caixas concluídos por dia. */
   const porDia = useMemo(() => {
@@ -273,7 +273,7 @@ function SeparacaoPage() {
     return [...mapa.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([dia, a]) => ({ dia: dia.slice(8, 10) + "/" + dia.slice(5, 7), ...a }));
-  }, [periodo]);
+  }, [periodo, movimento]);
 
   /** Distribuição da conclusão por hora do dia. */
   const porHora = useMemo(() => {
@@ -287,7 +287,7 @@ function SeparacaoPage() {
       item.caixas += r.qtd_cx_sep ?? 0;
     }
     return base;
-  }, [periodo]);
+  }, [periodo, movimento]);
 
   /** Envelhecimento da fila aguardando início. */
   const envelhecimento = useMemo(() => {
@@ -303,7 +303,7 @@ function SeparacaoPage() {
       alvo.pedidos += 1;
     }
     return faixas;
-  }, [fila, agora]);
+  }, [fila, agora, movimento]);
 
   const emAberto = [...abertos].sort(
     (a, b) => new Date(a.dt_inc ?? 0).getTime() - new Date(b.dt_inc ?? 0).getTime(),
