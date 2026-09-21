@@ -31,6 +31,7 @@ import {
 import { MultiFiltro, type OpcaoFiltro } from "@/components/pedidos-sem-rota/MultiFiltro";
 import { carregarSeparacao, type SeparacaoRow } from "@/lib/separacao.functions";
 import { getSeparacaoChartPref, saveSeparacaoChartPref } from "@/lib/ui-prefs.functions";
+import { agoraBrt, diaDe, horasUteis } from "@/lib/horas-uteis";
 
 export const Route = createFileRoute("/_authenticated/separacao")({
   component: SeparacaoPage,
@@ -201,15 +202,15 @@ function SeparacaoPage() {
 
   const agora = new Date().toISOString();
   const esperaMaisAntigo = media([
-    fila.length ? horas(fila[0]?.dt_inc ?? null, agora) : null,
+    fila.length ? horasUteis(fila[0]?.dt_inc ?? null, agora, movimento) : null,
   ]);
 
   const caixas = periodo.reduce((s, r) => s + (r.qtd_cx_sep ?? 0), 0);
-  const tSep = media(periodo.map((r) => horas(r.dt_inc, r.dt_fim_sep)));
+  const tSep = media(periodo.map((r) => horasUteis(r.dt_inc, r.dt_fim_sep, movimento)));
   // Caixas por hora: caixas do período ÷ tempo acumulado inclusão → fim da
   // separação dos pedidos concluídos.
   const horasTrabalhadas = periodo.reduce(
-    (s, r) => s + (horas(r.dt_inc, r.dt_fim_sep) ?? 0),
+    (s, r) => s + (horasUteis(r.dt_inc, r.dt_fim_sep, movimento) ?? 0),
     0,
   );
   const cxHora = horasTrabalhadas > 0 ? caixas / horasTrabalhadas : null;
@@ -226,7 +227,7 @@ function SeparacaoPage() {
         mapa.get(nome) ?? { pedidos: 0, caixas: 0, horas: 0, tempos: [], conf: [] };
       a.pedidos += 1;
       a.caixas += r.qtd_cx_sep ?? 0;
-      const t = horas(r.dt_inc, r.dt_fim_sep);
+      const t = horasUteis(r.dt_inc, r.dt_fim_sep, movimento);
       if (t != null) a.horas += t;
       a.tempos.push(t);
       a.conf.push(horas(r.dt_fim_sep, r.dt_fim_conf));
@@ -283,7 +284,7 @@ function SeparacaoPage() {
       { faixa: "+24h", max: Infinity, pedidos: 0 },
     ];
     for (const r of fila) {
-      const h = horas(r.dt_inc, agora) ?? 0;
+      const h = horasUteis(r.dt_inc, agora, movimento) ?? 0;
       const alvo = faixas.find((f) => h <= f.max) ?? faixas[3]!;
       alvo.pedidos += 1;
     }
@@ -582,7 +583,7 @@ function SeparacaoPage() {
                       </TableRow>
                     ) : (
                       emAberto.map((r) => {
-                        const h = horas(r.dt_inc, agora) ?? 0;
+                        const h = horasUteis(r.dt_inc, agora, movimento) ?? 0;
                         return (
                           <TableRow key={`${r.cod_pedido}-${r.cod_sep}`} className={h > 24 ? "bg-destructive/5" : ""}>
                             <TableCell className="text-xs font-mono">{r.cod_pedido}</TableCell>
