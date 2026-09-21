@@ -411,13 +411,13 @@ function SeparacaoPage() {
               <Indicador
                 titulo="Caixas por hora"
                 valor={cxHora != null ? num(cxHora) : "—"}
-                detalhe="caixas ÷ horas entre inclusão e fim da separação"
+                detalhe="caixas ÷ horas de expediente (inclusão → fim)"
                 icone={Boxes}
               />
               <Indicador
                 titulo="Tempo médio de separação"
                 valor={dur(tSep)}
-                detalhe="inclusão → fim da separação"
+                detalhe="inclusão → fim da separação (horas de expediente)"
                 icone={Clock}
               />
             </div>
