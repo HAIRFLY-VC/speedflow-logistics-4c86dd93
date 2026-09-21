@@ -196,11 +196,25 @@ function SeparacaoPage() {
   const periodo = useMemo(() => filtra(periodoTodos), [periodoTodos, separadores]);
   const abertos = useMemo(() => filtra(abertosTodos), [abertosTodos, separadores]);
 
+  // Dias (BRT) em que houve movimentação — usados para considerar domingos
+  // trabalhados no cálculo de horas de expediente.
+  const movimento = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of [...periodoTodos, ...abertosTodos]) {
+      for (const v of [r.dt_inc, r.dt_ini_sep, r.dt_fim_sep]) {
+        const d = diaDe(v);
+        if (d) s.add(d);
+      }
+    }
+    return s;
+  }, [periodoTodos, abertosTodos]);
+
   // Fila = em aberto (sem fim de separação) e ainda sem início de separação.
   const emAndamentoOuFila = abertos.filter((r) => !temData(r.dt_fim_sep));
   const fila = emAndamentoOuFila.filter((r) => !temData(r.dt_ini_sep));
 
-  const agora = new Date().toISOString();
+  const agora = agoraBrt();
+
   const esperaMaisAntigo = media([
     fila.length ? horasUteis(fila[0]?.dt_inc ?? null, agora, movimento) : null,
   ]);
