@@ -220,6 +220,27 @@ function AppSidebar() {
   );
 }
 
+function SidebarCollapseButton() {
+  const { state, toggleSidebar } = useSidebar();
+  const collapsed = state === "collapsed";
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={toggleSidebar}
+      className="h-8 w-8 shrink-0"
+      title={collapsed ? "Expandir menu" : "Comprimir menu"}
+      aria-label={collapsed ? "Expandir menu" : "Comprimir menu"}
+    >
+      {collapsed ? (
+        <PanelLeftOpen className="h-4 w-4" />
+      ) : (
+        <PanelLeftClose className="h-4 w-4" />
+      )}
+    </Button>
+  );
+}
+
 function SidebarToggleButton() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
