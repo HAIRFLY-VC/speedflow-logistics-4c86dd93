@@ -73,6 +73,7 @@ type RouteDetail = {
   erp_status: string | null;
   erp_carrier_code: string | null;
   driver_name: string | null;
+  bordero_emitido_em: string | null;
   freight_carriers: {
     id: string;
     full_name: string;
@@ -121,7 +122,7 @@ function RouteDetailPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,erp_route_id,erp_status,erp_carrier_code,driver_name,route_date,status,total_freight,notes,carrier_id,freight_carriers(id,full_name,vehicle_plate,phone,transportadoras(cod_erp))",
+          "id,code,erp_route_id,erp_status,erp_carrier_code,driver_name,route_date,status,total_freight,notes,carrier_id,bordero_emitido_em,freight_carriers(id,full_name,vehicle_plate,phone,transportadoras(cod_erp))",
         )
         .eq("id", routeId)
         .maybeSingle();
@@ -394,7 +395,7 @@ function RouteDetailPage() {
     );
   }
 
-  const editable = route.status === "planejada";
+  const editable = route.status === "planejada" && !route.bordero_emitido_em;
 
   return (
     <AppShell>
@@ -422,7 +423,7 @@ function RouteDetailPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {route.erp_route_id && (
+            {route.erp_route_id && editable && (
               <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
                 <Pencil className="h-4 w-4 mr-1" />
                 Editar
@@ -435,6 +436,14 @@ function RouteDetailPage() {
             </span>
           </div>
         </div>
+
+        {!editable && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
+            {route.bordero_emitido_em
+              ? "Rota com borderô emitido no ERP — edição bloqueada."
+              : "Esta rota não está mais pendente — edição bloqueada."}
+          </div>
+        )}
 
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="md:col-span-2">
@@ -525,10 +534,12 @@ function RouteDetailPage() {
                   )}
                   Iniciar rota
                 </Button>
-                <Button variant="outline" onClick={() => cancel.mutate()}>
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Cancelar
-                </Button>
+                {editable && (
+                  <Button variant="outline" onClick={() => cancel.mutate()}>
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Cancelar
+                  </Button>
+                )}
               </>
             )}
             {route.status === "em_andamento" && (
