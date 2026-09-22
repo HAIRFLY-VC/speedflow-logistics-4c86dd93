@@ -299,7 +299,12 @@ export async function montarPreviewPagamentoRota(params: {
   const clientes = await nomesDeClientes(pedidos.map((p) => p.cod_cliente ?? "").filter(Boolean));
 
   const valor = cent(Number(params.valor ?? 0));
-  const { filiais, semBordero, valorMercadoria } = agrupar(pedidos, expedicao, clientes, valor);
+  const { filiais, semBordero, semFaturamento, valorMercadoria } = agrupar(
+    pedidos,
+    expedicao,
+    clientes,
+    valor,
+  );
 
   return {
     route_id: rota.id,
@@ -309,6 +314,7 @@ export async function montarPreviewPagamentoRota(params: {
     valor_mercadoria: valorMercadoria,
     total_pedidos: pedidos.length,
     pedidos_sem_bordero: semBordero,
+    pedidos_sem_faturamento: semFaturamento,
     ja_confirmado: rota.frete_confirmado_em != null,
     filiais,
     texto_tarefa: montarTextoTarefa(
