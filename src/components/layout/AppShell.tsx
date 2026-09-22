@@ -133,13 +133,15 @@ export function AppShell({
               <div>
                 <ErpSyncButton />
               </div>
-              <SidebarTrigger
-                title="Comprimir ou expandir menu lateral"
-                aria-label="Comprimir ou expandir menu lateral"
-                className="h-10 w-10"
-              >
-                <Menu className="h-5 w-5" />
-              </SidebarTrigger>
+              <div className="md:hidden">
+                <SidebarTrigger
+                  title="Comprimir ou expandir menu lateral"
+                  aria-label="Comprimir ou expandir menu lateral"
+                  className="h-10 w-10"
+                >
+                  <Menu className="h-5 w-5" />
+                </SidebarTrigger>
+              </div>
               <div>
                 <NotificationsBell />
               </div>
