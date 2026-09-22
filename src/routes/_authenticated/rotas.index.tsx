@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { ErpSyncButton } from "@/components/layout/ErpSyncButton";
 import { useClientesErp } from "@/hooks/useClientesErp";
 import { supabase } from "@/integrations/central/client";
 import { computeRoutePolyline } from "@/lib/route-directions.functions";
@@ -69,6 +70,16 @@ const ROUTE_STATUS_TONE: Record<RouteStatus, string> = {
 };
 
 export const Route = createFileRoute("/_authenticated/rotas/")({
+  head: () => ({
+    meta: [
+      { title: "Rotas Pendentes — SpeedFlow Logistics" },
+      { name: "description", content: "Consulte e atualize as rotas pendentes do SpeedFlow Logistics." },
+      { property: "og:title", content: "Rotas Pendentes — SpeedFlow Logistics" },
+      { property: "og:description", content: "Consulte e atualize as rotas pendentes do SpeedFlow Logistics." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: RotasPage,
 });
 
@@ -1141,14 +1152,17 @@ function RotasPage() {
       <div className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Rotas</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Rotas Pendentes</h1>
             <p className="text-muted-foreground text-sm">
               Planeje rotas, atribua pedidos faturados e emita o borderô.
             </p>
           </div>
-          <Button onClick={() => setOpen(true)} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-1" /> Nova rota
-          </Button>
+          <div className="flex w-full flex-wrap items-start gap-2 sm:w-auto">
+            <ErpSyncButton label="Atualizar rotas" lastSyncPrefix="Atualizado" />
+            <Button onClick={() => setOpen(true)} className="flex-1 sm:flex-none">
+              <Plus className="h-4 w-4 mr-1" /> Nova rota
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
