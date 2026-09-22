@@ -317,8 +317,8 @@ function FreightInput({
 
   const numero = Number(value.replace(",", "."));
   const valorNum = Number.isFinite(numero) ? numero : 0;
-  // Só é possível confirmar o pagamento quando todos os pedidos estiverem faturados.
-  const pendentes = Math.max(0, bordero.total - bordero.faturados);
+  // Só é possível confirmar o pagamento quando todos os pedidos tiverem borderô.
+  const pendentes = Math.max(0, bordero.total - bordero.comBordero);
   const podeConfirmar =
     valorNum > 0 && bordero.total > 0 && pendentes === 0 && (!confirmado || isAdmin);
 
@@ -422,7 +422,7 @@ function FreightInput({
         disabled={!podeConfirmar}
         title={
           pendentes > 0
-            ? `Aguardando faturamento de ${pendentes} pedido${pendentes === 1 ? "" : "s"} de ${bordero.total}`
+            ? `Aguardando borderô de ${pendentes} pedido${pendentes === 1 ? "" : "s"} de ${bordero.total}`
             : confirmado && !isAdmin
               ? "Apenas administradores podem reabrir ou lançar valores adicionais"
               : undefined
@@ -433,7 +433,7 @@ function FreightInput({
       </Button>
       {pendentes > 0 && (
         <span className="text-[10px] text-muted-foreground">
-          Aguardando faturamento de {pendentes} pedido{pendentes === 1 ? "" : "s"} de {bordero.total}
+          Aguardando borderô de {pendentes} pedido{pendentes === 1 ? "" : "s"} de {bordero.total}
         </span>
       )}
     </div>
