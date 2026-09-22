@@ -40,3 +40,10 @@ Ao confirmar, o app grava nas mesmas filas já usadas na aprovação de CT-e, qu
 - Rotas já confirmadas mostram selo "Pgto confirmado" e o botão vira **Reabrir / Lançar adicional**.
 
 **Verificação**: `bunx tsgo --noEmit`, `/rotas` respondendo 200, e conferência no app de uma rota com pedidos de mais de uma filial (soma dos rateios igual ao valor digitado).
+
+## Histórico de solicitações de pagamento
+
+- Nova aba/tela **Histórico de pagamentos** da rota (acessível pelo detalhamento e por um ícone na linha da rota) listando todas as solicitações: data/hora, quem confirmou, tipo (frete ou adicional + motivo), valor, situação no ERP e situação da tarefa.
+- Cada linha traz um link **Abrir tarefa no Bitrix**, montado com `bitrixTaskUrl()` a partir da `referencia_erp` devolvida pelo n8n na fila financeira; quando a tarefa ainda não voltou, mostra "Aguardando criação da tarefa".
+- Nada é apagado em reenvios: cada confirmação (inclusive as que substituem um lançamento anterior e os adicionais) permanece como um registro próprio em `ordens_pagamento_frete`, marcada como substituída quando for o caso.
+- Técnico: consulta server-side `listarPagamentosDaRota(routeId)` juntando `ordens_pagamento_frete` (filtradas por `route_id`) com a fila financeira (`referencia_erp`, `status`, `ultimo_erro`) e a fila de valores (contagem de linhas e erros), ordenada por `created_at` desc.
