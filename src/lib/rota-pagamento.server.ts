@@ -307,6 +307,7 @@ export async function montarPreviewPagamentoRota(params: {
   tipo?: TipoPagamentoRota;
   motivo?: MotivoAdicional | null;
   observacao?: string | null;
+  dataPagamento?: string | null;
 }): Promise<PreviewPagamentoRota> {
   const rota = await carregarRota(params.routeId);
   const pedidos = await carregarPedidos(params.routeId);
@@ -316,6 +317,7 @@ export async function montarPreviewPagamentoRota(params: {
   const clientes = await nomesDeClientes(pedidos.map((p) => p.cod_cliente ?? "").filter(Boolean));
 
   const valor = cent(Number(params.valor ?? 0));
+  const dataPagamento = normalizarDataPagamento(params.dataPagamento);
   const { filiais, semBordero, semFaturamento, valorMercadoria } = agrupar(
     pedidos,
     expedicao,
@@ -333,6 +335,7 @@ export async function montarPreviewPagamentoRota(params: {
     pedidos_sem_bordero: semBordero,
     pedidos_sem_faturamento: semFaturamento,
     ja_confirmado: rota.frete_confirmado_em != null,
+    data_pagamento: dataPagamento,
     filiais,
     texto_tarefa: montarTextoTarefa(
       rota,
@@ -341,6 +344,7 @@ export async function montarPreviewPagamentoRota(params: {
       params.tipo ?? "FRETE",
       params.motivo ?? null,
       params.observacao ?? null,
+      dataPagamento,
     ),
   };
 }
