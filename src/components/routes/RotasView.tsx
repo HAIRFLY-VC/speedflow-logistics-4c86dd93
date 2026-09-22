@@ -1395,12 +1395,12 @@ export function RotasView({
         ) : null}
 
         <DataTable
-          tableKey="rotas"
+          tableKey={tableKey}
           columns={columns}
-          data={data}
+          data={rotasVisiveis}
           isLoading={isLoading}
           rowKey={(r) => r.id}
-          emptyMessage="Nenhuma rota criada."
+          emptyMessage={mensagemVazia}
           onFilteredChange={setFilteredData}
           onRowClick={(r) =>
             navigate({ to: "/rotas/$routeId", params: { routeId: r.id } })
