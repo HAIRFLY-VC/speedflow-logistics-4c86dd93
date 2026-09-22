@@ -98,6 +98,122 @@ function friendlyErpError(status: number, bodyText: string): string {
   return `ERP API ${status}${snippet ? `: ${snippet}` : ""}`;
 }
 
+/** Consulta genérica ao ERP (mesma API usada pelas demais etapas). */
+async function erpQuery(sql: string, limit: number): Promise<Record<string, unknown>[]> {
+  const baseUrl = process.env.ERP_API_BASE_URL;
+  const apiKey = process.env.ERP_API_KEY;
+  if (!baseUrl || !apiKey) throw new Error("ERP_API_BASE_URL ou ERP_API_KEY não configurados");
+  const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
+  const res = await fetch(`${cleanBase}/v1/query`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+    body: JSON.stringify({ sql, binds: {}, limit }),
+  });
+  if (!res.ok) throw new Error(friendlyErpError(res.status, await res.text()));
+  const json = (await res.json()) as ErpQueryResponse;
+  return json.rows ?? [];
+}
+
+/**
+ * Rotas cujo borderô já foi emitido no ERP: elas deixam de voltar na consulta
+ * de pedidos pendentes. Em vez de apagar, marca a rota e busca o número do
+ * borderô de cada pedido. Pedido sem borderô no ERP é removido da base.
+ */
+async function tratarRotasComBorderoEmitido(routeIds: string[]): Promise<void> {
+  if (routeIds.length === 0) return;
+
+  const agora = new Date().toISOString();
+  const { error: upErr } = await centralDb
+    .from("routes")
+    .update({ bordero_emitido_em: agora })
+    .in("id", routeIds)
+    .is("bordero_emitido_em", null);
+  if (upErr) throw upErr;
+
+  const { data: links, error: linkErr } = await centralDb
+    .from("route_orders")
+    .select("route_id, order_id, orders(erp_id, order_number)")
+    .in("route_id", routeIds);
+  if (linkErr) throw linkErr;
+
+  type Link = {
+    route_id: string;
+    order_id: string;
+    orders: { erp_id: string | null; order_number: string | null } | null;
+  };
+  const rows = (links ?? []) as unknown as Link[];
+  const codeByOrderId = new Map<string, string>();
+  for (const l of rows) {
+    const cod = (l.orders?.erp_id ?? l.orders?.order_number ?? "").trim();
+    if (cod) codeByOrderId.set(l.order_id, cod);
+  }
+  const codigos = Array.from(new Set(codeByOrderId.values()));
+  if (codigos.length === 0) return;
+
+  const borderoPorPedido = new Map<string, string>();
+  for (let i = 0; i < codigos.length; i += 300) {
+    const lote = codigos.slice(i, i + 300);
+    const lista = lote.map((c) => `'${c.replace(/'/g, "''")}'`).join(",");
+    const sql = `
+      SELECT G.COD_PEDIDO, MAX(G.BORDERO) BORDERO
+        FROM GKS.A_GERENTREGAS G
+       WHERE G.COD_PEDIDO IN (${lista})
+       GROUP BY G.COD_PEDIDO
+    `;
+    for (const row of await erpQuery(sql, lote.length + 10)) {
+      const cod = String(row.COD_PEDIDO ?? "").trim();
+      const bordero = String(row.BORDERO ?? "").trim();
+      if (cod && bordero) borderoPorPedido.set(cod, bordero);
+    }
+  }
+
+  // Grava o borderô encontrado em cada pedido.
+  const porBordero = new Map<string, string[]>();
+  const semBordero: string[] = [];
+  for (const [orderId, cod] of codeByOrderId) {
+    const b = borderoPorPedido.get(cod);
+    if (!b) {
+      semBordero.push(orderId);
+      continue;
+    }
+    const arr = porBordero.get(b) ?? [];
+    arr.push(orderId);
+    porBordero.set(b, arr);
+  }
+  for (const [bordero, ids] of porBordero) {
+    for (let i = 0; i < ids.length; i += 200) {
+      const { error } = await centralDb
+        .from("orders")
+        .update({ bordero })
+        .in("id", ids.slice(i, i + 200));
+      if (error) throw error;
+    }
+  }
+
+  // Pedido sem registro no ERP é excluído da base do app.
+  for (let i = 0; i < semBordero.length; i += 200) {
+    const lote = semBordero.slice(i, i + 200);
+    const { error: roErr } = await centralDb.from("route_orders").delete().in("order_id", lote);
+    if (roErr) throw roErr;
+    const { error: oErr } = await centralDb.from("orders").delete().in("id", lote);
+    if (oErr) throw oErr;
+  }
+
+  // Rota que ficou sem nenhum pedido deixa de existir.
+  const { data: restantes, error: restErr } = await centralDb
+    .from("route_orders")
+    .select("route_id")
+    .in("route_id", routeIds);
+  if (restErr) throw restErr;
+  const comPedido = new Set((restantes ?? []).map((r) => String(r.route_id)));
+  const vazias = routeIds.filter((id) => !comPedido.has(id));
+  if (vazias.length > 0) {
+    await centralDb.from("delivery_manifests").delete().in("route_id", vazias);
+    const { error } = await centralDb.from("routes").delete().in("id", vazias);
+    if (error) throw error;
+  }
+}
+
 async function fetchPendingOrdersFromErp(): Promise<ErpOrderRow[]> {
   const baseUrl = process.env.ERP_API_BASE_URL;
   const apiKey = process.env.ERP_API_KEY;
