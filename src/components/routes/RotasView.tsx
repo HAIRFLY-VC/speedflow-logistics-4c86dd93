@@ -584,6 +584,7 @@ export function RotasView({
   permitirConfirmacao = false,
   filtro,
   mensagemVazia = "Nenhuma rota criada.",
+  tableKey,
 }: RotasViewProps) {
   const qc = useQueryClient();
   const { cidadeCliente } = useClientesErp();
