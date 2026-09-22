@@ -296,7 +296,7 @@ function FreightInput({
   route: RouteRow;
   estimate: SimulacaoRota | null;
   tipo: TipoFrete | null;
-  bordero: { total: number; comBordero: number };
+  bordero: { total: number; comBordero: number; faturados: number };
   isAdmin: boolean;
   onValorChange: (routeId: string, valor: number | null) => void;
   onConfirmar: (route: RouteRow, valor: number) => void;
