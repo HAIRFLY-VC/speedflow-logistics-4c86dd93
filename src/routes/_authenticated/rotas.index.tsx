@@ -1262,14 +1262,14 @@ function RotasPage() {
     ],
   );
 
-  /** Rotas de fretista totalmente faturadas e ainda sem pagamento confirmado. */
+  /** Rotas de fretista com borderô completo e ainda sem pagamento confirmado. */
   const aguardandoValor = useMemo(() => {
     const rows = filteredData ?? data ?? [];
     return rows.filter((r) => {
       if (tipoFreteOf(r) !== "F") return false;
       if (r.frete_confirmado_em) return false;
       const b = borderoDaRota(r);
-      if (b.total === 0 || b.faturados < b.total) return false;
+      if (b.total === 0 || b.comBordero < b.total) return false;
       const v = freteEditado[r.id] ?? Number(r.total_freight ?? 0);
       return !(Number(v) > 0);
     }).length;
@@ -1307,7 +1307,7 @@ function RotasPage() {
 
         {aguardandoValor > 0 && (
           <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
-            {aguardandoValor} rota(s) de fretista totalmente faturadas aguardando a definição do
+            {aguardandoValor} rota(s) de fretista com borderô completo aguardando a definição do
             valor do frete.
           </div>
         )}
