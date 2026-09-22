@@ -38,3 +38,7 @@ Migração no banco central (script SQL para você executar):
 `src/integrations/central/types.ts`: `orders` ganha `bordero: string | null`; `routes.status` aceita o novo valor.
 
 Sem mudanças no fluxo de confirmação de pagamento, nas filas do ERP/Bitrix ou nas permissões.
+
+## Ajuste (solicitado depois)
+
+Se a consulta `MAX(G.BORDERO)` não retornar registro para um pedido, esse pedido é **excluído da base do app**: o app remove o vínculo em `route_orders` e o registro em `orders`. Se a rota ficar sem nenhum pedido, ela também é removida.
