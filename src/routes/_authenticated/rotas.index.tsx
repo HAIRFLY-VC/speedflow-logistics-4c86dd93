@@ -200,8 +200,10 @@ function resolveTransportadora(
   return (
     transportadoras.find((t) => {
       const alvo = normalizaNome(t.razao_social ?? "");
+      if (alvo.length < 4) return false;
       return alvo === nome || alvo.startsWith(nome) || nome.startsWith(alvo);
     }) ?? null
+
   );
 }
 
