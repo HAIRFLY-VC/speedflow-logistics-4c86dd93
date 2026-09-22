@@ -106,11 +106,13 @@ export const lancarOrdemNoErp = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!ordem) throw new Error("Ordem não encontrada");
     if (ordem.status === "LANCADO_ERP") throw new Error("Ordem já lançada no ERP");
+    const cteId = ordem.cte_id;
+    if (!cteId) throw new Error("Esta ordem de pagamento não está vinculada a um CT-e.");
 
     const { data: cte } = await centralDb
       .from("ctes")
       .select("chave_acesso, numero, data_emissao, nfs_referenciadas, transportadora_id")
-      .eq("id", ordem.cte_id)
+      .eq("id", cteId)
       .maybeSingle();
 
     let transportadora: { razao_social: string; cnpj: string; pix: string | null } | null =
@@ -153,7 +155,7 @@ export const lancarOrdemNoErp = createServerFn({ method: "POST" })
     await centralDb
       .from("ctes")
       .update({ status: result.ok ? "LANCADO_ERP" : "ERRO_ERP" })
-      .eq("id", ordem.cte_id);
+      .eq("id", cteId);
 
     if (!result.ok) throw new Error(result.erro ?? "Falha ao lançar no ERP");
     return { ok: true, referencia_erp: result.referencia_erp ?? null };
