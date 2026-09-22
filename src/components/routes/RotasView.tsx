@@ -91,7 +91,7 @@ export type RotasViewProps = {
   tableKey: string;
 };
 
-type RouteRow = {
+export type RouteRow = {
   id: string;
   code: string;
   erp_route_id: string | null;
@@ -116,11 +116,13 @@ type RouteRow = {
       total_amount: number | null;
       weight: number | null;
       erp_status: string | null;
+      bordero: string | null;
       delivery_latitude: number | null;
       delivery_longitude: number | null;
     } | null;
   }[];
   frete_confirmado_em?: string | null;
+  bordero_emitido_em?: string | null;
 };
 
 
@@ -623,7 +625,7 @@ export function RotasView({
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,erp_route_id,erp_status,route_date,status,total_freight,total_distance_km,driver_name,notes,frete_confirmado_em,freight_carriers(full_name,vehicle_plate,transportadoras(id,cod_erp)),route_orders(stop_order,orders(customer_id,erp_cod_cliente,order_number,total_amount,weight,erp_status,delivery_latitude,delivery_longitude))",
+          "id,code,erp_route_id,erp_status,route_date,status,total_freight,total_distance_km,driver_name,notes,frete_confirmado_em,bordero_emitido_em,freight_carriers(full_name,vehicle_plate,transportadoras(id,cod_erp)),route_orders(stop_order,orders(customer_id,erp_cod_cliente,order_number,total_amount,weight,erp_status,bordero,delivery_latitude,delivery_longitude))",
         );
       if (error) throw error;
       const rows = ((data ?? []) as unknown as RouteRow[]).filter(
@@ -938,21 +940,27 @@ export function RotasView({
         .map((ro) => ({
           order: (ro.orders?.order_number ?? "").trim(),
           status: (ro.orders?.erp_status ?? "").trim().toUpperCase(),
+          bordero: (ro.orders?.bordero ?? "").trim(),
         }))
         .filter((p) => p.order);
       const unicos = Array.from(new Set(pedidos.map((p) => p.order)));
       const statusPorPedido = new Map<string, string[]>();
+      const borderoPorPedido = new Map<string, string>();
       for (const p of pedidos) {
         const arr = statusPorPedido.get(p.order) ?? [];
         arr.push(p.status);
         statusPorPedido.set(p.order, arr);
+        if (p.bordero && !borderoPorPedido.get(p.order)) borderoPorPedido.set(p.order, p.bordero);
       }
-      const comBordero = map ? unicos.filter((p) => map.get(p)?.bordero).length : 0;
+      // Borderô vem do pedido (gravado na sincronização) ou do espelho de entregas.
+      const comBordero = unicos.filter(
+        (p) => borderoPorPedido.get(p) || map?.get(p)?.bordero,
+      ).length;
       const faturados = unicos.filter((p) => {
         const nf = map?.get(p)?.nf;
         const statusList = statusPorPedido.get(p) ?? [];
         const faturadoPeloStatus = statusList.some((s) => s.includes("FATURADO"));
-        return !!nf || faturadoPeloStatus;
+        return !!nf || faturadoPeloStatus || !!borderoPorPedido.get(p);
       }).length;
       return { total: unicos.length, comBordero, faturados };
     };
@@ -1229,12 +1237,16 @@ export function RotasView({
         header: "Status",
         sortable: false,
         defaultVisible: false,
-        accessor: (r) => ROUTE_STATUS_LABEL[r.status],
+        accessor: (r) => (r.bordero_emitido_em ? "Borderô emitido" : ROUTE_STATUS_LABEL[r.status]),
         render: (r) => (
           <span
-            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${ROUTE_STATUS_TONE[r.status]}`}
+            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${
+              r.bordero_emitido_em
+                ? "bg-amber-500/15 text-amber-600 border-amber-500/30"
+                : ROUTE_STATUS_TONE[r.status]
+            }`}
           >
-            {ROUTE_STATUS_LABEL[r.status]}
+            {r.bordero_emitido_em ? "Borderô emitido" : ROUTE_STATUS_LABEL[r.status]}
           </span>
         ),
       },

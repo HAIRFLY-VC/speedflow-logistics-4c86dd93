@@ -12,10 +12,12 @@ type Pub = Database["public"];
 type OrdersRow = Pub["Tables"]["orders"]["Row"] & {
   erp_cod_cliente: string | null;
   cod_filial: string | null;
+  bordero: string | null;
 };
 type OrdersWrite = Omit<Pub["Tables"]["orders"]["Insert"], "customer_id"> & {
   erp_cod_cliente?: string | null;
   cod_filial?: string | null;
+  bordero?: string | null;
 };
 
 type CustomerGeoRow = {
@@ -88,10 +90,12 @@ type OpfWrite = Omit<Pub["Tables"]["ordens_pagamento_frete"]["Insert"], "cte_id"
 type RoutesRow = Pub["Tables"]["routes"]["Row"] & {
   frete_confirmado_em: string | null;
   frete_confirmado_por: string | null;
+  bordero_emitido_em: string | null;
 };
 type RoutesWrite = Pub["Tables"]["routes"]["Insert"] & {
   frete_confirmado_em?: string | null;
   frete_confirmado_por?: string | null;
+  bordero_emitido_em?: string | null;
 };
 
 type FilaValoresRow = {

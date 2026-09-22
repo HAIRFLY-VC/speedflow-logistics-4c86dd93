@@ -87,6 +87,8 @@ type PedidoCarregado = {
   cod_cliente: string | null;
   cod_filial: string | null;
   valor_mercadoria: number;
+  /** Borderô gravado no pedido durante a sincronização do ERP. */
+  bordero: string | null;
 };
 
 async function carregarRota(routeId: string): Promise<RotaCarregada> {
@@ -111,7 +113,7 @@ async function carregarRota(routeId: string): Promise<RotaCarregada> {
 async function carregarPedidos(routeId: string): Promise<PedidoCarregado[]> {
   const { data, error } = await centralDb
     .from("route_orders")
-    .select("stop_order, orders(order_number, total_amount, cod_filial, erp_cod_cliente)")
+    .select("stop_order, orders(order_number, total_amount, cod_filial, erp_cod_cliente, bordero)")
     .eq("route_id", routeId);
   if (error) throw new Error(error.message);
 
@@ -123,6 +125,7 @@ async function carregarPedidos(routeId: string): Promise<PedidoCarregado[]> {
           total_amount: number | null;
           cod_filial: string | null;
           erp_cod_cliente: string | null;
+          bordero: string | null;
         }
       | null;
   }[];
@@ -135,6 +138,7 @@ async function carregarPedidos(routeId: string): Promise<PedidoCarregado[]> {
     const atual = pedidos.get(cod);
     if (atual) {
       atual.valor_mercadoria = cent(atual.valor_mercadoria + Number(o?.total_amount ?? 0));
+      atual.bordero = atual.bordero ?? ((o?.bordero ?? "").trim() || null);
       continue;
     }
     pedidos.set(cod, {
@@ -142,6 +146,7 @@ async function carregarPedidos(routeId: string): Promise<PedidoCarregado[]> {
       cod_cliente: o?.erp_cod_cliente ?? null,
       cod_filial: (o?.cod_filial ?? "").trim() || null,
       valor_mercadoria: Number(o?.total_amount ?? 0),
+      bordero: (o?.bordero ?? "").trim() || null,
     });
   }
   return Array.from(pedidos.values());
@@ -267,7 +272,8 @@ function agrupar(
   let semFaturamento = 0;
   pedidos.forEach((p, i) => {
     const exp = expedicao.get(p.cod_pedido);
-    const bordero = exp?.bordero ?? null;
+    // Borderô: primeiro o gravado no pedido; senão o espelho de entregas.
+    const bordero = p.bordero ?? exp?.bordero ?? null;
     const nf = exp?.nro_nf ?? null;
     if (!bordero) semBordero += 1;
     if (!nf) semFaturamento += 1;

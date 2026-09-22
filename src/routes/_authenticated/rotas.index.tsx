@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { RotasView } from "@/components/routes/RotasView";
+import { useCallback } from "react";
+import { RotasView, type RouteRow } from "@/components/routes/RotasView";
 
 export const Route = createFileRoute("/_authenticated/rotas/")({
   head: () => ({
@@ -16,12 +17,16 @@ export const Route = createFileRoute("/_authenticated/rotas/")({
 });
 
 function RotasPage() {
+  // Rotas com borderô já emitido migram para a tela de autorização de pagamento.
+  const filtro = useCallback((r: RouteRow) => !r.bordero_emitido_em, []);
+
   return (
     <RotasView
       tableKey="rotas"
       titulo="Rotas Pendentes"
       descricao="Planeje rotas, atribua pedidos faturados e emita o borderô."
       mostrarAcoesDeRota
+      filtro={filtro}
     />
   );
 }

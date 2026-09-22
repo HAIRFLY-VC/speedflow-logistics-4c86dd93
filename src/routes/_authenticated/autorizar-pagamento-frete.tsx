@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback } from "react";
-import { RotasView } from "@/components/routes/RotasView";
+import { RotasView, type RouteRow } from "@/components/routes/RotasView";
 
 export const Route = createFileRoute("/_authenticated/autorizar-pagamento-frete")({
   head: () => ({
@@ -24,8 +24,9 @@ export const Route = createFileRoute("/_authenticated/autorizar-pagamento-frete"
 
 function AutorizarPagamentoFretePage() {
   const filtro = useCallback(
-    (_r: unknown, ctx: { bordero: { total: number; comBordero: number } }) =>
-      ctx.bordero.total > 0 && ctx.bordero.comBordero === ctx.bordero.total,
+    (r: RouteRow, ctx: { bordero: { total: number; comBordero: number } }) =>
+      Boolean(r.bordero_emitido_em) ||
+      (ctx.bordero.total > 0 && ctx.bordero.comBordero === ctx.bordero.total),
     [],
   );
 
@@ -33,10 +34,10 @@ function AutorizarPagamentoFretePage() {
     <RotasView
       tableKey="rotas-autorizar-pagamento"
       titulo="Autorizar pagamento de frete"
-      descricao="Rotas com borderô informado em todos os pedidos, prontas para confirmação do pagamento."
+      descricao="Rotas com borderô emitido, prontas para confirmação do pagamento do frete."
       permitirConfirmacao
       filtro={filtro}
-      mensagemVazia="Nenhuma rota com borderô completo no momento."
+      mensagemVazia="Nenhuma rota com borderô emitido no momento."
     />
   );
 }

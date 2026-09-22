@@ -98,6 +98,122 @@ function friendlyErpError(status: number, bodyText: string): string {
   return `ERP API ${status}${snippet ? `: ${snippet}` : ""}`;
 }
 
+/** Consulta genérica ao ERP (mesma API usada pelas demais etapas). */
+async function erpQuery(sql: string, limit: number): Promise<Record<string, unknown>[]> {
+  const baseUrl = process.env.ERP_API_BASE_URL;
+  const apiKey = process.env.ERP_API_KEY;
+  if (!baseUrl || !apiKey) throw new Error("ERP_API_BASE_URL ou ERP_API_KEY não configurados");
+  const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
+  const res = await fetch(`${cleanBase}/v1/query`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+    body: JSON.stringify({ sql, binds: {}, limit }),
+  });
+  if (!res.ok) throw new Error(friendlyErpError(res.status, await res.text()));
+  const json = (await res.json()) as ErpQueryResponse;
+  return json.rows ?? [];
+}
+
+/**
+ * Rotas cujo borderô já foi emitido no ERP: elas deixam de voltar na consulta
+ * de pedidos pendentes. Em vez de apagar, marca a rota e busca o número do
+ * borderô de cada pedido. Pedido sem borderô no ERP é removido da base.
+ */
+async function tratarRotasComBorderoEmitido(routeIds: string[]): Promise<void> {
+  if (routeIds.length === 0) return;
+
+  const agora = new Date().toISOString();
+  const { error: upErr } = await centralDb
+    .from("routes")
+    .update({ bordero_emitido_em: agora })
+    .in("id", routeIds)
+    .is("bordero_emitido_em", null);
+  if (upErr) throw upErr;
+
+  const { data: links, error: linkErr } = await centralDb
+    .from("route_orders")
+    .select("route_id, order_id, orders(erp_id, order_number)")
+    .in("route_id", routeIds);
+  if (linkErr) throw linkErr;
+
+  type Link = {
+    route_id: string;
+    order_id: string;
+    orders: { erp_id: string | null; order_number: string | null } | null;
+  };
+  const rows = (links ?? []) as unknown as Link[];
+  const codeByOrderId = new Map<string, string>();
+  for (const l of rows) {
+    const cod = (l.orders?.erp_id ?? l.orders?.order_number ?? "").trim();
+    if (cod) codeByOrderId.set(l.order_id, cod);
+  }
+  const codigos = Array.from(new Set(codeByOrderId.values()));
+  if (codigos.length === 0) return;
+
+  const borderoPorPedido = new Map<string, string>();
+  for (let i = 0; i < codigos.length; i += 300) {
+    const lote = codigos.slice(i, i + 300);
+    const lista = lote.map((c) => `'${c.replace(/'/g, "''")}'`).join(",");
+    const sql = `
+      SELECT G.COD_PEDIDO, MAX(G.BORDERO) BORDERO
+        FROM GKS.A_GERENTREGAS G
+       WHERE G.COD_PEDIDO IN (${lista})
+       GROUP BY G.COD_PEDIDO
+    `;
+    for (const row of await erpQuery(sql, lote.length + 10)) {
+      const cod = String(row.COD_PEDIDO ?? "").trim();
+      const bordero = String(row.BORDERO ?? "").trim();
+      if (cod && bordero) borderoPorPedido.set(cod, bordero);
+    }
+  }
+
+  // Grava o borderô encontrado em cada pedido.
+  const porBordero = new Map<string, string[]>();
+  const semBordero: string[] = [];
+  for (const [orderId, cod] of codeByOrderId) {
+    const b = borderoPorPedido.get(cod);
+    if (!b) {
+      semBordero.push(orderId);
+      continue;
+    }
+    const arr = porBordero.get(b) ?? [];
+    arr.push(orderId);
+    porBordero.set(b, arr);
+  }
+  for (const [bordero, ids] of porBordero) {
+    for (let i = 0; i < ids.length; i += 200) {
+      const { error } = await centralDb
+        .from("orders")
+        .update({ bordero })
+        .in("id", ids.slice(i, i + 200));
+      if (error) throw error;
+    }
+  }
+
+  // Pedido sem registro no ERP é excluído da base do app.
+  for (let i = 0; i < semBordero.length; i += 200) {
+    const lote = semBordero.slice(i, i + 200);
+    const { error: roErr } = await centralDb.from("route_orders").delete().in("order_id", lote);
+    if (roErr) throw roErr;
+    const { error: oErr } = await centralDb.from("orders").delete().in("id", lote);
+    if (oErr) throw oErr;
+  }
+
+  // Rota que ficou sem nenhum pedido deixa de existir.
+  const { data: restantes, error: restErr } = await centralDb
+    .from("route_orders")
+    .select("route_id")
+    .in("route_id", routeIds);
+  if (restErr) throw restErr;
+  const comPedido = new Set((restantes ?? []).map((r) => String(r.route_id)));
+  const vazias = routeIds.filter((id) => !comPedido.has(id));
+  if (vazias.length > 0) {
+    await centralDb.from("delivery_manifests").delete().in("route_id", vazias);
+    const { error } = await centralDb.from("routes").delete().in("id", vazias);
+    if (error) throw error;
+  }
+}
+
 async function fetchPendingOrdersFromErp(): Promise<ErpOrderRow[]> {
   const baseUrl = process.env.ERP_API_BASE_URL;
   const apiKey = process.env.ERP_API_KEY;
@@ -770,8 +886,21 @@ export async function syncErpOrders(opts: {
     }
 
 
-    // Rotas pendentes (planejada/em_andamento) são sempre excluídas e reinseridas
-    // a partir do retorno da query — o ERP é a fonte da verdade.
+    // Planejamento das rotas: código final, código alternativo (slug) e transportadora.
+    type GroupPlan = RouteGroup & { code: string; slugCode: string; carrierId: string | null };
+    const plans: GroupPlan[] = Array.from(groups.values()).map((g) => {
+      const slugCode = `${slugify(g.nome)}-${g.date.replace(/-/g, "")}`;
+      return {
+        ...g,
+        slugCode,
+        code: g.erpRouteId ? `erp-${g.erpRouteId}` : slugCode,
+        carrierId: g.carrierCode ? (carrierByCode.get(g.carrierCode) ?? null) : null,
+      };
+    });
+
+    // Rotas pendentes que ainda vêm do ERP são excluídas e reinseridas — o ERP é
+    // a fonte da verdade. As que deixaram de vir tiveram o borderô emitido:
+    // permanecem no app, marcadas, com o número do borderô buscado por pedido.
     // Dados informados manualmente são preservados via snapshot.
     type RouteSnapshot = {
       erp_route_id: string | null;
@@ -785,14 +914,20 @@ export async function syncErpOrders(opts: {
     };
     const snapshotByErpId = new Map<string, RouteSnapshot>();
     const snapshotByCode = new Map<string, RouteSnapshot>();
+    const erpIdsDoRetorno = new Set(
+      plans.map((p) => p.erpRouteId).filter((v): v is string => Boolean(v)),
+    );
+    const codesDoRetorno = new Set(plans.flatMap((p) => [p.code, p.slugCode]));
+    let rotasComBorderoEmitido: string[] = [];
     try {
       const { data: pendingRoutes, error: pendErr } = await centralDb
         .from("routes")
         .select("id,erp_route_id,code,total_freight,total_distance_km,carrier_id,status,erp_status,notes")
-        .in("status", ["planejada", "em_andamento"]);
+        .in("status", ["planejada", "em_andamento"])
+        .is("bordero_emitido_em", null);
       if (pendErr) throw pendErr;
 
-      const pendingIds = (pendingRoutes ?? []).map((r) => r.id as string);
+      const pendingIds: string[] = [];
       for (const r of pendingRoutes ?? []) {
         const snap: RouteSnapshot = {
           erp_route_id: (r.erp_route_id as string | null) ?? null,
@@ -806,6 +941,11 @@ export async function syncErpOrders(opts: {
         };
         if (snap.erp_route_id) snapshotByErpId.set(snap.erp_route_id, snap);
         snapshotByCode.set(snap.code, snap);
+        const voltouDoErp =
+          (snap.erp_route_id != null && erpIdsDoRetorno.has(snap.erp_route_id)) ||
+          codesDoRetorno.has(snap.code);
+        if (voltouDoErp) pendingIds.push(r.id as string);
+        else rotasComBorderoEmitido.push(r.id as string);
       }
 
       if (pendingIds.length > 0) {
@@ -826,20 +966,16 @@ export async function syncErpOrders(opts: {
         if (delRoutesErr) throw delRoutesErr;
       }
     } catch (e) {
+      rotasComBorderoEmitido = [];
       errors.push({ pedido: 0, message: `Reinserção de rotas pendentes: ${describeError(e)}` });
     }
 
-    // Planejamento das rotas: código final, código alternativo (slug) e transportadora.
-    type GroupPlan = RouteGroup & { code: string; slugCode: string; carrierId: string | null };
-    const plans: GroupPlan[] = Array.from(groups.values()).map((g) => {
-      const slugCode = `${slugify(g.nome)}-${g.date.replace(/-/g, "")}`;
-      return {
-        ...g,
-        slugCode,
-        code: g.erpRouteId ? `erp-${g.erpRouteId}` : slugCode,
-        carrierId: g.carrierCode ? (carrierByCode.get(g.carrierCode) ?? null) : null,
-      };
-    });
+    // Rotas que saíram do ERP: marca como borderô emitido e busca o número por pedido.
+    try {
+      await tratarRotasComBorderoEmitido(rotasComBorderoEmitido);
+    } catch (e) {
+      errors.push({ pedido: 0, message: `Rotas com borderô emitido: ${describeError(e)}` });
+    }
 
     // Rotas já existentes (concluídas/canceladas ou criadas antes do ID_ROTA): uma consulta só.
     const existingByErpId = new Map<string, string>();
