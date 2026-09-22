@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, ExternalLink, Loader2, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

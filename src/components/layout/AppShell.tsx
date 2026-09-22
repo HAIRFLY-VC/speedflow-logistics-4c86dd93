@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth, type AppRole } from "@/hooks/useAuth";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { NotificationsBell } from "./NotificationsBell";
 import { ErpSyncButton } from "./ErpSyncButton";
 

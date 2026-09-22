@@ -7,9 +7,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useAuth } from "@/hooks/useAuth";
 import { lovable } from "@/integrations/lovable";
+import { mensagemErro } from "@/lib/mensagem-erro";
 
 async function handleGoogleSignIn() {
   const result = await lovable.auth.signInWithOAuth("google", {
@@ -66,7 +67,7 @@ function AuthPage() {
     const { error } = await signIn(parsed.data.email, parsed.data.password);
     setSubmitting(false);
     if (error) {
-      toast.error(error === "Invalid login credentials" ? "E-mail ou senha incorretos" : error);
+      toast.error(mensagemErro(error, "Não foi possível entrar. Tente novamente."));
       return;
     }
     toast.success("Bem-vindo!");
@@ -89,9 +90,7 @@ function AuthPage() {
     const { error } = await signUp(parsed.data.email, parsed.data.password, parsed.data.fullName);
     setSubmitting(false);
     if (error) {
-      toast.error(
-        error.includes("already registered") ? "Este e-mail já está cadastrado" : error,
-      );
+      toast.error(mensagemErro(error, "Não foi possível criar a conta. Tente novamente."));
       return;
     }
     toast.success("Conta criada! Um administrador precisa atribuir seu papel para liberar o acesso.");

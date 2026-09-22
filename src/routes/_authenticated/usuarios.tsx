@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { UserPlus, Shield, Loader2, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { inviteUser } from "@/lib/users.functions";
+import { mensagemErro } from "@/lib/mensagem-erro";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
   component: UsuariosPage,
@@ -124,7 +125,7 @@ function UsuariosPage() {
       qc.invalidateQueries({ queryKey: ["users", "roles"] });
       toast.success("Papéis atualizados");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const inviteMut = useMutation({
@@ -138,7 +139,8 @@ function UsuariosPage() {
       setSelectedRoles(["operador"]);
       qc.invalidateQueries({ queryKey: ["users"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) =>
+      toast.error(mensagemErro(e, "Não foi possível convidar o usuário. Tente novamente.")),
   });
 
   if (!isAdm) {

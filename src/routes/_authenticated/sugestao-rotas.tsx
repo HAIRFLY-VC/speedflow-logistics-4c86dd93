@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Wand2, MapPin, CheckCircle2, X, Pencil, AlertTriangle } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 import { AppShell } from "@/components/layout/AppShell";

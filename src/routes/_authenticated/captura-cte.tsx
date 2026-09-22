@@ -14,7 +14,7 @@ import {
   Terminal,
   Wrench,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/hooks/useAuth";

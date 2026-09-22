@@ -5,7 +5,7 @@ import { openAppRoute } from "@/lib/open-in-tab";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Upload, Loader2, FileDown, FileCode, UserPlus, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 

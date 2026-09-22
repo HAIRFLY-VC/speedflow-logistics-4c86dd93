@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, MapPin } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 import { criterioFreteCte, definirPracaMunicipio } from "@/lib/frete-area.functions";
 import { Badge } from "@/components/ui/badge";
