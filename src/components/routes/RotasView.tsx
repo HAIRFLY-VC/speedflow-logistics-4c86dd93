@@ -1282,9 +1282,16 @@ export function RotasView({
     ],
   );
 
+  /** Rotas exibidas após o filtro específico da tela. */
+  const rotasVisiveis = useMemo(() => {
+    const rows = data ?? [];
+    if (!filtro) return rows;
+    return rows.filter((r) => filtro(r, { bordero: borderoDaRota(r) }));
+  }, [data, filtro, borderoDaRota]);
+
   /** Rotas de fretista com borderô completo e ainda sem pagamento confirmado. */
   const aguardandoValor = useMemo(() => {
-    const rows = filteredData ?? data ?? [];
+    const rows = filteredData ?? rotasVisiveis;
     return rows.filter((r) => {
       if (tipoFreteOf(r) !== "F") return false;
       if (r.frete_confirmado_em) return false;
@@ -1293,7 +1300,7 @@ export function RotasView({
       const v = freteEditado[r.id] ?? Number(r.total_freight ?? 0);
       return !(Number(v) > 0);
     }).length;
-  }, [filteredData, data, tipoFreteOf, borderoDaRota, freteEditado]);
+  }, [filteredData, rotasVisiveis, tipoFreteOf, borderoDaRota, freteEditado]);
 
 
 
