@@ -824,14 +824,63 @@ function RotasPage() {
     cidadeCliente,
   ]);
 
+  /** Borderô por pedido, vindo do espelho de entregas do ERP. */
+  const pedidosDaTela = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of data ?? []) {
+      for (const ro of r.route_orders ?? []) {
+        const cod = (ro.orders?.order_number ?? "").trim();
+        if (cod) set.add(cod);
+      }
+    }
+    return Array.from(set).sort();
+  }, [data]);
+
+  const borderosQ = useQuery({
+    queryKey: ["rotas-borderos", pedidosDaTela.length],
+    enabled: pedidosDaTela.length > 0,
+    queryFn: async () => {
+      const map = new Map<string, string>();
+      for (let i = 0; i < pedidosDaTela.length; i += 200) {
+        const lote = pedidosDaTela.slice(i, i + 200);
+        const { data: rows, error } = await supabase
+          .from("entregas_abertas")
+          .select("cod_pedido, bordero")
+          .in("cod_pedido", lote);
+        if (error) throw error;
+        for (const row of (rows ?? []) as { cod_pedido: string; bordero: string | null }[]) {
+          const b = (row.bordero ?? "").trim();
+          if (b && !map.has(row.cod_pedido)) map.set(row.cod_pedido, b);
+        }
+      }
+      return map;
+    },
+  });
+
+  const borderoDaRota = useMemo(() => {
+    const map = borderosQ.data;
+    return (r: RouteRow) => {
+      const pedidos = (r.route_orders ?? [])
+        .map((ro) => (ro.orders?.order_number ?? "").trim())
+        .filter(Boolean);
+      const unicos = Array.from(new Set(pedidos));
+      const comBordero = map ? unicos.filter((p) => map.has(p)).length : 0;
+      return { total: unicos.length, comBordero };
+    };
+  }, [borderosQ.data]);
+
   /** Frete informado; na ausência, a estimativa da tabela da transportadora. */
   const freteOf = useMemo(
-    () => (r: RouteRow) =>
-      Number(r.total_freight ?? 0) > 0
+    () => (r: RouteRow) => {
+      const editado = freteEditado[r.id];
+      if (editado != null) return editado;
+      return Number(r.total_freight ?? 0) > 0
         ? Number(r.total_freight)
-        : (estimativas.get(r.id)?.total ?? 0),
-    [estimativas],
+        : (estimativas.get(r.id)?.total ?? 0);
+    },
+    [estimativas, freteEditado],
   );
+
 
   const columns = useMemo<ColumnDef<RouteRow>[]>(
 
