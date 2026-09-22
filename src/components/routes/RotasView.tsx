@@ -1267,6 +1267,7 @@ export function RotasView({
       freteOf,
       borderoDaRota,
       role,
+      permitirConfirmacao,
       responsavelPorRota,
       transpPorRota,
       codResponsavelPorRota,
