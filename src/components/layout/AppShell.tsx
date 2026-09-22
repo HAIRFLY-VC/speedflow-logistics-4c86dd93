@@ -67,7 +67,7 @@ const NAV: NavItem[] = [
 
 
 
-  { title: "Rotas", url: "/rotas", icon: RouteIcon, roles: ["adm", "gestor", "operador"] },
+  { title: "Rotas Pendentes", url: "/rotas", icon: RouteIcon, roles: ["adm", "gestor", "operador"] },
   { title: "Pedidos sem rota", url: "/pedidos-sem-rota", icon: MapPinned, roles: ["adm", "gestor", "operador"] },
   { title: "Entregas em aberto", url: "/entregas-abertas", icon: PackageSearch, roles: ["adm", "gestor", "operador"] },
   { title: "Separação", url: "/separacao", icon: Boxes, roles: ["adm", "gestor", "operador"] },

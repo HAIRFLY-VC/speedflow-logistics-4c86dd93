@@ -10,7 +10,15 @@ import { checkErpConfig, triggerErpSync } from "@/lib/erp.functions";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-export function ErpSyncButton() {
+type ErpSyncButtonProps = {
+  label?: string;
+  lastSyncPrefix?: string;
+};
+
+export function ErpSyncButton({
+  label = "Sync ERP",
+  lastSyncPrefix = "Última sinc.:",
+}: ErpSyncButtonProps = {}) {
   const qc = useQueryClient();
   const checkFn = useServerFn(checkErpConfig);
   const syncFn = useServerFn(triggerErpSync);
@@ -35,6 +43,7 @@ export function ErpSyncButton() {
       return data as { started_at: string; finished_at: string; status: string } | null;
     },
     staleTime: 30_000,
+    refetchInterval: 60_000,
   });
 
   type SyncOutcome = {
@@ -42,13 +51,19 @@ export function ErpSyncButton() {
     updated: number;
     skipped: number;
     errors: unknown[];
+    status?: "success" | "partial" | "failed";
   };
 
   const sync = useMutation({
     mutationFn: async (): Promise<SyncOutcome> => {
       const clickedAt = new Date(Date.now() - 5_000).toISOString();
       try {
-        return await syncFn();
+        const result = await syncFn();
+        if (result.status === "failed") {
+          const firstError = result.errors[0]?.message;
+          throw new Error(firstError ?? "Não foi possível atualizar os dados do ERP.");
+        }
+        return result;
       } catch (e) {
         const err = e instanceof Error ? e : new Error(String(e));
         if (!isConnectionDrop(err.message)) throw err;
@@ -69,6 +84,10 @@ export function ErpSyncButton() {
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["kanban"] });
       qc.invalidateQueries({ queryKey: ["routes"] });
+      qc.invalidateQueries({ queryKey: ["responsaveis-erp"] });
+      qc.invalidateQueries({ queryKey: ["erp-responsaveis"] });
+      qc.invalidateQueries({ queryKey: ["rotas-responsaveis-erp"] });
+      qc.invalidateQueries({ queryKey: ["naturezas-erp"] });
       qc.invalidateQueries({ queryKey: ["erp", "last-sync"] });
     },
     onError: (e: Error) => toast.error(`Falha ao importar: ${e.message}`),
@@ -109,6 +128,7 @@ export function ErpSyncButton() {
           updated: data.orders_updated ?? 0,
           skipped: data.orders_skipped ?? 0,
           errors: (data.errors as unknown[] | null) ?? [],
+          status: data.status as SyncOutcome["status"],
         };
       }
       await new Promise((r) => setTimeout(r, 5_000));
@@ -128,8 +148,8 @@ export function ErpSyncButton() {
     : `Configuração incompleta: ${missing.join(", ")}`;
 
   const lastSyncText = lastSyncQ.data?.finished_at
-    ? `Última sinc.: ${formatDistanceToNow(new Date(lastSyncQ.data.finished_at), { addSuffix: true, locale: ptBR })}`
-    : "Nenhuma sincronização";
+    ? `${lastSyncPrefix} ${formatDistanceToNow(new Date(lastSyncQ.data.finished_at), { addSuffix: true, locale: ptBR })}`
+    : "Ainda não atualizado";
 
   const btn = (
     <Button
@@ -143,7 +163,7 @@ export function ErpSyncButton() {
       ) : (
         <RefreshCw className="h-4 w-4 mr-1" />
       )}
-      Sync ERP
+      {label}
     </Button>
   );
 
