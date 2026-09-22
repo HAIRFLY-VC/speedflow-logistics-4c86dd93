@@ -60,6 +60,8 @@ export function PagamentoRotaDialog({
   const [motivo, setMotivo] = useState<MotivoAdicional>("PERNOITE");
   const [observacao, setObservacao] = useState("");
   const [valorAdicional, setValorAdicional] = useState("");
+  const [valorFrete, setValorFrete] = useState("");
+  const [valorDebounced, setValorDebounced] = useState(0);
 
   useEffect(() => {
     if (open) {
@@ -67,23 +69,31 @@ export function PagamentoRotaDialog({
       setMotivo("PERNOITE");
       setObservacao("");
       setValorAdicional("");
+      setValorFrete(valor > 0 ? String(valor) : "");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, routeId]);
 
   const valorEfetivo = useMemo(() => {
-    if (tipo === "FRETE") return valor;
-    const n = Number(valorAdicional.replace(",", "."));
+    const texto = tipo === "FRETE" ? valorFrete : valorAdicional;
+    const n = Number(texto.replace(",", "."));
     return Number.isFinite(n) ? n : 0;
-  }, [tipo, valor, valorAdicional]);
+  }, [tipo, valorFrete, valorAdicional]);
+
+  // Pequeno atraso para não refazer o rateio a cada tecla digitada.
+  useEffect(() => {
+    const t = setTimeout(() => setValorDebounced(valorEfetivo), 350);
+    return () => clearTimeout(t);
+  }, [valorEfetivo]);
 
   const previewQ = useQuery({
-    queryKey: ["rota-pagamento", "preview", routeId, valorEfetivo, tipo, motivo],
-    enabled: open && !!routeId && valorEfetivo > 0,
+    queryKey: ["rota-pagamento", "preview", routeId, valorDebounced, tipo, motivo],
+    enabled: open && !!routeId && valorDebounced > 0,
     queryFn: () =>
       preview({
         data: {
           routeId: routeId!,
-          valor: valorEfetivo,
+          valor: valorDebounced,
           tipo,
           motivo: tipo === "ADICIONAL" ? motivo : null,
           observacao: observacao || null,
@@ -118,18 +128,41 @@ export function PagamentoRotaDialog({
   });
 
   const p = previewQ.data;
-  const semBordero = (p?.pedidos_sem_bordero ?? 0) > 0;
+  const semFaturamento = (p?.pedidos_sem_faturamento ?? 0) > 0;
+  const recalculando = valorEfetivo !== valorDebounced || previewQ.isFetching;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="flex max-h-[92vh] max-w-5xl flex-col overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Confirmar pagamento — {rotulo}</DialogTitle>
           <DialogDescription>
-            Detalhamento da rota por filial de faturamento, com o frete rateado por pedido
-            conforme o valor da mercadoria.
+            Confira o detalhamento da rota por filial de faturamento. Nada é enviado antes de você
+            clicar em "Confirmar e enviar".
           </DialogDescription>
         </DialogHeader>
+
+        {tipo === "FRETE" && (
+          <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/30 p-3">
+            <div className="grid gap-1">
+              <Label className="text-xs">Valor do frete (R$)</Label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                className="h-9 w-36 rounded-md border border-input bg-background px-2 text-right text-sm tabular-nums"
+                value={valorFrete}
+                onChange={(e) => setValorFrete(e.target.value)}
+                placeholder="0,00"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Alterar o valor recalcula o rateio por pedido e os totais por filial.
+              {recalculando && valorEfetivo > 0 ? " Recalculando..." : ""}
+            </p>
+          </div>
+        )}
 
         {jaConfirmado && (
           <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700">
@@ -217,10 +250,10 @@ export function PagamentoRotaDialog({
               <span className="text-muted-foreground">{p.total_pedidos} pedido(s)</span>
             </div>
 
-            {semBordero && (
+            {semFaturamento && (
               <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
-                {p.pedidos_sem_bordero} pedido(s) ainda sem borderô. O pagamento só pode ser
-                confirmado quando todos os pedidos tiverem borderô.
+                {p.pedidos_sem_faturamento} pedido(s) ainda sem faturamento. O pagamento só pode ser
+                confirmado quando todos os pedidos estiverem faturados.
               </div>
             )}
 
@@ -234,6 +267,7 @@ export function PagamentoRotaDialog({
                   <thead className="text-muted-foreground">
                     <tr>
                       <th className="px-3 py-1 text-left font-medium">Pedido</th>
+                      <th className="px-3 py-1 text-left font-medium">Nota fiscal</th>
                       <th className="px-3 py-1 text-left font-medium">Borderô</th>
                       <th className="px-3 py-1 text-left font-medium">Cliente</th>
                       <th className="px-3 py-1 text-right font-medium">Mercadoria</th>
@@ -245,7 +279,10 @@ export function PagamentoRotaDialog({
                       <tr key={ped.cod_pedido} className="border-t">
                         <td className="px-3 py-1 tabular-nums">{ped.cod_pedido}</td>
                         <td className="px-3 py-1 tabular-nums">
-                          {ped.bordero ?? <span className="text-destructive">sem borderô</span>}
+                          {ped.nro_nf ?? <span className="text-destructive">sem NF</span>}
+                        </td>
+                        <td className="px-3 py-1 tabular-nums">
+                          {ped.bordero ?? <span className="text-muted-foreground">—</span>}
                         </td>
                         <td className="px-3 py-1">{ped.cliente}</td>
                         <td className="px-3 py-1 text-right tabular-nums">
@@ -357,16 +394,22 @@ export function PagamentoRotaDialog({
           </Button>
           <Button
             onClick={() => enviar.mutate()}
+            className={
+              enviar.isPending || !p || semFaturamento || recalculando || valorEfetivo <= 0 || (jaConfirmado && !isAdmin)
+                ? "cursor-not-allowed"
+                : "bg-emerald-600 text-white hover:bg-emerald-700"
+            }
             disabled={
               enviar.isPending ||
               !p ||
-              semBordero ||
+              semFaturamento ||
+              recalculando ||
               valorEfetivo <= 0 ||
               (jaConfirmado && !isAdmin)
             }
           >
             {enviar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {tipo === "ADICIONAL" ? "Lançar adicional" : "Confirmar Pgto"}
+            {tipo === "ADICIONAL" ? "Lançar adicional" : "Confirmar e enviar"}
           </Button>
         </DialogFooter>
       </DialogContent>

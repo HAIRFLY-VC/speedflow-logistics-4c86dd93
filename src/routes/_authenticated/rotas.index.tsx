@@ -296,7 +296,7 @@ function FreightInput({
   route: RouteRow;
   estimate: SimulacaoRota | null;
   tipo: TipoFrete | null;
-  bordero: { total: number; comBordero: number };
+  bordero: { total: number; comBordero: number; faturados: number };
   isAdmin: boolean;
   onValorChange: (routeId: string, valor: number | null) => void;
   onConfirmar: (route: RouteRow, valor: number) => void;
@@ -316,8 +316,10 @@ function FreightInput({
 
   const numero = Number(value.replace(",", "."));
   const valorNum = Number.isFinite(numero) ? numero : 0;
-  const pendentes = Math.max(0, bordero.total - bordero.comBordero);
-  const podeConfirmar = valorNum > 0 && pendentes === 0 && (!confirmado || isAdmin);
+  // Só é possível confirmar o pagamento quando todos os pedidos estiverem faturados.
+  const pendentes = Math.max(0, bordero.total - bordero.faturados);
+  const podeConfirmar =
+    valorNum > 0 && bordero.total > 0 && pendentes === 0 && (!confirmado || isAdmin);
 
   // Grava o valor planejado ao sair do campo, sem criar pagamento.
   const salvarPlanejado = async () => {
@@ -419,7 +421,7 @@ function FreightInput({
         disabled={!podeConfirmar}
         title={
           pendentes > 0
-            ? `Aguardando borderô de ${pendentes} de ${bordero.total} pedidos`
+            ? `Aguardando faturamento de ${pendentes} de ${bordero.total} pedidos`
             : confirmado && !isAdmin
               ? "Apenas administradores podem reabrir ou lançar valores adicionais"
               : undefined
@@ -430,7 +432,7 @@ function FreightInput({
       </Button>
       {pendentes > 0 && (
         <span className="text-[10px] text-muted-foreground">
-          Aguardando borderô de {pendentes} de {bordero.total} pedidos
+          Aguardando faturamento de {pendentes} de {bordero.total} pedidos
         </span>
       )}
     </div>
@@ -881,17 +883,26 @@ function RotasPage() {
     queryKey: ["rotas-borderos", pedidosDaTela.length],
     enabled: pedidosDaTela.length > 0,
     queryFn: async () => {
-      const map = new Map<string, string>();
+      const map = new Map<string, { bordero: string | null; nf: string | null }>();
       for (let i = 0; i < pedidosDaTela.length; i += 200) {
         const lote = pedidosDaTela.slice(i, i + 200);
         const { data: rows, error } = await supabase
           .from("entregas_abertas")
-          .select("cod_pedido, bordero")
+          .select("cod_pedido, bordero, nro_nf")
           .in("cod_pedido", lote);
         if (error) throw error;
-        for (const row of (rows ?? []) as { cod_pedido: string; bordero: string | null }[]) {
-          const b = (row.bordero ?? "").trim();
-          if (b && !map.has(row.cod_pedido)) map.set(row.cod_pedido, b);
+        for (const row of (rows ?? []) as {
+          cod_pedido: string;
+          bordero: string | null;
+          nro_nf: string | null;
+        }[]) {
+          const b = (row.bordero ?? "").trim() || null;
+          const nf = (row.nro_nf ?? "").trim() || null;
+          const atual = map.get(row.cod_pedido);
+          map.set(row.cod_pedido, {
+            bordero: atual?.bordero ?? b,
+            nf: atual?.nf ?? nf,
+          });
         }
       }
       return map;
@@ -905,8 +916,9 @@ function RotasPage() {
         .map((ro) => (ro.orders?.order_number ?? "").trim())
         .filter(Boolean);
       const unicos = Array.from(new Set(pedidos));
-      const comBordero = map ? unicos.filter((p) => map.has(p)).length : 0;
-      return { total: unicos.length, comBordero };
+      const comBordero = map ? unicos.filter((p) => map.get(p)?.bordero).length : 0;
+      const faturados = map ? unicos.filter((p) => map.get(p)?.nf).length : 0;
+      return { total: unicos.length, comBordero, faturados };
     };
   }, [borderosQ.data]);
 
@@ -1235,14 +1247,14 @@ function RotasPage() {
     ],
   );
 
-  /** Rotas de fretista com borderô completo e ainda sem pagamento confirmado. */
+  /** Rotas de fretista totalmente faturadas e ainda sem pagamento confirmado. */
   const aguardandoValor = useMemo(() => {
     const rows = filteredData ?? data ?? [];
     return rows.filter((r) => {
       if (tipoFreteOf(r) !== "F") return false;
       if (r.frete_confirmado_em) return false;
       const b = borderoDaRota(r);
-      if (b.total === 0 || b.comBordero < b.total) return false;
+      if (b.total === 0 || b.faturados < b.total) return false;
       const v = freteEditado[r.id] ?? Number(r.total_freight ?? 0);
       return !(Number(v) > 0);
     }).length;
@@ -1280,7 +1292,7 @@ function RotasPage() {
 
         {aguardandoValor > 0 && (
           <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
-            {aguardandoValor} rota(s) de fretista com borderô completo aguardando a definição do
+            {aguardandoValor} rota(s) de fretista totalmente faturadas aguardando a definição do
             valor do frete.
           </div>
         )}

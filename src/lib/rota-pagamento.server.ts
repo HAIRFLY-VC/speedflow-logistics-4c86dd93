@@ -135,26 +135,38 @@ async function carregarPedidos(routeId: string): Promise<PedidoCarregado[]> {
   return Array.from(pedidos.values());
 }
 
-/** Borderô e filial de faturamento vindos do espelho de entregas do ERP. */
-async function dadosDeExpedicao(
-  codPedidos: string[],
-): Promise<Map<string, { bordero: string | null; cod_filial: string | null }>> {
-  const map = new Map<string, { bordero: string | null; cod_filial: string | null }>();
+type DadosExpedicao = {
+  bordero: string | null;
+  cod_filial: string | null;
+  nro_nf: string | null;
+};
+
+/** Borderô, nota fiscal e filial de faturamento vindos do espelho de entregas do ERP. */
+async function dadosDeExpedicao(codPedidos: string[]): Promise<Map<string, DadosExpedicao>> {
+  const map = new Map<string, DadosExpedicao>();
   const TAM = 200;
   for (let i = 0; i < codPedidos.length; i += TAM) {
     const lote = codPedidos.slice(i, i + TAM);
     const { data, error } = await centralDb
       .from("entregas_abertas")
-      .select("cod_pedido, bordero, cod_filial")
+      .select("cod_pedido, bordero, cod_filial, nro_nf, dt_fatur")
       .in("cod_pedido", lote);
     if (error) throw new Error(error.message);
-    for (const row of (data ?? []) as { cod_pedido: string; bordero: string | null; cod_filial: string | null }[]) {
+    for (const row of (data ?? []) as {
+      cod_pedido: string;
+      bordero: string | null;
+      cod_filial: string | null;
+      nro_nf: string | null;
+      dt_fatur: string | null;
+    }[]) {
       const atual = map.get(row.cod_pedido);
       const bordero = (row.bordero ?? "").trim() || null;
       const filial = (row.cod_filial ?? "").trim() || null;
+      const nf = (row.nro_nf ?? "").trim() || null;
       map.set(row.cod_pedido, {
         bordero: atual?.bordero ?? bordero,
         cod_filial: atual?.cod_filial ?? filial,
+        nro_nf: atual?.nro_nf ?? nf,
       });
     }
   }
@@ -203,7 +215,7 @@ function montarTextoTarefa(
     linhas.push(`Filial de faturamento ${f.cod_filial}`);
     for (const p of f.pedidos) {
       linhas.push(
-        `  Pedido ${p.cod_pedido}${p.bordero ? ` | Borderô ${p.bordero}` : ""} | ${p.cliente} | Mercadoria ${brl(p.valor_mercadoria)} | Frete ${brl(p.frete)}`,
+        `  Pedido ${p.cod_pedido}${p.nro_nf ? ` | NF ${p.nro_nf}` : ""}${p.bordero ? ` | Borderô ${p.bordero}` : ""} | ${p.cliente} | Mercadoria ${brl(p.valor_mercadoria)} | Frete ${brl(p.frete)}`,
       );
     }
     linhas.push(`  Subtotal da filial ${f.cod_filial}: ${brl(f.frete)}`);
@@ -221,24 +233,33 @@ function montarTextoTarefa(
 
 function agrupar(
   pedidos: PedidoCarregado[],
-  expedicao: Map<string, { bordero: string | null; cod_filial: string | null }>,
+  expedicao: Map<string, DadosExpedicao>,
   clientes: Map<string, string>,
   valor: number,
-): { filiais: FilialPagamento[]; semBordero: number; valorMercadoria: number } {
+): {
+  filiais: FilialPagamento[];
+  semBordero: number;
+  semFaturamento: number;
+  valorMercadoria: number;
+} {
   const pesos = pedidos.map((p) => Number(p.valor_mercadoria ?? 0));
   const rateado = ratear(valor, pesos);
 
   const grupos = new Map<string, FilialPagamento>();
   let semBordero = 0;
+  let semFaturamento = 0;
   pedidos.forEach((p, i) => {
     const exp = expedicao.get(p.cod_pedido);
     const bordero = exp?.bordero ?? null;
+    const nf = exp?.nro_nf ?? null;
     if (!bordero) semBordero += 1;
+    if (!nf) semFaturamento += 1;
     const filial = p.cod_filial ?? exp?.cod_filial ?? "SEM FILIAL";
     const item: PedidoPagamento = {
       cod_pedido: p.cod_pedido,
       cliente: (p.cod_cliente ? clientes.get(p.cod_cliente) : null) ?? p.cod_cliente ?? "—",
       bordero,
+      nro_nf: nf,
       valor_mercadoria: cent(Number(p.valor_mercadoria ?? 0)),
       frete: rateado[i] ?? 0,
     };
@@ -258,6 +279,7 @@ function agrupar(
   return {
     filiais,
     semBordero,
+    semFaturamento,
     valorMercadoria: cent(pesos.reduce((s, v) => s + v, 0)),
   };
 }
@@ -277,7 +299,12 @@ export async function montarPreviewPagamentoRota(params: {
   const clientes = await nomesDeClientes(pedidos.map((p) => p.cod_cliente ?? "").filter(Boolean));
 
   const valor = cent(Number(params.valor ?? 0));
-  const { filiais, semBordero, valorMercadoria } = agrupar(pedidos, expedicao, clientes, valor);
+  const { filiais, semBordero, semFaturamento, valorMercadoria } = agrupar(
+    pedidos,
+    expedicao,
+    clientes,
+    valor,
+  );
 
   return {
     route_id: rota.id,
@@ -287,6 +314,7 @@ export async function montarPreviewPagamentoRota(params: {
     valor_mercadoria: valorMercadoria,
     total_pedidos: pedidos.length,
     pedidos_sem_bordero: semBordero,
+    pedidos_sem_faturamento: semFaturamento,
     ja_confirmado: rota.frete_confirmado_em != null,
     filiais,
     texto_tarefa: montarTextoTarefa(
@@ -327,9 +355,9 @@ export async function confirmarPagamentoRota(params: {
     motivo: params.motivo,
     observacao: params.observacao,
   });
-  if (preview.pedidos_sem_bordero > 0) {
+  if (preview.pedidos_sem_faturamento > 0) {
     throw new Error(
-      `Ainda há ${preview.pedidos_sem_bordero} pedido(s) sem borderô. Confirme o pagamento somente depois que todos tiverem borderô.`,
+      `Ainda há ${preview.pedidos_sem_faturamento} pedido(s) sem faturamento. Confirme o pagamento somente depois que todos os pedidos estiverem faturados.`,
     );
   }
 

@@ -21,6 +21,7 @@ export type PedidoPagamento = {
   cod_pedido: string;
   cliente: string;
   bordero: string | null;
+  nro_nf: string | null;
   valor_mercadoria: number;
   frete: number;
 };
@@ -40,6 +41,8 @@ export type PreviewPagamentoRota = {
   valor_mercadoria: number;
   total_pedidos: number;
   pedidos_sem_bordero: number;
+  /** Pedidos ainda sem nota fiscal emitida (não faturados). */
+  pedidos_sem_faturamento: number;
   ja_confirmado: boolean;
   filiais: FilialPagamento[];
   texto_tarefa: string;
