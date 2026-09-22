@@ -162,8 +162,11 @@ function motoristaOf(
 ) {
   const name = responsavel?.razaoSocial || r.driver_name || r.freight_carriers?.full_name || "";
   const cod = responsavel?.codErp || r.freight_carriers?.transportadoras?.cod_erp || codFallback || null;
-  if (name && cod) return `${name} (${cod})`;
+  // Sem nome não há responsável de fato: não exibir código solto.
+  if (!name.trim() || !normalizaNome(name)) return "";
+  if (cod) return `${name} (${cod})`;
   return name; 
+
 }
 
 type TransportadoraLite = { id: string; razao_social: string; cod_erp: string | null };
