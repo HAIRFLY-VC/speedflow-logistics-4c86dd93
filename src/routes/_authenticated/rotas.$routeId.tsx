@@ -33,6 +33,12 @@ import { SuggestionMap, sequenceStops } from "@/components/route-suggestions/Sug
 import { getOrderCoord } from "@/lib/order-coords";
 import { formatCurrency, type OrderStatus } from "@/lib/orderStatus";
 import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEditDialog";
+import {
+  useResponsavelRota,
+  nomeRotaDeNotes,
+  TIPO_FRETE_LABEL,
+  TIPO_FRETE_TONE,
+} from "@/lib/rota-responsavel";
 import type { Database } from "@/integrations/supabase/types";
 
 const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
