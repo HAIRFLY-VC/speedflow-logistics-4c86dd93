@@ -881,17 +881,26 @@ function RotasPage() {
     queryKey: ["rotas-borderos", pedidosDaTela.length],
     enabled: pedidosDaTela.length > 0,
     queryFn: async () => {
-      const map = new Map<string, string>();
+      const map = new Map<string, { bordero: string | null; nf: string | null }>();
       for (let i = 0; i < pedidosDaTela.length; i += 200) {
         const lote = pedidosDaTela.slice(i, i + 200);
         const { data: rows, error } = await supabase
           .from("entregas_abertas")
-          .select("cod_pedido, bordero")
+          .select("cod_pedido, bordero, nro_nf")
           .in("cod_pedido", lote);
         if (error) throw error;
-        for (const row of (rows ?? []) as { cod_pedido: string; bordero: string | null }[]) {
-          const b = (row.bordero ?? "").trim();
-          if (b && !map.has(row.cod_pedido)) map.set(row.cod_pedido, b);
+        for (const row of (rows ?? []) as {
+          cod_pedido: string;
+          bordero: string | null;
+          nro_nf: string | null;
+        }[]) {
+          const b = (row.bordero ?? "").trim() || null;
+          const nf = (row.nro_nf ?? "").trim() || null;
+          const atual = map.get(row.cod_pedido);
+          map.set(row.cod_pedido, {
+            bordero: atual?.bordero ?? b,
+            nf: atual?.nf ?? nf,
+          });
         }
       }
       return map;
@@ -905,8 +914,9 @@ function RotasPage() {
         .map((ro) => (ro.orders?.order_number ?? "").trim())
         .filter(Boolean);
       const unicos = Array.from(new Set(pedidos));
-      const comBordero = map ? unicos.filter((p) => map.has(p)).length : 0;
-      return { total: unicos.length, comBordero };
+      const comBordero = map ? unicos.filter((p) => map.get(p)?.bordero).length : 0;
+      const faturados = map ? unicos.filter((p) => map.get(p)?.nf).length : 0;
+      return { total: unicos.length, comBordero, faturados };
     };
   }, [borderosQ.data]);
 
