@@ -940,21 +940,27 @@ export function RotasView({
         .map((ro) => ({
           order: (ro.orders?.order_number ?? "").trim(),
           status: (ro.orders?.erp_status ?? "").trim().toUpperCase(),
+          bordero: (ro.orders?.bordero ?? "").trim(),
         }))
         .filter((p) => p.order);
       const unicos = Array.from(new Set(pedidos.map((p) => p.order)));
       const statusPorPedido = new Map<string, string[]>();
+      const borderoPorPedido = new Map<string, string>();
       for (const p of pedidos) {
         const arr = statusPorPedido.get(p.order) ?? [];
         arr.push(p.status);
         statusPorPedido.set(p.order, arr);
+        if (p.bordero && !borderoPorPedido.get(p.order)) borderoPorPedido.set(p.order, p.bordero);
       }
-      const comBordero = map ? unicos.filter((p) => map.get(p)?.bordero).length : 0;
+      // Borderô vem do pedido (gravado na sincronização) ou do espelho de entregas.
+      const comBordero = unicos.filter(
+        (p) => borderoPorPedido.get(p) || map?.get(p)?.bordero,
+      ).length;
       const faturados = unicos.filter((p) => {
         const nf = map?.get(p)?.nf;
         const statusList = statusPorPedido.get(p) ?? [];
         const faturadoPeloStatus = statusList.some((s) => s.includes("FATURADO"));
-        return !!nf || faturadoPeloStatus;
+        return !!nf || faturadoPeloStatus || !!borderoPorPedido.get(p);
       }).length;
       return { total: unicos.length, comBordero, faturados };
     };
@@ -1231,12 +1237,16 @@ export function RotasView({
         header: "Status",
         sortable: false,
         defaultVisible: false,
-        accessor: (r) => ROUTE_STATUS_LABEL[r.status],
+        accessor: (r) => (r.bordero_emitido_em ? "Borderô emitido" : ROUTE_STATUS_LABEL[r.status]),
         render: (r) => (
           <span
-            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${ROUTE_STATUS_TONE[r.status]}`}
+            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${
+              r.bordero_emitido_em
+                ? "bg-amber-500/15 text-amber-600 border-amber-500/30"
+                : ROUTE_STATUS_TONE[r.status]
+            }`}
           >
-            {ROUTE_STATUS_LABEL[r.status]}
+            {r.bordero_emitido_em ? "Borderô emitido" : ROUTE_STATUS_LABEL[r.status]}
           </span>
         ),
       },
