@@ -311,8 +311,9 @@ function FreightInput({
   const [salvando, setSalvando] = useState(false);
 
   const confirmado = route.frete_confirmado_em != null;
+  // Somente rotas de fretista permitem digitar o valor do frete.
   // Enquanto o pagamento não for confirmado, o valor pode ser digitado/alterado.
-  const editable = tipo != null && (!confirmado || isAdmin);
+  const editable = tipo === "F" && (!confirmado || isAdmin);
 
   const numero = Number(value.replace(",", "."));
   const valorNum = Number.isFinite(numero) ? numero : 0;
