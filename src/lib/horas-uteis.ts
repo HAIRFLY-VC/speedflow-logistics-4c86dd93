@@ -63,8 +63,9 @@ export function agoraBrt(): string {
 
 /** Janela de expediente do dia, em minutos, ou null se não há expediente. */
 function janela(dias: number, movimento?: Set<string>): [number, number] | null {
-  const dow = new Date(dias * MS_DIA).getUTCDay(); // 0 = domingo
-  if (dow === 0) {
+  const dow = new Date(dias * MS_DIA).getUTCDay(); // 0 = domingo, 6 = sábado
+  // Sábado e domingo só contam quando houve separação de fato no dia.
+  if (dow === 0 || dow === 6) {
     if (!movimento?.has(chaveDia(dias))) return null;
     return [7 * 60, 17 * 60];
   }
