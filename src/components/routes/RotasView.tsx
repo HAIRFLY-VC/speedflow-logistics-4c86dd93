@@ -87,6 +87,8 @@ export type RotasViewProps = {
   ) => boolean;
   /** Mensagem exibida quando não há rotas após o filtro. */
   mensagemVazia?: string;
+  /** Chave de preferências da tabela (filtros/colunas por tela). */
+  tableKey: string;
 };
 
 type RouteRow = {
