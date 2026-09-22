@@ -280,10 +280,10 @@ export function PagamentoRotaDialog({
               <span className="text-muted-foreground">{p.total_pedidos} pedido(s)</span>
             </div>
 
-            {semFaturamento && (
+            {semBordero && (
               <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
-                {p.pedidos_sem_faturamento} pedido(s) ainda sem faturamento. O pagamento só pode ser
-                confirmado quando todos os pedidos estiverem faturados.
+                {p.pedidos_sem_bordero} pedido(s) ainda sem borderô. O pagamento só pode ser
+                confirmado quando todos os pedidos estiverem com borderô.
               </div>
             )}
 
