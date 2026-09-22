@@ -1442,11 +1442,13 @@ export function RotasView({
         />
       </div>
 
-      <NewRouteDialog
-        open={open}
-        onOpenChange={setOpen}
-        onCreated={() => qc.invalidateQueries({ queryKey: ["routes"] })}
-      />
+      {mostrarAcoesDeRota && (
+        <NewRouteDialog
+          open={open}
+          onOpenChange={setOpen}
+          onCreated={() => qc.invalidateQueries({ queryKey: ["routes"] })}
+        />
+      )}
       <RouteEditDialog
         route={
           editRoute
