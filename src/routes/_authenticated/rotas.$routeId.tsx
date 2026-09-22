@@ -439,37 +439,56 @@ function RouteDetailPage() {
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="md:col-span-2">
             <CardHeader>
-              <CardTitle className="text-base">Fretista</CardTitle>
+              <CardTitle className="text-base">Responsável pelo frete</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {editable && canOperate ? (
-                <Select
-                  value={route.carrier_id ?? ""}
-                  onValueChange={(v) => carrierAssign.mutate(v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o fretista" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(carriersQ.data ?? []).map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.full_name}
-                        {c.vehicle_plate ? ` · ${c.vehicle_plate}` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : route.freight_carriers ? (
-                <div className="text-sm">
-                  <div className="font-medium">{route.freight_carriers.full_name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {route.freight_carriers.vehicle_plate || "—"}
-                    {route.freight_carriers.phone ? ` · ${route.freight_carriers.phone}` : ""}
+            <CardContent className="space-y-3">
+              {nomeResponsavel ? (
+                <div className="text-sm space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{nomeResponsavel}</span>
+                    {codResponsavel ? (
+                      <span className="text-xs text-muted-foreground font-mono">({codResponsavel})</span>
+                    ) : null}
+                    {responsavel?.tipoFrete ? (
+                      <span
+                        className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${TIPO_FRETE_TONE[responsavel.tipoFrete]}`}
+                      >
+                        {TIPO_FRETE_LABEL[responsavel.tipoFrete]}
+                      </span>
+                    ) : null}
                   </div>
+                  {route.freight_carriers ? (
+                    <div className="text-xs text-muted-foreground">
+                      {route.freight_carriers.vehicle_plate || "—"}
+                      {route.freight_carriers.phone ? ` · ${route.freight_carriers.phone}` : ""}
+                    </div>
+                  ) : null}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Sem fretista atribuído.</p>
+                <p className="text-sm text-muted-foreground">Sem responsável informado.</p>
               )}
+
+              {editable && canOperate ? (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Fretista interno</p>
+                  <Select
+                    value={route.carrier_id ?? ""}
+                    onValueChange={(v) => carrierAssign.mutate(v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o fretista" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(carriersQ.data ?? []).map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.full_name}
+                          {c.vehicle_plate ? ` · ${c.vehicle_plate}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
 
