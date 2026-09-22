@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, X, RotateCcw, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 import { supabase } from "@/integrations/central/client";
 import { useAuth } from "@/hooks/useAuth";

@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Link, useRouter } from "@tanstack/react-router";
 import { openAppRoute, appLinkTarget } from "@/lib/open-in-tab";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 import { auditarCte } from "@/lib/cte-audit.functions";
 

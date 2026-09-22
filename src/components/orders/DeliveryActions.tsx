@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PackageCheck, Loader2, Camera, FileSignature } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 

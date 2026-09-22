@@ -11,7 +11,7 @@ import {
   Loader2,
   Pencil,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 

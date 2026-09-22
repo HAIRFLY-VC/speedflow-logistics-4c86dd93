@@ -4,7 +4,7 @@ import { openAppRoute } from "@/lib/open-in-tab";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, FileCode, FileDown, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useEffect, useState } from "react";
 
 import { AppShell } from "@/components/layout/AppShell";
