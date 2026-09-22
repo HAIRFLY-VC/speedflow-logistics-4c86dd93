@@ -272,7 +272,8 @@ function agrupar(
   let semFaturamento = 0;
   pedidos.forEach((p, i) => {
     const exp = expedicao.get(p.cod_pedido);
-    const bordero = exp?.bordero ?? null;
+    // Borderô: primeiro o gravado no pedido; senão o espelho de entregas.
+    const bordero = p.bordero ?? exp?.bordero ?? null;
     const nf = exp?.nro_nf ?? null;
     if (!bordero) semBordero += 1;
     if (!nf) semFaturamento += 1;
