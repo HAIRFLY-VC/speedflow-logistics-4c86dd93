@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { UserPlus, Shield, Loader2, Trash2 } from "lucide-react";
+import { UserPlus, Shield, Loader2, Trash2, BadgeCheck } from "lucide-react";
 import { toast } from "@/lib/toast";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -26,17 +26,35 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { inviteUser } from "@/lib/users.functions";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  confirmManagedUserEmail,
+  deleteManagedUser,
+  inviteUser,
+  listManagedUsers,
+  type ManagedUser,
+} from "@/lib/users.functions";
 import { mensagemErro } from "@/lib/mensagem-erro";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
+  head: () => ({
+    meta: [
+      { title: "Usuários e Papéis — SpeedFlow Logistics" },
+      { name: "description", content: "Gerencie usuários, confirmações de e-mail e papéis de acesso do SpeedFlow Logistics." },
+      { property: "og:title", content: "Usuários e Papéis — SpeedFlow Logistics" },
+      { property: "og:description", content: "Gerencie usuários, confirmações de e-mail e papéis de acesso do SpeedFlow Logistics." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: UsuariosPage,
 });
 
@@ -52,27 +70,25 @@ const ROLE_LABEL: Record<AppRole, string> = Object.fromEntries(
 ) as Record<AppRole, string>;
 
 function UsuariosPage() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const qc = useQueryClient();
   const invite = useServerFn(inviteUser);
+  const listUsers = useServerFn(listManagedUsers);
+  const confirmEmail = useServerFn(confirmManagedUserEmail);
+  const deleteUser = useServerFn(deleteManagedUser);
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<AppRole[]>(["operador"]);
+  const [confirmingUser, setConfirmingUser] = useState<ManagedUser | null>(null);
+  const [deletingUser, setDeletingUser] = useState<ManagedUser | null>(null);
 
   const isAdm = role === "adm";
 
-  const profilesQ = useQuery({
-    queryKey: ["users", "profiles"],
+  const usersQ = useQuery({
+    queryKey: ["users", "managed"],
     enabled: isAdm,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, phone, created_at")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => listUsers(),
   });
 
   const rolesQ = useQuery({
@@ -141,6 +157,26 @@ function UsuariosPage() {
     },
     onError: (e: Error) =>
       toast.error(mensagemErro(e, "Não foi possível convidar o usuário. Tente novamente.")),
+  });
+
+  const confirmMut = useMutation({
+    mutationFn: (userId: string) => confirmEmail({ data: { userId } }),
+    onSuccess: () => {
+      toast.success("E-mail confirmado com sucesso");
+      setConfirmingUser(null);
+      qc.invalidateQueries({ queryKey: ["users", "managed"] });
+    },
+    onError: (e: Error) => toast.error(mensagemErro(e, "Não foi possível confirmar o e-mail.")),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (userId: string) => deleteUser({ data: { userId } }),
+    onSuccess: () => {
+      toast.success("Usuário excluído com sucesso");
+      setDeletingUser(null);
+      qc.invalidateQueries({ queryKey: ["users"] });
+    },
+    onError: (e: Error) => toast.error(mensagemErro(e, "Não foi possível excluir o usuário.")),
   });
 
   if (!isAdm) {
@@ -256,60 +292,118 @@ function UsuariosPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              Membros ({profilesQ.data?.length ?? 0})
+              Membros ({usersQ.data?.length ?? 0})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <MembersTable
-              profiles={profilesQ.data ?? []}
-              isLoading={profilesQ.isLoading}
+              profiles={usersQ.data ?? []}
+              isLoading={usersQ.isLoading}
               rolesByUser={rolesByUser}
+              currentUserId={user?.id ?? null}
               onAdd={(userId, role) =>
                 toggleRole.mutate({ userId, role, enable: true })
               }
               onRemove={(userId, role) =>
                 toggleRole.mutate({ userId, role, enable: false })
               }
+              onConfirm={setConfirmingUser}
+              onDelete={setDeletingUser}
             />
           </CardContent>
         </Card>
+        <AlertDialog open={confirmingUser !== null} onOpenChange={(value) => !value && setConfirmingUser(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar e-mail manualmente?</AlertDialogTitle>
+              <AlertDialogDescription>
+                O cadastro de {confirmingUser?.fullName ?? confirmingUser?.email} será liberado sem que o usuário abra o link recebido.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={confirmMut.isPending}
+                onClick={(event) => {
+                  event.preventDefault();
+                  if (confirmingUser) confirmMut.mutate(confirmingUser.id);
+                }}
+              >
+                {confirmMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Confirmar e-mail
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <AlertDialog open={deletingUser !== null} onOpenChange={(value) => !value && setDeletingUser(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir usuário?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação excluirá permanentemente a conta de {deletingUser?.fullName ?? "este usuário"} ({deletingUser?.email}).
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={deleteMut.isPending}
+                onClick={(event) => {
+                  event.preventDefault();
+                  if (deletingUser) deleteMut.mutate(deletingUser.id);
+                }}
+              >
+                {deleteMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Excluir usuário
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppShell>
   );
 }
 
-type ProfileRow = {
-  id: string;
-  full_name: string | null;
-  phone: string | null;
-  created_at: string;
-};
-
 function MembersTable({
   profiles,
   isLoading,
   rolesByUser,
+  currentUserId,
   onAdd,
   onRemove,
+  onConfirm,
+  onDelete,
 }: {
-  profiles: ProfileRow[];
+  profiles: ManagedUser[];
   isLoading: boolean;
   rolesByUser: Map<string, AppRole[]>;
+  currentUserId: string | null;
   onAdd: (userId: string, role: AppRole) => void;
   onRemove: (userId: string, role: AppRole) => void;
+  onConfirm: (user: ManagedUser) => void;
+  onDelete: (user: ManagedUser) => void;
 }) {
-  const columns = useMemo<ColumnDef<ProfileRow>[]>(
+  const columns = useMemo<ColumnDef<ManagedUser>[]>(
     () => [
       {
         id: "full_name",
         header: "Nome",
-        accessor: (p) => p.full_name ?? "",
+        accessor: (p) => p.fullName ?? "",
         className: "font-medium",
       },
       {
-        id: "phone",
-        header: "Telefone",
-        accessor: (p) => p.phone ?? "",
+        id: "email",
+        header: "E-mail",
+        accessor: (p) => p.email,
+      },
+      {
+        id: "status",
+        header: "Status do cadastro",
+        accessor: (p) => p.emailConfirmedAt ? "E-mail confirmado" : "Aguardando confirmação",
+        render: (p) => (
+          <Badge variant={p.emailConfirmedAt ? "default" : "secondary"}>
+            {p.emailConfirmedAt ? "E-mail confirmado" : "Aguardando confirmação"}
+          </Badge>
+        ),
       },
       {
         id: "roles",
@@ -367,8 +461,34 @@ function MembersTable({
           );
         },
       },
+      {
+        id: "actions",
+        header: "Ações",
+        sortable: false,
+        filterable: false,
+        accessor: () => "",
+        render: (p) => (
+          <div className="flex flex-wrap gap-1.5">
+            {!p.emailConfirmedAt && (
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onConfirm(p)}>
+                <BadgeCheck className="h-3.5 w-3.5 mr-1" /> Confirmar e-mail
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="destructive"
+              className="h-7 text-xs"
+              disabled={p.id === currentUserId}
+              title={p.id === currentUserId ? "Você não pode excluir sua própria conta" : "Excluir usuário"}
+              onClick={() => onDelete(p)}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
+            </Button>
+          </div>
+        ),
+      },
     ],
-    [rolesByUser, onAdd, onRemove],
+    [rolesByUser, currentUserId, onAdd, onRemove, onConfirm, onDelete],
   );
 
   return (
