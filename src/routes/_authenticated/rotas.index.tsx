@@ -1181,6 +1181,8 @@ function RotasPage() {
       depot,
       estimativas,
       freteOf,
+      borderoDaRota,
+      role,
       responsavelPorRota,
       transpPorRota,
       codResponsavelPorRota,
@@ -1194,6 +1196,20 @@ function RotasPage() {
       responsaveisLocaisQ.data,
     ],
   );
+
+  /** Rotas de fretista com borderô completo e ainda sem pagamento confirmado. */
+  const aguardandoValor = useMemo(() => {
+    const rows = filteredData ?? data ?? [];
+    return rows.filter((r) => {
+      if (tipoFreteOf(r) !== "F") return false;
+      if (r.frete_confirmado_em) return false;
+      const b = borderoDaRota(r);
+      if (b.total === 0 || b.comBordero < b.total) return false;
+      const v = freteEditado[r.id] ?? Number(r.total_freight ?? 0);
+      return !(Number(v) > 0);
+    }).length;
+  }, [filteredData, data, tipoFreteOf, borderoDaRota, freteEditado]);
+
 
 
   const totals = useMemo(() => {
