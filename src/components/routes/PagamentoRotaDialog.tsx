@@ -15,6 +15,9 @@ import {
 } from "@/lib/rota-pagamento.functions";
 import {
   MOTIVOS_ADICIONAIS,
+  PRAZO_PAGAMENTO_DIAS,
+  dataMinimaPagamento,
+  formatarDataBr,
   type MotivoAdicional,
   type TipoPagamentoRota,
 } from "@/lib/rota-pagamento.types";
@@ -62,6 +65,8 @@ export function PagamentoRotaDialog({
   const [valorAdicional, setValorAdicional] = useState("");
   const [valorFrete, setValorFrete] = useState("");
   const [valorDebounced, setValorDebounced] = useState(0);
+  const dataMinima = useMemo(() => dataMinimaPagamento(), [open]);
+  const [dataPagamento, setDataPagamento] = useState(dataMinima);
 
   useEffect(() => {
     if (open) {
@@ -70,6 +75,7 @@ export function PagamentoRotaDialog({
       setObservacao("");
       setValorAdicional("");
       setValorFrete(valor > 0 ? String(valor) : "");
+      setDataPagamento(dataMinimaPagamento());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, routeId]);
