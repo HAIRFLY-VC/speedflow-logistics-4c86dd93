@@ -1237,6 +1237,7 @@ function RotasPage() {
             <Button onClick={() => setOpen(true)} className="flex-1 sm:flex-none">
               <Plus className="h-4 w-4 mr-1" /> Nova rota
             </Button>
+          </div>
         </div>
 
         {aguardandoValor > 0 && (
@@ -1246,7 +1247,6 @@ function RotasPage() {
           </div>
         )}
 
-        </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           <Card>
