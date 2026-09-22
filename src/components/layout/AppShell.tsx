@@ -133,13 +133,15 @@ export function AppShell({
               <div>
                 <ErpSyncButton />
               </div>
-              <SidebarTrigger
-                title="Comprimir ou expandir menu lateral"
-                aria-label="Comprimir ou expandir menu lateral"
-                className="h-10 w-10"
-              >
-                <Menu className="h-5 w-5" />
-              </SidebarTrigger>
+              <div className="md:hidden">
+                <SidebarTrigger
+                  title="Comprimir ou expandir menu lateral"
+                  aria-label="Comprimir ou expandir menu lateral"
+                  className="h-10 w-10"
+                >
+                  <Menu className="h-5 w-5" />
+                </SidebarTrigger>
+              </div>
               <div>
                 <NotificationsBell />
               </div>
@@ -152,6 +154,49 @@ export function AppShell({
   );
 }
 
+function SidebarCollapseButton() {
+  const { state, toggleSidebar } = useSidebar();
+  const collapsed = state === "collapsed";
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={toggleSidebar}
+      className="h-8 w-8 shrink-0"
+      title={collapsed ? "Expandir menu" : "Comprimir menu"}
+      aria-label={collapsed ? "Expandir menu" : "Comprimir menu"}
+    >
+      {collapsed ? (
+        <PanelLeftOpen className="h-4 w-4" />
+      ) : (
+        <PanelLeftClose className="h-4 w-4" />
+      )}
+    </Button>
+  );
+}
+
+function SidebarToggleButton() {
+  const { state, toggleSidebar } = useSidebar();
+  const collapsed = state === "collapsed";
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={toggleSidebar}
+      className="justify-start"
+      title={collapsed ? "Expandir menu" : "Comprimir menu"}
+    >
+      {collapsed ? (
+        <PanelLeftOpen className="h-4 w-4 mr-2" />
+      ) : (
+        <PanelLeftClose className="h-4 w-4 mr-2" />
+      )}
+      <span className="group-data-[collapsible=icon]:hidden">
+        {collapsed ? "Expandir" : "Comprimir"}
+      </span>
+    </Button>
+  );
+}
 
 function AppSidebar() {
   const { role, user, signOut } = useAuth();
@@ -171,9 +216,12 @@ function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className="px-2 py-2 text-xs text-muted-foreground truncate">
-          {user?.email}
-          {role ? <div className="font-medium text-foreground uppercase">{role}</div> : null}
+        <div className="flex items-center justify-between gap-2 px-2 py-2 group-data-[collapsible=icon]:justify-center">
+          <div className="text-xs text-muted-foreground truncate group-data-[collapsible=icon]:hidden">
+            {user?.email}
+            {role ? <div className="font-medium text-foreground uppercase">{role}</div> : null}
+          </div>
+          <SidebarCollapseButton />
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -212,28 +260,5 @@ function AppSidebar() {
         </Button>
       </SidebarFooter>
     </Sidebar>
-  );
-}
-
-function SidebarToggleButton() {
-  const { state, toggleSidebar } = useSidebar();
-  const collapsed = state === "collapsed";
-  return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={toggleSidebar}
-      className="justify-start"
-      title={collapsed ? "Expandir menu" : "Comprimir menu"}
-    >
-      {collapsed ? (
-        <PanelLeftOpen className="h-4 w-4 mr-2" />
-      ) : (
-        <PanelLeftClose className="h-4 w-4 mr-2" />
-      )}
-      <span className="group-data-[collapsible=icon]:hidden">
-        {collapsed ? "Expandir" : "Comprimir"}
-      </span>
-    </Button>
   );
 }
