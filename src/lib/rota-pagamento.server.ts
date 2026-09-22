@@ -279,6 +279,7 @@ function agrupar(
   return {
     filiais,
     semBordero,
+    semFaturamento,
     valorMercadoria: cent(pesos.reduce((s, v) => s + v, 0)),
   };
 }
