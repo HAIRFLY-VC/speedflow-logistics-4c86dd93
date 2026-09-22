@@ -888,11 +888,21 @@ export async function syncErpOrders(opts: {
       }
     >();
 
+    // Observação automática (`Rota <nome>`) acompanha o nome atual do ERP;
+    // texto escrito manualmente é preservado.
+    const notesDoNome = (snapNotes: string | null, nome: string) =>
+      !snapNotes || /^Rota\s/.test(snapNotes) ? `Rota ${nome}` : snapNotes;
+
     for (const p of plans) {
       const existingId =
         (p.erpRouteId
           ? (existingByErpId.get(p.erpRouteId) ?? existingByCode.get(`erp-${p.erpRouteId}`))
           : undefined) ?? existingByCode.get(p.slugCode);
+
+      const snapDoPlano =
+        (p.erpRouteId ? snapshotByErpId.get(p.erpRouteId) : undefined) ??
+        snapshotByCode.get(p.code) ??
+        snapshotByCode.get(p.slugCode);
 
       if (existingId) {
         // Rota finalizada (concluída/cancelada) reencontrada: apenas atualiza (casos raros).
@@ -905,6 +915,7 @@ export async function syncErpOrders(opts: {
             erp_status: p.erpStatus,
             carrier_id: p.carrierId ?? undefined,
             code: p.erpRouteId ? `erp-${p.erpRouteId}` : undefined,
+            notes: notesDoNome(snapDoPlano?.notes ?? null, p.nome),
           })
           .eq("id", existingId);
         if (error) {
@@ -929,7 +940,8 @@ export async function syncErpOrders(opts: {
           code: p.code,
           route_date: p.date,
           driver_name: p.driver,
-          notes: snap?.notes ?? `Rota ${p.nome}`,
+          notes: notesDoNome(snap?.notes ?? null, p.nome),
+
           erp_route_id: p.erpRouteId,
           erp_status: snap?.erp_status ?? p.erpStatus,
           carrier_id: p.carrierId ?? snap?.carrier_id ?? null,
