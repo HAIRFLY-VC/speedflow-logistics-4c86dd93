@@ -37,7 +37,7 @@ Ao confirmar, o app grava nas mesmas filas já usadas na aprovação de CT-e, qu
 **UI (`src/routes/_authenticated/rotas.index.tsx` + `src/components/routes/PagamentoRotaDialog.tsx`)**
 - `FreightInput` deixa de gravar no blur: mantém o valor local, o % recalcula em tempo real e o botão **Confirmar Pgto** abre o diálogo.
 - Diálogo mostra o preview (agrupado por filial, subtotais), seletor de tipo (frete da rota / valor adicional + motivo), observação e confirmação; em caso de erro exibe mensagem em português via `mensagemErro`.
-- Rotas já confirmadas mostram selo "Pgto confirmado" e o botão vira **Reabrir / Lançar adicional**.
+- Rotas já confirmadas mostram selo "Pgto confirmado"; o botão vira **Reabrir / Lançar adicional** e só aparece para administradores (demais usuários veem apenas o histórico).
 
 **Verificação**: `bunx tsgo --noEmit`, `/rotas` respondendo 200, e conferência no app de uma rota com pedidos de mais de uma filial (soma dos rateios igual ao valor digitado).
 
