@@ -21,6 +21,8 @@ import {
   type TabelaSim,
 } from "@/lib/frete-simulacao";
 import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEditDialog";
+import { PagamentoRotaDialog } from "@/components/routes/PagamentoRotaDialog";
+import { useAuth } from "@/hooks/useAuth";
 import {
   listarResponsaveisErp,
   listarResponsaveisDeRotasErp,
