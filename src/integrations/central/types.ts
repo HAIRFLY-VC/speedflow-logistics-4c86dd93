@@ -224,8 +224,13 @@ export type CentralDatabase = Omit<Database, "public"> & {
   public: Omit<Pub, "Tables"> & {
     Tables: Omit<
       Pub["Tables"],
-      "orders" | "empresas" | "ordens_pagamento_frete" | "transportadoras"
+      "orders" | "empresas" | "ordens_pagamento_frete" | "transportadoras" | "routes"
     > & {
+      routes: Omit<Pub["Tables"]["routes"], "Row" | "Insert" | "Update"> & {
+        Row: RoutesRow;
+        Insert: RoutesWrite;
+        Update: Partial<RoutesWrite>;
+      };
       transportadoras: Omit<
         Pub["Tables"]["transportadoras"],
         "Row" | "Insert" | "Update"
