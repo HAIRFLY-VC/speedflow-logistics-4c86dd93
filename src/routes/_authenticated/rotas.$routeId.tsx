@@ -214,6 +214,12 @@ function RouteDetailPage() {
   });
 
   const route = routeQ.data;
+  const { responsavel, cod: codResponsavel } = useResponsavelRota({
+    erpRouteId: route?.erp_route_id,
+    codErpFallback: route?.erp_carrier_code ?? route?.freight_carriers?.transportadoras?.cod_erp ?? null,
+  });
+  const nomeResponsavel =
+    responsavel?.razaoSocial || route?.driver_name || route?.freight_carriers?.full_name || "";
   const stops = stopsQ.data ?? [];
   const totals = useMemo(() => {
     let amount = 0;
