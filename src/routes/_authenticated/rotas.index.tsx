@@ -1381,6 +1381,21 @@ function RotasPage() {
           setEditRoute(null);
         }}
       />
+      <PagamentoRotaDialog
+        routeId={pagamento?.rota.id ?? null}
+        rotulo={
+          pagamento
+            ? `${pagamento.rota.erp_route_id ? `ID ${pagamento.rota.erp_route_id} · ` : ""}${nomeRotaOf(pagamento.rota)}`
+            : ""
+        }
+        valor={pagamento?.valor ?? 0}
+        isAdmin={role === "adm"}
+        jaConfirmado={!!pagamento?.rota.frete_confirmado_em}
+        open={!!pagamento}
+        onOpenChange={(o) => {
+          if (!o) setPagamento(null);
+        }}
+      />
     </AppShell>
   );
 }
