@@ -415,32 +415,37 @@ function FreightInput({
           Definir valor do frete
         </span>
       )}
-      <Button
-        size="sm"
-        variant={confirmado ? "outline" : "default"}
-        className={`h-6 px-2 text-[11px] ${
-          podeConfirmar
-            ? confirmado
-              ? ""
-              : "bg-emerald-600 text-white hover:bg-emerald-700"
-            : "cursor-not-allowed"
-        }`}
-        disabled={!podeConfirmar}
-        title={
-          pendentes > 0
-            ? `Aguardando borderô de ${pendentes} pedido${pendentes === 1 ? "" : "s"} de ${bordero.total}`
-            : confirmado && !isAdmin
-              ? "Apenas administradores podem reabrir ou lançar valores adicionais"
-              : undefined
-        }
-        onClick={() => onConfirmar(route, valorNum)}
-      >
-        {confirmado ? "Reabrir / Lançar adicional" : "Confirmar Pgto"}
-      </Button>
-      {pendentes > 0 && (
-        <span className="text-[10px] text-muted-foreground">
-          Aguardando borderô de {pendentes} pedido{pendentes === 1 ? "" : "s"} de {bordero.total}
-        </span>
+      {mostrarConfirmar && (
+        <>
+          <Button
+            size="sm"
+            variant={confirmado ? "outline" : "default"}
+            className={`h-6 px-2 text-[11px] ${
+              podeConfirmar
+                ? confirmado
+                  ? ""
+                  : "bg-emerald-600 text-white hover:bg-emerald-700"
+                : "cursor-not-allowed"
+            }`}
+            disabled={!podeConfirmar}
+            title={
+              pendentes > 0
+                ? `Aguardando borderô de ${pendentes} pedido${pendentes === 1 ? "" : "s"} de ${bordero.total}`
+                : confirmado && !isAdmin
+                  ? "Apenas administradores podem reabrir ou lançar valores adicionais"
+                  : undefined
+            }
+            onClick={() => onConfirmar(route, valorNum)}
+          >
+            {confirmado ? "Reabrir / Lançar adicional" : "Confirmar Pgto"}
+          </Button>
+          {pendentes > 0 && (
+            <span className="text-[10px] text-muted-foreground">
+              Aguardando borderô de {pendentes} pedido{pendentes === 1 ? "" : "s"} de{" "}
+              {bordero.total}
+            </span>
+          )}
+        </>
       )}
     </div>
   );
