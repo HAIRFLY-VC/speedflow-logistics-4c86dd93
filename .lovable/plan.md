@@ -6,7 +6,9 @@ A rota 414 foi gravada como pendente às 21:24. Na sincronização das 21:30 ela
 
 `SELECT MAX(BORDERO) FROM GKS.A_GERENTREGAS WHERE COD_PEDIDO = ...`
 
-e essa consulta **não retornou nenhuma linha** — os pedidos 4135181 e 4135182 ainda não constam nessa tabela (pedidos vizinhos, como o 4135183, já constam). Pela regra combinada anteriormente, pedido sem borderô é excluído: os dois pedidos e a rota foram apagados. Por isso a tela de autorização está vazia.
+e essa consulta **não retornou nenhuma linha** naquele momento. Pela regra combinada anteriormente, pedido sem borderô é excluído: os dois pedidos e a rota foram apagados. Por isso a tela de autorização está vazia.
+
+Consultando agora (21:49), a mesma tabela **já retorna o borderô 32331** para os dois pedidos. Ou seja: o ERP só alimenta essa tabela alguns minutos depois; a exclusão imediata foi precipitada.
 
 ## O que será feito
 
