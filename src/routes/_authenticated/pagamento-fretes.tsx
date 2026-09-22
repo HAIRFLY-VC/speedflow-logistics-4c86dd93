@@ -287,7 +287,7 @@ function PagamentoFretesPage() {
     <AppShell>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Pagamento de fretes</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Pagamento de CT-e</h1>
           <p className="text-muted-foreground text-sm">
             Autorize os CT-e auditados e acompanhe o lançamento das ordens no ERP.
           </p>
