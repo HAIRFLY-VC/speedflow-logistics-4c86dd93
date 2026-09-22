@@ -95,21 +95,27 @@ export const listarResponsaveisErp = createServerFn({ method: "GET" })
     const espelhoValido =
       linhas.length > 0 && maisRecente > 0 && Date.now() - maisRecente < ESPELHO_MAX_IDADE_MS;
 
-    if (espelhoValido) {
-      const doEspelho = linhas
-        .filter((l) => l.razao_social && l.cod_erp && l.tipo_frete)
-        .map((l) => ({
-          razaoSocial: String(l.razao_social).trim(),
-          codErp: String(l.cod_erp).trim(),
-          tipoFrete: l.tipo_frete as "P" | "F" | "T",
-        }));
-      if (doEspelho.length > 0) {
-        return doEspelho.sort((a, b) => a.razaoSocial.localeCompare(b.razaoSocial));
-      }
+    const doEspelho = linhas
+      .filter((l) => l.razao_social && l.cod_erp && l.tipo_frete)
+      .map((l) => ({
+        razaoSocial: String(l.razao_social).trim(),
+        codErp: String(l.cod_erp).trim(),
+        tipoFrete: l.tipo_frete as "P" | "F" | "T",
+      }))
+      .sort((a, b) => a.razaoSocial.localeCompare(b.razaoSocial));
+
+    if (espelhoValido && doEspelho.length > 0) return doEspelho;
+
+    // Espelho ausente/antigo: tenta o ERP, mas nunca derruba a tela se ele falhar.
+    let rows: Record<string, unknown>[] = [];
+    try {
+      rows = await consultarErp(SQL_CADASTRO_RESPONSAVEIS, 10000);
+      await salvarResponsaveis(rows);
+    } catch (erro) {
+      console.error("[listarResponsaveisErp] ERP indisponível, usando espelho local:", erro);
+      return doEspelho;
     }
 
-    const rows = await consultarErp(SQL_CADASTRO_RESPONSAVEIS, 10000);
-    await salvarResponsaveis(rows);
     const map = new Map<string, ResponsavelErp>();
     for (const r of rows) {
       const razao = String(getField(r, "RAZAO_SOCIAL") ?? "").trim();
@@ -119,8 +125,10 @@ export const listarResponsaveisErp = createServerFn({ method: "GET" })
       if (!razao || !cod || !tipoFrete || map.has(cod)) continue;
       map.set(cod, { razaoSocial: razao, codErp: cod, tipoFrete });
     }
-    return Array.from(map.values()).sort((a, b) => a.razaoSocial.localeCompare(b.razaoSocial));
+    const doErp = Array.from(map.values()).sort((a, b) => a.razaoSocial.localeCompare(b.razaoSocial));
+    return doErp.length > 0 ? doErp : doEspelho;
   });
+
 
 
 const SQL_ROTA_RESPONSAVEL = `select R.COD_FRT_TRP COD from gks.a_ger_rotas R where R.ID = :id`;
