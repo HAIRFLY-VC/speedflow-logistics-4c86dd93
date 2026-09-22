@@ -317,8 +317,8 @@ function FreightInput({
 
   const numero = Number(value.replace(",", "."));
   const valorNum = Number.isFinite(numero) ? numero : 0;
-  // Só é possível confirmar o pagamento quando todos os pedidos estiverem faturados.
-  const pendentes = Math.max(0, bordero.total - bordero.faturados);
+  // Só é possível confirmar o pagamento quando todos os pedidos tiverem borderô.
+  const pendentes = Math.max(0, bordero.total - bordero.comBordero);
   const podeConfirmar =
     valorNum > 0 && bordero.total > 0 && pendentes === 0 && (!confirmado || isAdmin);
 
@@ -422,7 +422,7 @@ function FreightInput({
         disabled={!podeConfirmar}
         title={
           pendentes > 0
-            ? `Aguardando faturamento de ${pendentes} pedido${pendentes === 1 ? "" : "s"} de ${bordero.total}`
+            ? `Aguardando borderô de ${pendentes} pedido${pendentes === 1 ? "" : "s"} de ${bordero.total}`
             : confirmado && !isAdmin
               ? "Apenas administradores podem reabrir ou lançar valores adicionais"
               : undefined
@@ -433,7 +433,7 @@ function FreightInput({
       </Button>
       {pendentes > 0 && (
         <span className="text-[10px] text-muted-foreground">
-          Aguardando faturamento de {pendentes} pedido{pendentes === 1 ? "" : "s"} de {bordero.total}
+          Aguardando borderô de {pendentes} pedido{pendentes === 1 ? "" : "s"} de {bordero.total}
         </span>
       )}
     </div>
@@ -1262,14 +1262,14 @@ function RotasPage() {
     ],
   );
 
-  /** Rotas de fretista totalmente faturadas e ainda sem pagamento confirmado. */
+  /** Rotas de fretista com borderô completo e ainda sem pagamento confirmado. */
   const aguardandoValor = useMemo(() => {
     const rows = filteredData ?? data ?? [];
     return rows.filter((r) => {
       if (tipoFreteOf(r) !== "F") return false;
       if (r.frete_confirmado_em) return false;
       const b = borderoDaRota(r);
-      if (b.total === 0 || b.faturados < b.total) return false;
+      if (b.total === 0 || b.comBordero < b.total) return false;
       const v = freteEditado[r.id] ?? Number(r.total_freight ?? 0);
       return !(Number(v) > 0);
     }).length;
@@ -1307,7 +1307,7 @@ function RotasPage() {
 
         {aguardandoValor > 0 && (
           <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
-            {aguardandoValor} rota(s) de fretista totalmente faturadas aguardando a definição do
+            {aguardandoValor} rota(s) de fretista com borderô completo aguardando a definição do
             valor do frete.
           </div>
         )}

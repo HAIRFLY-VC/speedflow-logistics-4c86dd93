@@ -42,6 +42,11 @@ export const previewPagamentoRota = createServerFn({ method: "POST" })
         tipo: z.enum(["FRETE", "ADICIONAL"]).default("FRETE"),
         motivo: motivoSchema.nullable().default(null),
         observacao: z.string().trim().max(1000).nullable().default(null),
+        dataPagamento: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .nullable()
+          .default(null),
       })
       .parse(input),
   )
@@ -62,6 +67,11 @@ export const confirmarPagamentoRotaFn = createServerFn({ method: "POST" })
         tipo: z.enum(["FRETE", "ADICIONAL"]).default("FRETE"),
         motivo: motivoSchema.nullable().default(null),
         observacao: z.string().trim().max(1000).nullable().default(null),
+        dataPagamento: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .nullable()
+          .default(null),
       })
       .parse(input),
   )

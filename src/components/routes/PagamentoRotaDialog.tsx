@@ -15,6 +15,9 @@ import {
 } from "@/lib/rota-pagamento.functions";
 import {
   MOTIVOS_ADICIONAIS,
+  PRAZO_PAGAMENTO_DIAS,
+  dataMinimaPagamento,
+  formatarDataBr,
   type MotivoAdicional,
   type TipoPagamentoRota,
 } from "@/lib/rota-pagamento.types";
@@ -62,6 +65,8 @@ export function PagamentoRotaDialog({
   const [valorAdicional, setValorAdicional] = useState("");
   const [valorFrete, setValorFrete] = useState("");
   const [valorDebounced, setValorDebounced] = useState(0);
+  const dataMinima = useMemo(() => dataMinimaPagamento(), [open]);
+  const [dataPagamento, setDataPagamento] = useState(dataMinima);
 
   useEffect(() => {
     if (open) {
@@ -70,6 +75,7 @@ export function PagamentoRotaDialog({
       setObservacao("");
       setValorAdicional("");
       setValorFrete(valor > 0 ? String(valor) : "");
+      setDataPagamento(dataMinimaPagamento());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, routeId]);
@@ -87,7 +93,7 @@ export function PagamentoRotaDialog({
   }, [valorEfetivo]);
 
   const previewQ = useQuery({
-    queryKey: ["rota-pagamento", "preview", routeId, valorDebounced, tipo, motivo],
+    queryKey: ["rota-pagamento", "preview", routeId, valorDebounced, tipo, motivo, dataPagamento],
     enabled: open && !!routeId && valorDebounced > 0,
     queryFn: () =>
       preview({
@@ -97,6 +103,7 @@ export function PagamentoRotaDialog({
           tipo,
           motivo: tipo === "ADICIONAL" ? motivo : null,
           observacao: observacao || null,
+          dataPagamento,
         },
       }),
   });
@@ -116,6 +123,7 @@ export function PagamentoRotaDialog({
           tipo,
           motivo: tipo === "ADICIONAL" ? motivo : null,
           observacao: observacao.trim() || null,
+          dataPagamento,
         },
       }),
     onSuccess: () => {
@@ -128,7 +136,8 @@ export function PagamentoRotaDialog({
   });
 
   const p = previewQ.data;
-  const semFaturamento = (p?.pedidos_sem_faturamento ?? 0) > 0;
+  const semBordero = (p?.pedidos_sem_bordero ?? 0) > 0;
+  const dataInvalida = dataPagamento < dataMinima;
   const recalculando = valorEfetivo !== valorDebounced || previewQ.isFetching;
 
   return (
@@ -163,6 +172,27 @@ export function PagamentoRotaDialog({
             </p>
           </div>
         )}
+
+        <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/30 p-3">
+          <div className="grid gap-1">
+            <Label className="text-xs">Data sugerida de pagamento</Label>
+            <input
+              type="date"
+              min={dataMinima}
+              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+              value={dataPagamento}
+              onChange={(e) => {
+                const v = e.target.value;
+                setDataPagamento(v && v < dataMinima ? dataMinima : v || dataMinima);
+              }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Prazo mínimo de {PRAZO_PAGAMENTO_DIAS} dias — não é possível escolher uma data anterior a{" "}
+            {formatarDataBr(dataMinima)}. Essa data vai na tarefa do Bitrix como instrução de
+            pagamento.
+          </p>
+        </div>
 
         {jaConfirmado && (
           <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700">
@@ -250,10 +280,10 @@ export function PagamentoRotaDialog({
               <span className="text-muted-foreground">{p.total_pedidos} pedido(s)</span>
             </div>
 
-            {semFaturamento && (
+            {semBordero && (
               <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
-                {p.pedidos_sem_faturamento} pedido(s) ainda sem faturamento. O pagamento só pode ser
-                confirmado quando todos os pedidos estiverem faturados.
+                {p.pedidos_sem_bordero} pedido(s) ainda sem borderô. O pagamento só pode ser
+                confirmado quando todos os pedidos estiverem com borderô.
               </div>
             )}
 
@@ -395,14 +425,15 @@ export function PagamentoRotaDialog({
           <Button
             onClick={() => enviar.mutate()}
             className={
-              enviar.isPending || !p || semFaturamento || recalculando || valorEfetivo <= 0 || (jaConfirmado && !isAdmin)
+              enviar.isPending || !p || semBordero || dataInvalida || recalculando || valorEfetivo <= 0 || (jaConfirmado && !isAdmin)
                 ? "cursor-not-allowed"
                 : "bg-emerald-600 text-white hover:bg-emerald-700"
             }
             disabled={
               enviar.isPending ||
               !p ||
-              semFaturamento ||
+              semBordero ||
+              dataInvalida ||
               recalculando ||
               valorEfetivo <= 0 ||
               (jaConfirmado && !isAdmin)

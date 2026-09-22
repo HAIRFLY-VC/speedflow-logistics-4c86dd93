@@ -17,7 +17,19 @@ import type {
   PreviewPagamentoRota,
   TipoPagamentoRota,
 } from "./rota-pagamento.types";
-import { MOTIVOS_ADICIONAIS } from "./rota-pagamento.types";
+import {
+  MOTIVOS_ADICIONAIS,
+  PRAZO_PAGAMENTO_DIAS,
+  dataMinimaPagamento,
+  formatarDataBr,
+} from "./rota-pagamento.types";
+
+/** Garante uma data de pagamento válida (nunca antes do prazo mínimo). */
+function normalizarDataPagamento(iso: string | null | undefined): string {
+  const minima = dataMinimaPagamento();
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return minima;
+  return iso < minima ? minima : iso;
+}
 
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -203,6 +215,7 @@ function montarTextoTarefa(
   tipo: TipoPagamentoRota,
   motivo: MotivoAdicional | null,
   observacao: string | null,
+  dataPagamento: string,
 ): string {
   const linhas: string[] = [];
   const titulo =
@@ -210,6 +223,10 @@ function montarTextoTarefa(
       ? `Pagamento de frete — rota ${rota.erp_route_id ?? rota.code} (${nomeDaRota(rota)})`
       : `Valor adicional (${rotuloMotivo(motivo) ?? "adicional"}) — rota ${rota.erp_route_id ?? rota.code} (${nomeDaRota(rota)})`;
   linhas.push(titulo);
+  linhas.push("");
+  linhas.push(
+    `Instrução de pagamento: efetuar o pagamento em ${formatarDataBr(dataPagamento)} (prazo de ${PRAZO_PAGAMENTO_DIAS} dias).`,
+  );
   linhas.push("");
   for (const f of filiais) {
     linhas.push(`Filial de faturamento ${f.cod_filial}`);
@@ -290,6 +307,7 @@ export async function montarPreviewPagamentoRota(params: {
   tipo?: TipoPagamentoRota;
   motivo?: MotivoAdicional | null;
   observacao?: string | null;
+  dataPagamento?: string | null;
 }): Promise<PreviewPagamentoRota> {
   const rota = await carregarRota(params.routeId);
   const pedidos = await carregarPedidos(params.routeId);
@@ -299,6 +317,7 @@ export async function montarPreviewPagamentoRota(params: {
   const clientes = await nomesDeClientes(pedidos.map((p) => p.cod_cliente ?? "").filter(Boolean));
 
   const valor = cent(Number(params.valor ?? 0));
+  const dataPagamento = normalizarDataPagamento(params.dataPagamento);
   const { filiais, semBordero, semFaturamento, valorMercadoria } = agrupar(
     pedidos,
     expedicao,
@@ -316,6 +335,7 @@ export async function montarPreviewPagamentoRota(params: {
     pedidos_sem_bordero: semBordero,
     pedidos_sem_faturamento: semFaturamento,
     ja_confirmado: rota.frete_confirmado_em != null,
+    data_pagamento: dataPagamento,
     filiais,
     texto_tarefa: montarTextoTarefa(
       rota,
@@ -324,6 +344,7 @@ export async function montarPreviewPagamentoRota(params: {
       params.tipo ?? "FRETE",
       params.motivo ?? null,
       params.observacao ?? null,
+      dataPagamento,
     ),
   };
 }
@@ -334,6 +355,7 @@ export async function confirmarPagamentoRota(params: {
   tipo: TipoPagamentoRota;
   motivo: MotivoAdicional | null;
   observacao: string | null;
+  dataPagamento?: string | null;
   userId: string;
   isAdmin: boolean;
 }) {
@@ -348,16 +370,19 @@ export async function confirmarPagamentoRota(params: {
   const valor = cent(Number(params.valor ?? 0));
   if (!(valor > 0)) throw new Error("Informe um valor de frete maior que zero.");
 
+  const dataPagamento = normalizarDataPagamento(params.dataPagamento);
+
   const preview = await montarPreviewPagamentoRota({
     routeId: params.routeId,
     valor,
     tipo: params.tipo,
     motivo: params.motivo,
     observacao: params.observacao,
+    dataPagamento,
   });
-  if (preview.pedidos_sem_faturamento > 0) {
+  if (preview.pedidos_sem_bordero > 0) {
     throw new Error(
-      `Ainda há ${preview.pedidos_sem_faturamento} pedido(s) sem faturamento. Confirme o pagamento somente depois que todos os pedidos estiverem faturados.`,
+      `Ainda há ${preview.pedidos_sem_bordero} pedido(s) sem borderô. Confirme o pagamento somente depois que todos os pedidos estiverem com borderô.`,
     );
   }
 
@@ -425,6 +450,7 @@ export async function confirmarPagamentoRota(params: {
         bordero: p.bordero,
         tipo_pagamento: params.tipo,
         motivo_adicional: params.motivo,
+        data_pagamento: dataPagamento,
         ...zerados,
         [campo]: p.frete,
       },
@@ -449,6 +475,7 @@ export async function confirmarPagamentoRota(params: {
       tipo_pagamento: params.tipo,
       motivo_adicional: params.motivo,
       valor_total: valor,
+      data_pagamento: dataPagamento,
       observacao: params.observacao,
       texto_tarefa: preview.texto_tarefa,
       filiais: preview.filiais.map((f) => ({
