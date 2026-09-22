@@ -106,6 +106,8 @@ export const lancarOrdemNoErp = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!ordem) throw new Error("Ordem não encontrada");
     if (ordem.status === "LANCADO_ERP") throw new Error("Ordem já lançada no ERP");
+    const cteId = ordem.cte_id;
+    if (!cteId) throw new Error("Esta ordem de pagamento não está vinculada a um CT-e.");
 
     const { data: cte } = await centralDb
       .from("ctes")
