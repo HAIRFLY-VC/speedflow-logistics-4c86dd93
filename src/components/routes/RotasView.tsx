@@ -71,19 +71,23 @@ const ROUTE_STATUS_TONE: Record<RouteStatus, string> = {
   cancelada: "bg-muted text-muted-foreground border-border",
 };
 
-export const Route = createFileRoute("/_authenticated/rotas/")({
-  head: () => ({
-    meta: [
-      { title: "Rotas Pendentes — SpeedFlow Logistics" },
-      { name: "description", content: "Consulte e atualize as rotas pendentes do SpeedFlow Logistics." },
-      { property: "og:title", content: "Rotas Pendentes — SpeedFlow Logistics" },
-      { property: "og:description", content: "Consulte e atualize as rotas pendentes do SpeedFlow Logistics." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
-  component: RotasPage,
-});
+export type RotasViewProps = {
+  /** Título exibido no topo da tela. */
+  titulo: string;
+  /** Texto de apoio abaixo do título. */
+  descricao: string;
+  /** Exibe o botão "Atualizar rotas" e "Nova rota". */
+  mostrarAcoesDeRota?: boolean;
+  /** Exibe o botão "Confirmar Pgto" na coluna de frete. */
+  permitirConfirmacao?: boolean;
+  /** Filtro adicional aplicado às rotas carregadas. */
+  filtro?: (
+    r: RouteRow,
+    ctx: { bordero: { total: number; comBordero: number; faturados: number } },
+  ) => boolean;
+  /** Mensagem exibida quando não há rotas após o filtro. */
+  mensagemVazia?: string;
+};
 
 type RouteRow = {
   id: string;
