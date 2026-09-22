@@ -91,7 +91,7 @@ export type RotasViewProps = {
   tableKey: string;
 };
 
-type RouteRow = {
+export type RouteRow = {
   id: string;
   code: string;
   erp_route_id: string | null;
