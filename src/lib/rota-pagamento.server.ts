@@ -215,7 +215,7 @@ function montarTextoTarefa(
     linhas.push(`Filial de faturamento ${f.cod_filial}`);
     for (const p of f.pedidos) {
       linhas.push(
-        `  Pedido ${p.cod_pedido}${p.bordero ? ` | Borderô ${p.bordero}` : ""} | ${p.cliente} | Mercadoria ${brl(p.valor_mercadoria)} | Frete ${brl(p.frete)}`,
+        `  Pedido ${p.cod_pedido}${p.nro_nf ? ` | NF ${p.nro_nf}` : ""}${p.bordero ? ` | Borderô ${p.bordero}` : ""} | ${p.cliente} | Mercadoria ${brl(p.valor_mercadoria)} | Frete ${brl(p.frete)}`,
       );
     }
     linhas.push(`  Subtotal da filial ${f.cod_filial}: ${brl(f.frete)}`);
