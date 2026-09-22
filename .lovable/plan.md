@@ -67,3 +67,11 @@ Extrair os trechos reutilizáveis para novos módulos compartilhados, sem altera
 - `bunx tsgo --noEmit` sem erros.
 - Build OK (`/tmp/observability/build-errors.log`).
 - Playwright: acessar `/autorizar-pagamento-frete` e confirmar que só aparecem rotas com todos os pedidos faturados/borderô informado; acessar `/rotas` e confirmar que continua igual.
+
+## Ajuste (solicitado depois)
+
+O botão **Confirmar Pgto** deixa de existir na tela Rotas Pendentes e passa a existir apenas na nova tela de autorização:
+
+- Em **Rotas Pendentes**: o campo de frete continua editável para rotas de fretista (digitar/gravar o valor planejado), o selo "Pgto confirmado" continua aparecendo, mas o botão **Confirmar Pgto / Reabrir / Lançar adicional** e o aviso "Aguardando borderô de X pedidos" não são mais exibidos. O banner âmbar "rotas aguardando definição do valor" permanece.
+- Na **nova tela**: o botão aparece normalmente, com as mesmas regras (valor > 0, todos os pedidos com borderô, admin para reabrir/adicional) e abre o `PagamentoRotaDialog`.
+- Técnico: `FreightInput` recebe uma prop `mostrarConfirmar?: boolean` (padrão `false`); `RotasTable` recebe `permitirConfirmacao` e repassa. `/rotas` passa `false`, `/autorizar-pagamento-frete` passa `true`.
