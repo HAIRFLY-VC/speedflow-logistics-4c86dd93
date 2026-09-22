@@ -422,7 +422,7 @@ function FreightInput({
         disabled={!podeConfirmar}
         title={
           pendentes > 0
-            ? `Aguardando faturamento de ${pendentes} de ${bordero.total} pedidos`
+            ? `Aguardando faturamento de ${pendentes} pedido${pendentes === 1 ? "" : "s"}`
             : confirmado && !isAdmin
               ? "Apenas administradores podem reabrir ou lançar valores adicionais"
               : undefined
@@ -433,7 +433,7 @@ function FreightInput({
       </Button>
       {pendentes > 0 && (
         <span className="text-[10px] text-muted-foreground">
-          Aguardando faturamento de {pendentes} de {bordero.total} pedidos
+          Aguardando faturamento de {pendentes} pedido{pendentes === 1 ? "" : "s"}
         </span>
       )}
     </div>
@@ -914,11 +914,25 @@ function RotasPage() {
     const map = borderosQ.data;
     return (r: RouteRow) => {
       const pedidos = (r.route_orders ?? [])
-        .map((ro) => (ro.orders?.order_number ?? "").trim())
-        .filter(Boolean);
-      const unicos = Array.from(new Set(pedidos));
+        .map((ro) => ({
+          order: (ro.orders?.order_number ?? "").trim(),
+          status: (ro.orders?.erp_status ?? "").trim().toUpperCase(),
+        }))
+        .filter((p) => p.order);
+      const unicos = Array.from(new Set(pedidos.map((p) => p.order)));
+      const statusPorPedido = new Map<string, string[]>();
+      for (const p of pedidos) {
+        const arr = statusPorPedido.get(p.order) ?? [];
+        arr.push(p.status);
+        statusPorPedido.set(p.order, arr);
+      }
       const comBordero = map ? unicos.filter((p) => map.get(p)?.bordero).length : 0;
-      const faturados = map ? unicos.filter((p) => map.get(p)?.nf).length : 0;
+      const faturados = unicos.filter((p) => {
+        const nf = map?.get(p)?.nf;
+        const statusList = statusPorPedido.get(p) ?? [];
+        const faturadoPeloStatus = statusList.some((s) => s.includes("FATURADO"));
+        return !!nf || faturadoPeloStatus;
+      }).length;
       return { total: unicos.length, comBordero, faturados };
     };
   }, [borderosQ.data]);
