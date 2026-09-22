@@ -394,16 +394,22 @@ export function PagamentoRotaDialog({
           </Button>
           <Button
             onClick={() => enviar.mutate()}
+            className={
+              enviar.isPending || !p || semFaturamento || recalculando || valorEfetivo <= 0 || (jaConfirmado && !isAdmin)
+                ? "cursor-not-allowed"
+                : "bg-emerald-600 text-white hover:bg-emerald-700"
+            }
             disabled={
               enviar.isPending ||
               !p ||
-              semBordero ||
+              semFaturamento ||
+              recalculando ||
               valorEfetivo <= 0 ||
               (jaConfirmado && !isAdmin)
             }
           >
             {enviar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {tipo === "ADICIONAL" ? "Lançar adicional" : "Confirmar Pgto"}
+            {tipo === "ADICIONAL" ? "Lançar adicional" : "Confirmar e enviar"}
           </Button>
         </DialogFooter>
       </DialogContent>
