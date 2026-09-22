@@ -1152,6 +1152,7 @@ export function RotasView({
               tipo={tipoFreteOf(r)}
               bordero={borderoDaRota(r)}
               isAdmin={role === "adm"}
+              mostrarConfirmar={permitirConfirmacao}
               onValorChange={(id, v) =>
                 setFreteEditado((prev) => ({ ...prev, [id]: v }))
               }
