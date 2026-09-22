@@ -355,6 +355,7 @@ export async function confirmarPagamentoRota(params: {
   tipo: TipoPagamentoRota;
   motivo: MotivoAdicional | null;
   observacao: string | null;
+  dataPagamento?: string | null;
   userId: string;
   isAdmin: boolean;
 }) {
@@ -369,16 +370,19 @@ export async function confirmarPagamentoRota(params: {
   const valor = cent(Number(params.valor ?? 0));
   if (!(valor > 0)) throw new Error("Informe um valor de frete maior que zero.");
 
+  const dataPagamento = normalizarDataPagamento(params.dataPagamento);
+
   const preview = await montarPreviewPagamentoRota({
     routeId: params.routeId,
     valor,
     tipo: params.tipo,
     motivo: params.motivo,
     observacao: params.observacao,
+    dataPagamento,
   });
-  if (preview.pedidos_sem_faturamento > 0) {
+  if (preview.pedidos_sem_bordero > 0) {
     throw new Error(
-      `Ainda há ${preview.pedidos_sem_faturamento} pedido(s) sem faturamento. Confirme o pagamento somente depois que todos os pedidos estiverem faturados.`,
+      `Ainda há ${preview.pedidos_sem_bordero} pedido(s) sem borderô. Confirme o pagamento somente depois que todos os pedidos estiverem com borderô.`,
     );
   }
 
