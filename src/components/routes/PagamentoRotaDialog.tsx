@@ -93,7 +93,7 @@ export function PagamentoRotaDialog({
   }, [valorEfetivo]);
 
   const previewQ = useQuery({
-    queryKey: ["rota-pagamento", "preview", routeId, valorDebounced, tipo, motivo],
+    queryKey: ["rota-pagamento", "preview", routeId, valorDebounced, tipo, motivo, dataPagamento],
     enabled: open && !!routeId && valorDebounced > 0,
     queryFn: () =>
       preview({
@@ -103,6 +103,7 @@ export function PagamentoRotaDialog({
           tipo,
           motivo: tipo === "ADICIONAL" ? motivo : null,
           observacao: observacao || null,
+          dataPagamento,
         },
       }),
   });
@@ -122,6 +123,7 @@ export function PagamentoRotaDialog({
           tipo,
           motivo: tipo === "ADICIONAL" ? motivo : null,
           observacao: observacao.trim() || null,
+          dataPagamento,
         },
       }),
     onSuccess: () => {
@@ -134,7 +136,8 @@ export function PagamentoRotaDialog({
   });
 
   const p = previewQ.data;
-  const semFaturamento = (p?.pedidos_sem_faturamento ?? 0) > 0;
+  const semBordero = (p?.pedidos_sem_bordero ?? 0) > 0;
+  const dataInvalida = dataPagamento < dataMinima;
   const recalculando = valorEfetivo !== valorDebounced || previewQ.isFetching;
 
   return (
