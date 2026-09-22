@@ -117,6 +117,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
   } = props;
 
   const isMobile = useIsMobile();
+  useEffect(() => { console.log("DBG DataTable mount"); return () => console.log("DBG DataTable unmount"); }, []);
 
 
 
@@ -731,6 +732,7 @@ function GroupBlock<T>({
   cardHeaderAction?: (row: T) => ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
+  useEffect(() => { console.log("DBG GroupBlock mount", groupKey); return () => console.log("DBG GroupBlock unmount", groupKey); }, [groupKey]);
   return (
     <>
       <TableRow className="bg-muted/50 font-semibold">
@@ -873,6 +875,7 @@ function MobileGroup<T>({
   cardHeaderAction?: (row: T) => ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
+  useEffect(() => { console.log("DBG GroupBlock mount", groupKey); return () => console.log("DBG GroupBlock unmount", groupKey); }, [groupKey]);
   return (
     <div className="border rounded-lg bg-card overflow-hidden">
       <button
