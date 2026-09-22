@@ -301,12 +301,14 @@ function FreightInput({
   onValorChange: (routeId: string, valor: number | null) => void;
   onConfirmar: (route: RouteRow, valor: number) => void;
 }) {
+  const qc = useQueryClient();
   const initial = Number(route.total_freight ?? 0);
   const isEstimate = tipo === "T" && initial <= 0 && estimate != null;
   const [value, setValue] = useState<string>(
     initial > 0 ? String(initial) : estimate ? String(estimate.total) : "",
   );
   const [estimated, setEstimated] = useState(isEstimate);
+  const [salvando, setSalvando] = useState(false);
 
   const confirmado = route.frete_confirmado_em != null;
   // Enquanto o pagamento não for confirmado, o valor pode ser digitado/alterado.
@@ -316,6 +318,27 @@ function FreightInput({
   const valorNum = Number.isFinite(numero) ? numero : 0;
   const pendentes = Math.max(0, bordero.total - bordero.comBordero);
   const podeConfirmar = valorNum > 0 && pendentes === 0 && (!confirmado || isAdmin);
+
+  // Grava o valor planejado ao sair do campo, sem criar pagamento.
+  const salvarPlanejado = async () => {
+    if (estimated) return;
+    const n = value.trim() === "" ? 0 : Number(value.replace(",", "."));
+    if (!Number.isFinite(n) || n < 0 || Math.abs(n - initial) < 0.000001) return;
+    setSalvando(true);
+    try {
+      const { error } = await supabase
+        .from("routes")
+        .update({ total_freight: n })
+        .eq("id", route.id);
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: ["routes"] });
+    } catch (e) {
+      console.warn("[FreightInput] falhou ao gravar valor planejado:", e);
+      toast.error("Não foi possível gravar o valor planejado. Tente novamente.");
+    } finally {
+      setSalvando(false);
+    }
+  };
 
   const title = estimate
     ? `Estimativa calculada pela tabela de preço "${estimate.tabelaNome}" (${estimate.entregasCalculadas} de ${estimate.entregasTotal} entregas${estimate.parcial ? " — praça não identificada nas demais" : ""}).`
@@ -357,7 +380,12 @@ function FreightInput({
             const n = Number(e.target.value.replace(",", "."));
             onValorChange(route.id, Number.isFinite(n) && e.target.value !== "" ? n : null);
           }}
-          onKeyDown={(e) => e.stopPropagation()}
+          onBlur={() => void salvarPlanejado()}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+          }}
+          disabled={salvando}
           className={`h-7 w-28 text-right tabular-nums text-xs ${
             estimated
               ? "border-amber-500/40 bg-amber-500/10 italic text-amber-700"
@@ -381,7 +409,13 @@ function FreightInput({
       <Button
         size="sm"
         variant={confirmado ? "outline" : "default"}
-        className="h-6 px-2 text-[11px]"
+        className={`h-6 px-2 text-[11px] ${
+          podeConfirmar
+            ? confirmado
+              ? ""
+              : "bg-emerald-600 text-white hover:bg-emerald-700"
+            : "cursor-not-allowed"
+        }`}
         disabled={!podeConfirmar}
         title={
           pendentes > 0
