@@ -135,26 +135,38 @@ async function carregarPedidos(routeId: string): Promise<PedidoCarregado[]> {
   return Array.from(pedidos.values());
 }
 
-/** Borderô e filial de faturamento vindos do espelho de entregas do ERP. */
-async function dadosDeExpedicao(
-  codPedidos: string[],
-): Promise<Map<string, { bordero: string | null; cod_filial: string | null }>> {
-  const map = new Map<string, { bordero: string | null; cod_filial: string | null }>();
+type DadosExpedicao = {
+  bordero: string | null;
+  cod_filial: string | null;
+  nro_nf: string | null;
+};
+
+/** Borderô, nota fiscal e filial de faturamento vindos do espelho de entregas do ERP. */
+async function dadosDeExpedicao(codPedidos: string[]): Promise<Map<string, DadosExpedicao>> {
+  const map = new Map<string, DadosExpedicao>();
   const TAM = 200;
   for (let i = 0; i < codPedidos.length; i += TAM) {
     const lote = codPedidos.slice(i, i + TAM);
     const { data, error } = await centralDb
       .from("entregas_abertas")
-      .select("cod_pedido, bordero, cod_filial")
+      .select("cod_pedido, bordero, cod_filial, nro_nf, dt_fatur")
       .in("cod_pedido", lote);
     if (error) throw new Error(error.message);
-    for (const row of (data ?? []) as { cod_pedido: string; bordero: string | null; cod_filial: string | null }[]) {
+    for (const row of (data ?? []) as {
+      cod_pedido: string;
+      bordero: string | null;
+      cod_filial: string | null;
+      nro_nf: string | null;
+      dt_fatur: string | null;
+    }[]) {
       const atual = map.get(row.cod_pedido);
       const bordero = (row.bordero ?? "").trim() || null;
       const filial = (row.cod_filial ?? "").trim() || null;
+      const nf = (row.nro_nf ?? "").trim() || null;
       map.set(row.cod_pedido, {
         bordero: atual?.bordero ?? bordero,
         cod_filial: atual?.cod_filial ?? filial,
+        nro_nf: atual?.nro_nf ?? nf,
       });
     }
   }
