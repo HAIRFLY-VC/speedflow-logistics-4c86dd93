@@ -1292,7 +1292,7 @@ function RotasPage() {
 
         {aguardandoValor > 0 && (
           <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
-            {aguardandoValor} rota(s) de fretista com borderô completo aguardando a definição do
+            {aguardandoValor} rota(s) de fretista totalmente faturadas aguardando a definição do
             valor do frete.
           </div>
         )}
