@@ -112,6 +112,7 @@ type RouteRow = {
       delivery_longitude: number | null;
     } | null;
   }[];
+  frete_confirmado_em?: string | null;
 };
 
 
