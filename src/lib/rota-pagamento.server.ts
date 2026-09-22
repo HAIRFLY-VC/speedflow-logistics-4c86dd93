@@ -450,6 +450,7 @@ export async function confirmarPagamentoRota(params: {
         bordero: p.bordero,
         tipo_pagamento: params.tipo,
         motivo_adicional: params.motivo,
+        data_pagamento: dataPagamento,
         ...zerados,
         [campo]: p.frete,
       },
@@ -474,6 +475,7 @@ export async function confirmarPagamentoRota(params: {
       tipo_pagamento: params.tipo,
       motivo_adicional: params.motivo,
       valor_total: valor,
+      data_pagamento: dataPagamento,
       observacao: params.observacao,
       texto_tarefa: preview.texto_tarefa,
       filiais: preview.filiais.map((f) => ({
