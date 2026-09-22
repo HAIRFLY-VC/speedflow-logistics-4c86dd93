@@ -12,7 +12,7 @@ Na tela **Rotas Pendentes**, ao digitar o valor do frete de uma rota:
   - No rodapé de cada grupo, o **subtotal do frete por filial**; no fim, o total geral.
   - Campo opcional de observação e um botão **Confirmar pagamento**.
 - Após confirmar, a rota fica marcada como **pagamento confirmado** (o valor aparece travado na lista, com indicação visual).
-- É possível **reabrir**: alterar o valor e confirmar de novo (substitui o lançamento anterior), ou lançar um **valor adicional** escolhendo o motivo (pernoite, descarrego, dificuldade de entrega, reentrega, diária). Cada adicional gera seu próprio rateio e sua própria tarefa.
+- **Somente administradores** podem **reabrir**: alterar o valor e confirmar de novo (substitui o lançamento anterior), ou lançar um **valor adicional** escolhendo o motivo (pernoite, descarrego, dificuldade de entrega, reentrega, diária). Cada adicional gera seu próprio rateio e sua própria tarefa. Para os demais usuários, a rota confirmada fica somente leitura.
 
 ## Envio ao ERP e ao Bitrix
 
