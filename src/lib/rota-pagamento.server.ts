@@ -17,7 +17,19 @@ import type {
   PreviewPagamentoRota,
   TipoPagamentoRota,
 } from "./rota-pagamento.types";
-import { MOTIVOS_ADICIONAIS } from "./rota-pagamento.types";
+import {
+  MOTIVOS_ADICIONAIS,
+  PRAZO_PAGAMENTO_DIAS,
+  dataMinimaPagamento,
+  formatarDataBr,
+} from "./rota-pagamento.types";
+
+/** Garante uma data de pagamento válida (nunca antes do prazo mínimo). */
+function normalizarDataPagamento(iso: string | null | undefined): string {
+  const minima = dataMinimaPagamento();
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return minima;
+  return iso < minima ? minima : iso;
+}
 
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -203,6 +215,7 @@ function montarTextoTarefa(
   tipo: TipoPagamentoRota,
   motivo: MotivoAdicional | null,
   observacao: string | null,
+  dataPagamento: string,
 ): string {
   const linhas: string[] = [];
   const titulo =
@@ -210,6 +223,10 @@ function montarTextoTarefa(
       ? `Pagamento de frete — rota ${rota.erp_route_id ?? rota.code} (${nomeDaRota(rota)})`
       : `Valor adicional (${rotuloMotivo(motivo) ?? "adicional"}) — rota ${rota.erp_route_id ?? rota.code} (${nomeDaRota(rota)})`;
   linhas.push(titulo);
+  linhas.push("");
+  linhas.push(
+    `Instrução de pagamento: efetuar o pagamento em ${formatarDataBr(dataPagamento)} (prazo de ${PRAZO_PAGAMENTO_DIAS} dias).`,
+  );
   linhas.push("");
   for (const f of filiais) {
     linhas.push(`Filial de faturamento ${f.cod_filial}`);
