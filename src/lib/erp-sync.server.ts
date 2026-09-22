@@ -114,38 +114,61 @@ async function erpQuery(sql: string, limit: number): Promise<Record<string, unkn
   return json.rows ?? [];
 }
 
+/** Carência antes de excluir um pedido que o ERP ainda não devolveu borderô. */
+const BORDERO_CARENCIA_MS = 5 * 24 * 60 * 60 * 1000;
+
 /**
  * Rotas cujo borderô já foi emitido no ERP: elas deixam de voltar na consulta
  * de pedidos pendentes. Em vez de apagar, marca a rota e busca o número do
- * borderô de cada pedido. Pedido sem borderô no ERP é removido da base.
+ * borderô de cada pedido em `GKS.A_GERENTREGAS`. Como essa tabela é alimentada
+ * com atraso, o pedido sem borderô continua aguardando e só é removido depois
+ * da carência.
  */
 async function tratarRotasComBorderoEmitido(routeIds: string[]): Promise<void> {
-  if (routeIds.length === 0) return;
-
   const agora = new Date().toISOString();
-  const { error: upErr } = await centralDb
+  if (routeIds.length > 0) {
+    const { error: upErr } = await centralDb
+      .from("routes")
+      .update({ bordero_emitido_em: agora })
+      .in("id", routeIds)
+      .is("bordero_emitido_em", null);
+    if (upErr) throw upErr;
+  }
+
+  // Todas as rotas com borderô emitido (inclusive de sincronizações anteriores)
+  // continuam sendo consultadas enquanto tiverem pedidos sem número de borderô.
+  const { data: marcadas, error: marcErr } = await centralDb
     .from("routes")
-    .update({ bordero_emitido_em: agora })
-    .in("id", routeIds)
-    .is("bordero_emitido_em", null);
-  if (upErr) throw upErr;
+    .select("id, bordero_emitido_em")
+    .not("bordero_emitido_em", "is", null);
+  if (marcErr) throw marcErr;
+  const marcadaEm = new Map<string, string>();
+  for (const r of marcadas ?? []) {
+    marcadaEm.set(String(r.id), String(r.bordero_emitido_em ?? agora));
+  }
+  const alvos = Array.from(marcadaEm.keys());
+  if (alvos.length === 0) return;
 
   const { data: links, error: linkErr } = await centralDb
     .from("route_orders")
-    .select("route_id, order_id, orders(erp_id, order_number)")
-    .in("route_id", routeIds);
+    .select("route_id, order_id, orders(erp_id, order_number, bordero)")
+    .in("route_id", alvos);
   if (linkErr) throw linkErr;
 
   type Link = {
     route_id: string;
     order_id: string;
-    orders: { erp_id: string | null; order_number: string | null } | null;
+    orders: { erp_id: string | null; order_number: string | null; bordero: string | null } | null;
   };
   const rows = (links ?? []) as unknown as Link[];
   const codeByOrderId = new Map<string, string>();
+  const routeByOrderId = new Map<string, string>();
   for (const l of rows) {
+    if (l.orders?.bordero) continue; // já tem número gravado
     const cod = (l.orders?.erp_id ?? l.orders?.order_number ?? "").trim();
-    if (cod) codeByOrderId.set(l.order_id, cod);
+    if (!cod) continue;
+    codeByOrderId.set(l.order_id, cod);
+    routeByOrderId.set(l.order_id, String(l.route_id));
   }
   const codigos = Array.from(new Set(codeByOrderId.values()));
   if (codigos.length === 0) return;
@@ -170,9 +193,13 @@ async function tratarRotasComBorderoEmitido(routeIds: string[]): Promise<void> {
   // Grava o borderô encontrado em cada pedido.
   const porBordero = new Map<string, string[]>();
   const semBordero: string[] = [];
+  const limite = Date.now() - BORDERO_CARENCIA_MS;
   for (const [orderId, cod] of codeByOrderId) {
     const b = borderoPorPedido.get(cod);
     if (!b) {
+      const marcado = Date.parse(marcadaEm.get(routeByOrderId.get(orderId) ?? "") ?? agora);
+      // Ainda dentro da carência: aguarda o ERP alimentar a tabela.
+      if (Number.isFinite(marcado) && marcado > limite) continue;
       semBordero.push(orderId);
       continue;
     }
@@ -190,7 +217,9 @@ async function tratarRotasComBorderoEmitido(routeIds: string[]): Promise<void> {
     }
   }
 
-  // Pedido sem registro no ERP é excluído da base do app.
+  if (semBordero.length === 0) return;
+
+  // Pedido sem registro no ERP após a carência é excluído da base do app.
   for (let i = 0; i < semBordero.length; i += 200) {
     const lote = semBordero.slice(i, i + 200);
     const { error: roErr } = await centralDb.from("route_orders").delete().in("order_id", lote);
@@ -200,13 +229,17 @@ async function tratarRotasComBorderoEmitido(routeIds: string[]): Promise<void> {
   }
 
   // Rota que ficou sem nenhum pedido deixa de existir.
+  const afetadas = Array.from(
+    new Set(semBordero.map((id) => routeByOrderId.get(id)).filter((v): v is string => Boolean(v))),
+  );
+  if (afetadas.length === 0) return;
   const { data: restantes, error: restErr } = await centralDb
     .from("route_orders")
     .select("route_id")
-    .in("route_id", routeIds);
+    .in("route_id", afetadas);
   if (restErr) throw restErr;
   const comPedido = new Set((restantes ?? []).map((r) => String(r.route_id)));
-  const vazias = routeIds.filter((id) => !comPedido.has(id));
+  const vazias = afetadas.filter((id) => !comPedido.has(id));
   if (vazias.length > 0) {
     await centralDb.from("delivery_manifests").delete().in("route_id", vazias);
     const { error } = await centralDb.from("routes").delete().in("id", vazias);
