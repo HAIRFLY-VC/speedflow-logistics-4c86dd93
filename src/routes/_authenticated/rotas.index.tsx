@@ -1015,6 +1015,12 @@ function RotasPage() {
               route={r}
               estimate={estimativas.get(r.id) ?? null}
               tipo={tipoFreteOf(r)}
+              bordero={borderoDaRota(r)}
+              isAdmin={role === "adm"}
+              onValorChange={(id, v) =>
+                setFreteEditado((prev) => ({ ...prev, [id]: v }))
+              }
+              onConfirmar={(rota, valor) => setPagamento({ rota, valor })}
             />
           </span>
         ),
