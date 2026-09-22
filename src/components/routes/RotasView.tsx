@@ -575,7 +575,14 @@ function DistanceCell({
 }
 
 
-function RotasPage() {
+export function RotasView({
+  titulo,
+  descricao,
+  mostrarAcoesDeRota = false,
+  permitirConfirmacao = false,
+  filtro,
+  mensagemVazia = "Nenhuma rota criada.",
+}: RotasViewProps) {
   const qc = useQueryClient();
   const { cidadeCliente } = useClientesErp();
   const { role } = useAuth();
