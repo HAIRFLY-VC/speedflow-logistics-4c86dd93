@@ -60,6 +60,8 @@ export function PagamentoRotaDialog({
   const [motivo, setMotivo] = useState<MotivoAdicional>("PERNOITE");
   const [observacao, setObservacao] = useState("");
   const [valorAdicional, setValorAdicional] = useState("");
+  const [valorFrete, setValorFrete] = useState("");
+  const [valorDebounced, setValorDebounced] = useState(0);
 
   useEffect(() => {
     if (open) {
@@ -67,23 +69,31 @@ export function PagamentoRotaDialog({
       setMotivo("PERNOITE");
       setObservacao("");
       setValorAdicional("");
+      setValorFrete(valor > 0 ? String(valor) : "");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, routeId]);
 
   const valorEfetivo = useMemo(() => {
-    if (tipo === "FRETE") return valor;
-    const n = Number(valorAdicional.replace(",", "."));
+    const texto = tipo === "FRETE" ? valorFrete : valorAdicional;
+    const n = Number(texto.replace(",", "."));
     return Number.isFinite(n) ? n : 0;
-  }, [tipo, valor, valorAdicional]);
+  }, [tipo, valorFrete, valorAdicional]);
+
+  // Pequeno atraso para não refazer o rateio a cada tecla digitada.
+  useEffect(() => {
+    const t = setTimeout(() => setValorDebounced(valorEfetivo), 350);
+    return () => clearTimeout(t);
+  }, [valorEfetivo]);
 
   const previewQ = useQuery({
-    queryKey: ["rota-pagamento", "preview", routeId, valorEfetivo, tipo, motivo],
-    enabled: open && !!routeId && valorEfetivo > 0,
+    queryKey: ["rota-pagamento", "preview", routeId, valorDebounced, tipo, motivo],
+    enabled: open && !!routeId && valorDebounced > 0,
     queryFn: () =>
       preview({
         data: {
           routeId: routeId!,
-          valor: valorEfetivo,
+          valor: valorDebounced,
           tipo,
           motivo: tipo === "ADICIONAL" ? motivo : null,
           observacao: observacao || null,
