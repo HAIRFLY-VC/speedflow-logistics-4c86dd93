@@ -38,7 +38,7 @@ export function ErpSyncButton({
         .eq("status", "success")
         .order("finished_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data as { started_at: string; finished_at: string; status: string } | null;
     },

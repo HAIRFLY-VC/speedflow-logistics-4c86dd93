@@ -1037,6 +1037,14 @@ export async function syncErpOrders(opts: {
     })
     .eq("id", run.id);
 
+  // A atualização manual precisa responder antes do limite da requisição.
+  // Pedidos e rotas já estão persistidos neste ponto; as tarefas complementares
+  // abaixo permanecem reservadas à execução agendada.
+  if (opts.trigger === "manual") {
+    console.log(`[erp-sync] rotas: ${routes_created} criadas, ${routes_linked} pedidos vinculados`);
+    return { runId: run.id, fetched, created, updated, skipped, customers_created, errors, status };
+  }
+
   // Espelha as entregas em aberto (NF expedida e ainda não entregue).
   let clientesEntregas: Set<string> = new Set();
   try {
