@@ -316,8 +316,10 @@ function FreightInput({
 
   const numero = Number(value.replace(",", "."));
   const valorNum = Number.isFinite(numero) ? numero : 0;
-  const pendentes = Math.max(0, bordero.total - bordero.comBordero);
-  const podeConfirmar = valorNum > 0 && pendentes === 0 && (!confirmado || isAdmin);
+  // Só é possível confirmar o pagamento quando todos os pedidos estiverem faturados.
+  const pendentes = Math.max(0, bordero.total - bordero.faturados);
+  const podeConfirmar =
+    valorNum > 0 && bordero.total > 0 && pendentes === 0 && (!confirmado || isAdmin);
 
   // Grava o valor planejado ao sair do campo, sem criar pagamento.
   const salvarPlanejado = async () => {
