@@ -409,7 +409,13 @@ function FreightInput({
       <Button
         size="sm"
         variant={confirmado ? "outline" : "default"}
-        className="h-6 px-2 text-[11px]"
+        className={`h-6 px-2 text-[11px] ${
+          podeConfirmar
+            ? confirmado
+              ? ""
+              : "bg-emerald-600 text-white hover:bg-emerald-700"
+            : "cursor-not-allowed"
+        }`}
         disabled={!podeConfirmar}
         title={
           pendentes > 0
