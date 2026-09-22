@@ -294,6 +294,7 @@ function FreightInput({
   tipo,
   bordero,
   isAdmin,
+  mostrarConfirmar = false,
   onValorChange,
   onConfirmar,
 }: {
@@ -302,6 +303,7 @@ function FreightInput({
   tipo: TipoFrete | null;
   bordero: { total: number; comBordero: number; faturados: number };
   isAdmin: boolean;
+  mostrarConfirmar?: boolean;
   onValorChange: (routeId: string, valor: number | null) => void;
   onConfirmar: (route: RouteRow, valor: number) => void;
 }) {
