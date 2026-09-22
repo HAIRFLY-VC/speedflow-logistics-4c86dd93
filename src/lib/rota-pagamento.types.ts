@@ -33,6 +33,32 @@ export type FilialPagamento = {
   frete: number;
 };
 
+/** Prazo mínimo (em dias) entre hoje e a data sugerida de pagamento. */
+export const PRAZO_PAGAMENTO_DIAS = 9;
+
+/** Data de hoje no fuso de Brasília, no formato AAAA-MM-DD. */
+export function hojeBrasilia(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+}
+
+/** Soma dias a uma data AAAA-MM-DD. */
+export function somarDias(iso: string, dias: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Data mínima (= sugerida) de pagamento: hoje + 9 dias. */
+export function dataMinimaPagamento(): string {
+  return somarDias(hojeBrasilia(), PRAZO_PAGAMENTO_DIAS);
+}
+
+/** Formata AAAA-MM-DD como dd/MM/aaaa. */
+export function formatarDataBr(iso: string): string {
+  const [a, m, d] = iso.split("-");
+  return `${d}/${m}/${a}`;
+}
+
 export type PreviewPagamentoRota = {
   route_id: string;
   rota: string;
@@ -44,6 +70,8 @@ export type PreviewPagamentoRota = {
   /** Pedidos ainda sem nota fiscal emitida (não faturados). */
   pedidos_sem_faturamento: number;
   ja_confirmado: boolean;
+  /** Data sugerida de pagamento (AAAA-MM-DD). */
+  data_pagamento: string;
   filiais: FilialPagamento[];
   texto_tarefa: string;
 };
