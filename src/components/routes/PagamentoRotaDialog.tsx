@@ -425,14 +425,15 @@ export function PagamentoRotaDialog({
           <Button
             onClick={() => enviar.mutate()}
             className={
-              enviar.isPending || !p || semFaturamento || recalculando || valorEfetivo <= 0 || (jaConfirmado && !isAdmin)
+              enviar.isPending || !p || semBordero || dataInvalida || recalculando || valorEfetivo <= 0 || (jaConfirmado && !isAdmin)
                 ? "cursor-not-allowed"
                 : "bg-emerald-600 text-white hover:bg-emerald-700"
             }
             disabled={
               enviar.isPending ||
               !p ||
-              semFaturamento ||
+              semBordero ||
+              dataInvalida ||
               recalculando ||
               valorEfetivo <= 0 ||
               (jaConfirmado && !isAdmin)
