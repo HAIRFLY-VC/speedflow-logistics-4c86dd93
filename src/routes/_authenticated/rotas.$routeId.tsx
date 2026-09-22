@@ -33,6 +33,12 @@ import { SuggestionMap, sequenceStops } from "@/components/route-suggestions/Sug
 import { getOrderCoord } from "@/lib/order-coords";
 import { formatCurrency, type OrderStatus } from "@/lib/orderStatus";
 import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEditDialog";
+import {
+  useResponsavelRota,
+  nomeRotaDeNotes,
+  TIPO_FRETE_LABEL,
+  TIPO_FRETE_TONE,
+} from "@/lib/rota-responsavel";
 import type { Database } from "@/integrations/supabase/types";
 
 const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
@@ -65,6 +71,8 @@ type RouteDetail = {
   carrier_id: string | null;
   erp_route_id: string | null;
   erp_status: string | null;
+  erp_carrier_code: string | null;
+  driver_name: string | null;
   freight_carriers: {
     id: string;
     full_name: string;
@@ -113,7 +121,7 @@ function RouteDetailPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,erp_route_id,erp_status,route_date,status,total_freight,notes,carrier_id,freight_carriers(id,full_name,vehicle_plate,phone,transportadoras(cod_erp))",
+          "id,code,erp_route_id,erp_status,erp_carrier_code,driver_name,route_date,status,total_freight,notes,carrier_id,freight_carriers(id,full_name,vehicle_plate,phone,transportadoras(cod_erp))",
         )
         .eq("id", routeId)
         .maybeSingle();
@@ -208,6 +216,12 @@ function RouteDetailPage() {
   });
 
   const route = routeQ.data;
+  const { responsavel, cod: codResponsavel } = useResponsavelRota({
+    erpRouteId: route?.erp_route_id,
+    codErpFallback: route?.erp_carrier_code ?? route?.freight_carriers?.transportadoras?.cod_erp ?? null,
+  });
+  const nomeResponsavel =
+    responsavel?.razaoSocial || route?.driver_name || route?.freight_carriers?.full_name || "";
   const stops = stopsQ.data ?? [];
   const totals = useMemo(() => {
     let amount = 0;
@@ -396,8 +410,12 @@ function RouteDetailPage() {
 
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono">{route.code}</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {nomeRotaDeNotes(route.notes, route.code)}
+            </h1>
             <p className="text-sm text-muted-foreground">
+              <span className="font-mono">{route.code}</span>
+              {" · "}
               {route.route_date && !route.route_date.startsWith("3000-01-01") && !route.route_date.startsWith("4000-01-01")
                 ? format(new Date(route.route_date), "dd/MM/yyyy", { locale: ptBR })
                 : "Não planejado"}
@@ -421,37 +439,56 @@ function RouteDetailPage() {
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="md:col-span-2">
             <CardHeader>
-              <CardTitle className="text-base">Fretista</CardTitle>
+              <CardTitle className="text-base">Responsável pelo frete</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {editable && canOperate ? (
-                <Select
-                  value={route.carrier_id ?? ""}
-                  onValueChange={(v) => carrierAssign.mutate(v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o fretista" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(carriersQ.data ?? []).map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.full_name}
-                        {c.vehicle_plate ? ` · ${c.vehicle_plate}` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : route.freight_carriers ? (
-                <div className="text-sm">
-                  <div className="font-medium">{route.freight_carriers.full_name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {route.freight_carriers.vehicle_plate || "—"}
-                    {route.freight_carriers.phone ? ` · ${route.freight_carriers.phone}` : ""}
+            <CardContent className="space-y-3">
+              {nomeResponsavel ? (
+                <div className="text-sm space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{nomeResponsavel}</span>
+                    {codResponsavel ? (
+                      <span className="text-xs text-muted-foreground font-mono">({codResponsavel})</span>
+                    ) : null}
+                    {responsavel?.tipoFrete ? (
+                      <span
+                        className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${TIPO_FRETE_TONE[responsavel.tipoFrete]}`}
+                      >
+                        {TIPO_FRETE_LABEL[responsavel.tipoFrete]}
+                      </span>
+                    ) : null}
                   </div>
+                  {route.freight_carriers ? (
+                    <div className="text-xs text-muted-foreground">
+                      {route.freight_carriers.vehicle_plate || "—"}
+                      {route.freight_carriers.phone ? ` · ${route.freight_carriers.phone}` : ""}
+                    </div>
+                  ) : null}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Sem fretista atribuído.</p>
+                <p className="text-sm text-muted-foreground">Sem responsável informado.</p>
               )}
+
+              {editable && canOperate ? (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Fretista interno</p>
+                  <Select
+                    value={route.carrier_id ?? ""}
+                    onValueChange={(v) => carrierAssign.mutate(v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o fretista" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(carriersQ.data ?? []).map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.full_name}
+                          {c.vehicle_plate ? ` · ${c.vehicle_plate}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
 
