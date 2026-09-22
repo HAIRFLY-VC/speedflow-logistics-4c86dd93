@@ -4,8 +4,7 @@
  * Expediente:
  *  - segunda a quinta: 07:00 às 17:00
  *  - sexta: 07:00 às 16:00
- *  - sábado: 07:00 às 17:00
- *  - domingo: 07:00 às 17:00 somente quando houve movimentação no dia
+ *  - sábado e domingo: 07:00 às 17:00 somente quando houve separação no dia
  *  - almoço descontado todos os dias: 11:30 às 12:30
  *
  * As datas vindas do ERP são horário local de Brasília; por isso o cálculo é
@@ -63,8 +62,9 @@ export function agoraBrt(): string {
 
 /** Janela de expediente do dia, em minutos, ou null se não há expediente. */
 function janela(dias: number, movimento?: Set<string>): [number, number] | null {
-  const dow = new Date(dias * MS_DIA).getUTCDay(); // 0 = domingo
-  if (dow === 0) {
+  const dow = new Date(dias * MS_DIA).getUTCDay(); // 0 = domingo, 6 = sábado
+  // Sábado e domingo só contam quando houve separação de fato no dia.
+  if (dow === 0 || dow === 6) {
     if (!movimento?.has(chaveDia(dias))) return null;
     return [7 * 60, 17 * 60];
   }
