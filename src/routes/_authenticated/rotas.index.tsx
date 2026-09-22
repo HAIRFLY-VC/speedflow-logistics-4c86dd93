@@ -731,11 +731,16 @@ function RotasPage() {
         continue;
       }
       const nome = normalizaNome(r.driver_name ?? r.freight_carriers?.full_name ?? "");
+      // Sem nome na rota não dá para adivinhar: cadastros vazios (ex.: ".")
+      // casavam com qualquer rota sem motorista e geravam fretista fantasma.
+      if (nome.length < 4) continue;
       const porNome = responsaveis.find((item) => {
         const alvo = normalizaNome(item.razaoSocial);
-        return alvo === nome || (alvo.length >= 4 && nome.length >= 4 && (alvo.startsWith(nome) || nome.startsWith(alvo)));
+        if (alvo.length < 4) return false;
+        return alvo === nome || alvo.startsWith(nome) || nome.startsWith(alvo);
       });
       if (porNome) map.set(r.id, porNome);
+
     }
     return map;
   }, [data, responsaveisQ.data, responsaveisLocaisQ.data, codResponsavelPorRota, naturezasQ.data]);
