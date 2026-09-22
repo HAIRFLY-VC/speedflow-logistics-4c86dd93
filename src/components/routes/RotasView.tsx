@@ -1305,31 +1305,31 @@ export function RotasView({
 
 
   const totals = useMemo(() => {
-    const rows = filteredData ?? data ?? [];
+    const rows = filteredData ?? rotasVisiveis;
     return {
       merchandise: rows.reduce((s, r) => s + valorOf(r), 0),
       weight: rows.reduce((s, r) => s + pesoOf(r), 0),
       orders: rows.reduce((s, r) => s + pedidosOf(r), 0),
       stops: rows.reduce((s, r) => s + paradasOf(r), 0),
     };
-  }, [filteredData, data]);
+  }, [filteredData, rotasVisiveis]);
 
   return (
     <AppShell>
       <div className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Rotas Pendentes</h1>
-            <p className="text-muted-foreground text-sm">
-              Planeje rotas, atribua pedidos faturados e emita o borderô.
-            </p>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{titulo}</h1>
+            <p className="text-muted-foreground text-sm">{descricao}</p>
           </div>
-          <div className="flex w-full flex-wrap items-start gap-2 sm:w-auto">
-            <ErpSyncButton label="Atualizar rotas" lastSyncPrefix="Atualizado" />
-            <Button onClick={() => setOpen(true)} className="flex-1 sm:flex-none">
-              <Plus className="h-4 w-4 mr-1" /> Nova rota
-            </Button>
-          </div>
+          {mostrarAcoesDeRota && (
+            <div className="flex w-full flex-wrap items-start gap-2 sm:w-auto">
+              <ErpSyncButton label="Atualizar rotas" lastSyncPrefix="Atualizado" />
+              <Button onClick={() => setOpen(true)} className="flex-1 sm:flex-none">
+                <Plus className="h-4 w-4 mr-1" /> Nova rota
+              </Button>
+            </div>
+          )}
         </div>
 
         {aguardandoValor > 0 && (
