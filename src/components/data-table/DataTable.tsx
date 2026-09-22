@@ -243,12 +243,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
   const colspan = visibleColumns.length || 1;
 
-  function TableWrapper({ children }: { children: React.ReactNode }) {
-    if (!scrollable) return <>{children}</>;
-    return (
-      <div className="overflow-y-scroll overflow-x-auto h-[calc(100dvh-260px)]">{children}</div>
-    );
-  }
+  // Nada de componente declarado aqui dentro: um componente novo a cada render
+  // desmonta as linhas (perde grupos abertos e o texto digitado no frete).
+
 
   const filterChips =
     activeFilterEntries.length > 0 ? (
