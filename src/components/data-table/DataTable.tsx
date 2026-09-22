@@ -242,12 +242,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
   const colspan = visibleColumns.length || 1;
 
-  function TableWrapper({ children }: { children: React.ReactNode }) {
-    if (!scrollable) return <>{children}</>;
-    return (
-      <div className="overflow-y-scroll overflow-x-auto h-[calc(100dvh-260px)]">{children}</div>
-    );
-  }
+  // Nada de componente declarado aqui dentro: um componente novo a cada render
+  // desmonta as linhas (perde grupos abertos e o texto digitado no frete).
+
 
   const filterChips =
     activeFilterEntries.length > 0 ? (
@@ -417,7 +414,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
       )}
 
       <div className="border rounded-lg bg-card">
-        <TableWrapper>
+        <ScrollWrapper scrollable={scrollable}>
           <Table
             wrapperClassName={scrollable ? "overflow-visible" : undefined}
             className={scrollable ? "border-separate" : undefined}
@@ -487,10 +484,15 @@ export function DataTable<T>(props: DataTableProps<T>) {
             )}
           </TableBody>
         </Table>
-      </TableWrapper>
+      </ScrollWrapper>
     </div>
     </div>
   );
+}
+
+function ScrollWrapper({ scrollable, children }: { scrollable?: boolean; children: React.ReactNode }) {
+  if (!scrollable) return <>{children}</>;
+  return <div className="overflow-y-scroll overflow-x-auto h-[calc(100dvh-260px)]">{children}</div>;
 }
 
 function HeaderCell<T>({
