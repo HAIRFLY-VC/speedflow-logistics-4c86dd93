@@ -32,16 +32,16 @@ export const Route = createFileRoute("/_authenticated/pagamento-fretes")({
   component: PagamentoFretesPage,
   head: () => ({
     meta: [
-      { title: "Pagamento de fretes | SpeedFlow Logistics" },
+      { title: "Pagamento de CT-e | SpeedFlow Logistics" },
       {
         name: "description",
         content:
           "Autorize o pagamento dos CT-e auditados e acompanhe o lançamento das ordens no ERP.",
       },
-      { property: "og:title", content: "Pagamento de fretes | SpeedFlow Logistics" },
+      { property: "og:title", content: "Pagamento de CT-e | SpeedFlow Logistics" },
       {
         property: "og:description",
-        content: "Autorização de pagamento de frete e integração das ordens com o ERP.",
+        content: "Autorização de pagamento de CT-e e integração das ordens com o ERP.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -287,7 +287,7 @@ function PagamentoFretesPage() {
     <AppShell>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Pagamento de fretes</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Pagamento de CT-e</h1>
           <p className="text-muted-foreground text-sm">
             Autorize os CT-e auditados e acompanhe o lançamento das ordens no ERP.
           </p>
