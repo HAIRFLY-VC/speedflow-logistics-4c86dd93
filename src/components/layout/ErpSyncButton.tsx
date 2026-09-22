@@ -90,7 +90,13 @@ export function ErpSyncButton({
       qc.invalidateQueries({ queryKey: ["naturezas-erp"] });
       qc.invalidateQueries({ queryKey: ["erp", "last-sync"] });
     },
-    onError: (e: Error) => toast.error(`Falha ao importar: ${e.message}`),
+    onError: (e: Error) => {
+      if (e.message.includes("ERP fora do ar")) {
+        toast.warning("O ERP está temporariamente indisponível. As rotas atuais foram mantidas; tente novamente em alguns minutos.");
+        return;
+      }
+      toast.error(`Falha ao atualizar as rotas: ${e.message}`);
+    },
   });
 
   function isConnectionDrop(message: string): boolean {
