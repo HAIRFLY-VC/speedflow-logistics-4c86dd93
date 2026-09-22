@@ -410,8 +410,12 @@ function RouteDetailPage() {
 
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono">{route.code}</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {nomeRotaDeNotes(route.notes, route.code)}
+            </h1>
             <p className="text-sm text-muted-foreground">
+              <span className="font-mono">{route.code}</span>
+              {" · "}
               {route.route_date && !route.route_date.startsWith("3000-01-01") && !route.route_date.startsWith("4000-01-01")
                 ? format(new Date(route.route_date), "dd/MM/yyyy", { locale: ptBR })
                 : "Não planejado"}
