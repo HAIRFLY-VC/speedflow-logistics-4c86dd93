@@ -437,6 +437,14 @@ function RouteDetailPage() {
           </div>
         </div>
 
+        {!editable && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
+            {route.bordero_emitido_em
+              ? "Rota com borderô emitido no ERP — edição bloqueada."
+              : "Esta rota não está mais pendente — edição bloqueada."}
+          </div>
+        )}
+
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="md:col-span-2">
             <CardHeader>
