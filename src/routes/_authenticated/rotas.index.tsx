@@ -308,8 +308,10 @@ function FreightInput({
   );
   const [estimated, setEstimated] = useState(isEstimate);
 
-  const editable = tipo === "F";
   const confirmado = route.frete_confirmado_em != null;
+  // Enquanto o pagamento não for confirmado, o valor pode ser digitado/alterado.
+  const editable = tipo != null && (!confirmado || isAdmin);
+
   const numero = Number(value.replace(",", "."));
   const valorNum = Number.isFinite(numero) ? numero : 0;
   const pendentes = Math.max(0, bordero.total - bordero.comBordero);
