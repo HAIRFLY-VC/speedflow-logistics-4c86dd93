@@ -162,8 +162,11 @@ function motoristaOf(
 ) {
   const name = responsavel?.razaoSocial || r.driver_name || r.freight_carriers?.full_name || "";
   const cod = responsavel?.codErp || r.freight_carriers?.transportadoras?.cod_erp || codFallback || null;
-  if (name && cod) return `${name} (${cod})`;
+  // Sem nome não há responsável de fato: não exibir código solto.
+  if (!name.trim() || !normalizaNome(name)) return "";
+  if (cod) return `${name} (${cod})`;
   return name; 
+
 }
 
 type TransportadoraLite = { id: string; razao_social: string; cod_erp: string | null };
@@ -200,8 +203,10 @@ function resolveTransportadora(
   return (
     transportadoras.find((t) => {
       const alvo = normalizaNome(t.razao_social ?? "");
+      if (alvo.length < 4) return false;
       return alvo === nome || alvo.startsWith(nome) || nome.startsWith(alvo);
     }) ?? null
+
   );
 }
 
@@ -726,11 +731,16 @@ function RotasPage() {
         continue;
       }
       const nome = normalizaNome(r.driver_name ?? r.freight_carriers?.full_name ?? "");
+      // Sem nome na rota não dá para adivinhar: cadastros vazios (ex.: ".")
+      // casavam com qualquer rota sem motorista e geravam fretista fantasma.
+      if (nome.length < 4) continue;
       const porNome = responsaveis.find((item) => {
         const alvo = normalizaNome(item.razaoSocial);
-        return alvo === nome || (alvo.length >= 4 && nome.length >= 4 && (alvo.startsWith(nome) || nome.startsWith(alvo)));
+        if (alvo.length < 4) return false;
+        return alvo === nome || alvo.startsWith(nome) || nome.startsWith(alvo);
       });
       if (porNome) map.set(r.id, porNome);
+
     }
     return map;
   }, [data, responsaveisQ.data, responsaveisLocaisQ.data, codResponsavelPorRota, naturezasQ.data]);
