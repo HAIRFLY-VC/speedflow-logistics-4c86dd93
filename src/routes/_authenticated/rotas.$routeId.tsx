@@ -71,6 +71,8 @@ type RouteDetail = {
   carrier_id: string | null;
   erp_route_id: string | null;
   erp_status: string | null;
+  erp_carrier_code: string | null;
+  driver_name: string | null;
   freight_carriers: {
     id: string;
     full_name: string;
