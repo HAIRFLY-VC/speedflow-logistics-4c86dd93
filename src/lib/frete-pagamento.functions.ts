@@ -112,7 +112,7 @@ export const lancarOrdemNoErp = createServerFn({ method: "POST" })
     const { data: cte } = await centralDb
       .from("ctes")
       .select("chave_acesso, numero, data_emissao, nfs_referenciadas, transportadora_id")
-      .eq("id", ordem.cte_id)
+      .eq("id", cteId)
       .maybeSingle();
 
     let transportadora: { razao_social: string; cnpj: string; pix: string | null } | null =
@@ -155,7 +155,7 @@ export const lancarOrdemNoErp = createServerFn({ method: "POST" })
     await centralDb
       .from("ctes")
       .update({ status: result.ok ? "LANCADO_ERP" : "ERRO_ERP" })
-      .eq("id", ordem.cte_id);
+      .eq("id", cteId);
 
     if (!result.ok) throw new Error(result.erro ?? "Falha ao lançar no ERP");
     return { ok: true, referencia_erp: result.referencia_erp ?? null };
