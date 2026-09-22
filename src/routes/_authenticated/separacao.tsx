@@ -196,12 +196,13 @@ function SeparacaoPage() {
   const periodo = useMemo(() => filtra(periodoTodos), [periodoTodos, separadores]);
   const abertos = useMemo(() => filtra(abertosTodos), [abertosTodos, separadores]);
 
-  // Dias (BRT) em que houve movimentação — usados para considerar domingos
-  // trabalhados no cálculo de horas de expediente.
+  // Dias (BRT) em que houve separação de fato — usados para considerar
+  // sábados/domingos trabalhados. A inclusão do pedido (dt_inc) é automática e
+  // não prova trabalho, por isso fica de fora.
   const movimento = useMemo(() => {
     const s = new Set<string>();
     for (const r of [...periodoTodos, ...abertosTodos]) {
-      for (const v of [r.dt_inc, r.dt_ini_sep, r.dt_fim_sep]) {
+      for (const v of [r.dt_ini_sep, r.dt_fim_sep]) {
         const d = diaDe(v);
         if (d) s.add(d);
       }
