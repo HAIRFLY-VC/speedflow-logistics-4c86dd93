@@ -121,7 +121,7 @@ function RouteDetailPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,erp_route_id,erp_status,route_date,status,total_freight,notes,carrier_id,freight_carriers(id,full_name,vehicle_plate,phone,transportadoras(cod_erp))",
+          "id,code,erp_route_id,erp_status,erp_carrier_code,driver_name,route_date,status,total_freight,notes,carrier_id,freight_carriers(id,full_name,vehicle_plate,phone,transportadoras(cod_erp))",
         )
         .eq("id", routeId)
         .maybeSingle();
