@@ -35,7 +35,7 @@ export function mensagemErro(
   }
 
   // Mensagens já escritas em português podem ser exibidas normalmente.
-  if (/[áàâãéêíóôõúç]|\b(não|erro|falha|usuário|senha|email|e-mail|informe|apenas|possível)\b/i.test(texto)) {
+  if (/[áàâãéêíóôõúç]|\b(não|erro|falha|usuário|senha|e-mail|informe|apenas|possível)\b/i.test(texto)) {
     return texto;
   }
 
