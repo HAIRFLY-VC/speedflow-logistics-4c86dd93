@@ -128,18 +128,41 @@ export function PagamentoRotaDialog({
   });
 
   const p = previewQ.data;
-  const semBordero = (p?.pedidos_sem_bordero ?? 0) > 0;
+  const semFaturamento = (p?.pedidos_sem_faturamento ?? 0) > 0;
+  const recalculando = valorEfetivo !== valorDebounced || previewQ.isFetching;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="flex max-h-[92vh] max-w-5xl flex-col overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Confirmar pagamento — {rotulo}</DialogTitle>
           <DialogDescription>
-            Detalhamento da rota por filial de faturamento, com o frete rateado por pedido
-            conforme o valor da mercadoria.
+            Confira o detalhamento da rota por filial de faturamento. Nada é enviado antes de você
+            clicar em "Confirmar e enviar".
           </DialogDescription>
         </DialogHeader>
+
+        {tipo === "FRETE" && (
+          <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/30 p-3">
+            <div className="grid gap-1">
+              <Label className="text-xs">Valor do frete (R$)</Label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                className="h-9 w-36 rounded-md border border-input bg-background px-2 text-right text-sm tabular-nums"
+                value={valorFrete}
+                onChange={(e) => setValorFrete(e.target.value)}
+                placeholder="0,00"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Alterar o valor recalcula o rateio por pedido e os totais por filial.
+              {recalculando && valorEfetivo > 0 ? " Recalculando..." : ""}
+            </p>
+          </div>
+        )}
 
         {jaConfirmado && (
           <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700">
