@@ -12,7 +12,7 @@ Na tela **Rotas Pendentes**, ao digitar o valor do frete de uma rota:
   - No rodapé de cada grupo, o **subtotal do frete por filial**; no fim, o total geral.
   - Campo opcional de observação e um botão **Confirmar pagamento**.
 - Após confirmar, a rota fica marcada como **pagamento confirmado** (o valor aparece travado na lista, com indicação visual).
-- É possível **reabrir**: alterar o valor e confirmar de novo (substitui o lançamento anterior), ou lançar um **valor adicional** escolhendo o motivo (pernoite, descarrego, dificuldade de entrega, reentrega, diária). Cada adicional gera seu próprio rateio e sua própria tarefa.
+- **Somente administradores** podem **reabrir**: alterar o valor e confirmar de novo (substitui o lançamento anterior), ou lançar um **valor adicional** escolhendo o motivo (pernoite, descarrego, dificuldade de entrega, reentrega, diária). Cada adicional gera seu próprio rateio e sua própria tarefa. Para os demais usuários, a rota confirmada fica somente leitura.
 
 ## Envio ao ERP e ao Bitrix
 
@@ -31,13 +31,13 @@ Ao confirmar, o app grava nas mesmas filas já usadas na aprovação de CT-e, qu
 
 **Server (`src/lib/rota-pagamento.server.ts` + `rota-pagamento.functions.ts`)**
 - `montarPreviewPagamentoRota({ routeId, valor })`: lê rota + `route_orders(orders(order_number, cod_filial, total_amount, erp_cod_cliente))`, resolve razão social via espelho `clientes_erp`, agrupa por `cod_filial`, rateia `valor` por valor da mercadoria com `ratear()` no mesmo estilo de `frete-aprovacao.server.ts` (arredondamento a 2 casas, sobra no primeiro item) e devolve linhas + subtotais por filial.
-- `confirmarPagamentoRota({ routeId, valor, tipo, motivo, observacao })`: `requireSupabaseAuth` + gate `pode_autorizar_frete`; grava `total_freight`, cria `ordens_pagamento_frete` (route_id, tipo), apaga lançamentos pendentes anteriores da mesma rota quando for reenvio de `FRETE`, insere as linhas na fila de valores e uma linha na fila financeira com `payload.texto_tarefa` pronto.
+- `confirmarPagamentoRota({ routeId, valor, tipo, motivo, observacao })`: `requireSupabaseAuth` + gate `pode_autorizar_frete`; quando a rota já tem pagamento confirmado (reenvio de `FRETE` ou `ADICIONAL`), exige também `has_role(userId,'adm')`, senão lança "Apenas administradores podem reabrir ou lançar valores adicionais."; grava `total_freight`, cria `ordens_pagamento_frete` (route_id, tipo), marca os lançamentos pendentes anteriores como substituídos quando for reenvio de `FRETE`, insere as linhas na fila de valores e uma linha na fila financeira com `payload.texto_tarefa` pronto.
 - Montagem do texto: bloco por filial (pedido, cliente, valor mercadoria, frete rateado), depois "Resumo por filial de faturamento" com o valor proporcional de cada uma e o total.
 
 **UI (`src/routes/_authenticated/rotas.index.tsx` + `src/components/routes/PagamentoRotaDialog.tsx`)**
 - `FreightInput` deixa de gravar no blur: mantém o valor local, o % recalcula em tempo real e o botão **Confirmar Pgto** abre o diálogo.
 - Diálogo mostra o preview (agrupado por filial, subtotais), seletor de tipo (frete da rota / valor adicional + motivo), observação e confirmação; em caso de erro exibe mensagem em português via `mensagemErro`.
-- Rotas já confirmadas mostram selo "Pgto confirmado" e o botão vira **Reabrir / Lançar adicional**.
+- Rotas já confirmadas mostram selo "Pgto confirmado"; o botão vira **Reabrir / Lançar adicional** e só aparece para administradores (demais usuários veem apenas o histórico).
 
 **Verificação**: `bunx tsgo --noEmit`, `/rotas` respondendo 200, e conferência no app de uma rota com pedidos de mais de uma filial (soma dos rateios igual ao valor digitado).
 
