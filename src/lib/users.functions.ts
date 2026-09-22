@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { mensagemErro } from "@/lib/mensagem-erro";
 
 const inviteSchema = z.object({
   email: z.string().trim().email().max(255),
@@ -22,7 +23,7 @@ export const inviteUser = createServerFn({ method: "POST" })
       _user_id: context.userId,
       _role: "adm",
     });
-    if (roleErr) throw new Error(roleErr.message);
+    if (roleErr) throw new Error(mensagemErro(roleErr));
     if (!isAdmin) throw new Error("Apenas administradores podem convidar usuários");
 
     // Create or fetch the auth user
@@ -43,14 +44,14 @@ export const inviteUser = createServerFn({ method: "POST" })
           page: 1,
           perPage: 200,
         });
-        if (listErr) throw new Error(listErr.message);
+        if (listErr) throw new Error(mensagemErro(listErr));
         const existing = list.users.find(
           (u) => u.email?.toLowerCase() === data.email.toLowerCase(),
         );
-        if (!existing) throw new Error(createErr.message);
+        if (!existing) throw new Error(mensagemErro(createErr, "Não foi possível criar o usuário."));
         userId = existing.id;
       } else {
-        throw new Error(createErr.message);
+        throw new Error(mensagemErro(createErr, "Não foi possível criar o usuário."));
       }
     }
 
@@ -62,11 +63,11 @@ export const inviteUser = createServerFn({ method: "POST" })
       .upsert({ id: userId, full_name: data.fullName }, { onConflict: "id" });
 
     // Insert roles (ignore conflicts)
-    const rows = data.roles.map((role) => ({ user_id: userId!, role }));
+    const rows = data.roles.map((role) => ({ user_id: userId, role }));
     const { error: rolesErr } = await supabaseAdmin
       .from("user_roles")
       .upsert(rows, { onConflict: "user_id,role" });
-    if (rolesErr) throw new Error(rolesErr.message);
+    if (rolesErr) throw new Error(mensagemErro(rolesErr));
 
     return { userId, email: data.email };
   });

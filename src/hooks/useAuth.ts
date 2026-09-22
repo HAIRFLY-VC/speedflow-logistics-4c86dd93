@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { mensagemErro } from "@/lib/mensagem-erro";
 
 export type AppRole = "adm" | "gestor" | "operador" | "fretista";
 
@@ -76,7 +77,7 @@ export function useAuth(): AuthState & {
 
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    return { error: error ? mensagemErro(error, "Não foi possível entrar. Tente novamente.") : null };
   }, []);
 
   const signUp = useCallback(
@@ -90,7 +91,11 @@ export function useAuth(): AuthState & {
           data: { full_name: fullName },
         },
       });
-      return { error: error?.message ?? null };
+      return {
+        error: error
+          ? mensagemErro(error, "Não foi possível criar a conta. Tente novamente.")
+          : null,
+      };
     },
     [],
   );

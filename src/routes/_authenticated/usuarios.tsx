@@ -34,6 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { inviteUser } from "@/lib/users.functions";
+import { mensagemErro } from "@/lib/mensagem-erro";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
   component: UsuariosPage,
@@ -124,7 +125,7 @@ function UsuariosPage() {
       qc.invalidateQueries({ queryKey: ["users", "roles"] });
       toast.success("Papéis atualizados");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(mensagemErro(e)),
   });
 
   const inviteMut = useMutation({
@@ -138,7 +139,8 @@ function UsuariosPage() {
       setSelectedRoles(["operador"]);
       qc.invalidateQueries({ queryKey: ["users"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) =>
+      toast.error(mensagemErro(e, "Não foi possível convidar o usuário. Tente novamente.")),
   });
 
   if (!isAdm) {
