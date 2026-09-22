@@ -12,6 +12,95 @@ const inviteSchema = z.object({
     .max(4),
 });
 
+const userIdSchema = z.object({
+  userId: z.string().uuid(),
+});
+
+async function ensureAdmin(context: {
+  supabase: { rpc: (name: "has_role", args: { _user_id: string; _role: "adm" }) => PromiseLike<{ data: boolean | null; error: unknown }> };
+  userId: string;
+}) {
+  const { data: isAdmin, error } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "adm",
+  });
+  if (error) throw new Error(mensagemErro(error));
+  if (!isAdmin) throw new Error("Apenas administradores podem gerenciar usuários");
+}
+
+export type ManagedUser = {
+  id: string;
+  email: string;
+  fullName: string | null;
+  phone: string | null;
+  createdAt: string;
+  emailConfirmedAt: string | null;
+  isActive: boolean;
+};
+
+export const listManagedUsers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<ManagedUser[]> => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    if (authError) throw new Error(mensagemErro(authError));
+
+    const ids = authData.users.map((user) => user.id);
+    const profilesById = new Map<string, { full_name: string | null; phone: string | null; is_active: boolean }>();
+    if (ids.length > 0) {
+      const { data: profiles, error: profilesError } = await supabaseAdmin
+        .from("profiles")
+        .select("id, full_name, phone, is_active")
+        .in("id", ids);
+      if (profilesError) throw new Error(mensagemErro(profilesError));
+      for (const profile of profiles ?? []) profilesById.set(profile.id, profile);
+    }
+
+    return authData.users.map((user) => {
+      const profile = profilesById.get(user.id);
+      return {
+        id: user.id,
+        email: user.email ?? "",
+        fullName: profile?.full_name ?? (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null),
+        phone: profile?.phone ?? null,
+        createdAt: user.created_at,
+        emailConfirmedAt: user.email_confirmed_at ?? null,
+        isActive: profile?.is_active ?? true,
+      };
+    });
+  });
+
+export const confirmManagedUserEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => userIdSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: updated, error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
+      email_confirm: true,
+    });
+    if (error) throw new Error(mensagemErro(error, "Não foi possível confirmar o e-mail."));
+    return { userId: updated.user.id, emailConfirmedAt: updated.user.email_confirmed_at ?? null };
+  });
+
+export const deleteManagedUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => userIdSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    if (data.userId === context.userId) {
+      throw new Error("Você não pode excluir sua própria conta enquanto estiver conectado.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (error) throw new Error(mensagemErro(error, "Não foi possível excluir o usuário."));
+    return { userId: data.userId };
+  });
+
 export const inviteUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => inviteSchema.parse(data))
@@ -19,12 +108,7 @@ export const inviteUser = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // Authorize: only adm can invite
-    const { data: isAdmin, error: roleErr } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "adm",
-    });
-    if (roleErr) throw new Error(mensagemErro(roleErr));
-    if (!isAdmin) throw new Error("Apenas administradores podem convidar usuários");
+    await ensureAdmin(context);
 
     // Create or fetch the auth user
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
