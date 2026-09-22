@@ -47,3 +47,9 @@ Ao confirmar, o app grava nas mesmas filas já usadas na aprovação de CT-e, qu
 - Cada linha traz um link **Abrir tarefa no Bitrix**, montado com `bitrixTaskUrl()` a partir da `referencia_erp` devolvida pelo n8n na fila financeira; quando a tarefa ainda não voltou, mostra "Aguardando criação da tarefa".
 - Nada é apagado em reenvios: cada confirmação (inclusive as que substituem um lançamento anterior e os adicionais) permanece como um registro próprio em `ordens_pagamento_frete`, marcada como substituída quando for o caso.
 - Técnico: consulta server-side `listarPagamentosDaRota(routeId)` juntando `ordens_pagamento_frete` (filtradas por `route_id`) com a fila financeira (`referencia_erp`, `status`, `ultimo_erro`) e a fila de valores (contagem de linhas e erros), ordenada por `created_at` desc.
+
+## Regra do borderô e sinalização
+
+- O botão **Confirmar Pgto** só fica habilitado quando **todos os pedidos da rota já têm borderô**. Até lá o valor digitado e o % continuam visíveis, mas o botão fica desabilitado com a explicação "Aguardando borderô de X de Y pedidos".
+- Quando todos os pedidos já têm borderô e a rota é de **fretista** sem pagamento confirmado, a linha recebe uma **sinalização visível** (selo âmbar "Definir valor do frete" e o campo destacado), para o usuário informar o valor. Um contador no topo da tela mostra quantas rotas estão nessa situação.
+- O borderô de cada pedido vem do espelho `entregas_abertas` (`cod_pedido` → `bordero`); ele também é enviado no rateio (cada linha da fila de valores leva `bordero`).
