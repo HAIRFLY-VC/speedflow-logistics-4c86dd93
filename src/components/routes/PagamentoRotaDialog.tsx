@@ -250,10 +250,10 @@ export function PagamentoRotaDialog({
               <span className="text-muted-foreground">{p.total_pedidos} pedido(s)</span>
             </div>
 
-            {semBordero && (
+            {semFaturamento && (
               <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
-                {p.pedidos_sem_bordero} pedido(s) ainda sem borderô. O pagamento só pode ser
-                confirmado quando todos os pedidos tiverem borderô.
+                {p.pedidos_sem_faturamento} pedido(s) ainda sem faturamento. O pagamento só pode ser
+                confirmado quando todos os pedidos estiverem faturados.
               </div>
             )}
 
@@ -267,6 +267,7 @@ export function PagamentoRotaDialog({
                   <thead className="text-muted-foreground">
                     <tr>
                       <th className="px-3 py-1 text-left font-medium">Pedido</th>
+                      <th className="px-3 py-1 text-left font-medium">Nota fiscal</th>
                       <th className="px-3 py-1 text-left font-medium">Borderô</th>
                       <th className="px-3 py-1 text-left font-medium">Cliente</th>
                       <th className="px-3 py-1 text-right font-medium">Mercadoria</th>
@@ -278,7 +279,10 @@ export function PagamentoRotaDialog({
                       <tr key={ped.cod_pedido} className="border-t">
                         <td className="px-3 py-1 tabular-nums">{ped.cod_pedido}</td>
                         <td className="px-3 py-1 tabular-nums">
-                          {ped.bordero ?? <span className="text-destructive">sem borderô</span>}
+                          {ped.nro_nf ?? <span className="text-destructive">sem NF</span>}
+                        </td>
+                        <td className="px-3 py-1 tabular-nums">
+                          {ped.bordero ?? <span className="text-muted-foreground">—</span>}
                         </td>
                         <td className="px-3 py-1">{ped.cliente}</td>
                         <td className="px-3 py-1 text-right tabular-nums">
