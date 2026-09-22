@@ -421,7 +421,7 @@ function FreightInput({
         disabled={!podeConfirmar}
         title={
           pendentes > 0
-            ? `Aguardando borderô de ${pendentes} de ${bordero.total} pedidos`
+            ? `Aguardando faturamento de ${pendentes} de ${bordero.total} pedidos`
             : confirmado && !isAdmin
               ? "Apenas administradores podem reabrir ou lançar valores adicionais"
               : undefined
@@ -432,7 +432,7 @@ function FreightInput({
       </Button>
       {pendentes > 0 && (
         <span className="text-[10px] text-muted-foreground">
-          Aguardando borderô de {pendentes} de {bordero.total} pedidos
+          Aguardando faturamento de {pendentes} de {bordero.total} pedidos
         </span>
       )}
     </div>
