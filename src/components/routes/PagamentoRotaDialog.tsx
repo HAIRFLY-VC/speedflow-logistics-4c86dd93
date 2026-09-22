@@ -173,6 +173,27 @@ export function PagamentoRotaDialog({
           </div>
         )}
 
+        <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/30 p-3">
+          <div className="grid gap-1">
+            <Label className="text-xs">Data sugerida de pagamento</Label>
+            <input
+              type="date"
+              min={dataMinima}
+              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+              value={dataPagamento}
+              onChange={(e) => {
+                const v = e.target.value;
+                setDataPagamento(v && v < dataMinima ? dataMinima : v || dataMinima);
+              }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Prazo mínimo de {PRAZO_PAGAMENTO_DIAS} dias — não é possível escolher uma data anterior a{" "}
+            {formatarDataBr(dataMinima)}. Essa data vai na tarefa do Bitrix como instrução de
+            pagamento.
+          </p>
+        </div>
+
         {jaConfirmado && (
           <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700">
             Esta rota já teve o pagamento do frete confirmado.
