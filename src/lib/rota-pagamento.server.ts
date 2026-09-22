@@ -355,9 +355,9 @@ export async function confirmarPagamentoRota(params: {
     motivo: params.motivo,
     observacao: params.observacao,
   });
-  if (preview.pedidos_sem_bordero > 0) {
+  if (preview.pedidos_sem_faturamento > 0) {
     throw new Error(
-      `Ainda há ${preview.pedidos_sem_bordero} pedido(s) sem borderô. Confirme o pagamento somente depois que todos tiverem borderô.`,
+      `Ainda há ${preview.pedidos_sem_faturamento} pedido(s) sem faturamento. Confirme o pagamento somente depois que todos os pedidos estiverem faturados.`,
     );
   }
 
