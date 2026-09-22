@@ -173,9 +173,12 @@ function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className="px-2 py-2 text-xs text-muted-foreground truncate">
-          {user?.email}
-          {role ? <div className="font-medium text-foreground uppercase">{role}</div> : null}
+        <div className="flex items-center justify-between gap-2 px-2 py-2 group-data-[collapsible=icon]:justify-center">
+          <div className="text-xs text-muted-foreground truncate group-data-[collapsible=icon]:hidden">
+            {user?.email}
+            {role ? <div className="font-medium text-foreground uppercase">{role}</div> : null}
+          </div>
+          <SidebarCollapseButton />
         </div>
       </SidebarHeader>
       <SidebarContent>
