@@ -233,24 +233,33 @@ function montarTextoTarefa(
 
 function agrupar(
   pedidos: PedidoCarregado[],
-  expedicao: Map<string, { bordero: string | null; cod_filial: string | null }>,
+  expedicao: Map<string, DadosExpedicao>,
   clientes: Map<string, string>,
   valor: number,
-): { filiais: FilialPagamento[]; semBordero: number; valorMercadoria: number } {
+): {
+  filiais: FilialPagamento[];
+  semBordero: number;
+  semFaturamento: number;
+  valorMercadoria: number;
+} {
   const pesos = pedidos.map((p) => Number(p.valor_mercadoria ?? 0));
   const rateado = ratear(valor, pesos);
 
   const grupos = new Map<string, FilialPagamento>();
   let semBordero = 0;
+  let semFaturamento = 0;
   pedidos.forEach((p, i) => {
     const exp = expedicao.get(p.cod_pedido);
     const bordero = exp?.bordero ?? null;
+    const nf = exp?.nro_nf ?? null;
     if (!bordero) semBordero += 1;
+    if (!nf) semFaturamento += 1;
     const filial = p.cod_filial ?? exp?.cod_filial ?? "SEM FILIAL";
     const item: PedidoPagamento = {
       cod_pedido: p.cod_pedido,
       cliente: (p.cod_cliente ? clientes.get(p.cod_cliente) : null) ?? p.cod_cliente ?? "—",
       bordero,
+      nro_nf: nf,
       valor_mercadoria: cent(Number(p.valor_mercadoria ?? 0)),
       frete: rateado[i] ?? 0,
     };
