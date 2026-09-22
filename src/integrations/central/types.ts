@@ -58,25 +58,47 @@ export type ErpCampoValor =
   | "vlr_reentrega"
   | "vlr_descarrego";
 
-type OpfRow = Pub["Tables"]["ordens_pagamento_frete"]["Row"] & {
+export type TipoPagamentoFrete = "FRETE" | "ADICIONAL";
+
+type OpfRow = Omit<Pub["Tables"]["ordens_pagamento_frete"]["Row"], "cte_id"> & {
+  cte_id: string | null;
   aprovacao_status: OrdemAprovacaoStatus;
   decidido_por: string | null;
   decidido_em: string | null;
   observacao: string | null;
   erp_registro_selecionado: unknown | null;
+  route_id: string | null;
+  tipo_pagamento: TipoPagamentoFrete;
+  motivo_adicional: string | null;
+  substituida_em: string | null;
 };
-type OpfWrite = Pub["Tables"]["ordens_pagamento_frete"]["Insert"] & {
+type OpfWrite = Omit<Pub["Tables"]["ordens_pagamento_frete"]["Insert"], "cte_id"> & {
+  cte_id?: string | null;
   aprovacao_status?: OrdemAprovacaoStatus;
   decidido_por?: string | null;
   decidido_em?: string | null;
   observacao?: string | null;
   erp_registro_selecionado?: unknown | null;
+  route_id?: string | null;
+  tipo_pagamento?: TipoPagamentoFrete;
+  motivo_adicional?: string | null;
+  substituida_em?: string | null;
+};
+
+type RoutesRow = Pub["Tables"]["routes"]["Row"] & {
+  frete_confirmado_em: string | null;
+  frete_confirmado_por: string | null;
+};
+type RoutesWrite = Pub["Tables"]["routes"]["Insert"] & {
+  frete_confirmado_em?: string | null;
+  frete_confirmado_por?: string | null;
 };
 
 type FilaValoresRow = {
   id: string;
   ordem_pagamento_id: string;
   cte_id: string | null;
+  route_id: string | null;
   payload: unknown;
   status: FilaErpStatus;
   tentativas: number;
@@ -85,6 +107,8 @@ type FilaValoresRow = {
   processado_em: string | null;
   cod_filial: string | null;
   nro_nf: string | null;
+  cod_pedido: string | null;
+  bordero: string | null;
   chave_nfe: string | null;
   vlr_frete: number;
   vlr_perna: number;
@@ -101,6 +125,7 @@ type FilaFinanceiroRow = {
   id: string;
   ordem_pagamento_id: string;
   cte_id: string | null;
+  route_id: string | null;
   payload: unknown;
   status: FilaErpStatus;
   tentativas: number;
