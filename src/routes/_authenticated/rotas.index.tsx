@@ -285,48 +285,32 @@ function FreightInput({
   route,
   estimate,
   tipo,
+  bordero,
+  isAdmin,
+  onValorChange,
+  onConfirmar,
 }: {
   route: RouteRow;
   estimate: SimulacaoRota | null;
   tipo: TipoFrete | null;
+  bordero: { total: number; comBordero: number };
+  isAdmin: boolean;
+  onValorChange: (routeId: string, valor: number | null) => void;
+  onConfirmar: (route: RouteRow, valor: number) => void;
 }) {
-
-  const qc = useQueryClient();
   const initial = Number(route.total_freight ?? 0);
   const isEstimate = tipo === "T" && initial <= 0 && estimate != null;
   const [value, setValue] = useState<string>(
     initial > 0 ? String(initial) : estimate ? String(estimate.total) : "",
   );
   const [estimated, setEstimated] = useState(isEstimate);
-  const [dirty, setDirty] = useState(false);
 
   const editable = tipo === "F";
-
-
-  const save = useMutation({
-    mutationFn: async (next: number) => {
-      const { error } = await supabase
-        .from("routes")
-        .update({ total_freight: next })
-        .eq("id", route.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Frete atualizado");
-      qc.invalidateQueries({ queryKey: ["routes"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const commit = () => {
-    if (!dirty) return;
-    const n = Number(value.replace(",", "."));
-    const next = Number.isFinite(n) ? n : 0;
-    if (next === initial) return;
-    setDirty(false);
-    setEstimated(false);
-    save.mutate(next);
-  };
+  const confirmado = route.frete_confirmado_em != null;
+  const numero = Number(value.replace(",", "."));
+  const valorNum = Number.isFinite(numero) ? numero : 0;
+  const pendentes = Math.max(0, bordero.total - bordero.comBordero);
+  const podeConfirmar = valorNum > 0 && pendentes === 0 && (!confirmado || isAdmin);
 
   const title = estimate
     ? `Estimativa calculada pela tabela de preço "${estimate.tabelaNome}" (${estimate.entregasCalculadas} de ${estimate.entregasTotal} entregas${estimate.parcial ? " — praça não identificada nas demais" : ""}).`
@@ -342,41 +326,78 @@ function FreightInput({
     );
   }
 
+  const precisaValor = !confirmado && valorNum <= 0;
+
   return (
-    <span className="inline-flex items-center gap-1 justify-end">
-      {estimated && (
-        <span
-          title={title}
-          className="inline-flex items-center gap-0.5 rounded border border-amber-500/30 bg-amber-500/15 px-1 py-0.5 text-[10px] font-semibold text-amber-600"
-        >
-          <Calculator className="h-3 w-3" /> est.
+    <div className="flex flex-col items-end gap-1">
+      <span className="inline-flex items-center gap-1 justify-end">
+        {estimated && (
+          <span
+            title={title}
+            className="inline-flex items-center gap-0.5 rounded border border-amber-500/30 bg-amber-500/15 px-1 py-0.5 text-[10px] font-semibold text-amber-600"
+          >
+            <Calculator className="h-3 w-3" /> est.
+          </span>
+        )}
+        <Input
+          type="number"
+          min="0"
+          step="0.01"
+          inputMode="decimal"
+          value={value}
+          title={estimated ? title : undefined}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setEstimated(false);
+            const n = Number(e.target.value.replace(",", "."));
+            onValorChange(route.id, Number.isFinite(n) && e.target.value !== "" ? n : null);
+          }}
+          onKeyDown={(e) => e.stopPropagation()}
+          className={`h-7 w-28 text-right tabular-nums text-xs ${
+            estimated
+              ? "border-amber-500/40 bg-amber-500/10 italic text-amber-700"
+              : precisaValor
+                ? "border-amber-500/60 bg-amber-500/10"
+                : ""
+          }`}
+          placeholder="0,00"
+        />
+      </span>
+      {confirmado && (
+        <span className="rounded border border-emerald-500/30 bg-emerald-500/15 px-1 py-0.5 text-[10px] font-semibold text-emerald-600">
+          Pgto confirmado
         </span>
       )}
-      <Input
-        type="number"
-        min="0"
-        step="0.01"
-        inputMode="decimal"
-        value={value}
-        title={estimated ? title : undefined}
-        onChange={(e) => {
-          setValue(e.target.value);
-          setDirty(true);
-          setEstimated(false);
-        }}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          e.stopPropagation();
-          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-        }}
-        className={`h-7 w-28 text-right tabular-nums text-xs ${
-          estimated ? "border-amber-500/40 bg-amber-500/10 italic text-amber-700" : ""
-        }`}
-        placeholder="0,00"
-      />
-    </span>
+      {precisaValor && pendentes === 0 && (
+        <span className="rounded border border-amber-500/30 bg-amber-500/15 px-1 py-0.5 text-[10px] font-semibold text-amber-600">
+          Definir valor do frete
+        </span>
+      )}
+      <Button
+        size="sm"
+        variant={confirmado ? "outline" : "default"}
+        className="h-6 px-2 text-[11px]"
+        disabled={!podeConfirmar}
+        title={
+          pendentes > 0
+            ? `Aguardando borderô de ${pendentes} de ${bordero.total} pedidos`
+            : confirmado && !isAdmin
+              ? "Apenas administradores podem reabrir ou lançar valores adicionais"
+              : undefined
+        }
+        onClick={() => onConfirmar(route, valorNum)}
+      >
+        {confirmado ? "Reabrir / Lançar adicional" : "Confirmar Pgto"}
+      </Button>
+      {pendentes > 0 && (
+        <span className="text-[10px] text-muted-foreground">
+          Aguardando borderô de {pendentes} de {bordero.total} pedidos
+        </span>
+      )}
+    </div>
   );
 }
+
 
 
 function DistanceCell({
