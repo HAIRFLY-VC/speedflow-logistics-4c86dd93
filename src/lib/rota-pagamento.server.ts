@@ -507,6 +507,14 @@ export async function confirmarPagamentoRota(params: {
       route_id: params.routeId,
       rota: preview.rota,
       erp_route_id: preview.erp_route_id,
+      titulo_tarefa:
+        params.tipo === "FRETE"
+          ? `#FRETE Rota ${preview.rota}${rota.driver_name ? ` — ${rota.driver_name}` : ""}`
+          : `#FRETE Adicional (${rotuloMotivo(params.motivo) ?? "adicional"}) — Rota ${preview.rota}${rota.driver_name ? ` — ${rota.driver_name}` : ""}`,
+      responsavel_frete: {
+        nome: rota.driver_name,
+        cod_erp: rota.erp_carrier_code,
+      },
       tipo_pagamento: params.tipo,
       motivo_adicional: params.motivo,
       valor_total: valor,
