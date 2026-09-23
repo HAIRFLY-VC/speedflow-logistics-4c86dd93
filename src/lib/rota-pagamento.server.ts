@@ -510,6 +510,8 @@ export async function confirmarPagamentoRota(params: {
       ...zerados,
       [campo]: p.frete,
       status: "PENDENTE" as const,
+      // Se o ERP não devolver retorno, a rotina automática reprocessa.
+      proxima_tentativa_em: new Date(Date.now() + 30 * 60_000).toISOString(),
       payload: {
         origem: "ROTA",
         route_id: params.routeId,
