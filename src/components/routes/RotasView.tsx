@@ -895,7 +895,6 @@ export function RotasView({
     tabelasQ.data,
     vinculosQ.data,
     transpPorRota,
-    naturezasQ.data,
     responsavelPorRota,
     codResponsavelPorRota,
     cidadeCliente,
@@ -1071,9 +1070,9 @@ export function RotasView({
             );
           }
           const carregando =
-            codsRotaQ.isFetching || naturezasQ.isFetching || responsaveisQ.isFetching || responsaveisLocaisQ.isFetching;
+            codsRotaQ.isFetching || responsaveisQ.isFetching || responsaveisLocaisQ.isFetching;
           if (carregando) return <span className="text-muted-foreground">…</span>;
-          const erro = codsRotaQ.error ?? naturezasQ.error ?? responsaveisQ.error;
+          const erro = codsRotaQ.error ?? responsaveisQ.error;
           if (erro) {
             return (
               <span
@@ -1296,9 +1295,6 @@ export function RotasView({
       responsavelPorRota,
       transpPorRota,
       codResponsavelPorRota,
-      naturezasQ.data,
-      naturezasQ.isFetching,
-      naturezasQ.error,
       codsRotaQ.isFetching,
       codsRotaQ.error,
       responsaveisQ.isFetching,
