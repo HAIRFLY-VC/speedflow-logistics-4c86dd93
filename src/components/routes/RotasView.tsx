@@ -815,25 +815,11 @@ export function RotasView({
       }));
     const porCodigo = new Map(locais.map((item) => [normalizaCod(item.codErp), item]));
     for (const item of responsaveis) porCodigo.set(normalizaCod(item.codErp), item);
-    const naturezas = Object.values(naturezasQ.data ?? {});
     for (const r of data ?? []) {
       const cod = codResponsavelPorRota.get(r.id);
       const local = cod ? porCodigo.get(normalizaCod(cod)) : undefined;
       if (local) {
         map.set(r.id, local);
-        continue;
-      }
-      // Fallback: a consulta de natureza por código traz razão social + código
-      // mesmo para cadastros ausentes do espelho local / lista de responsáveis.
-      const natureza = cod
-        ? naturezas.find((n) => normalizaCod(n.codErp) === normalizaCod(cod))
-        : undefined;
-      if (natureza?.tipoFrete && natureza.razaoSocial) {
-        map.set(r.id, {
-          razaoSocial: natureza.razaoSocial,
-          codErp: natureza.codErp,
-          tipoFrete: natureza.tipoFrete,
-        });
         continue;
       }
       const nome = normalizaNome(r.driver_name ?? r.freight_carriers?.full_name ?? "");
