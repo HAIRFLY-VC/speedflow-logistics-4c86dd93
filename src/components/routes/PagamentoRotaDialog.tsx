@@ -174,6 +174,7 @@ export function PagamentoRotaDialog({
 
   const p = previewQ.data;
   const semBordero = (p?.pedidos_sem_bordero ?? 0) > 0;
+  const semNota = (p?.pedidos_sem_faturamento ?? 0) > 0;
   const dataInvalida = dataPagamento < dataMinima;
   const recalculando = valorEfetivo !== valorDebounced || previewQ.isFetching;
 
