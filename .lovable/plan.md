@@ -16,7 +16,7 @@ Correção: cada linha enviada ao ERP passa a levar também o **número da nota 
 
 Além disso:
 
-- A confirmação passa a exigir que **todos os pedidos tenham nota**, com mensagem clara de quantos faltam — hoje o app deixa confirmar e o erro só aparece depois.
+- A confirmação passa a exigir que **todos os pedidos tenham nota e borderô**, com mensagem clara de quantos faltam — hoje o app deixa confirmar sem nota e o erro só aparece depois.
 - A filial usada no lançamento passa a ser a **filial de faturamento da nota**, e não só a do pedido.
 
 ## Causa 2 — a tarefa do Bitrix nunca chegou a ser tentada
