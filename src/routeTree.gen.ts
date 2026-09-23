@@ -44,6 +44,7 @@ import { Route as ApiCentralSplatRouteImport } from './routes/api/central/$'
 import { Route as ApiPublicHooksCteComandosRouteImport } from './routes/api/public/hooks/cte-comandos'
 import { Route as ApiPublicHooksErpFilaCallbackRouteImport } from './routes/api/public/hooks/erp-fila-callback'
 import { Route as ApiPublicHooksErpSyncRouteImport } from './routes/api/public/hooks/erp-sync'
+import { Route as ApiPublicHooksFilaRetryRouteImport } from './routes/api/public/hooks/fila-retry'
 import { Route as ApiPublicHooksIngestCteRouteImport } from './routes/api/public/hooks/ingest-cte'
 import { Route as ApiPublicHooksIngestNfeRouteImport } from './routes/api/public/hooks/ingest-nfe'
 import { Route as ApiPublicHooksNfePendentesRouteImport } from './routes/api/public/hooks/nfe-pendentes'
@@ -239,6 +240,11 @@ const ApiPublicHooksErpSyncRoute = ApiPublicHooksErpSyncRouteImport.update({
   path: '/api/public/hooks/erp-sync',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksFilaRetryRoute = ApiPublicHooksFilaRetryRouteImport.update({
+  id: '/api/public/hooks/fila-retry',
+  path: '/api/public/hooks/fila-retry',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksIngestCteRoute = ApiPublicHooksIngestCteRouteImport.update({
   id: '/api/public/hooks/ingest-cte',
   path: '/api/public/hooks/ingest-cte',
@@ -297,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/cte-comandos': typeof ApiPublicHooksCteComandosRoute
   '/api/public/hooks/erp-fila-callback': typeof ApiPublicHooksErpFilaCallbackRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
+  '/api/public/hooks/fila-retry': typeof ApiPublicHooksFilaRetryRoute
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
   '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
   '/api/public/hooks/nfe-pendentes': typeof ApiPublicHooksNfePendentesRoute
@@ -336,6 +343,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/cte-comandos': typeof ApiPublicHooksCteComandosRoute
   '/api/public/hooks/erp-fila-callback': typeof ApiPublicHooksErpFilaCallbackRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
+  '/api/public/hooks/fila-retry': typeof ApiPublicHooksFilaRetryRoute
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
   '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
   '/api/public/hooks/nfe-pendentes': typeof ApiPublicHooksNfePendentesRoute
@@ -378,6 +386,7 @@ export interface FileRoutesById {
   '/api/public/hooks/cte-comandos': typeof ApiPublicHooksCteComandosRoute
   '/api/public/hooks/erp-fila-callback': typeof ApiPublicHooksErpFilaCallbackRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
+  '/api/public/hooks/fila-retry': typeof ApiPublicHooksFilaRetryRoute
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
   '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
   '/api/public/hooks/nfe-pendentes': typeof ApiPublicHooksNfePendentesRoute
@@ -420,6 +429,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cte-comandos'
     | '/api/public/hooks/erp-fila-callback'
     | '/api/public/hooks/erp-sync'
+    | '/api/public/hooks/fila-retry'
     | '/api/public/hooks/ingest-cte'
     | '/api/public/hooks/ingest-nfe'
     | '/api/public/hooks/nfe-pendentes'
@@ -459,6 +469,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cte-comandos'
     | '/api/public/hooks/erp-fila-callback'
     | '/api/public/hooks/erp-sync'
+    | '/api/public/hooks/fila-retry'
     | '/api/public/hooks/ingest-cte'
     | '/api/public/hooks/ingest-nfe'
     | '/api/public/hooks/nfe-pendentes'
@@ -500,6 +511,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cte-comandos'
     | '/api/public/hooks/erp-fila-callback'
     | '/api/public/hooks/erp-sync'
+    | '/api/public/hooks/fila-retry'
     | '/api/public/hooks/ingest-cte'
     | '/api/public/hooks/ingest-nfe'
     | '/api/public/hooks/nfe-pendentes'
@@ -514,6 +526,7 @@ export interface RootRouteChildren {
   ApiPublicHooksCteComandosRoute: typeof ApiPublicHooksCteComandosRoute
   ApiPublicHooksErpFilaCallbackRoute: typeof ApiPublicHooksErpFilaCallbackRoute
   ApiPublicHooksErpSyncRoute: typeof ApiPublicHooksErpSyncRoute
+  ApiPublicHooksFilaRetryRoute: typeof ApiPublicHooksFilaRetryRoute
   ApiPublicHooksIngestCteRoute: typeof ApiPublicHooksIngestCteRoute
   ApiPublicHooksIngestNfeRoute: typeof ApiPublicHooksIngestNfeRoute
   ApiPublicHooksNfePendentesRoute: typeof ApiPublicHooksNfePendentesRoute
@@ -767,6 +780,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksErpSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/fila-retry': {
+      id: '/api/public/hooks/fila-retry'
+      path: '/api/public/hooks/fila-retry'
+      fullPath: '/api/public/hooks/fila-retry'
+      preLoaderRoute: typeof ApiPublicHooksFilaRetryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/ingest-cte': {
       id: '/api/public/hooks/ingest-cte'
       path: '/api/public/hooks/ingest-cte'
@@ -884,6 +904,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksCteComandosRoute: ApiPublicHooksCteComandosRoute,
   ApiPublicHooksErpFilaCallbackRoute: ApiPublicHooksErpFilaCallbackRoute,
   ApiPublicHooksErpSyncRoute: ApiPublicHooksErpSyncRoute,
+  ApiPublicHooksFilaRetryRoute: ApiPublicHooksFilaRetryRoute,
   ApiPublicHooksIngestCteRoute: ApiPublicHooksIngestCteRoute,
   ApiPublicHooksIngestNfeRoute: ApiPublicHooksIngestNfeRoute,
   ApiPublicHooksNfePendentesRoute: ApiPublicHooksNfePendentesRoute,
