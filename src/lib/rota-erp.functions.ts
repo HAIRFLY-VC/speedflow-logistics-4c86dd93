@@ -10,7 +10,7 @@ const SQL_CADASTRO_RESPONSAVEIS = `select TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOC
        TRIM(T.DBA_TIP_CODIGO_1) COD_ERP,
        T.DBA_TIP_NATUREZA COD_NAT
   from gks.a_cadctipo T
- where T.DBA_TIP_CODIGO_1 is not null`;
+ where T.DBA_TIP_NATUREZA in ('ET','EF','EM')`;
 
 type ErpQueryResponse = { rows?: Record<string, unknown>[] };
 
