@@ -47,6 +47,7 @@ export const previewPagamentoRota = createServerFn({ method: "POST" })
           .regex(/^\d{4}-\d{2}-\d{2}$/)
           .nullable()
           .default(null),
+        pedidos: z.array(z.string()).nullable().default(null),
       })
       .parse(input),
   )
@@ -72,6 +73,7 @@ export const confirmarPagamentoRotaFn = createServerFn({ method: "POST" })
           .regex(/^\d{4}-\d{2}-\d{2}$/)
           .nullable()
           .default(null),
+        pedidos: z.array(z.string()).nullable().default(null),
       })
       .parse(input),
   )
