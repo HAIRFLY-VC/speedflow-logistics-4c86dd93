@@ -5,7 +5,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/central/client";
 import {
   listarResponsaveisDeRotasErp,
-  listarNaturezasPorCodigoErp,
   type ResponsavelErp,
 } from "@/lib/rota-erp.functions";
 
@@ -43,7 +42,7 @@ export function nomeRotaDeNotes(notes: string | null | undefined, code: string):
 
 /**
  * Resolve o responsável (fretista/transportadora) de uma única rota:
- * código do responsável no ERP → espelho local → natureza por código no ERP.
+ * código do responsável no ERP → espelho local de responsáveis.
  * Falhas do ERP não quebram a tela: retorna `null` e o chamador usa o nome
  * que veio na própria rota.
  */
@@ -86,14 +85,6 @@ export function useResponsavelRota(args: {
     staleTime: 30 * 60 * 1000,
   });
 
-  const listarNaturezas = useServerFn(listarNaturezasPorCodigoErp);
-  const naturezaQ = useQuery({
-    queryKey: ["naturezas-erp", cod ? [cod] : []],
-    queryFn: () => listarNaturezas({ data: { cods: cod ? [cod] : [] } }),
-    enabled: Boolean(cod),
-    staleTime: 5 * 60 * 1000,
-  });
-
   const responsavel = useMemo<ResponsavelErp | null>(() => {
     if (!cod) return null;
     const local = (locaisQ.data ?? []).find(
@@ -106,22 +97,12 @@ export function useResponsavelRota(args: {
         tipoFrete: local.tipo_frete,
       };
     }
-    const natureza = Object.values(naturezaQ.data ?? {}).find(
-      (n) => normalizaCod(n.codErp) === normalizaCod(cod),
-    );
-    if (natureza?.razaoSocial) {
-      return {
-        razaoSocial: natureza.razaoSocial,
-        codErp: natureza.codErp,
-        tipoFrete: (natureza.tipoFrete as TipoFrete | null) ?? "T",
-      };
-    }
     return null;
-  }, [cod, locaisQ.data, naturezaQ.data]);
+  }, [cod, locaisQ.data]);
 
   return {
     cod,
     responsavel,
-    isLoading: codQ.isFetching || locaisQ.isFetching || naturezaQ.isFetching,
+    isLoading: codQ.isFetching || locaisQ.isFetching,
   };
 }
