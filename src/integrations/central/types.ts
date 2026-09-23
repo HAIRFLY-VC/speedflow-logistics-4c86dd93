@@ -314,6 +314,9 @@ export type CentralDatabase = Omit<Database, "public"> & {
 
       fila_lancamento_erp_frete: SimpleTable<FilaValoresRow>;
       fila_provisionamento_financeiro: SimpleTable<FilaFinanceiroRow>;
+      fila_tentativas: SimpleTable<FilaTentativaRow>;
+      notificacoes_pendencias: SimpleTable<NotificacaoPendenciaRow>;
+
       mapeamento_componentes_erp: SimpleTable<MapeamentoRow>;
       integracao_n8n: SimpleTable<IntegracaoN8nRow>;
       tabelas_preco_frete_transportadoras: SimpleTable<TabelaTransportadoraRow>;
