@@ -384,7 +384,17 @@ export function PagamentoRotaDialog({
               </div>
             )}
 
-            {p.filiais.map((f) => (
+            {escolherNotas && (
+              <p className="text-xs text-muted-foreground">
+                Marque as notas fiscais às quais este custo adicional se refere. O valor é rateado
+                apenas entre as notas marcadas.
+              </p>
+            )}
+
+            {p.filiais.map((f) => {
+              const codigos = f.pedidos.map((x) => x.cod_pedido);
+              const todosMarcados = codigos.every((c) => marcados.has(c));
+              return (
               <div key={f.cod_filial} className="rounded-md border">
                 <div className="flex items-center justify-between border-b bg-muted/40 px-3 py-2 text-sm font-semibold">
                   <span>Filial de faturamento {f.cod_filial}</span>
@@ -393,6 +403,16 @@ export function PagamentoRotaDialog({
                 <table className="w-full text-xs">
                   <thead className="text-muted-foreground">
                     <tr>
+                      {escolherNotas && (
+                        <th className="w-8 px-3 py-1 text-left font-medium">
+                          <input
+                            type="checkbox"
+                            aria-label={`Selecionar todas as notas da filial ${f.cod_filial}`}
+                            checked={todosMarcados}
+                            onChange={(e) => alternarFilial(codigos, e.target.checked)}
+                          />
+                        </th>
+                      )}
                       <th className="px-3 py-1 text-left font-medium">Pedido</th>
                       <th className="px-3 py-1 text-left font-medium">Nota fiscal</th>
                       <th className="px-3 py-1 text-left font-medium">Borderô</th>
@@ -402,8 +422,25 @@ export function PagamentoRotaDialog({
                     </tr>
                   </thead>
                   <tbody>
-                    {f.pedidos.map((ped) => (
-                      <tr key={ped.cod_pedido} className="border-t">
+                    {f.pedidos.map((ped) => {
+                      const marcado = marcados.has(ped.cod_pedido);
+                      return (
+                      <tr
+                        key={ped.cod_pedido}
+                        className={
+                          escolherNotas && !marcado ? "border-t opacity-50" : "border-t"
+                        }
+                      >
+                        {escolherNotas && (
+                          <td className="px-3 py-1">
+                            <input
+                              type="checkbox"
+                              aria-label={`Selecionar nota do pedido ${ped.cod_pedido}`}
+                              checked={marcado}
+                              onChange={() => alternarPedido(ped.cod_pedido)}
+                            />
+                          </td>
+                        )}
                         <td className="px-3 py-1 tabular-nums">{ped.cod_pedido}</td>
                         <td className="px-3 py-1 tabular-nums">
                           {ped.nro_nf ?? <span className="text-destructive">sem NF</span>}
@@ -417,11 +454,13 @@ export function PagamentoRotaDialog({
                         </td>
                         <td className="px-3 py-1 text-right tabular-nums">{brl(ped.frete)}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
-            ))}
+              );
+            })}
 
             <div className="rounded-md border p-3 text-sm">
               <p className="mb-2 font-semibold">Resumo por filial de faturamento</p>
