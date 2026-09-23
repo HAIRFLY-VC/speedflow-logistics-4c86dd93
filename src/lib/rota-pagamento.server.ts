@@ -755,10 +755,12 @@ export async function listarFilasDaRota(routeId: string): Promise<FilaRotaDados>
       .maybeSingle(),
   ]);
 
-  const cfgRow = cfg as { webhook_url_financeiro?: string | null; ativo?: boolean | null } | null;
+  void cfg;
+  const { bitrixConfigurado } = await import("./bitrix-task.server");
 
   return {
-    financeiro_configurado: Boolean(cfgRow?.webhook_url_financeiro) && Boolean(cfgRow?.ativo),
+    // A tarefa das rotas é criada direto pelo app; basta o webhook do Bitrix.
+    financeiro_configurado: bitrixConfigurado(),
     valores: ((valores ?? []) as Record<string, unknown>[]).map((v) => ({
       id: String(v["id"]),
       ordem_pagamento_id: (v["ordem_pagamento_id"] as string | null) ?? null,
