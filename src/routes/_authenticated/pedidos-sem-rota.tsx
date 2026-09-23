@@ -74,16 +74,24 @@ function PedidosSemRotaPage() {
   const pedidosQ = useQuery({
     queryKey: ["pedidos-sem-rota"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select(
-          "id, order_number, erp_id, erp_cod_cliente, total_amount, weight, cod_agenda, cod_filial, dt_prev_exp, delivery_address",
-        )
-        .or(`dt_prev_exp.is.null,dt_prev_exp.gte.${SEM_ROTA_DATE}`)
-        .order("order_number", { ascending: true })
-        .limit(1000);
-      if (error) throw error;
-      return data ?? [];
+      // Busca paginada (sem corte de 1000) e só pedidos ainda não expedidos.
+      const PAGINA = 1000;
+      const todos: any[] = [];
+      for (let de = 0; de < 20000; de += PAGINA) {
+        const { data, error } = await supabase
+          .from("orders")
+          .select(
+            "id, order_number, erp_id, erp_cod_cliente, total_amount, weight, cod_agenda, cod_filial, dt_prev_exp, delivery_address",
+          )
+          .or(`dt_prev_exp.is.null,dt_prev_exp.gte.${SEM_ROTA_DATE}`)
+          .or("erp_status.is.null,erp_status.neq.11-EXPEDIDO")
+          .order("order_number", { ascending: false })
+          .range(de, de + PAGINA - 1);
+        if (error) throw error;
+        todos.push(...(data ?? []));
+        if (!data || data.length < PAGINA) break;
+      }
+      return todos;
     },
   });
 
