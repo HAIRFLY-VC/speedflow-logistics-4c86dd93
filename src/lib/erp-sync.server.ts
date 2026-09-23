@@ -995,7 +995,9 @@ export async function syncErpOrders(opts: {
           (snap.erp_route_id != null && erpIdsDoRetorno.has(snap.erp_route_id)) ||
           codesDoRetorno.has(snap.code);
         if (voltouDoErp) pendingIds.push(r.id as string);
-        else rotasComBorderoEmitido.push(r.id as string);
+        // Rotas sem ID do ERP (agrupamento "NÃO PLANEJADO" ou criadas manualmente
+        // no app) nunca têm borderô: não entram na lógica de borderô emitido.
+        else if (snap.erp_route_id != null) rotasComBorderoEmitido.push(r.id as string);
       }
 
       if (pendingIds.length > 0) {
