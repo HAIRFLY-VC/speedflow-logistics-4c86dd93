@@ -433,7 +433,9 @@ export async function confirmarPagamentoRota(params: {
     motivo: params.motivo,
     observacao: params.observacao,
     dataPagamento,
+    pedidos: params.pedidos ?? null,
   });
+  const selecao = new Set(preview.pedidos_selecionados);
   if (preview.pedidos_sem_bordero > 0) {
     throw new Error(
       `Ainda há ${preview.pedidos_sem_bordero} pedido(s) sem borderô. Confirme o pagamento somente depois que todos os pedidos estiverem com borderô.`,
