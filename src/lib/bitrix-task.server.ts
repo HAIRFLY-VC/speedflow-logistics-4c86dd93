@@ -29,7 +29,11 @@ export async function criarTarefaBitrix(tarefa: NovaTarefaBitrix): Promise<{ id:
     );
   }
 
-  const url = `${base.replace(/\/+$/, "")}/tasks.task.add.json`;
+  // O endereço pode vir só com o token (`/rest/1/<token>/`) ou já apontando
+  // para o método (`/rest/1/<token>/tasks.task.add.json`).
+  const limpo = base.trim().replace(/\/+$/, "");
+  const ultimo = limpo.split("/").pop() ?? "";
+  const url = ultimo.includes(".") ? limpo : `${limpo}/tasks.task.add.json`;
   const fields: Record<string, unknown> = {
     TITLE: tarefa.titulo,
     DESCRIPTION: tarefa.descricao,
