@@ -190,6 +190,7 @@ export function PagamentoRotaDialog({
     onSuccess: () => {
       toast.success("Pagamento confirmado e enviado para lançamento.");
       qc.invalidateQueries({ queryKey: ["routes"] });
+      qc.invalidateQueries({ queryKey: ["rotas-adicionais-autorizados"] });
       qc.invalidateQueries({ queryKey: ["rota-pagamento", "historico", routeId] });
       onOpenChange(false);
     },
