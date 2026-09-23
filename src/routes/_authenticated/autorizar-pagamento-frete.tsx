@@ -25,8 +25,10 @@ export const Route = createFileRoute("/_authenticated/autorizar-pagamento-frete"
 function AutorizarPagamentoFretePage() {
   const filtro = useCallback(
     (r: RouteRow, ctx: { bordero: { total: number; comBordero: number } }) =>
-      Boolean(r.bordero_emitido_em) ||
-      (ctx.bordero.total > 0 && ctx.bordero.comBordero === ctx.bordero.total),
+      Boolean(r.erp_route_id?.trim()) &&
+      !r.route_date?.startsWith("4000-01-01") &&
+      (Boolean(r.bordero_emitido_em) ||
+        (ctx.bordero.total > 0 && ctx.bordero.comBordero === ctx.bordero.total)),
     [],
   );
 
