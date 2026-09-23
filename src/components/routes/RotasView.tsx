@@ -357,6 +357,7 @@ function FreightInput({
   bordero,
   isAdmin,
   mostrarConfirmar = false,
+  valorTotalConfirmado,
   auditoria,
   auditoriaCarregando = false,
   onReauditar,
@@ -372,6 +373,7 @@ function FreightInput({
   bordero: { total: number; comBordero: number; faturados: number };
   isAdmin: boolean;
   mostrarConfirmar?: boolean;
+  valorTotalConfirmado?: number;
   onValorChange: (routeId: string, valor: number | null) => void;
   onConfirmar: (route: RouteRow, valor: number) => void;
 }) {
@@ -443,7 +445,7 @@ function FreightInput({
         >
           {estimated && <Calculator className="h-3 w-3" />}
           {value
-            ? Number(value).toLocaleString("pt-BR", {
+            ? (confirmado ? valorTotalConfirmado ?? initial : Number(value)).toLocaleString("pt-BR", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })
@@ -761,6 +763,40 @@ export function RotasView({
     },
   });
 
+  // O total_freight da rota guarda apenas o frete original. Adicionais são
+  // autorizações independentes e não devem alterar esse valor (usado ao reabrir).
+  const idsComPagamento = useMemo(
+    () => (permitirConfirmacao ? (data ?? []).filter((r) => r.frete_confirmado_em).map((r) => r.id).sort() : []),
+    [data, permitirConfirmacao],
+  );
+  const adicionaisQ = useQuery({
+    queryKey: ["rotas-adicionais-autorizados", idsComPagamento],
+    enabled: idsComPagamento.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const totais = new Map<string, number>();
+      for (let i = 0; i < idsComPagamento.length; i += 150) {
+        const lote = idsComPagamento.slice(i, i + 150);
+        for (let inicio = 0; ; inicio += 1000) {
+          const { data: ordens, error } = await supabase
+            .from("ordens_pagamento_frete")
+            .select("route_id, valor_autorizado")
+            .in("route_id", lote)
+            .eq("tipo_pagamento", "ADICIONAL")
+            .is("substituida_em", null)
+            .range(inicio, inicio + 999);
+          if (error) throw error;
+          for (const ordem of ordens ?? []) {
+            if (!ordem.route_id) continue;
+            totais.set(ordem.route_id, (totais.get(ordem.route_id) ?? 0) + Number(ordem.valor_autorizado ?? 0));
+          }
+          if ((ordens ?? []).length < 1000) break;
+        }
+      }
+      return totais;
+    },
+  });
+
   const tabelasQ = useQuery({
     queryKey: ["tabelas-frete-simulacao"],
     queryFn: async () => {
@@ -1057,13 +1093,16 @@ export function RotasView({
   /** Frete informado; na ausência, a estimativa da tabela da transportadora. */
   const freteOf = useMemo(
     () => (r: RouteRow) => {
+      if (permitirConfirmacao && r.frete_confirmado_em) {
+        return Number(r.total_freight ?? 0) + (adicionaisQ.data?.get(r.id) ?? 0);
+      }
       const editado = freteEditado[r.id];
       if (editado != null) return editado;
       return Number(r.total_freight ?? 0) > 0
         ? Number(r.total_freight)
         : (estimativas.get(r.id)?.total ?? 0);
     },
-    [estimativas, freteEditado],
+    [estimativas, freteEditado, permitirConfirmacao, adicionaisQ.data],
   );
 
   const auditarFn = useServerFn(auditarRotasCompletas);
@@ -1273,6 +1312,7 @@ export function RotasView({
               bordero={borderoDaRota(r)}
               isAdmin={role === "adm"}
               mostrarConfirmar={permitirConfirmacao}
+              valorTotalConfirmado={permitirConfirmacao && r.frete_confirmado_em ? freteOf(r) : undefined}
               auditoria={auditoriaMap?.get(r.id)}
               auditoriaCarregando={auditoriaQ.isFetching}
               onReauditar={() => void reauditar()}
@@ -1305,7 +1345,7 @@ export function RotasView({
           const v = valorOf(r);
           const f = freteOf(r);
           if (v <= 0 || f <= 0) return <span className="text-muted-foreground">—</span>;
-          const est = Number(r.total_freight ?? 0) <= 0;
+          const est = !r.frete_confirmado_em && Number(r.total_freight ?? 0) <= 0;
           return (
             <span className={est ? "italic text-amber-600" : undefined} title={est ? "Baseado na estimativa da tabela de preço" : undefined}>
               {((f / v) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%
@@ -1521,11 +1561,17 @@ export function RotasView({
           </div>
         ) : null}
 
+        {adicionaisQ.isError && (
+          <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+            Não foi possível consultar os valores adicionais. O total do frete pode estar incompleto.
+          </div>
+        )}
+
         <DataTable
           tableKey={tableKey}
           columns={columns}
           data={rotasVisiveis}
-          isLoading={isLoading}
+          isLoading={isLoading || (permitirConfirmacao && adicionaisQ.isLoading)}
           rowKey={(r) => r.id}
           emptyMessage={mensagemVazia}
           onFilteredChange={setFilteredData}
