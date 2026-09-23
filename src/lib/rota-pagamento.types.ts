@@ -72,6 +72,8 @@ export type PreviewPagamentoRota = {
   ja_confirmado: boolean;
   /** Data sugerida de pagamento (AAAA-MM-DD). */
   data_pagamento: string;
+  /** Pedidos/notas efetivamente considerados no rateio. */
+  pedidos_selecionados: string[];
   filiais: FilialPagamento[];
   texto_tarefa: string;
 };
