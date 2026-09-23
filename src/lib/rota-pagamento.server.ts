@@ -242,6 +242,7 @@ function montarTextoTarefa(
   motivo: MotivoAdicional | null,
   observacao: string | null,
   dataPagamento: string,
+  selecionados: Set<string> | null = null,
 ): string {
   const linhas: string[] = [];
   const titulo =
@@ -254,9 +255,14 @@ function montarTextoTarefa(
     `Instrução de pagamento: efetuar o pagamento em ${formatarDataBr(dataPagamento)} (prazo de ${PRAZO_PAGAMENTO_DIAS} dias).`,
   );
   linhas.push("");
+  if (selecionados) {
+    linhas.push("Notas fiscais consideradas neste lançamento adicional:");
+    linhas.push("");
+  }
   for (const f of filiais) {
     linhas.push(`Filial de faturamento ${f.cod_filial}`);
     for (const p of f.pedidos) {
+      if (selecionados && !selecionados.has(p.cod_pedido)) continue;
       linhas.push(
         `  Pedido ${p.cod_pedido}${p.nro_nf ? ` | NF ${p.nro_nf}` : ""}${p.bordero ? ` | Borderô ${p.bordero}` : ""} | ${p.cliente} | Mercadoria ${brl(p.valor_mercadoria)} | Frete ${brl(p.frete)}`,
       );
