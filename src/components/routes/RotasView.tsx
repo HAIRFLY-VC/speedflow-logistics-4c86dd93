@@ -336,7 +336,7 @@ function FreightInput({
 
   // Grava o valor planejado ao sair do campo, sem criar pagamento.
   const salvarPlanejado = async () => {
-    if (estimated) return;
+    if (estimated || confirmado) return;
     const n = value.trim() === "" ? 0 : Number(value.replace(",", "."));
     if (!Number.isFinite(n) || n < 0 || Math.abs(n - initial) < 0.000001) return;
     setSalvando(true);
