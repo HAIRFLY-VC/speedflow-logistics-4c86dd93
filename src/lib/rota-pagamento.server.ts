@@ -193,6 +193,21 @@ async function dadosDeExpedicao(codPedidos: string[]): Promise<Map<string, Dados
       });
     }
   }
+
+  // Pedidos já com borderô emitido saem do espelho: busca a nota no ERP.
+  const semNota = codPedidos.filter((c) => !map.get(c)?.nro_nf);
+  if (semNota.length > 0) {
+    const { buscarNotasPorPedido } = await import("./frete-nota-erp.server");
+    const notas = await buscarNotasPorPedido(semNota);
+    for (const [cod, n] of notas) {
+      const atual = map.get(cod);
+      map.set(cod, {
+        bordero: atual?.bordero ?? n.bordero,
+        cod_filial: atual?.cod_filial ?? n.cod_filial,
+        nro_nf: atual?.nro_nf ?? n.nro_nf,
+      });
+    }
+  }
   return map;
 }
 
