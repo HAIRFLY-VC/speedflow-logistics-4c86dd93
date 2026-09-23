@@ -1467,7 +1467,7 @@ export function RotasView({
         )}
 
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+        {!permitirConfirmacao && <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           <Card>
             <CardHeader className="flex flex-row items-start justify-between gap-2 p-3 pb-1 space-y-0 sm:p-6 sm:pb-2">
               <CardTitle className="text-xs sm:text-sm font-medium leading-tight">Valor total das mercadorias</CardTitle>
@@ -1512,7 +1512,7 @@ export function RotasView({
               </div>
             </CardContent>
           </Card>
-        </div>
+        </div>}
 
         {routesError ? (
           <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
@@ -1529,6 +1529,7 @@ export function RotasView({
           rowKey={(r) => r.id}
           emptyMessage={mensagemVazia}
           onFilteredChange={setFilteredData}
+          forceTableLayout={permitirConfirmacao}
           onRowClick={(r) =>
             navigate({ to: "/rotas/$routeId", params: { routeId: r.id } })
           }
@@ -1550,7 +1551,7 @@ export function RotasView({
               </button>
             ) : null
           }
-          groupBy={{
+          groupBy={permitirConfirmacao ? undefined : {
             id: "route_date",
             accessor: (r) => r.route_date,
             label: (key, rows) => {

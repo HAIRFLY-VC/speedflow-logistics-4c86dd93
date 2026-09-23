@@ -114,6 +114,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     groupBy,
     scrollable,
     cardHeaderAction,
+    forceTableLayout = false,
   } = props;
 
   const isMobile = useIsMobile();
@@ -278,7 +279,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
       </div>
     ) : null;
 
-  if (isMobile) {
+  if (isMobile && !forceTableLayout) {
     return (
       <div className="space-y-3">
         {(toolbarLeft || toolbarRight) && (
@@ -366,6 +367,24 @@ export function DataTable<T>(props: DataTableProps<T>) {
   return (
     <div className="space-y-3">
 
+      {isMobile && forceTableLayout && (
+        <div className="flex flex-wrap items-center gap-2">
+          <MobileControls
+            columns={visibleColumns}
+            sort={state.sort}
+            setSort={setSort}
+            filters={state.filters}
+            setFilter={setFilter}
+            clearFilters={clearFilters}
+            distinctByColumn={distinctByColumn}
+            activeCount={activeFilterEntries.length}
+          />
+          <span className="ml-auto text-xs text-muted-foreground">
+            {filteredSorted.length} registro{filteredSorted.length === 1 ? "" : "s"}
+          </span>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">{toolbarLeft}</div>
         <div className="flex flex-wrap items-center gap-2">
@@ -417,7 +436,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
         <ScrollWrapper scrollable={scrollable}>
           <Table
             wrapperClassName={scrollable ? "overflow-visible" : undefined}
-            className={scrollable ? "border-separate" : undefined}
+            className={`${scrollable ? "border-separate " : ""}${forceTableLayout ? "min-w-max" : ""}`}
           >
             <TableHeader>
             <TableRow>
