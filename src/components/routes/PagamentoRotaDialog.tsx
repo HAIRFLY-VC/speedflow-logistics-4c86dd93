@@ -76,6 +76,8 @@ export function PagamentoRotaDialog({
   const [valorAdicional, setValorAdicional] = useState("");
   const [valorFrete, setValorFrete] = useState("");
   const [valorDebounced, setValorDebounced] = useState(0);
+  // Notas escolhidas para o rateio do valor adicional (null = todas).
+  const [selecionados, setSelecionados] = useState<string[] | null>(null);
   const dataMinima = useMemo(() => dataMinimaPagamento(), [open]);
   const [dataPagamento, setDataPagamento] = useState(dataMinima);
 
@@ -87,9 +89,15 @@ export function PagamentoRotaDialog({
       setValorAdicional("");
       setValorFrete(valor > 0 ? String(valor) : "");
       setDataPagamento(dataMinimaPagamento());
+      setSelecionados(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, routeId]);
+
+  useEffect(() => {
+    // Ao trocar de tipo, volta a considerar todas as notas.
+    setSelecionados(null);
+  }, [tipo]);
 
   const valorEfetivo = useMemo(() => {
     const texto = tipo === "FRETE" ? valorFrete : valorAdicional;
@@ -103,8 +111,22 @@ export function PagamentoRotaDialog({
     return () => clearTimeout(t);
   }, [valorEfetivo]);
 
+  const pedidosEscolhidos = useMemo(
+    () => (tipo === "ADICIONAL" && selecionados ? [...selecionados].sort() : null),
+    [tipo, selecionados],
+  );
+
   const previewQ = useQuery({
-    queryKey: ["rota-pagamento", "preview", routeId, valorDebounced, tipo, motivo, dataPagamento],
+    queryKey: [
+      "rota-pagamento",
+      "preview",
+      routeId,
+      valorDebounced,
+      tipo,
+      motivo,
+      dataPagamento,
+      pedidosEscolhidos?.join(",") ?? "todas",
+    ],
     enabled: open && !!routeId && valorDebounced > 0,
     queryFn: () =>
       preview({
@@ -115,6 +137,7 @@ export function PagamentoRotaDialog({
           motivo: tipo === "ADICIONAL" ? motivo : null,
           observacao: observacao || null,
           dataPagamento,
+          pedidos: pedidosEscolhidos,
         },
       }),
   });
