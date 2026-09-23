@@ -119,11 +119,18 @@ export function ErpSyncButton({
     while (Date.now() < deadline) {
       const { data } = await supabase
         .from("erp_sync_runs")
-        .select("finished_at, status, orders_created, orders_updated, orders_skipped, errors")
+        .select("started_at, finished_at, status, orders_created, orders_updated, orders_skipped, errors")
         .gte("started_at", sinceIso)
         .order("started_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (
+        data &&
+        !data.finished_at &&
+        Date.now() - new Date(data.started_at as string).getTime() > 10 * 60_000
+      ) {
+        throw new Error("A sincronização anterior foi interrompida. Clique para tentar de novo.");
+      }
       if (data?.finished_at) {
         if (data.status === "failed" && !data.orders_created && !data.orders_updated) {
           const errs = (data.errors as { message?: string }[] | null) ?? [];
