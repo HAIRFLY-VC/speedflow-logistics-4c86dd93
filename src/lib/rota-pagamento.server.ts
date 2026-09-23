@@ -638,3 +638,95 @@ export async function listarPagamentosDaRota(
     };
   });
 }
+
+export type FilaRotaDados = {
+  financeiro_configurado: boolean;
+  valores: {
+    id: string;
+    ordem_pagamento_id: string | null;
+    cod_filial: string | null;
+    cod_pedido: string | null;
+    nro_nf: string | null;
+    bordero: string | null;
+    status: string;
+    tentativas: number | null;
+    ultimo_erro: string | null;
+    referencia_erp: string | null;
+    processado_em: string | null;
+    valor: number;
+  }[];
+  financeiro: {
+    id: string;
+    ordem_pagamento_id: string | null;
+    status: string;
+    tentativas: number | null;
+    ultimo_erro: string | null;
+    referencia_erp: string | null;
+    processado_em: string | null;
+    created_at: string;
+  }[];
+};
+
+/** Situação atual dos envios (ERP e financeiro) gerados pela rota. */
+export async function listarFilasDaRota(routeId: string): Promise<FilaRotaDados> {
+  const [{ data: valores }, { data: financeiro }, { data: cfg }] = await Promise.all([
+    centralDb
+      .from("fila_lancamento_erp_frete")
+      .select(
+        "id, ordem_pagamento_id, cod_filial, cod_pedido, nro_nf, bordero, status, tentativas, ultimo_erro, referencia_erp, processado_em, created_at, vlr_frete, vlr_perna, vlr_diaria, vlr_pernoite, vlr_reentrega, vlr_descarrego",
+      )
+      .eq("route_id", routeId)
+      .order("created_at", { ascending: false })
+      .limit(200),
+    centralDb
+      .from("fila_provisionamento_financeiro")
+      .select(
+        "id, ordem_pagamento_id, status, tentativas, ultimo_erro, referencia_erp, processado_em, created_at",
+      )
+      .eq("route_id", routeId)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    centralDb
+      .from("integracao_n8n")
+      .select("webhook_url_financeiro, ativo")
+      .eq("id", 1)
+      .maybeSingle(),
+  ]);
+
+  const cfgRow = cfg as { webhook_url_financeiro?: string | null; ativo?: boolean | null } | null;
+
+  return {
+    financeiro_configurado: Boolean(cfgRow?.webhook_url_financeiro) && Boolean(cfgRow?.ativo),
+    valores: ((valores ?? []) as Record<string, unknown>[]).map((v) => ({
+      id: String(v["id"]),
+      ordem_pagamento_id: (v["ordem_pagamento_id"] as string | null) ?? null,
+      cod_filial: (v["cod_filial"] as string | null) ?? null,
+      cod_pedido: (v["cod_pedido"] as string | null) ?? null,
+      nro_nf: v["nro_nf"] == null ? null : String(v["nro_nf"]),
+      bordero: v["bordero"] == null ? null : String(v["bordero"]),
+      status: String(v["status"] ?? "PENDENTE"),
+      tentativas: (v["tentativas"] as number | null) ?? 0,
+      ultimo_erro: (v["ultimo_erro"] as string | null) ?? null,
+      referencia_erp: (v["referencia_erp"] as string | null) ?? null,
+      processado_em: (v["processado_em"] as string | null) ?? null,
+      valor: cent(
+        Number(v["vlr_frete"] ?? 0) +
+          Number(v["vlr_perna"] ?? 0) +
+          Number(v["vlr_diaria"] ?? 0) +
+          Number(v["vlr_pernoite"] ?? 0) +
+          Number(v["vlr_reentrega"] ?? 0) +
+          Number(v["vlr_descarrego"] ?? 0),
+      ),
+    })),
+    financeiro: ((financeiro ?? []) as Record<string, unknown>[]).map((f) => ({
+      id: String(f["id"]),
+      ordem_pagamento_id: (f["ordem_pagamento_id"] as string | null) ?? null,
+      status: String(f["status"] ?? "PENDENTE"),
+      tentativas: (f["tentativas"] as number | null) ?? 0,
+      ultimo_erro: (f["ultimo_erro"] as string | null) ?? null,
+      referencia_erp: (f["referencia_erp"] as string | null) ?? null,
+      processado_em: (f["processado_em"] as string | null) ?? null,
+      created_at: String(f["created_at"]),
+    })),
+  };
+}
