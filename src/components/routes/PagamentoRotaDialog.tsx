@@ -324,6 +324,14 @@ export function PagamentoRotaDialog({
               </div>
             )}
 
+            {semNota && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+                {p.pedidos_sem_faturamento} pedido(s) ainda sem nota fiscal. O lançamento no ERP é
+                feito por filial + nota fiscal + borderô, então todos os pedidos precisam estar
+                faturados.
+              </div>
+            )}
+
             {p.filiais.map((f) => (
               <div key={f.cod_filial} className="rounded-md border">
                 <div className="flex items-center justify-between border-b bg-muted/40 px-3 py-2 text-sm font-semibold">
