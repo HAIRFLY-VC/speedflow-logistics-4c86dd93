@@ -174,7 +174,11 @@ async function tratarRotasComBorderoEmitido(routeIds: string[]): Promise<void> {
   const codigos = Array.from(new Set(codeByOrderId.values()));
   if (codigos.length === 0) return;
 
+  // A GKS.A_GERENTREGAS só ganha registro depois que a nota fiscal do pedido
+  // é emitida. Pedido sem NF nunca tem borderô: quem não tem linha na tabela
+  // continua aguardando, sem contar a carência e sem risco de exclusão.
   const borderoPorPedido = new Map<string, string>();
+  const comRegistroNoErp = new Set<string>();
   for (let i = 0; i < codigos.length; i += 300) {
     const lote = codigos.slice(i, i + 300);
     const lista = lote.map((c) => `'${c.replace(/'/g, "''")}'`).join(",");
@@ -186,8 +190,10 @@ async function tratarRotasComBorderoEmitido(routeIds: string[]): Promise<void> {
     `;
     for (const row of await erpQuery(sql, lote.length + 10)) {
       const cod = String(row.COD_PEDIDO ?? "").trim();
+      if (!cod) continue;
+      comRegistroNoErp.add(cod);
       const bordero = String(row.BORDERO ?? "").trim();
-      if (cod && bordero) borderoPorPedido.set(cod, bordero);
+      if (bordero) borderoPorPedido.set(cod, bordero);
     }
   }
 
@@ -198,6 +204,8 @@ async function tratarRotasComBorderoEmitido(routeIds: string[]): Promise<void> {
   for (const [orderId, cod] of codeByOrderId) {
     const b = borderoPorPedido.get(cod);
     if (!b) {
+      // Sem registro no ERP = nota fiscal ainda não emitida: apenas aguarda.
+      if (!comRegistroNoErp.has(cod)) continue;
       const marcado = Date.parse(marcadaEm.get(routeByOrderId.get(orderId) ?? "") ?? agora);
       // Ainda dentro da carência: aguarda o ERP alimentar a tabela.
       if (Number.isFinite(marcado) && marcado > limite) continue;
@@ -995,7 +1003,9 @@ export async function syncErpOrders(opts: {
           (snap.erp_route_id != null && erpIdsDoRetorno.has(snap.erp_route_id)) ||
           codesDoRetorno.has(snap.code);
         if (voltouDoErp) pendingIds.push(r.id as string);
-        else rotasComBorderoEmitido.push(r.id as string);
+        // Rotas sem ID do ERP (agrupamento "NÃO PLANEJADO" ou criadas manualmente
+        // no app) nunca têm borderô: não entram na lógica de borderô emitido.
+        else if (snap.erp_route_id != null) rotasComBorderoEmitido.push(r.id as string);
       }
 
       if (pendingIds.length > 0) {
