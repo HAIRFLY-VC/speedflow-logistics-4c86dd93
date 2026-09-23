@@ -537,8 +537,14 @@ export async function confirmarPagamentoRota(params: {
         })),
       })),
     },
-  } as never);
+    } as never)
+    .select("id")
+    .single();
   if (finErr) throw new Error(finErr.message);
+
+  // A tarefa do Bitrix é criada pelo próprio app (sem n8n) logo após enfileirar.
+  const finId = (finRow as { id?: string } | null)?.id;
+  if (finId) await processarTarefaFinanceiraRota(finId);
 
   if (params.tipo === "FRETE") {
     await centralDb
