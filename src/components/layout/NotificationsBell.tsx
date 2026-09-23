@@ -118,6 +118,8 @@ export function NotificationsBell() {
     localStorage.setItem(LAST_SEEN_KEY, new Date().toISOString());
   }
 
+  const total = unread + pendencias;
+
   return (
     <Popover
       open={open}
@@ -129,9 +131,9 @@ export function NotificationsBell() {
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          {unread > 0 ? (
+          {total > 0 ? (
             <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold flex items-center justify-center">
-              {unread > 9 ? "9+" : unread}
+              {total > 9 ? "9+" : total}
             </span>
           ) : null}
         </Button>
@@ -148,6 +150,23 @@ export function NotificationsBell() {
             </button>
           ) : null}
         </div>
+        {pendencias > 0 ? (
+          <Link
+            to="/pendencias-integracao"
+            onClick={() => setOpen(false)}
+            className="block border-b bg-destructive/10 px-3 py-2 hover:bg-destructive/15"
+          >
+            <span className="text-xs font-medium text-destructive">
+              {pendencias === 1
+                ? "1 pendência de integração aguardando solução"
+                : `${pendencias} pendências de integração aguardando solução`}
+            </span>
+            <span className="mt-0.5 block text-[10px] text-muted-foreground">
+              Lançamento no ERP ou tarefa no Bitrix — toque para gerenciar
+            </span>
+          </Link>
+        ) : null}
+
         <div className="max-h-80 overflow-auto">
           {items.length === 0 ? (
             <p className="text-xs text-muted-foreground px-3 py-6 text-center">
