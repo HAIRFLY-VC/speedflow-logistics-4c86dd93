@@ -492,7 +492,9 @@ export async function confirmarPagamentoRota(params: {
   };
 
   const linhas = preview.filiais.flatMap((f) =>
-    f.pedidos.map((p) => ({
+    f.pedidos
+      .filter((p) => selecao.has(p.cod_pedido))
+      .map((p) => ({
       ordem_pagamento_id: ordemId,
       route_id: params.routeId,
       cod_filial: f.cod_filial,
