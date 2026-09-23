@@ -249,6 +249,7 @@ type ErpResponsavelRow = {
   razao_social: string | null;
   natureza: string | null;
   tipo_frete: string | null;
+  pix: string | null;
   atualizado_em: string;
 };
 

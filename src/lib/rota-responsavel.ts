@@ -72,7 +72,7 @@ export function useResponsavelRota(args: {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("erp_responsaveis")
-        .select("cod_erp,razao_social,natureza,tipo_frete")
+        .select("cod_erp,razao_social,natureza,tipo_frete,pix")
         .order("razao_social");
       if (error) throw error;
       return (data ?? []) as {
@@ -80,6 +80,7 @@ export function useResponsavelRota(args: {
         razao_social: string | null;
         natureza: string | null;
         tipo_frete: TipoFrete | null;
+        pix: string | null;
       }[];
     },
     staleTime: 30 * 60 * 1000,
@@ -95,6 +96,7 @@ export function useResponsavelRota(args: {
         razaoSocial: local.razao_social ?? `Código ${local.cod_erp}`,
         codErp: local.cod_erp,
         tipoFrete: local.tipo_frete,
+        pix: local.pix?.trim() || null,
       };
     }
     return null;

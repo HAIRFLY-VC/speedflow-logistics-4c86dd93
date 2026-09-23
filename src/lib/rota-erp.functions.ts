@@ -8,7 +8,11 @@ const SQL_RESPONSIVEIS = `select TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOCIAL, T.DB
 
 const SQL_CADASTRO_RESPONSAVEIS = `select TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOCIAL,
        TRIM(T.DBA_TIP_CODIGO_1) COD_ERP,
-       T.DBA_TIP_NATUREZA COD_NAT
+       T.DBA_TIP_NATUREZA COD_NAT,
+       (select max(trim(C.DBA_CONT_EMAIL))
+          from gks.a_cadccont C
+         where C.DBA_CONT_CODIGO = T.DBA_TIP_CODIGO_1
+           and upper(trim(C.DBA_CONT_CONTATO)) = 'PIX') PIX
   from gks.a_cadctipo T
  where T.DBA_TIP_NATUREZA in ('ET','EF','EM')`;
 
@@ -18,6 +22,8 @@ export type ResponsavelErp = {
   razaoSocial: string;
   codErp: string;
   tipoFrete: "P" | "F" | "T";
+  /** Chave PIX do responsável (contato 'PIX' no ERP), quando houver. */
+  pix: string | null;
 };
 
 function getField(row: Record<string, unknown>, field: string): unknown {
@@ -77,7 +83,7 @@ export const listarResponsaveisErp = createServerFn({ method: "GET" })
   .handler(async () => {
     const { data: espelho } = await centralDb
       .from("erp_responsaveis")
-      .select("cod_erp, razao_social, tipo_frete, atualizado_em")
+      .select("cod_erp, razao_social, tipo_frete, pix, atualizado_em")
       .not("tipo_frete", "is", null)
       .order("razao_social", { ascending: true })
       .limit(20000);
@@ -86,6 +92,7 @@ export const listarResponsaveisErp = createServerFn({ method: "GET" })
       cod_erp: string;
       razao_social: string | null;
       tipo_frete: "P" | "F" | "T" | null;
+      pix: string | null;
       atualizado_em: string | null;
     }[];
     const maisRecente = linhas.reduce(
@@ -101,6 +108,7 @@ export const listarResponsaveisErp = createServerFn({ method: "GET" })
         razaoSocial: String(l.razao_social).trim(),
         codErp: String(l.cod_erp).trim(),
         tipoFrete: l.tipo_frete as "P" | "F" | "T",
+        pix: l.pix?.trim() || null,
       }))
       .sort((a, b) => a.razaoSocial.localeCompare(b.razaoSocial));
 
@@ -123,7 +131,8 @@ export const listarResponsaveisErp = createServerFn({ method: "GET" })
       const nat = String(getField(r, "COD_NAT") ?? "").toUpperCase().trim();
       const tipoFrete = tipoFreteDaNatureza(nat);
       if (!razao || !cod || !tipoFrete || map.has(cod)) continue;
-      map.set(cod, { razaoSocial: razao, codErp: cod, tipoFrete });
+      const pix = String(getField(r, "PIX") ?? "").trim() || null;
+      map.set(cod, { razaoSocial: razao, codErp: cod, tipoFrete, pix });
     }
     const doErp = Array.from(map.values()).sort((a, b) => a.razaoSocial.localeCompare(b.razaoSocial));
     return doErp.length > 0 ? doErp : doEspelho;
@@ -216,6 +225,7 @@ export async function salvarResponsaveis(rows: Record<string, unknown>[]) {
     razao_social: string | null;
     natureza: string;
     tipo_frete: "P" | "F" | "T" | null;
+    pix: string | null;
   }>();
   for (const row of rows) {
     const cod = String(getField(row, "COD_ERP") ?? getField(row, "COD") ?? "").trim();
@@ -227,6 +237,7 @@ export async function salvarResponsaveis(rows: Record<string, unknown>[]) {
         razao_social: String(getField(row, "RAZAO_SOCIAL") ?? getField(row, "RZ") ?? "").trim() || null,
         natureza,
         tipo_frete: tipoFreteDaNatureza(natureza),
+        pix: String(getField(row, "PIX") ?? "").trim() || null,
       });
     }
   }
@@ -266,9 +277,13 @@ export const sincronizarResponsaveisPorCodigo = createServerFn({ method: "POST" 
       try {
         const rows = await consultarErp(
           `select T.DBA_TIP_CODIGO_1 COD_ERP, TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOCIAL,
-              T.DBA_TIP_NATUREZA COD_NAT
+              T.DBA_TIP_NATUREZA COD_NAT,
+              (select max(trim(C.DBA_CONT_EMAIL))
+                 from gks.a_cadccont C
+                where C.DBA_CONT_CODIGO = T.DBA_TIP_CODIGO_1
+                  and upper(trim(C.DBA_CONT_CONTATO)) = 'PIX') PIX
          from gks.a_cadctipo T
-        where TRIM(T.DBA_TIP_CODIGO_1) in (${lista})`,
+         where TRIM(T.DBA_TIP_CODIGO_1) in (${lista})`,
           1000,
           60_000,
         );
