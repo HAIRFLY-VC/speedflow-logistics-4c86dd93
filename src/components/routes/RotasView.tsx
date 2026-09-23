@@ -27,6 +27,7 @@ import {
   listarResponsaveisErp,
   listarResponsaveisDeRotasErp,
   sincronizarResponsaveisPorCodigo,
+  auditarRotasCompletas,
   type ResponsavelErp,
 } from "@/lib/rota-erp.functions";
 
@@ -89,6 +90,64 @@ export type RotasViewProps = {
   /** Chave de preferências da tabela (filtros/colunas por tela). */
   tableKey: string;
 };
+
+type AuditoriaInfo = {
+  total: number;
+  completos: number;
+  completa: boolean;
+  importados: number;
+  faltantes: { pedido: string; motivo: string }[];
+  erro?: string;
+};
+
+function AuditoriaBadge({
+  info,
+  carregando,
+  onRecarregar,
+}: {
+  info: AuditoriaInfo | undefined;
+  carregando: boolean;
+  onRecarregar: () => void;
+}) {
+  if (!info) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+        {carregando && <Loader2 className="h-3 w-3 animate-spin" />}
+        {carregando ? "Completando rota..." : "Auditoria pendente"}
+      </span>
+    );
+  }
+  if (info.erro) {
+    return (
+      <button
+        type="button"
+        className="text-[10px] font-semibold text-destructive underline"
+        title={info.erro}
+        onClick={onRecarregar}
+      >
+        Auditoria indisponível · Conferir de novo
+      </button>
+    );
+  }
+  if (info.completa) {
+    return (
+      <span
+        className="rounded border border-emerald-500/30 bg-emerald-500/15 px-1 py-0.5 text-[10px] font-semibold text-emerald-700"
+        title={info.importados > 0 ? `${info.importados} pedido(s) importado(s) do ERP` : undefined}
+      >
+        Rota completa ({info.completos}/{info.total})
+      </span>
+    );
+  }
+  return (
+    <span
+      className="rounded border border-amber-500/30 bg-amber-500/15 px-1 py-0.5 text-[10px] font-semibold text-amber-700"
+      title={info.faltantes.map((f) => `Pedido ${f.pedido}: ${f.motivo}`).join("\n")}
+    >
+      Rota incompleta ({info.completos} de {info.total} pedidos)
+    </span>
+  );
+}
 
 export type RouteRow = {
   id: string;
@@ -298,9 +357,15 @@ function FreightInput({
   bordero,
   isAdmin,
   mostrarConfirmar = false,
+  auditoria,
+  auditoriaCarregando = false,
+  onReauditar,
   onValorChange,
   onConfirmar,
 }: {
+  auditoria?: AuditoriaInfo;
+  auditoriaCarregando?: boolean;
+  onReauditar?: () => void;
   route: RouteRow;
   estimate: SimulacaoRota | null;
   tipo: TipoFrete | null;
@@ -331,7 +396,11 @@ function FreightInput({
   // Só é possível confirmar o pagamento quando todos os pedidos tiverem borderô.
   const pendentes = Math.max(0, bordero.total - bordero.comBordero);
   const podeConfirmar =
-    valorNum > 0 && bordero.total > 0 && pendentes === 0 && (!confirmado || isAdmin);
+    valorNum > 0 &&
+    bordero.total > 0 &&
+    pendentes === 0 &&
+    (!confirmado || isAdmin) &&
+    (confirmado || !mostrarConfirmar || auditoria?.completa === true);
 
   // Grava o valor planejado ao sair do campo, sem criar pagamento.
   const salvarPlanejado = async () => {
@@ -471,7 +540,10 @@ function FreightInput({
             }`}
             disabled={!podeConfirmar}
             title={
-              pendentes > 0
+              !confirmado && auditoria && !auditoria.completa
+                ? auditoria.erro ??
+                  `Rota incompleta: ${auditoria.faltantes.map((f) => `pedido ${f.pedido} (${f.motivo})`).join(", ")}`
+                : pendentes > 0
                 ? `Aguardando borderô de ${pendentes} pedido${pendentes === 1 ? "" : "s"} de ${bordero.total}`
                 : confirmado && !isAdmin
                   ? "Apenas administradores podem reabrir ou lançar valores adicionais"
@@ -481,6 +553,13 @@ function FreightInput({
           >
             {confirmado ? "Reabrir / Lançar adicional" : "Confirmar Pgto"}
           </Button>
+          {!confirmado && (
+            <AuditoriaBadge
+              info={auditoria}
+              carregando={auditoriaCarregando}
+              onRecarregar={() => onReauditar?.()}
+            />
+          )}
           {pendentes > 0 && (
             <span className="text-[10px] text-muted-foreground">
               Aguardando borderô de {pendentes} pedido{pendentes === 1 ? "" : "s"} de{" "}
@@ -987,6 +1066,27 @@ export function RotasView({
     [estimativas, freteEditado],
   );
 
+  const auditarFn = useServerFn(auditarRotasCompletas);
+  const idsAuditoria = useMemo(() => {
+    if (!permitirConfirmacao) return [] as string[];
+    const rows = (data ?? []).filter((r) => !filtro || filtro(r, { bordero: borderoDaRota(r) }));
+    return rows.filter((r) => !r.frete_confirmado_em).map((r) => r.id).sort();
+  }, [permitirConfirmacao, data, filtro, borderoDaRota]);
+  const auditoriaQ = useQuery({
+    queryKey: ["auditoria-rotas", idsAuditoria],
+    enabled: idsAuditoria.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const res = await auditarFn({ data: { routeIds: idsAuditoria } });
+      if (res.some((r) => r.importados > 0)) {
+        qc.invalidateQueries({ queryKey: ["routes"] });
+        toast.success("Dados faltantes das rotas importados do ERP.");
+      }
+      return new Map(res.map((r) => [r.route_id, r as AuditoriaInfo]));
+    },
+  });
+  const auditoriaMap = auditoriaQ.data;
+  const reauditar = auditoriaQ.refetch;
 
   const columns = useMemo<ColumnDef<RouteRow>[]>(
 
@@ -1173,6 +1273,9 @@ export function RotasView({
               bordero={borderoDaRota(r)}
               isAdmin={role === "adm"}
               mostrarConfirmar={permitirConfirmacao}
+              auditoria={auditoriaMap?.get(r.id)}
+              auditoriaCarregando={auditoriaQ.isFetching}
+              onReauditar={() => void reauditar()}
               onValorChange={(id, v) =>
                 setFreteEditado((prev) => ({ ...prev, [id]: v }))
               }
@@ -1292,6 +1395,9 @@ export function RotasView({
       borderoDaRota,
       role,
       permitirConfirmacao,
+      auditoriaMap,
+      auditoriaQ.isFetching,
+      reauditar,
       responsavelPorRota,
       transpPorRota,
       codResponsavelPorRota,
