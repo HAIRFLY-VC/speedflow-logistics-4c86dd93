@@ -260,6 +260,7 @@ function montarTextoTarefa(
     linhas.push("");
   }
   for (const f of filiais) {
+    if (selecionados && !f.pedidos.some((p) => selecionados.has(p.cod_pedido))) continue;
     linhas.push(`Filial de faturamento ${f.cod_filial}`);
     for (const p of f.pedidos) {
       if (selecionados && !selecionados.has(p.cod_pedido)) continue;
@@ -271,7 +272,10 @@ function montarTextoTarefa(
     linhas.push("");
   }
   linhas.push("Resumo por filial de faturamento");
-  for (const f of filiais) linhas.push(`  Filial ${f.cod_filial}: ${brl(f.frete)}`);
+  for (const f of filiais) {
+    if (selecionados && !f.pedidos.some((p) => selecionados.has(p.cod_pedido))) continue;
+    linhas.push(`  Filial ${f.cod_filial}: ${brl(f.frete)}`);
+  }
   linhas.push(`  Total: ${brl(valor)}`);
   if (observacao) {
     linhas.push("");
@@ -328,9 +332,9 @@ function agrupar(
     grupos.set(filial, g);
   });
 
-  const filiais = Array.from(grupos.values())
-    .filter((f) => !selecionados || f.pedidos.some((p) => selecionados.has(p.cod_pedido)))
-    .sort((a, b) => a.cod_filial.localeCompare(b.cod_filial, "pt-BR", { numeric: true }));
+  const filiais = Array.from(grupos.values()).sort((a, b) =>
+    a.cod_filial.localeCompare(b.cod_filial, "pt-BR", { numeric: true }),
+  );
   for (const f of filiais) {
     f.pedidos.sort((a, b) => a.cod_pedido.localeCompare(b.cod_pedido, "pt-BR", { numeric: true }));
   }
@@ -555,7 +559,9 @@ export async function confirmarPagamentoRota(params: {
       data_pagamento: dataPagamento,
       observacao: params.observacao,
       texto_tarefa: preview.texto_tarefa,
-      filiais: preview.filiais.map((f) => ({
+      filiais: preview.filiais
+        .filter((f) => f.pedidos.some((p) => selecao.has(p.cod_pedido)))
+        .map((f) => ({
         cod_filial: f.cod_filial,
         valor_frete: f.frete,
         valor_mercadoria: f.valor_mercadoria,
