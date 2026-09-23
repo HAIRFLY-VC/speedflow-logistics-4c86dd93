@@ -855,10 +855,10 @@ export function RotasView({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("erp_responsaveis")
-        .select("cod_erp,razao_social,natureza,tipo_frete")
+        .select("cod_erp,razao_social,natureza,tipo_frete,pix")
         .order("razao_social");
       if (error) throw error;
-      return (data ?? []) as { cod_erp: string; razao_social: string | null; natureza: string | null; tipo_frete: TipoFrete | null }[];
+      return (data ?? []) as { cod_erp: string; razao_social: string | null; natureza: string | null; tipo_frete: TipoFrete | null; pix: string | null }[];
     },
     staleTime: 30 * 60 * 1000,
   });
@@ -927,6 +927,7 @@ export function RotasView({
         razaoSocial: item.razao_social ?? `Código ${item.cod_erp}`,
         codErp: item.cod_erp,
         tipoFrete: item.tipo_frete,
+        pix: item.pix?.trim() || null,
       }));
     const porCodigo = new Map(locais.map((item) => [normalizaCod(item.codErp), item]));
     for (const item of responsaveis) porCodigo.set(normalizaCod(item.codErp), item);
