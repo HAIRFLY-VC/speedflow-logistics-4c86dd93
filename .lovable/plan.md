@@ -1,26 +1,31 @@
-# Frete Financeiro: falta publicar o fluxo
+# App cria a tarefa do Bitrix direto, sem n8n
 
-Sim — precisa publicar. O n8n guarda duas versões: a que você está editando e a que está publicada. Quando o aviso chega pelo webhook, ele executa **só a versão publicada**. É exatamente o que o histórico mostra: na execução de hoje 10:23 o aviso saiu do webhook e foi direto para "Buscar CT-e no Supabase", sem passar por nenhuma decisão de origem, e nenhum retorno ao app foi executado. Ou seja: a versão publicada ainda é a antiga, sem o desvio da rota.
+Tiramos o n8n do caminho da tarefa financeira das rotas de fretista. Quando o pagamento da rota é confirmado, o próprio aplicativo cria a tarefa no Bitrix e grava o resultado, com link, na tela "Envios desta rota". O caminho dos CT-e continua exatamente como está hoje (segue pelo n8n).
 
-## Passos
+## O que muda na prática
 
-1. No fluxo "SpeedFlow - Frete Financeiro", clicar em **Publish** (topo direito).
-2. Confirmar rapidamente, depois de publicar, que o desvio está ligado assim na versão publicada:
-   - Webhook Fila Financeiro → "Origem é ROTA?"
-   - saída **true** → "Criar Tarefa Bitrix (Rota)" → "Retorno ao App (Rota)"
-   - saída **false** → "Buscar CT-e no Supabase" (caminho de CT-e intacto)
-3. Me avisar. Eu reenvio a linha financeira da rota 414 e acompanho a execução até o fim.
+- Ao confirmar o pagamento de uma rota, a tarefa nasce no Bitrix na hora, com:
+  - Título: "#FRETE Rota M- ARCOMIX — SERGIO RICARDO ALMEIDA WANDERL" (ou o título de pagamento adicional)
+  - Descrição: o detalhamento por filial, pedidos, notas, borderô, cliente, mercadoria, frete e a instrução de pagamento
+  - Prazo: a data de pagamento (hoje, 9 dias de paz)
+  - Responsável 30 e observadores 24, 54 e 1
+- Em "Envios desta rota", a linha do financeiro passa de "Pendente" para concluída com o link direto da tarefa; se der erro, aparece a mensagem devolvida pelo Bitrix e o botão "Reenviar" tenta de novo.
+- Nada muda para os CT-e.
 
-## O que eu verifico depois do reenvio
+## O que eu preciso de você
 
-- Se a execução entrou pelo caminho da rota (origem "ROTA").
-- Se a tarefa foi criada no Bitrix com o título "#FRETE Rota M- ARCOMIX — SERGIO RICARDO ALMEIDA WANDERL", a descrição completa, prazo 01/10/2026 e responsável 30 (observadores 24, 54 e 1).
-- Se o retorno chegou ao app e a tela "Envios desta rota" passou de "Pendente" para concluído com o link da tarefa.
-- Se vier erro, mostro a mensagem exata devolvida pelo Bitrix e o ajuste necessário.
+O endereço do webhook de entrada do Bitrix (aquele que termina em `/rest/1/<token>/`, o mesmo usado hoje no fluxo do n8n). Vou pedir por um formulário seguro — ele fica guardado como segredo do projeto, nunca no código.
+
+## Depois de guardado
+
+Reenvio a linha financeira da rota 414 e confirmo a tarefa criada, mostrando o link, título, descrição, prazo e responsável.
 
 ## Detalhes técnicos
 
-- Condição do desvio: `{{ $json.body.payload.origem === "ROTA" }}`.
-- Campos da tarefa: `payload.titulo_tarefa`, `payload.texto_tarefa`, `payload.data_pagamento`; RESPONSIBLE_ID 30, AUDITORS [24, 54, 1].
-- Retorno: `POST /api/public/hooks/erp-fila-callback` com `{ fila: "financeiro", fila_id, ok, referencia_erp, erro }` + cabeçalho `x-webhook-token`.
-- Linha a reenviar: `fila_provisionamento_financeiro` 689ae18c… (rota 414, PENDENTE) — remover e reinserir com `status: PENDENTE` e `ultimo_erro`/`processado_em` nulos dispara o gatilho `notify_fila_erp`.
+- Segredo novo: `BITRIX_WEBHOOK_URL` (webhook de entrada com permissão de tarefas).
+- Novo módulo `src/lib/bitrix-task.server.ts`: `criarTarefaBitrix({ titulo, descricao, prazo })` → `POST {BITRIX_WEBHOOK_URL}/tasks.task.add` com `fields: { TITLE, DESCRIPTION, DEADLINE, RESPONSIBLE_ID: 30, AUDITORS: [24,54,1], GROUP_ID: 0 }`; retorna o id da tarefa ou a mensagem de erro do Bitrix (`error_description`).
+- `confirmarPagamentoRota` (`src/lib/rota-pagamento.server.ts`): depois de inserir a linha em `fila_provisionamento_financeiro`, processa essa linha na hora — cria a tarefa e atualiza a linha para `CONCLUIDO` com `referencia_erp` = id da tarefa, ou `ERRO` com `ultimo_erro`, sempre incrementando `tentativas` e gravando `processado_em`.
+- `reenviarFilaRota` (fila `financeiro`, origem ROTA): passa a chamar a mesma função em vez de reinserir a linha para o gatilho do n8n. Linhas de CT-e (`cte_id` preenchido) continuam no fluxo atual.
+- `bitrixTaskUrl` em `src/lib/bitrix.ts` já monta o link a partir da referência — nada a mudar lá.
+- O aviso "fluxo financeiro não configurado" em `PagamentoRotaDialog.tsx` passa a olhar a existência do segredo do Bitrix em vez de `webhook_url_financeiro`, via campo já exposto por `listarFilasRota`.
+- `src/routes/api/public/hooks/erp-fila-callback.ts` continua intacto (ainda serve o fluxo de valores e os CT-e).
