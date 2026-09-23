@@ -345,6 +345,7 @@ async function sincronizarEspelhoResponsaveis(opts: { maxAgeMs: number }) {
       razao_social: String(row.RAZAO_SOCIAL ?? row.razao_social ?? "").trim() || null,
       natureza,
       tipo_frete: natureza === "EF" ? "F" : natureza === "ET" ? "T" : natureza === "EM" ? "P" : null,
+      pix: String(row.PIX ?? row.pix ?? "").trim() || null,
     });
   }
   const payload = Array.from(byCode.values());
