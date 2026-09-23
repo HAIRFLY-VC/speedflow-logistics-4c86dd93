@@ -72,6 +72,10 @@ GRANT ALL ON speedflow.fila_tentativas TO service_role;
 GRANT ALL ON speedflow.notificacoes_pendencias TO service_role;
 ```
 
+   Ao colar o script, o banco mostra o aviso "Potential issue detected" (tabelas novas sem Row Level Security). Escolha **"Run and enable RLS"** — as duas tabelas novas são de uso interno do app (histórico de tentativas e registro de avisos) e são lidas pelo servidor, então ligar a proteção é o certo e não afeta a tela.
+
+
+
 2. **Agendar a nova tentativa já no momento do erro**: hoje, quando o retorno do ERP chega com falha, o item vira "Com erro" mas não recebe horário de nova tentativa. Passa a receber (1, 5, 15 e depois 30 em 30 minutos).
 3. **Agendar também na criação do item**: ao confirmar o pagamento, a linha já nasce com um prazo de nova tentativa, para o caso de o ERP nunca devolver resposta.
 4. **Rede de segurança**: a rotina automática também vai recolher itens antigos com erro e sem horário marcado, em vez de ignorá-los.
