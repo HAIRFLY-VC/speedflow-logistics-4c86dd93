@@ -2,4 +2,4 @@
 - [x] Exibir as rotas em tabela sem agrupamento, inclusive em telas estreitas.
 - [x] Permitir filtros por coluna e restaurá-los automaticamente para cada usuário.
 - [x] Somar ao frete exibido os valores adicionais autorizados da rota, sem contar pagamentos substituídos.
-- [ ] Sugerir o vencimento oito dias após a data planejada de expedição da rota, mantendo a data editável.
+- [x] Sugerir o vencimento oito dias após a data planejada de expedição da rota, mantendo a data editável.

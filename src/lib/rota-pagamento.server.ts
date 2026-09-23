@@ -19,7 +19,6 @@ import type {
 } from "./rota-pagamento.types";
 import {
   MOTIVOS_ADICIONAIS,
-  PRAZO_PAGAMENTO_DIAS,
   dataSugeridaPagamento,
   formatarDataBr,
 } from "./rota-pagamento.types";
@@ -257,7 +256,7 @@ function montarTextoTarefa(
   linhas.push(titulo);
   linhas.push("");
   linhas.push(
-    `Instrução de pagamento: efetuar o pagamento em ${formatarDataBr(dataPagamento)} (sugestão: ${PRAZO_PAGAMENTO_DIAS} dias após a expedição planejada).`,
+    `Instrução de pagamento: efetuar o pagamento em ${formatarDataBr(dataPagamento)}.`,
   );
   linhas.push("");
   if (selecionados) {

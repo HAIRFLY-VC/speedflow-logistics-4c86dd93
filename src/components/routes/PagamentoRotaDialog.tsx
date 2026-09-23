@@ -276,7 +276,9 @@ export function PagamentoRotaDialog({
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            Sugestão: {PRAZO_PAGAMENTO_DIAS} dias após a data planejada de expedição
+            {dataExpedicao && !dataExpedicao.startsWith("3000-") && !dataExpedicao.startsWith("4000-")
+              ? `Sugestão: ${PRAZO_PAGAMENTO_DIAS} dias após a data planejada de expedição`
+              : `Sem data de expedição planejada: sugestão de ${PRAZO_PAGAMENTO_DIAS} dias após hoje`}
             {dataExpedicao && !dataExpedicao.startsWith("3000-") && !dataExpedicao.startsWith("4000-")
               ? ` (${formatarDataBr(dataExpedicao.slice(0, 10))})`
               : ""}. Você pode alterar a data; ela será enviada na tarefa do Bitrix.
