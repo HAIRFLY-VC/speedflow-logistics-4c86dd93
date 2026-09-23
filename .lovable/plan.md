@@ -9,7 +9,69 @@ Consequência prática: o app registrou o erro, mas não tem onde marcar "tentar
 
 ## O que vamos fazer
 
-1. **Aplicar a atualização do banco** (arquivo `db/central/2026-09-23_fila_pendencias.sql`, no editor SQL do banco central). Sem esse passo nada do automático funciona.
+1. **Aplicar a atualização do banco** (script abaixo, no editor SQL do banco central). Sem esse passo nada do automático funciona.
+
+```sql
+-- Fila de pendências de integração (lançamento no ERP e tarefa no Bitrix).
+ALTER TABLE speedflow.fila_lancamento_erp_frete
+  ADD COLUMN IF NOT EXISTS raiz_id uuid,
+  ADD COLUMN IF NOT EXISTS proxima_tentativa_em timestamptz DEFAULT now() + interval '30 minutes',
+  ADD COLUMN IF NOT EXISTS pausada_em timestamptz,
+  ADD COLUMN IF NOT EXISTS resolvida_manual_em timestamptz,
+  ADD COLUMN IF NOT EXISTS resolvida_manual_por uuid,
+  ADD COLUMN IF NOT EXISTS resolvida_manual_motivo text;
+
+ALTER TABLE speedflow.fila_provisionamento_financeiro
+  ADD COLUMN IF NOT EXISTS raiz_id uuid,
+  ADD COLUMN IF NOT EXISTS proxima_tentativa_em timestamptz DEFAULT now() + interval '30 minutes',
+  ADD COLUMN IF NOT EXISTS pausada_em timestamptz,
+  ADD COLUMN IF NOT EXISTS resolvida_manual_em timestamptz,
+  ADD COLUMN IF NOT EXISTS resolvida_manual_por uuid,
+  ADD COLUMN IF NOT EXISTS resolvida_manual_motivo text;
+
+UPDATE speedflow.fila_lancamento_erp_frete SET raiz_id = id WHERE raiz_id IS NULL;
+UPDATE speedflow.fila_provisionamento_financeiro SET raiz_id = id WHERE raiz_id IS NULL;
+
+CREATE INDEX IF NOT EXISTS fila_erp_proxima_tentativa_idx
+  ON speedflow.fila_lancamento_erp_frete (status, proxima_tentativa_em);
+CREATE INDEX IF NOT EXISTS fila_fin_proxima_tentativa_idx
+  ON speedflow.fila_provisionamento_financeiro (status, proxima_tentativa_em);
+
+CREATE TABLE IF NOT EXISTS speedflow.fila_tentativas (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  fila text NOT NULL CHECK (fila IN ('valores', 'financeiro')),
+  fila_id uuid NOT NULL,
+  raiz_id uuid NOT NULL,
+  tentativa integer NOT NULL DEFAULT 1,
+  ok boolean NOT NULL DEFAULT false,
+  mensagem text,
+  origem text NOT NULL DEFAULT 'AUTOMATICA' CHECK (origem IN ('AUTOMATICA', 'MANUAL', 'CALLBACK')),
+  criado_em timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS fila_tentativas_raiz_idx
+  ON speedflow.fila_tentativas (raiz_id, criado_em DESC);
+
+CREATE TABLE IF NOT EXISTS speedflow.notificacoes_pendencias (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  canal text NOT NULL CHECK (canal IN ('EMAIL', 'WHATSAPP')),
+  destinatario text NOT NULL,
+  quantidade integer NOT NULL DEFAULT 0,
+  assinatura text,
+  ok boolean NOT NULL DEFAULT true,
+  mensagem text,
+  enviado_em timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS notificacoes_pendencias_envio_idx
+  ON speedflow.notificacoes_pendencias (canal, destinatario, enviado_em DESC);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON speedflow.fila_tentativas TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON speedflow.notificacoes_pendencias TO authenticated;
+GRANT ALL ON speedflow.fila_tentativas TO service_role;
+GRANT ALL ON speedflow.notificacoes_pendencias TO service_role;
+```
+
 2. **Agendar a nova tentativa já no momento do erro**: hoje, quando o retorno do ERP chega com falha, o item vira "Com erro" mas não recebe horário de nova tentativa. Passa a receber (1, 5, 15 e depois 30 em 30 minutos).
 3. **Agendar também na criação do item**: ao confirmar o pagamento, a linha já nasce com um prazo de nova tentativa, para o caso de o ERP nunca devolver resposta.
 4. **Rede de segurança**: a rotina automática também vai recolher itens antigos com erro e sem horário marcado, em vez de ignorá-los.
