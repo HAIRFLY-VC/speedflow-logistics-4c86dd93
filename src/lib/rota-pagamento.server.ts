@@ -80,6 +80,8 @@ type RotaCarregada = {
   erp_route_id: string | null;
   total_freight: number;
   frete_confirmado_em: string | null;
+  driver_name: string | null;
+  erp_carrier_code: string | null;
 };
 
 type PedidoCarregado = {
