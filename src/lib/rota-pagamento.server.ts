@@ -298,7 +298,8 @@ function agrupar(
     const nf = exp?.nro_nf ?? null;
     if (!bordero) semBordero += 1;
     if (!nf) semFaturamento += 1;
-    const filial = p.cod_filial ?? exp?.cod_filial ?? "SEM FILIAL";
+    // A gravação no ERP é por filial de faturamento da nota + NF + borderô.
+    const filial = exp?.cod_filial ?? p.cod_filial ?? "SEM FILIAL";
     const item: PedidoPagamento = {
       cod_pedido: p.cod_pedido,
       cliente: (p.cod_cliente ? clientes.get(p.cod_cliente) : null) ?? p.cod_cliente ?? "—",
