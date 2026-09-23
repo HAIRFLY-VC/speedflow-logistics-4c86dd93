@@ -360,12 +360,49 @@ function FreightInput({
     : undefined;
 
   if (!editable) {
-    if (!value) return <span className="text-muted-foreground">—</span>;
+    if (!value && !confirmado) return <span className="text-muted-foreground">—</span>;
     return (
-      <span className={`inline-flex items-center gap-1 tabular-nums ${estimated ? "italic text-amber-600" : ""}`} title={estimated ? title : undefined}>
-        {estimated && <Calculator className="h-3 w-3" />}
-        {Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-      </span>
+      <div className="flex flex-col items-end gap-1">
+        <span
+          className={`inline-flex items-center gap-1 tabular-nums ${estimated ? "italic text-amber-600" : ""}`}
+          title={
+            confirmado
+              ? "Pagamento confirmado — valor bloqueado; use Reabrir / Lançar adicional"
+              : estimated
+                ? title
+                : undefined
+          }
+        >
+          {estimated && <Calculator className="h-3 w-3" />}
+          {value
+            ? Number(value).toLocaleString("pt-BR", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })
+            : "—"}
+        </span>
+        {confirmado && (
+          <span className="rounded border border-emerald-500/30 bg-emerald-500/15 px-1 py-0.5 text-[10px] font-semibold text-emerald-600">
+            Pgto confirmado
+          </span>
+        )}
+        {confirmado && mostrarConfirmar && (
+          <Button
+            size="sm"
+            variant="outline"
+            className={`h-6 px-2 text-[11px] ${podeConfirmar ? "" : "cursor-not-allowed"}`}
+            disabled={!podeConfirmar}
+            title={
+              !isAdmin
+                ? "Apenas administradores podem reabrir ou lançar valores adicionais"
+                : undefined
+            }
+            onClick={() => onConfirmar(route, valorNum)}
+          >
+            Reabrir / Lançar adicional
+          </Button>
+        )}
+      </div>
     );
   }
 
