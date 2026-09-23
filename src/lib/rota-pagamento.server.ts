@@ -497,7 +497,9 @@ export async function confirmarPagamentoRota(params: {
     .insert(linhas as never);
   if (filaErr) throw new Error(filaErr.message);
 
-  const { error: finErr } = await centralDb.from("fila_provisionamento_financeiro").insert({
+  const { data: finRow, error: finErr } = await centralDb
+    .from("fila_provisionamento_financeiro")
+    .insert({
     ordem_pagamento_id: ordemId,
     route_id: params.routeId,
     cte_id: null,
@@ -535,8 +537,14 @@ export async function confirmarPagamentoRota(params: {
         })),
       })),
     },
-  } as never);
+    } as never)
+    .select("id")
+    .single();
   if (finErr) throw new Error(finErr.message);
+
+  // A tarefa do Bitrix é criada pelo próprio app (sem n8n) logo após enfileirar.
+  const finId = (finRow as { id?: string } | null)?.id;
+  if (finId) await processarTarefaFinanceiraRota(finId);
 
   if (params.tipo === "FRETE") {
     await centralDb
@@ -550,6 +558,60 @@ export async function confirmarPagamentoRota(params: {
   }
 
   return { ok: true, ordem_id: ordemId, linhas: linhas.length };
+}
+
+/**
+ * Cria a tarefa de pagamento no Bitrix para uma linha da fila financeira de
+ * rota e grava o resultado na própria linha (concluído com o código da tarefa
+ * ou erro com a mensagem devolvida pelo Bitrix).
+ */
+export async function processarTarefaFinanceiraRota(
+  filaId: string,
+): Promise<{ ok: boolean; referencia?: string; erro?: string }> {
+  const { data: linha, error } = await centralDb
+    .from("fila_provisionamento_financeiro")
+    .select("id, tentativas, payload, cte_id")
+    .eq("id", filaId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!linha) throw new Error("Item da fila não encontrado");
+
+  const row = linha as { tentativas?: number | null; payload?: Record<string, unknown> | null };
+  const payload = (row.payload ?? {}) as Record<string, unknown>;
+  const tentativas = Number(row.tentativas ?? 0) + 1;
+
+  const { criarTarefaBitrix } = await import("./bitrix-task.server");
+
+  const titulo = String(payload["titulo_tarefa"] ?? "#FRETE Pagamento de rota");
+  const descricao = String(payload["texto_tarefa"] ?? "");
+  const prazo = (payload["data_pagamento"] as string | null) ?? null;
+
+  try {
+    const { id } = await criarTarefaBitrix({ titulo, descricao, prazo });
+    await centralDb
+      .from("fila_provisionamento_financeiro")
+      .update({
+        status: "CONCLUIDO",
+        tentativas,
+        ultimo_erro: null,
+        referencia_erp: id,
+        processado_em: new Date().toISOString(),
+      } as never)
+      .eq("id", filaId);
+    return { ok: true, referencia: id };
+  } catch (e) {
+    const erro = (e as Error).message;
+    await centralDb
+      .from("fila_provisionamento_financeiro")
+      .update({
+        status: "ERRO",
+        tentativas,
+        ultimo_erro: erro,
+        processado_em: new Date().toISOString(),
+      } as never)
+      .eq("id", filaId);
+    return { ok: false, erro };
+  }
 }
 
 export async function listarPagamentosDaRota(
@@ -693,10 +755,12 @@ export async function listarFilasDaRota(routeId: string): Promise<FilaRotaDados>
       .maybeSingle(),
   ]);
 
-  const cfgRow = cfg as { webhook_url_financeiro?: string | null; ativo?: boolean | null } | null;
+  void cfg;
+  const { bitrixConfigurado } = await import("./bitrix-task.server");
 
   return {
-    financeiro_configurado: Boolean(cfgRow?.webhook_url_financeiro) && Boolean(cfgRow?.ativo),
+    // A tarefa das rotas é criada direto pelo app; basta o webhook do Bitrix.
+    financeiro_configurado: bitrixConfigurado(),
     valores: ((valores ?? []) as Record<string, unknown>[]).map((v) => ({
       id: String(v["id"]),
       ordem_pagamento_id: (v["ordem_pagamento_id"] as string | null) ?? null,

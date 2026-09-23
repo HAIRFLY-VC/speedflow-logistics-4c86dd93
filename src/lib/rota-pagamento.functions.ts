@@ -112,6 +112,13 @@ export const reenviarFilaRota = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await podeAutorizar(context as unknown as Ctx);
+    if (data.fila === "financeiro") {
+      // Tarefa do Bitrix criada pelo próprio app.
+      const { processarTarefaFinanceiraRota } = await import("./rota-pagamento.server");
+      const r = await processarTarefaFinanceiraRota(data.filaId);
+      if (!r.ok) throw new Error(r.erro ?? "Falha ao criar a tarefa no Bitrix.");
+      return { ok: true, referencia_erp: r.referencia };
+    }
     const { reenviarItemFila } = await import("./frete-aprovacao.server");
     return reenviarItemFila(data.fila, data.filaId);
   });

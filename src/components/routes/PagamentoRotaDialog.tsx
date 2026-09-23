@@ -482,8 +482,8 @@ export function PagamentoRotaDialog({
             {!(filasQ.data?.financeiro_configurado ?? true) &&
             (filasQ.data?.financeiro.length ?? 0) > 0 ? (
               <p className="border-t bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
-                O fluxo que cria a tarefa de pagamento ainda não está ativo — a solicitação fica
-                aguardando e nenhuma tarefa é aberta no Bitrix.
+                A ligação com o Bitrix ainda não está configurada — a solicitação fica aguardando e
+                nenhuma tarefa é aberta.
               </p>
             ) : null}
           </div>
