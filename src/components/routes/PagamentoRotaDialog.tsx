@@ -184,6 +184,7 @@ export function PagamentoRotaDialog({
           motivo: tipo === "ADICIONAL" ? motivo : null,
           observacao: observacao.trim() || null,
           dataPagamento,
+          pedidos: pedidosEscolhidos,
         },
       }),
     onSuccess: () => {
