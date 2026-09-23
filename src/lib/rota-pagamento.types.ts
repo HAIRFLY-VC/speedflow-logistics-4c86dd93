@@ -33,8 +33,8 @@ export type FilialPagamento = {
   frete: number;
 };
 
-/** Prazo mínimo (em dias) entre hoje e a data sugerida de pagamento. */
-export const PRAZO_PAGAMENTO_DIAS = 9;
+/** Intervalo da sugestão de vencimento após a expedição planejada. */
+export const PRAZO_PAGAMENTO_DIAS = 8;
 
 /** Data de hoje no fuso de Brasília, no formato AAAA-MM-DD. */
 export function hojeBrasilia(): string {
@@ -48,9 +48,14 @@ export function somarDias(iso: string, dias: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Data mínima (= sugerida) de pagamento: hoje + 9 dias. */
-export function dataMinimaPagamento(): string {
-  return somarDias(hojeBrasilia(), PRAZO_PAGAMENTO_DIAS);
+/** Sugere o vencimento a partir da expedição; se não houver data válida, usa hoje. */
+export function dataSugeridaPagamento(dataExpedicao?: string | null): string {
+  const data = dataExpedicao?.slice(0, 10) ?? "";
+  const valida = /^\d{4}-\d{2}-\d{2}$/.test(data) &&
+    Number(data.slice(0, 4)) < 3000 &&
+    !Number.isNaN(new Date(`${data}T00:00:00Z`).getTime()) &&
+    new Date(`${data}T00:00:00Z`).toISOString().slice(0, 10) === data;
+  return somarDias(valida ? data : hojeBrasilia(), PRAZO_PAGAMENTO_DIAS);
 }
 
 /** Formata AAAA-MM-DD como dd/MM/aaaa. */

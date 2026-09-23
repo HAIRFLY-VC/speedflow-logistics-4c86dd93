@@ -20,15 +20,18 @@ import type {
 import {
   MOTIVOS_ADICIONAIS,
   PRAZO_PAGAMENTO_DIAS,
-  dataMinimaPagamento,
+  dataSugeridaPagamento,
   formatarDataBr,
 } from "./rota-pagamento.types";
 
-/** Garante uma data de pagamento válida (nunca antes do prazo mínimo). */
-function normalizarDataPagamento(iso: string | null | undefined): string {
-  const minima = dataMinimaPagamento();
-  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return minima;
-  return iso < minima ? minima : iso;
+/** Usa a sugestão da rota quando nenhuma data for informada, sem alterar escolhas manuais. */
+function normalizarDataPagamento(iso: string | null | undefined, dataExpedicao: string | null): string {
+  if (!iso) return dataSugeridaPagamento(dataExpedicao);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso) || Number.isNaN(new Date(`${iso}T00:00:00Z`).getTime()) ||
+    new Date(`${iso}T00:00:00Z`).toISOString().slice(0, 10) !== iso) {
+    throw new Error("Informe uma data de pagamento válida.");
+  }
+  return iso;
 }
 
 const brl = (v: number) =>
@@ -82,6 +85,7 @@ type RotaCarregada = {
   frete_confirmado_em: string | null;
   driver_name: string | null;
   erp_carrier_code: string | null;
+  route_date: string | null;
 };
 
 type PedidoCarregado = {
@@ -97,7 +101,7 @@ async function carregarRota(routeId: string): Promise<RotaCarregada> {
   const { data, error } = await centralDb
     .from("routes")
     .select(
-      "id, code, notes, erp_route_id, total_freight, frete_confirmado_em, driver_name, erp_carrier_code",
+      "id, code, notes, erp_route_id, total_freight, frete_confirmado_em, driver_name, erp_carrier_code, route_date",
     )
     .eq("id", routeId)
     .maybeSingle();
@@ -113,6 +117,7 @@ async function carregarRota(routeId: string): Promise<RotaCarregada> {
     frete_confirmado_em: r.frete_confirmado_em ?? null,
     driver_name: (r.driver_name ?? "").trim() || null,
     erp_carrier_code: (r.erp_carrier_code ?? "").trim() || null,
+    route_date: r.route_date ?? null,
   };
 }
 
@@ -252,7 +257,7 @@ function montarTextoTarefa(
   linhas.push(titulo);
   linhas.push("");
   linhas.push(
-    `Instrução de pagamento: efetuar o pagamento em ${formatarDataBr(dataPagamento)} (prazo de ${PRAZO_PAGAMENTO_DIAS} dias).`,
+    `Instrução de pagamento: efetuar o pagamento em ${formatarDataBr(dataPagamento)} (sugestão: ${PRAZO_PAGAMENTO_DIAS} dias após a expedição planejada).`,
   );
   linhas.push("");
   if (selecionados) {
@@ -365,7 +370,7 @@ export async function montarPreviewPagamentoRota(params: {
   const clientes = await nomesDeClientes(pedidos.map((p) => p.cod_cliente ?? "").filter(Boolean));
 
   const valor = cent(Number(params.valor ?? 0));
-  const dataPagamento = normalizarDataPagamento(params.dataPagamento);
+  const dataPagamento = normalizarDataPagamento(params.dataPagamento, rota.route_date);
 
   const escolhidos = (params.pedidos ?? []).map((c) => String(c));
   const selecao =
@@ -430,7 +435,7 @@ export async function confirmarPagamentoRota(params: {
   const valor = cent(Number(params.valor ?? 0));
   if (!(valor > 0)) throw new Error("Informe um valor de frete maior que zero.");
 
-  const dataPagamento = normalizarDataPagamento(params.dataPagamento);
+  const dataPagamento = normalizarDataPagamento(params.dataPagamento, rota.route_date);
 
   if (params.tipo !== "ADICIONAL") {
     const { auditarEImportarRotas } = await import("./rota-auditoria.server");
