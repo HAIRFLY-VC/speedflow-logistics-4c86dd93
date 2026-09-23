@@ -76,6 +76,8 @@ export function PagamentoRotaDialog({
   const [valorAdicional, setValorAdicional] = useState("");
   const [valorFrete, setValorFrete] = useState("");
   const [valorDebounced, setValorDebounced] = useState(0);
+  // Notas escolhidas para o rateio do valor adicional (null = todas).
+  const [selecionados, setSelecionados] = useState<string[] | null>(null);
   const dataMinima = useMemo(() => dataMinimaPagamento(), [open]);
   const [dataPagamento, setDataPagamento] = useState(dataMinima);
 
@@ -87,9 +89,15 @@ export function PagamentoRotaDialog({
       setValorAdicional("");
       setValorFrete(valor > 0 ? String(valor) : "");
       setDataPagamento(dataMinimaPagamento());
+      setSelecionados(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, routeId]);
+
+  useEffect(() => {
+    // Ao trocar de tipo, volta a considerar todas as notas.
+    setSelecionados(null);
+  }, [tipo]);
 
   const valorEfetivo = useMemo(() => {
     const texto = tipo === "FRETE" ? valorFrete : valorAdicional;
@@ -103,8 +111,22 @@ export function PagamentoRotaDialog({
     return () => clearTimeout(t);
   }, [valorEfetivo]);
 
+  const pedidosEscolhidos = useMemo(
+    () => (tipo === "ADICIONAL" && selecionados ? [...selecionados].sort() : null),
+    [tipo, selecionados],
+  );
+
   const previewQ = useQuery({
-    queryKey: ["rota-pagamento", "preview", routeId, valorDebounced, tipo, motivo, dataPagamento],
+    queryKey: [
+      "rota-pagamento",
+      "preview",
+      routeId,
+      valorDebounced,
+      tipo,
+      motivo,
+      dataPagamento,
+      pedidosEscolhidos?.join(",") ?? "todas",
+    ],
     enabled: open && !!routeId && valorDebounced > 0,
     queryFn: () =>
       preview({
@@ -115,6 +137,7 @@ export function PagamentoRotaDialog({
           motivo: tipo === "ADICIONAL" ? motivo : null,
           observacao: observacao || null,
           dataPagamento,
+          pedidos: pedidosEscolhidos,
         },
       }),
   });
@@ -161,6 +184,7 @@ export function PagamentoRotaDialog({
           motivo: tipo === "ADICIONAL" ? motivo : null,
           observacao: observacao.trim() || null,
           dataPagamento,
+          pedidos: pedidosEscolhidos,
         },
       }),
     onSuccess: () => {
@@ -177,6 +201,33 @@ export function PagamentoRotaDialog({
   const semNota = (p?.pedidos_sem_faturamento ?? 0) > 0;
   const dataInvalida = dataPagamento < dataMinima;
   const recalculando = valorEfetivo !== valorDebounced || previewQ.isFetching;
+
+  const escolherNotas = tipo === "ADICIONAL";
+  const todosPedidos = useMemo(
+    () => (p?.filiais ?? []).flatMap((f) => f.pedidos.map((x) => x.cod_pedido)),
+    [p],
+  );
+  const marcados = useMemo(
+    () => new Set(selecionados ?? todosPedidos),
+    [selecionados, todosPedidos],
+  );
+  const semSelecao = escolherNotas && marcados.size === 0;
+
+  const alternarPedido = (cod: string) => {
+    const atual = new Set(selecionados ?? todosPedidos);
+    if (atual.has(cod)) atual.delete(cod);
+    else atual.add(cod);
+    setSelecionados([...atual]);
+  };
+
+  const alternarFilial = (codigos: string[], marcarTodos: boolean) => {
+    const atual = new Set(selecionados ?? todosPedidos);
+    for (const c of codigos) {
+      if (marcarTodos) atual.add(c);
+      else atual.delete(c);
+    }
+    setSelecionados([...atual]);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -333,7 +384,17 @@ export function PagamentoRotaDialog({
               </div>
             )}
 
-            {p.filiais.map((f) => (
+            {escolherNotas && (
+              <p className="text-xs text-muted-foreground">
+                Marque as notas fiscais às quais este custo adicional se refere. O valor é rateado
+                apenas entre as notas marcadas.
+              </p>
+            )}
+
+            {p.filiais.map((f) => {
+              const codigos = f.pedidos.map((x) => x.cod_pedido);
+              const todosMarcados = codigos.every((c) => marcados.has(c));
+              return (
               <div key={f.cod_filial} className="rounded-md border">
                 <div className="flex items-center justify-between border-b bg-muted/40 px-3 py-2 text-sm font-semibold">
                   <span>Filial de faturamento {f.cod_filial}</span>
@@ -342,6 +403,16 @@ export function PagamentoRotaDialog({
                 <table className="w-full text-xs">
                   <thead className="text-muted-foreground">
                     <tr>
+                      {escolherNotas && (
+                        <th className="w-8 px-3 py-1 text-left font-medium">
+                          <input
+                            type="checkbox"
+                            aria-label={`Selecionar todas as notas da filial ${f.cod_filial}`}
+                            checked={todosMarcados}
+                            onChange={(e) => alternarFilial(codigos, e.target.checked)}
+                          />
+                        </th>
+                      )}
                       <th className="px-3 py-1 text-left font-medium">Pedido</th>
                       <th className="px-3 py-1 text-left font-medium">Nota fiscal</th>
                       <th className="px-3 py-1 text-left font-medium">Borderô</th>
@@ -351,8 +422,25 @@ export function PagamentoRotaDialog({
                     </tr>
                   </thead>
                   <tbody>
-                    {f.pedidos.map((ped) => (
-                      <tr key={ped.cod_pedido} className="border-t">
+                    {f.pedidos.map((ped) => {
+                      const marcado = marcados.has(ped.cod_pedido);
+                      return (
+                      <tr
+                        key={ped.cod_pedido}
+                        className={
+                          escolherNotas && !marcado ? "border-t opacity-50" : "border-t"
+                        }
+                      >
+                        {escolherNotas && (
+                          <td className="px-3 py-1">
+                            <input
+                              type="checkbox"
+                              aria-label={`Selecionar nota do pedido ${ped.cod_pedido}`}
+                              checked={marcado}
+                              onChange={() => alternarPedido(ped.cod_pedido)}
+                            />
+                          </td>
+                        )}
                         <td className="px-3 py-1 tabular-nums">{ped.cod_pedido}</td>
                         <td className="px-3 py-1 tabular-nums">
                           {ped.nro_nf ?? <span className="text-destructive">sem NF</span>}
@@ -366,11 +454,13 @@ export function PagamentoRotaDialog({
                         </td>
                         <td className="px-3 py-1 text-right tabular-nums">{brl(ped.frete)}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
-            ))}
+              );
+            })}
 
             <div className="rounded-md border p-3 text-sm">
               <p className="mb-2 font-semibold">Resumo por filial de faturamento</p>
@@ -562,7 +652,7 @@ export function PagamentoRotaDialog({
           <Button
             onClick={() => enviar.mutate()}
             className={
-              enviar.isPending || !p || semBordero || semNota || dataInvalida || recalculando || valorEfetivo <= 0 || (jaConfirmado && !isAdmin)
+              enviar.isPending || !p || semBordero || semNota || dataInvalida || recalculando || valorEfetivo <= 0 || semSelecao || (jaConfirmado && !isAdmin)
                 ? "cursor-not-allowed"
                 : "bg-emerald-600 text-white hover:bg-emerald-700"
             }
@@ -574,8 +664,10 @@ export function PagamentoRotaDialog({
               dataInvalida ||
               recalculando ||
               valorEfetivo <= 0 ||
+              semSelecao ||
               (jaConfirmado && !isAdmin)
             }
+            title={semSelecao ? "Selecione ao menos uma nota" : undefined}
           >
             {enviar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {tipo === "ADICIONAL" ? "Lançar adicional" : "Confirmar e enviar"}

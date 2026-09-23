@@ -242,6 +242,7 @@ function montarTextoTarefa(
   motivo: MotivoAdicional | null,
   observacao: string | null,
   dataPagamento: string,
+  selecionados: Set<string> | null = null,
 ): string {
   const linhas: string[] = [];
   const titulo =
@@ -254,9 +255,15 @@ function montarTextoTarefa(
     `Instrução de pagamento: efetuar o pagamento em ${formatarDataBr(dataPagamento)} (prazo de ${PRAZO_PAGAMENTO_DIAS} dias).`,
   );
   linhas.push("");
+  if (selecionados) {
+    linhas.push("Notas fiscais consideradas neste lançamento adicional:");
+    linhas.push("");
+  }
   for (const f of filiais) {
+    if (selecionados && !f.pedidos.some((p) => selecionados.has(p.cod_pedido))) continue;
     linhas.push(`Filial de faturamento ${f.cod_filial}`);
     for (const p of f.pedidos) {
+      if (selecionados && !selecionados.has(p.cod_pedido)) continue;
       linhas.push(
         `  Pedido ${p.cod_pedido}${p.nro_nf ? ` | NF ${p.nro_nf}` : ""}${p.bordero ? ` | Borderô ${p.bordero}` : ""} | ${p.cliente} | Mercadoria ${brl(p.valor_mercadoria)} | Frete ${brl(p.frete)}`,
       );
@@ -265,7 +272,10 @@ function montarTextoTarefa(
     linhas.push("");
   }
   linhas.push("Resumo por filial de faturamento");
-  for (const f of filiais) linhas.push(`  Filial ${f.cod_filial}: ${brl(f.frete)}`);
+  for (const f of filiais) {
+    if (selecionados && !f.pedidos.some((p) => selecionados.has(p.cod_pedido))) continue;
+    linhas.push(`  Filial ${f.cod_filial}: ${brl(f.frete)}`);
+  }
   linhas.push(`  Total: ${brl(valor)}`);
   if (observacao) {
     linhas.push("");
@@ -279,13 +289,18 @@ function agrupar(
   expedicao: Map<string, DadosExpedicao>,
   clientes: Map<string, string>,
   valor: number,
+  selecionados: Set<string> | null,
 ): {
   filiais: FilialPagamento[];
   semBordero: number;
   semFaturamento: number;
   valorMercadoria: number;
+  selecionadosAplicados: string[];
 } {
-  const pesos = pedidos.map((p) => Number(p.valor_mercadoria ?? 0));
+  const incluido = (cod: string) => !selecionados || selecionados.has(cod);
+  // Pedidos fora da seleção entram com peso 0: continuam visíveis, mas não
+  // recebem rateio do valor adicional.
+  const pesos = pedidos.map((p) => (incluido(p.cod_pedido) ? Number(p.valor_mercadoria ?? 0) : 0));
   const rateado = ratear(valor, pesos);
 
   const grupos = new Map<string, FilialPagamento>();
@@ -296,8 +311,10 @@ function agrupar(
     // Borderô: primeiro o gravado no pedido; senão o espelho de entregas.
     const bordero = p.bordero ?? exp?.bordero ?? null;
     const nf = exp?.nro_nf ?? null;
-    if (!bordero) semBordero += 1;
-    if (!nf) semFaturamento += 1;
+    if (incluido(p.cod_pedido)) {
+      if (!bordero) semBordero += 1;
+      if (!nf) semFaturamento += 1;
+    }
     // A gravação no ERP é por filial de faturamento da nota + NF + borderô.
     const filial = exp?.cod_filial ?? p.cod_filial ?? "SEM FILIAL";
     const item: PedidoPagamento = {
@@ -310,7 +327,7 @@ function agrupar(
     };
     const g = grupos.get(filial) ?? { cod_filial: filial, pedidos: [], valor_mercadoria: 0, frete: 0 };
     g.pedidos.push(item);
-    g.valor_mercadoria = cent(g.valor_mercadoria + item.valor_mercadoria);
+    g.valor_mercadoria = cent(g.valor_mercadoria + (incluido(p.cod_pedido) ? item.valor_mercadoria : 0));
     g.frete = cent(g.frete + item.frete);
     grupos.set(filial, g);
   });
@@ -326,6 +343,7 @@ function agrupar(
     semBordero,
     semFaturamento,
     valorMercadoria: cent(pesos.reduce((s, v) => s + v, 0)),
+    selecionadosAplicados: pedidos.map((p) => p.cod_pedido).filter(incluido),
   };
 }
 
@@ -336,6 +354,8 @@ export async function montarPreviewPagamentoRota(params: {
   motivo?: MotivoAdicional | null;
   observacao?: string | null;
   dataPagamento?: string | null;
+  /** Pedidos escolhidos (só vale para lançamento adicional). */
+  pedidos?: string[] | null;
 }): Promise<PreviewPagamentoRota> {
   const rota = await carregarRota(params.routeId);
   const pedidos = await carregarPedidos(params.routeId);
@@ -346,11 +366,19 @@ export async function montarPreviewPagamentoRota(params: {
 
   const valor = cent(Number(params.valor ?? 0));
   const dataPagamento = normalizarDataPagamento(params.dataPagamento);
-  const { filiais, semBordero, semFaturamento, valorMercadoria } = agrupar(
+
+  const escolhidos = (params.pedidos ?? []).map((c) => String(c));
+  const selecao =
+    params.tipo === "ADICIONAL" && escolhidos.length > 0 && escolhidos.length < pedidos.length
+      ? new Set(escolhidos)
+      : null;
+
+  const { filiais, semBordero, semFaturamento, valorMercadoria, selecionadosAplicados } = agrupar(
     pedidos,
     expedicao,
     clientes,
     valor,
+    selecao,
   );
 
   return {
@@ -359,11 +387,12 @@ export async function montarPreviewPagamentoRota(params: {
     erp_route_id: rota.erp_route_id,
     valor,
     valor_mercadoria: valorMercadoria,
-    total_pedidos: pedidos.length,
+    total_pedidos: selecionadosAplicados.length,
     pedidos_sem_bordero: semBordero,
     pedidos_sem_faturamento: semFaturamento,
     ja_confirmado: rota.frete_confirmado_em != null,
     data_pagamento: dataPagamento,
+    pedidos_selecionados: selecionadosAplicados,
     filiais,
     texto_tarefa: montarTextoTarefa(
       rota,
@@ -373,6 +402,7 @@ export async function montarPreviewPagamentoRota(params: {
       params.motivo ?? null,
       params.observacao ?? null,
       dataPagamento,
+      selecao,
     ),
   };
 }
@@ -384,6 +414,8 @@ export async function confirmarPagamentoRota(params: {
   motivo: MotivoAdicional | null;
   observacao: string | null;
   dataPagamento?: string | null;
+  /** Pedidos escolhidos (só vale para lançamento adicional). */
+  pedidos?: string[] | null;
   userId: string;
   isAdmin: boolean;
 }) {
@@ -407,7 +439,9 @@ export async function confirmarPagamentoRota(params: {
     motivo: params.motivo,
     observacao: params.observacao,
     dataPagamento,
+    pedidos: params.pedidos ?? null,
   });
+  const selecao = new Set(preview.pedidos_selecionados);
   if (preview.pedidos_sem_bordero > 0) {
     throw new Error(
       `Ainda há ${preview.pedidos_sem_bordero} pedido(s) sem borderô. Confirme o pagamento somente depois que todos os pedidos estiverem com borderô.`,
@@ -464,7 +498,9 @@ export async function confirmarPagamentoRota(params: {
   };
 
   const linhas = preview.filiais.flatMap((f) =>
-    f.pedidos.map((p) => ({
+    f.pedidos
+      .filter((p) => selecao.has(p.cod_pedido))
+      .map((p) => ({
       ordem_pagamento_id: ordemId,
       route_id: params.routeId,
       cod_filial: f.cod_filial,
@@ -523,11 +559,13 @@ export async function confirmarPagamentoRota(params: {
       data_pagamento: dataPagamento,
       observacao: params.observacao,
       texto_tarefa: preview.texto_tarefa,
-      filiais: preview.filiais.map((f) => ({
+      filiais: preview.filiais
+        .filter((f) => f.pedidos.some((p) => selecao.has(p.cod_pedido)))
+        .map((f) => ({
         cod_filial: f.cod_filial,
         valor_frete: f.frete,
         valor_mercadoria: f.valor_mercadoria,
-        pedidos: f.pedidos.map((p) => ({
+        pedidos: f.pedidos.filter((p) => selecao.has(p.cod_pedido)).map((p) => ({
           cod_pedido: p.cod_pedido,
           nro_nf: p.nro_nf,
           bordero: p.bordero,
