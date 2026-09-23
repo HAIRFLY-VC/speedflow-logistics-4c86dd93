@@ -91,7 +91,7 @@ function PedidosSemRotaPage() {
         todos.push(...(data ?? []));
         if (!data || data.length < PAGINA) break;
       }
-      return todos as NonNullable<Awaited<ReturnType<typeof buscarTipo>>>;
+      return todos;
     },
   });
 
