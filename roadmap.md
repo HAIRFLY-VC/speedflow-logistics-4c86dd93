@@ -1,0 +1,3 @@
+- [x] Remover os cartões de resumo apenas da tela Autorizar pagamento de frete.
+- [x] Exibir as rotas em tabela sem agrupamento, inclusive em telas estreitas.
+- [x] Permitir filtros por coluna e restaurá-los automaticamente para cada usuário.
