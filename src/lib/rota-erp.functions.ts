@@ -83,7 +83,7 @@ export const listarResponsaveisErp = createServerFn({ method: "GET" })
   .handler(async () => {
     const { data: espelho } = await centralDb
       .from("erp_responsaveis")
-      .select("cod_erp, razao_social, tipo_frete, atualizado_em")
+      .select("cod_erp, razao_social, tipo_frete, pix, atualizado_em")
       .not("tipo_frete", "is", null)
       .order("razao_social", { ascending: true })
       .limit(20000);
@@ -92,6 +92,7 @@ export const listarResponsaveisErp = createServerFn({ method: "GET" })
       cod_erp: string;
       razao_social: string | null;
       tipo_frete: "P" | "F" | "T" | null;
+      pix: string | null;
       atualizado_em: string | null;
     }[];
     const maisRecente = linhas.reduce(
@@ -107,6 +108,7 @@ export const listarResponsaveisErp = createServerFn({ method: "GET" })
         razaoSocial: String(l.razao_social).trim(),
         codErp: String(l.cod_erp).trim(),
         tipoFrete: l.tipo_frete as "P" | "F" | "T",
+        pix: l.pix?.trim() || null,
       }))
       .sort((a, b) => a.razaoSocial.localeCompare(b.razaoSocial));
 
