@@ -323,7 +323,9 @@ function FreightInput({
   const confirmado = route.frete_confirmado_em != null;
   // Somente rotas de fretista permitem digitar o valor do frete.
   // Enquanto o pagamento não for confirmado, o valor pode ser digitado/alterado.
-  const editable = tipo === "F" && (!confirmado || isAdmin);
+  // Após a confirmação do pagamento o valor fica bloqueado para todos;
+  // alterações passam pelo botão "Reabrir / Lançar adicional".
+  const editable = tipo === "F" && !confirmado;
 
   const numero = Number(value.replace(",", "."));
   const valorNum = Number.isFinite(numero) ? numero : 0;
@@ -334,7 +336,7 @@ function FreightInput({
 
   // Grava o valor planejado ao sair do campo, sem criar pagamento.
   const salvarPlanejado = async () => {
-    if (estimated) return;
+    if (estimated || confirmado) return;
     const n = value.trim() === "" ? 0 : Number(value.replace(",", "."));
     if (!Number.isFinite(n) || n < 0 || Math.abs(n - initial) < 0.000001) return;
     setSalvando(true);
@@ -358,12 +360,49 @@ function FreightInput({
     : undefined;
 
   if (!editable) {
-    if (!value) return <span className="text-muted-foreground">—</span>;
+    if (!value && !confirmado) return <span className="text-muted-foreground">—</span>;
     return (
-      <span className={`inline-flex items-center gap-1 tabular-nums ${estimated ? "italic text-amber-600" : ""}`} title={estimated ? title : undefined}>
-        {estimated && <Calculator className="h-3 w-3" />}
-        {Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-      </span>
+      <div className="flex flex-col items-end gap-1">
+        <span
+          className={`inline-flex items-center gap-1 tabular-nums ${estimated ? "italic text-amber-600" : ""}`}
+          title={
+            confirmado
+              ? "Pagamento confirmado — valor bloqueado; use Reabrir / Lançar adicional"
+              : estimated
+                ? title
+                : undefined
+          }
+        >
+          {estimated && <Calculator className="h-3 w-3" />}
+          {value
+            ? Number(value).toLocaleString("pt-BR", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })
+            : "—"}
+        </span>
+        {confirmado && (
+          <span className="rounded border border-emerald-500/30 bg-emerald-500/15 px-1 py-0.5 text-[10px] font-semibold text-emerald-600">
+            Pgto confirmado
+          </span>
+        )}
+        {confirmado && mostrarConfirmar && (
+          <Button
+            size="sm"
+            variant="outline"
+            className={`h-6 px-2 text-[11px] ${podeConfirmar ? "" : "cursor-not-allowed"}`}
+            disabled={!podeConfirmar}
+            title={
+              !isAdmin
+                ? "Apenas administradores podem reabrir ou lançar valores adicionais"
+                : undefined
+            }
+            onClick={() => onConfirmar(route, valorNum)}
+          >
+            Reabrir / Lançar adicional
+          </Button>
+        )}
+      </div>
     );
   }
 
