@@ -344,6 +344,8 @@ export async function montarPreviewPagamentoRota(params: {
   motivo?: MotivoAdicional | null;
   observacao?: string | null;
   dataPagamento?: string | null;
+  /** Pedidos escolhidos (só vale para lançamento adicional). */
+  pedidos?: string[] | null;
 }): Promise<PreviewPagamentoRota> {
   const rota = await carregarRota(params.routeId);
   const pedidos = await carregarPedidos(params.routeId);
@@ -354,11 +356,19 @@ export async function montarPreviewPagamentoRota(params: {
 
   const valor = cent(Number(params.valor ?? 0));
   const dataPagamento = normalizarDataPagamento(params.dataPagamento);
-  const { filiais, semBordero, semFaturamento, valorMercadoria } = agrupar(
+
+  const escolhidos = (params.pedidos ?? []).map((c) => String(c));
+  const selecao =
+    params.tipo === "ADICIONAL" && escolhidos.length > 0 && escolhidos.length < pedidos.length
+      ? new Set(escolhidos)
+      : null;
+
+  const { filiais, semBordero, semFaturamento, valorMercadoria, selecionadosAplicados } = agrupar(
     pedidos,
     expedicao,
     clientes,
     valor,
+    selecao,
   );
 
   return {
@@ -367,11 +377,12 @@ export async function montarPreviewPagamentoRota(params: {
     erp_route_id: rota.erp_route_id,
     valor,
     valor_mercadoria: valorMercadoria,
-    total_pedidos: pedidos.length,
+    total_pedidos: selecionadosAplicados.length,
     pedidos_sem_bordero: semBordero,
     pedidos_sem_faturamento: semFaturamento,
     ja_confirmado: rota.frete_confirmado_em != null,
     data_pagamento: dataPagamento,
+    pedidos_selecionados: selecionadosAplicados,
     filiais,
     texto_tarefa: montarTextoTarefa(
       rota,
@@ -381,6 +392,7 @@ export async function montarPreviewPagamentoRota(params: {
       params.motivo ?? null,
       params.observacao ?? null,
       dataPagamento,
+      selecao,
     ),
   };
 }
