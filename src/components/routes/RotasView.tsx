@@ -26,7 +26,6 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   listarResponsaveisErp,
   listarResponsaveisDeRotasErp,
-  listarNaturezasPorCodigoErp,
   sincronizarResponsaveisPorCodigo,
   type ResponsavelErp,
 } from "@/lib/rota-erp.functions";
@@ -803,19 +802,6 @@ export function RotasView({
       .catch(() => undefined);
   }, [codigosAusentes, responsaveisLocaisQ.isFetching, sincronizarAusentes, qc]);
 
-
-  /** Naturezas buscadas diretamente por código, sem filtro de natureza. */
-  const listarNaturezas = useServerFn(listarNaturezasPorCodigoErp);
-  const codsParaNatureza = useMemo(
-    () => Array.from(new Set(codResponsavelPorRota.values())).sort(),
-    [codResponsavelPorRota],
-  );
-  const naturezasQ = useQuery({
-    queryKey: ["naturezas-erp", codsParaNatureza],
-    queryFn: () => listarNaturezas({ data: { cods: codsParaNatureza } }),
-    enabled: codsParaNatureza.length > 0,
-    staleTime: 5 * 60 * 1000,
-  });
 
   const responsavelPorRota = useMemo(() => {
     const map = new Map<string, ResponsavelErp>();
