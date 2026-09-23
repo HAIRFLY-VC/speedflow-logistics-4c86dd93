@@ -39,6 +39,13 @@ import {
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const ROTULO_FILA: Record<string, string> = {
+  PENDENTE: "Aguardando envio",
+  PROCESSANDO: "Processando",
+  CONCLUIDO: "Concluído",
+  ERRO: "Erro",
+};
+
 export function PagamentoRotaDialog({
   routeId,
   rotulo,
