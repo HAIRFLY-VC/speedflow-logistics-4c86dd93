@@ -99,13 +99,16 @@ function PendenciasIntegracaoPage() {
     queryKey: ["pendencias-integracao", incluirResolvidas],
     queryFn: () => listar({ data: { incluirResolvidas } }),
     refetchInterval: 60_000,
+    retry: 1,
   });
 
   const tentativas = useQuery<TentativaHistorico[]>({
     queryKey: ["pendencia-historico", verHistorico?.raiz_id],
     queryFn: () => historico({ data: { raizId: verHistorico!.raiz_id } }),
     enabled: Boolean(verHistorico),
+    retry: 1,
   });
+
 
   function recarregar() {
     void qc.invalidateQueries({ queryKey: ["pendencias-integracao"] });
