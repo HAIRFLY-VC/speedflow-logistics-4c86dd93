@@ -28,6 +28,7 @@ import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedMinhasRotasRouteImport } from './routes/_authenticated/minhas-rotas'
 import { Route as AuthenticatedPagamentoFretesRouteImport } from './routes/_authenticated/pagamento-fretes'
 import { Route as AuthenticatedPedidosSemRotaRouteImport } from './routes/_authenticated/pedidos-sem-rota'
+import { Route as AuthenticatedPendenciasIntegracaoRouteImport } from './routes/_authenticated/pendencias-integracao'
 import { Route as AuthenticatedSeparacaoRouteImport } from './routes/_authenticated/separacao'
 import { Route as AuthenticatedSugestaoRotasRouteImport } from './routes/_authenticated/sugestao-rotas'
 import { Route as AuthenticatedTabelasFreteRouteImport } from './routes/_authenticated/tabelas-frete'
@@ -150,6 +151,12 @@ const AuthenticatedPedidosSemRotaRoute =
   AuthenticatedPedidosSemRotaRouteImport.update({
     id: '/pedidos-sem-rota',
     path: '/pedidos-sem-rota',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPendenciasIntegracaoRoute =
+  AuthenticatedPendenciasIntegracaoRouteImport.update({
+    id: '/pendencias-integracao',
+    path: '/pendencias-integracao',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedSeparacaoRoute = AuthenticatedSeparacaoRouteImport.update({
@@ -287,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/pagamento-fretes': typeof AuthenticatedPagamentoFretesRoute
   '/pedidos-sem-rota': typeof AuthenticatedPedidosSemRotaRoute
+  '/pendencias-integracao': typeof AuthenticatedPendenciasIntegracaoRoute
   '/separacao': typeof AuthenticatedSeparacaoRoute
   '/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
   '/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
@@ -327,6 +335,7 @@ export interface FileRoutesByTo {
   '/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/pagamento-fretes': typeof AuthenticatedPagamentoFretesRoute
   '/pedidos-sem-rota': typeof AuthenticatedPedidosSemRotaRoute
+  '/pendencias-integracao': typeof AuthenticatedPendenciasIntegracaoRoute
   '/separacao': typeof AuthenticatedSeparacaoRoute
   '/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
   '/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
@@ -370,6 +379,7 @@ export interface FileRoutesById {
   '/_authenticated/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/_authenticated/pagamento-fretes': typeof AuthenticatedPagamentoFretesRoute
   '/_authenticated/pedidos-sem-rota': typeof AuthenticatedPedidosSemRotaRoute
+  '/_authenticated/pendencias-integracao': typeof AuthenticatedPendenciasIntegracaoRoute
   '/_authenticated/separacao': typeof AuthenticatedSeparacaoRoute
   '/_authenticated/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
   '/_authenticated/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
@@ -413,6 +423,7 @@ export interface FileRouteTypes {
     | '/minhas-rotas'
     | '/pagamento-fretes'
     | '/pedidos-sem-rota'
+    | '/pendencias-integracao'
     | '/separacao'
     | '/sugestao-rotas'
     | '/tabelas-frete'
@@ -453,6 +464,7 @@ export interface FileRouteTypes {
     | '/minhas-rotas'
     | '/pagamento-fretes'
     | '/pedidos-sem-rota'
+    | '/pendencias-integracao'
     | '/separacao'
     | '/sugestao-rotas'
     | '/tabelas-frete'
@@ -495,6 +507,7 @@ export interface FileRouteTypes {
     | '/_authenticated/minhas-rotas'
     | '/_authenticated/pagamento-fretes'
     | '/_authenticated/pedidos-sem-rota'
+    | '/_authenticated/pendencias-integracao'
     | '/_authenticated/separacao'
     | '/_authenticated/sugestao-rotas'
     | '/_authenticated/tabelas-frete'
@@ -666,6 +679,13 @@ declare module '@tanstack/react-router' {
       path: '/pedidos-sem-rota'
       fullPath: '/pedidos-sem-rota'
       preLoaderRoute: typeof AuthenticatedPedidosSemRotaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pendencias-integracao': {
+      id: '/_authenticated/pendencias-integracao'
+      path: '/pendencias-integracao'
+      fullPath: '/pendencias-integracao'
+      preLoaderRoute: typeof AuthenticatedPendenciasIntegracaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/separacao': {
@@ -851,6 +871,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMinhasRotasRoute: typeof AuthenticatedMinhasRotasRoute
   AuthenticatedPagamentoFretesRoute: typeof AuthenticatedPagamentoFretesRoute
   AuthenticatedPedidosSemRotaRoute: typeof AuthenticatedPedidosSemRotaRoute
+  AuthenticatedPendenciasIntegracaoRoute: typeof AuthenticatedPendenciasIntegracaoRoute
   AuthenticatedSeparacaoRoute: typeof AuthenticatedSeparacaoRoute
   AuthenticatedSugestaoRotasRoute: typeof AuthenticatedSugestaoRotasRoute
   AuthenticatedTabelasFreteRoute: typeof AuthenticatedTabelasFreteRoute
@@ -881,6 +902,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMinhasRotasRoute: AuthenticatedMinhasRotasRoute,
   AuthenticatedPagamentoFretesRoute: AuthenticatedPagamentoFretesRoute,
   AuthenticatedPedidosSemRotaRoute: AuthenticatedPedidosSemRotaRoute,
+  AuthenticatedPendenciasIntegracaoRoute:
+    AuthenticatedPendenciasIntegracaoRoute,
   AuthenticatedSeparacaoRoute: AuthenticatedSeparacaoRoute,
   AuthenticatedSugestaoRotasRoute: AuthenticatedSugestaoRotasRoute,
   AuthenticatedTabelasFreteRoute: AuthenticatedTabelasFreteRoute,
