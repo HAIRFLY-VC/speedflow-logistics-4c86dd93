@@ -8,7 +8,11 @@ const SQL_RESPONSIVEIS = `select TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOCIAL, T.DB
 
 const SQL_CADASTRO_RESPONSAVEIS = `select TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOCIAL,
        TRIM(T.DBA_TIP_CODIGO_1) COD_ERP,
-       T.DBA_TIP_NATUREZA COD_NAT
+       T.DBA_TIP_NATUREZA COD_NAT,
+       (select max(trim(C.DBA_CONT_EMAIL))
+          from gks.a_cadccont C
+         where C.DBA_CONT_CODIGO = T.DBA_TIP_CODIGO_1
+           and upper(trim(C.DBA_CONT_CONTATO)) = 'PIX') PIX
   from gks.a_cadctipo T
  where T.DBA_TIP_NATUREZA in ('ET','EF','EM')`;
 
@@ -18,6 +22,8 @@ export type ResponsavelErp = {
   razaoSocial: string;
   codErp: string;
   tipoFrete: "P" | "F" | "T";
+  /** Chave PIX do responsável (contato 'PIX' no ERP), quando houver. */
+  pix: string | null;
 };
 
 function getField(row: Record<string, unknown>, field: string): unknown {
