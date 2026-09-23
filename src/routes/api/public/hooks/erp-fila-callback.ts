@@ -56,16 +56,33 @@ async function processar(request: Request) {
     .maybeSingle();
   if (!atual) return Response.json({ error: "Item não encontrado" }, { status: 404 });
 
+  const tentativas = Number(atual.tentativas ?? 0) + 1;
+  const { minutosAteProximaTentativa, registrarTentativa } = await import(
+    "@/lib/fila-retry.server"
+  );
   const { error } = await centralDb
     .from(tabela)
     .update({
       status: ok ? "CONCLUIDO" : "ERRO",
-      tentativas: Number(atual.tentativas ?? 0) + 1,
+      tentativas,
       ultimo_erro: ok ? null : (body.erro ?? "Falha no processamento"),
       referencia_erp: body.referencia_erp ?? null,
+      // Sem horário marcado a rotina automática nunca reprocessaria o item.
+      proxima_tentativa_em: ok
+        ? null
+        : new Date(Date.now() + minutosAteProximaTentativa(tentativas) * 60_000).toISOString(),
       processado_em: new Date().toISOString(),
     })
     .eq("id", body.fila_id);
+  await registrarTentativa({
+    fila: body.fila === "financeiro" ? "financeiro" : "valores",
+    filaId: body.fila_id,
+    raizId: body.fila_id,
+    tentativa: tentativas,
+    ok,
+    mensagem: ok ? "Processado com sucesso" : (body.erro ?? "Falha no processamento"),
+    origem: "CALLBACK",
+  });
   if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
 
   // Ordem concluída quando não resta nenhum item pendente/erro nas duas filas.
