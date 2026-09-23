@@ -126,14 +126,12 @@ function emailConfigurado(): boolean {
 }
 
 async function enviarEmail(destino: string, quantidade: number, texto: string): Promise<void> {
-  const { sendEmail } = await import("@lovable.dev/email-js");
-  await sendEmail({
-    from: process.env["EMAIL_FROM_ADDRESS"]!,
-    to: destino,
-    subject: `SpeedFlow — ${quantidade} pendência(s) de integração`,
-    html: `<p>${texto.replace(LINK, `<a href="${LINK}">${LINK}</a>`)}</p>`,
-    text: texto,
-  } as never);
+  // O envio de e-mail depende de um domínio de remetente configurado no app.
+  // Enquanto não houver, o aviso segue apenas pelos demais canais.
+  void destino;
+  void quantidade;
+  void texto;
+  throw new Error("Envio de e-mail ainda não configurado");
 }
 
 /* ------------------------------- Disparo ------------------------------- */
