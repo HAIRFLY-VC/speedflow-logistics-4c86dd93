@@ -623,6 +623,18 @@ export async function syncErpOrders(opts: {
     console.warn("[erp-sync] não foi possível fechar execuções presas:", e);
   }
 
+  // 0b) Evita duas execuções simultâneas.
+  {
+    const { data: ativa } = await centralDb
+      .from("erp_sync_runs")
+      .select("id")
+      .eq("status", "running")
+      .gte("started_at", new Date(Date.now() - 10 * 60 * 1000).toISOString())
+      .limit(1)
+      .maybeSingle();
+    if (ativa) throw new Error("Sincronização já em andamento. Aguarde alguns minutos.");
+  }
+
   // 1) Abre execução
   const { data: run, error: runErr } = await centralDb
     .from("erp_sync_runs")
