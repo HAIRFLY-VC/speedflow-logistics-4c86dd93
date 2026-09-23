@@ -91,3 +91,27 @@ export const listarPagamentosRota = createServerFn({ method: "POST" })
     const { listarPagamentosDaRota } = await import("./rota-pagamento.server");
     return listarPagamentosDaRota(data.routeId);
   });
+
+/** Situação dos envios ao ERP e ao financeiro gerados pela rota. */
+export const listarFilasRota = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ routeId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await podeAutorizar(context as unknown as Ctx);
+    const { listarFilasDaRota } = await import("./rota-pagamento.server");
+    return listarFilasDaRota(data.routeId);
+  });
+
+/** Reenvia um item de fila (ERP ou financeiro) da rota. */
+export const reenviarFilaRota = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({ fila: z.enum(["valores", "financeiro"]), filaId: z.string().uuid() })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await podeAutorizar(context as unknown as Ctx);
+    const { reenviarItemFila } = await import("./frete-aprovacao.server");
+    return reenviarItemFila(data.fila, data.filaId);
+  });

@@ -80,6 +80,8 @@ type RotaCarregada = {
   erp_route_id: string | null;
   total_freight: number;
   frete_confirmado_em: string | null;
+  driver_name: string | null;
+  erp_carrier_code: string | null;
 };
 
 type PedidoCarregado = {
@@ -94,7 +96,9 @@ type PedidoCarregado = {
 async function carregarRota(routeId: string): Promise<RotaCarregada> {
   const { data, error } = await centralDb
     .from("routes")
-    .select("id, code, notes, erp_route_id, total_freight, frete_confirmado_em")
+    .select(
+      "id, code, notes, erp_route_id, total_freight, frete_confirmado_em, driver_name, erp_carrier_code",
+    )
     .eq("id", routeId)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -107,6 +111,8 @@ async function carregarRota(routeId: string): Promise<RotaCarregada> {
     erp_route_id: r.erp_route_id ?? null,
     total_freight: Number(r.total_freight ?? 0),
     frete_confirmado_em: r.frete_confirmado_em ?? null,
+    driver_name: (r.driver_name ?? "").trim() || null,
+    erp_carrier_code: (r.erp_carrier_code ?? "").trim() || null,
   };
 }
 
@@ -184,6 +190,21 @@ async function dadosDeExpedicao(codPedidos: string[]): Promise<Map<string, Dados
         bordero: atual?.bordero ?? bordero,
         cod_filial: atual?.cod_filial ?? filial,
         nro_nf: atual?.nro_nf ?? nf,
+      });
+    }
+  }
+
+  // Pedidos já com borderô emitido saem do espelho: busca a nota no ERP.
+  const semNota = codPedidos.filter((c) => !map.get(c)?.nro_nf);
+  if (semNota.length > 0) {
+    const { buscarNotasPorPedido } = await import("./frete-nota-erp.server");
+    const notas = await buscarNotasPorPedido(semNota);
+    for (const [cod, n] of notas) {
+      const atual = map.get(cod);
+      map.set(cod, {
+        bordero: atual?.bordero ?? n.bordero,
+        cod_filial: atual?.cod_filial ?? n.cod_filial,
+        nro_nf: atual?.nro_nf ?? n.nro_nf,
       });
     }
   }
@@ -277,7 +298,8 @@ function agrupar(
     const nf = exp?.nro_nf ?? null;
     if (!bordero) semBordero += 1;
     if (!nf) semFaturamento += 1;
-    const filial = p.cod_filial ?? exp?.cod_filial ?? "SEM FILIAL";
+    // A gravação no ERP é por filial de faturamento da nota + NF + borderô.
+    const filial = exp?.cod_filial ?? p.cod_filial ?? "SEM FILIAL";
     const item: PedidoPagamento = {
       cod_pedido: p.cod_pedido,
       cliente: (p.cod_cliente ? clientes.get(p.cod_cliente) : null) ?? p.cod_cliente ?? "—",
@@ -391,6 +413,11 @@ export async function confirmarPagamentoRota(params: {
       `Ainda há ${preview.pedidos_sem_bordero} pedido(s) sem borderô. Confirme o pagamento somente depois que todos os pedidos estiverem com borderô.`,
     );
   }
+  if (preview.pedidos_sem_faturamento > 0) {
+    throw new Error(
+      `Ainda há ${preview.pedidos_sem_faturamento} pedido(s) sem nota fiscal. O lançamento no ERP é feito por filial + nota fiscal + borderô, então todos os pedidos precisam estar faturados.`,
+    );
+  }
 
   const agora = new Date().toISOString();
   const { data: ordem, error: ordemErr } = await centralDb
@@ -442,6 +469,7 @@ export async function confirmarPagamentoRota(params: {
       route_id: params.routeId,
       cod_filial: f.cod_filial,
       cod_pedido: p.cod_pedido,
+      nro_nf: p.nro_nf,
       bordero: p.bordero,
       ...zerados,
       [campo]: p.frete,
@@ -453,6 +481,7 @@ export async function confirmarPagamentoRota(params: {
         erp_route_id: preview.erp_route_id,
         cod_filial: f.cod_filial,
         cod_pedido: p.cod_pedido,
+        nro_nf: p.nro_nf,
         bordero: p.bordero,
         tipo_pagamento: params.tipo,
         motivo_adicional: params.motivo,
@@ -478,6 +507,14 @@ export async function confirmarPagamentoRota(params: {
       route_id: params.routeId,
       rota: preview.rota,
       erp_route_id: preview.erp_route_id,
+      titulo_tarefa:
+        params.tipo === "FRETE"
+          ? `#FRETE Rota ${preview.rota}${rota.driver_name ? ` — ${rota.driver_name}` : ""}`
+          : `#FRETE Adicional (${rotuloMotivo(params.motivo) ?? "adicional"}) — Rota ${preview.rota}${rota.driver_name ? ` — ${rota.driver_name}` : ""}`,
+      responsavel_frete: {
+        nome: rota.driver_name,
+        cod_erp: rota.erp_carrier_code,
+      },
       tipo_pagamento: params.tipo,
       motivo_adicional: params.motivo,
       valor_total: valor,
@@ -490,6 +527,7 @@ export async function confirmarPagamentoRota(params: {
         valor_mercadoria: f.valor_mercadoria,
         pedidos: f.pedidos.map((p) => ({
           cod_pedido: p.cod_pedido,
+          nro_nf: p.nro_nf,
           bordero: p.bordero,
           cliente: p.cliente,
           valor_mercadoria: p.valor_mercadoria,
@@ -599,4 +637,96 @@ export async function listarPagamentosDaRota(
       tarefa_erro: f?.ultimo_erro ?? null,
     };
   });
+}
+
+export type FilaRotaDados = {
+  financeiro_configurado: boolean;
+  valores: {
+    id: string;
+    ordem_pagamento_id: string | null;
+    cod_filial: string | null;
+    cod_pedido: string | null;
+    nro_nf: string | null;
+    bordero: string | null;
+    status: string;
+    tentativas: number | null;
+    ultimo_erro: string | null;
+    referencia_erp: string | null;
+    processado_em: string | null;
+    valor: number;
+  }[];
+  financeiro: {
+    id: string;
+    ordem_pagamento_id: string | null;
+    status: string;
+    tentativas: number | null;
+    ultimo_erro: string | null;
+    referencia_erp: string | null;
+    processado_em: string | null;
+    created_at: string;
+  }[];
+};
+
+/** Situação atual dos envios (ERP e financeiro) gerados pela rota. */
+export async function listarFilasDaRota(routeId: string): Promise<FilaRotaDados> {
+  const [{ data: valores }, { data: financeiro }, { data: cfg }] = await Promise.all([
+    centralDb
+      .from("fila_lancamento_erp_frete")
+      .select(
+        "id, ordem_pagamento_id, cod_filial, cod_pedido, nro_nf, bordero, status, tentativas, ultimo_erro, referencia_erp, processado_em, created_at, vlr_frete, vlr_perna, vlr_diaria, vlr_pernoite, vlr_reentrega, vlr_descarrego",
+      )
+      .eq("route_id", routeId)
+      .order("created_at", { ascending: false })
+      .limit(200),
+    centralDb
+      .from("fila_provisionamento_financeiro")
+      .select(
+        "id, ordem_pagamento_id, status, tentativas, ultimo_erro, referencia_erp, processado_em, created_at",
+      )
+      .eq("route_id", routeId)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    centralDb
+      .from("integracao_n8n")
+      .select("webhook_url_financeiro, ativo")
+      .eq("id", 1)
+      .maybeSingle(),
+  ]);
+
+  const cfgRow = cfg as { webhook_url_financeiro?: string | null; ativo?: boolean | null } | null;
+
+  return {
+    financeiro_configurado: Boolean(cfgRow?.webhook_url_financeiro) && Boolean(cfgRow?.ativo),
+    valores: ((valores ?? []) as Record<string, unknown>[]).map((v) => ({
+      id: String(v["id"]),
+      ordem_pagamento_id: (v["ordem_pagamento_id"] as string | null) ?? null,
+      cod_filial: (v["cod_filial"] as string | null) ?? null,
+      cod_pedido: (v["cod_pedido"] as string | null) ?? null,
+      nro_nf: v["nro_nf"] == null ? null : String(v["nro_nf"]),
+      bordero: v["bordero"] == null ? null : String(v["bordero"]),
+      status: String(v["status"] ?? "PENDENTE"),
+      tentativas: (v["tentativas"] as number | null) ?? 0,
+      ultimo_erro: (v["ultimo_erro"] as string | null) ?? null,
+      referencia_erp: (v["referencia_erp"] as string | null) ?? null,
+      processado_em: (v["processado_em"] as string | null) ?? null,
+      valor: cent(
+        Number(v["vlr_frete"] ?? 0) +
+          Number(v["vlr_perna"] ?? 0) +
+          Number(v["vlr_diaria"] ?? 0) +
+          Number(v["vlr_pernoite"] ?? 0) +
+          Number(v["vlr_reentrega"] ?? 0) +
+          Number(v["vlr_descarrego"] ?? 0),
+      ),
+    })),
+    financeiro: ((financeiro ?? []) as Record<string, unknown>[]).map((f) => ({
+      id: String(f["id"]),
+      ordem_pagamento_id: (f["ordem_pagamento_id"] as string | null) ?? null,
+      status: String(f["status"] ?? "PENDENTE"),
+      tentativas: (f["tentativas"] as number | null) ?? 0,
+      ultimo_erro: (f["ultimo_erro"] as string | null) ?? null,
+      referencia_erp: (f["referencia_erp"] as string | null) ?? null,
+      processado_em: (f["processado_em"] as string | null) ?? null,
+      created_at: String(f["created_at"]),
+    })),
+  };
 }

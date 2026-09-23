@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2, ExternalLink, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -10,8 +10,10 @@ import { mensagemErro } from "@/lib/mensagem-erro";
 import { bitrixTaskUrl } from "@/lib/bitrix";
 import {
   confirmarPagamentoRotaFn,
+  listarFilasRota,
   listarPagamentosRota,
   previewPagamentoRota,
+  reenviarFilaRota,
 } from "@/lib/rota-pagamento.functions";
 import {
   MOTIVOS_ADICIONAIS,
@@ -37,6 +39,13 @@ import {
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const ROTULO_FILA: Record<string, string> = {
+  PENDENTE: "Aguardando envio",
+  PROCESSANDO: "Processando",
+  CONCLUIDO: "Concluído",
+  ERRO: "Erro",
+};
+
 export function PagamentoRotaDialog({
   routeId,
   rotulo,
@@ -58,6 +67,8 @@ export function PagamentoRotaDialog({
   const preview = useServerFn(previewPagamentoRota);
   const confirmar = useServerFn(confirmarPagamentoRotaFn);
   const historico = useServerFn(listarPagamentosRota);
+  const filas = useServerFn(listarFilasRota);
+  const reenviarFn = useServerFn(reenviarFilaRota);
 
   const [tipo, setTipo] = useState<TipoPagamentoRota>("FRETE");
   const [motivo, setMotivo] = useState<MotivoAdicional>("PERNOITE");
@@ -114,6 +125,32 @@ export function PagamentoRotaDialog({
     queryFn: () => historico({ data: { routeId: routeId! } }),
   });
 
+  const filasQ = useQuery({
+    queryKey: ["rota-pagamento", "filas", routeId],
+    enabled: open && !!routeId,
+    queryFn: () => filas({ data: { routeId: routeId! } }),
+    refetchInterval: (q) => {
+      const d = q.state.data as
+        | { valores?: { status: string }[]; financeiro?: { status: string }[] }
+        | undefined;
+      const andando = [...(d?.valores ?? []), ...(d?.financeiro ?? [])].some(
+        (i) => i.status === "PENDENTE" || i.status === "PROCESSANDO",
+      );
+      return andando ? 15_000 : false;
+    },
+  });
+
+  const reenviar = useMutation({
+    mutationFn: async (v: { fila: "valores" | "financeiro"; filaId: string }) =>
+      reenviarFn({ data: v }),
+    onSuccess: () => {
+      toast.success("Envio reenviado para a fila.");
+      void qc.invalidateQueries({ queryKey: ["rota-pagamento", "filas", routeId] });
+      void qc.invalidateQueries({ queryKey: ["rota-pagamento", "historico", routeId] });
+    },
+    onError: (e: unknown) => toast.error(mensagemErro(e, "Não foi possível reenviar.")),
+  });
+
   const enviar = useMutation({
     mutationFn: async () =>
       confirmar({
@@ -137,6 +174,7 @@ export function PagamentoRotaDialog({
 
   const p = previewQ.data;
   const semBordero = (p?.pedidos_sem_bordero ?? 0) > 0;
+  const semNota = (p?.pedidos_sem_faturamento ?? 0) > 0;
   const dataInvalida = dataPagamento < dataMinima;
   const recalculando = valorEfetivo !== valorDebounced || previewQ.isFetching;
 
@@ -287,6 +325,14 @@ export function PagamentoRotaDialog({
               </div>
             )}
 
+            {semNota && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+                {p.pedidos_sem_faturamento} pedido(s) ainda sem nota fiscal. O lançamento no ERP é
+                feito por filial + nota fiscal + borderô, então todos os pedidos precisam estar
+                faturados.
+              </div>
+            )}
+
             {p.filiais.map((f) => (
               <div key={f.cod_filial} className="rounded-md border">
                 <div className="flex items-center justify-between border-b bg-muted/40 px-3 py-2 text-sm font-semibold">
@@ -351,6 +397,97 @@ export function PagamentoRotaDialog({
             </div>
           </div>
         )}
+
+        {(filasQ.data?.valores.length ?? 0) > 0 || (filasQ.data?.financeiro.length ?? 0) > 0 ? (
+          <div className="rounded-md border">
+            <div className="border-b bg-muted/40 px-3 py-2 text-sm font-semibold">
+              Envios desta rota
+            </div>
+            <table className="w-full text-xs">
+              <thead className="text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-1 text-left font-medium">Lançamento</th>
+                  <th className="px-3 py-1 text-left font-medium">Situação</th>
+                  <th className="px-3 py-1 text-right font-medium">Tent.</th>
+                  <th className="px-3 py-1 text-left font-medium">Retorno</th>
+                  <th className="px-3 py-1" />
+                </tr>
+              </thead>
+              <tbody>
+                {(filasQ.data?.valores ?? []).map((v) => (
+                  <tr key={v.id} className="border-t">
+                    <td className="px-3 py-1">
+                      ERP · pedido {v.cod_pedido ?? "—"} · NF {v.nro_nf ?? "—"} · filial{" "}
+                      {v.cod_filial ?? "—"} · borderô {v.bordero ?? "—"}
+                      <span className="block text-[10px] text-muted-foreground tabular-nums">
+                        {brl(v.valor)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1">{ROTULO_FILA[v.status] ?? v.status}</td>
+                    <td className="px-3 py-1 text-right tabular-nums">{v.tentativas ?? 0}</td>
+                    <td className="px-3 py-1 text-muted-foreground">
+                      {v.ultimo_erro ?? v.referencia_erp ?? "—"}
+                    </td>
+                    <td className="px-3 py-1 text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title="Reenviar"
+                        disabled={reenviar.isPending || v.status === "CONCLUIDO"}
+                        onClick={() => reenviar.mutate({ fila: "valores", filaId: v.id })}
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                {(filasQ.data?.financeiro ?? []).map((f) => {
+                  const url = f.referencia_erp ? bitrixTaskUrl(f.referencia_erp) : null;
+                  return (
+                    <tr key={f.id} className="border-t">
+                      <td className="px-3 py-1">Tarefa de pagamento (financeiro)</td>
+                      <td className="px-3 py-1">{ROTULO_FILA[f.status] ?? f.status}</td>
+                      <td className="px-3 py-1 text-right tabular-nums">{f.tentativas ?? 0}</td>
+                      <td className="px-3 py-1 text-muted-foreground">
+                        {f.ultimo_erro ??
+                          (url ? (
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-primary underline"
+                            >
+                              Abrir tarefa no Bitrix <ExternalLink className="h-3 w-3" />
+                            </a>
+                          ) : (
+                            "—"
+                          ))}
+                      </td>
+                      <td className="px-3 py-1 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="Reenviar"
+                          disabled={reenviar.isPending || f.status === "CONCLUIDO"}
+                          onClick={() => reenviar.mutate({ fila: "financeiro", filaId: f.id })}
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {!(filasQ.data?.financeiro_configurado ?? true) &&
+            (filasQ.data?.financeiro.length ?? 0) > 0 ? (
+              <p className="border-t bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
+                O fluxo que cria a tarefa de pagamento ainda não está ativo — a solicitação fica
+                aguardando e nenhuma tarefa é aberta no Bitrix.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="rounded-md border">
           <div className="border-b bg-muted/40 px-3 py-2 text-sm font-semibold">
@@ -425,7 +562,7 @@ export function PagamentoRotaDialog({
           <Button
             onClick={() => enviar.mutate()}
             className={
-              enviar.isPending || !p || semBordero || dataInvalida || recalculando || valorEfetivo <= 0 || (jaConfirmado && !isAdmin)
+              enviar.isPending || !p || semBordero || semNota || dataInvalida || recalculando || valorEfetivo <= 0 || (jaConfirmado && !isAdmin)
                 ? "cursor-not-allowed"
                 : "bg-emerald-600 text-white hover:bg-emerald-700"
             }
@@ -433,6 +570,7 @@ export function PagamentoRotaDialog({
               enviar.isPending ||
               !p ||
               semBordero ||
+              semNota ||
               dataInvalida ||
               recalculando ||
               valorEfetivo <= 0 ||
