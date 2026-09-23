@@ -410,6 +410,8 @@ export async function confirmarPagamentoRota(params: {
   motivo: MotivoAdicional | null;
   observacao: string | null;
   dataPagamento?: string | null;
+  /** Pedidos escolhidos (só vale para lançamento adicional). */
+  pedidos?: string[] | null;
   userId: string;
   isAdmin: boolean;
 }) {
