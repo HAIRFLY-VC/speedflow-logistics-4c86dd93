@@ -209,7 +209,8 @@ export async function processarPendencias(): Promise<{
       .in("status", ["ERRO", "PENDENTE"])
       .is("pausada_em", null)
       .is("resolvida_manual_em", null)
-      .lte("proxima_tentativa_em", agora)
+      // Itens antigos ficaram sem horário marcado: também entram na varredura.
+      .or(`proxima_tentativa_em.lte.${agora},proxima_tentativa_em.is.null`)
       .order("proxima_tentativa_em", { ascending: true })
       .limit(50);
     if (error) continue;

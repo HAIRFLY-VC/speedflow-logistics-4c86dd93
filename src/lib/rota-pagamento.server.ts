@@ -510,6 +510,8 @@ export async function confirmarPagamentoRota(params: {
       ...zerados,
       [campo]: p.frete,
       status: "PENDENTE" as const,
+      // Se o ERP não devolver retorno, a rotina automática reprocessa.
+      proxima_tentativa_em: new Date(Date.now() + 30 * 60_000).toISOString(),
       payload: {
         origem: "ROTA",
         route_id: params.routeId,
@@ -540,6 +542,7 @@ export async function confirmarPagamentoRota(params: {
     route_id: params.routeId,
     cte_id: null,
     status: "PENDENTE",
+    proxima_tentativa_em: new Date(Date.now() + 30 * 60_000).toISOString(),
     payload: {
       origem: "ROTA",
       route_id: params.routeId,
@@ -633,18 +636,23 @@ export async function processarTarefaFinanceiraRota(
         tentativas,
         ultimo_erro: null,
         referencia_erp: id,
+        proxima_tentativa_em: null,
         processado_em: new Date().toISOString(),
       } as never)
       .eq("id", filaId);
     return { ok: true, referencia: id };
   } catch (e) {
     const erro = (e as Error).message;
+    const { minutosAteProximaTentativa } = await import("./fila-retry.server");
     await centralDb
       .from("fila_provisionamento_financeiro")
       .update({
         status: "ERRO",
         tentativas,
         ultimo_erro: erro,
+        proxima_tentativa_em: new Date(
+          Date.now() + minutosAteProximaTentativa(tentativas) * 60_000,
+        ).toISOString(),
         processado_em: new Date().toISOString(),
       } as never)
       .eq("id", filaId);
