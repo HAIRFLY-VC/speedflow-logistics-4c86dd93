@@ -200,10 +200,24 @@ function PendenciasIntegracaoPage() {
           </Card>
         </div>
 
-        {consulta.isLoading ? (
+        {consulta.isError ? (
+          <Card>
+            <CardContent className="space-y-3 p-6 text-sm">
+              <p className="text-destructive">
+                Não foi possível carregar as pendências. Sua sessão pode ter expirado — atualize a
+                página ou entre novamente.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => void consulta.refetch()}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Tentar de novo
+              </Button>
+            </CardContent>
+          </Card>
+        ) : consulta.isLoading ? (
           <div className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando pendências…
           </div>
+
         ) : itens.length === 0 ? (
           <Card>
             <CardContent className="p-6 text-sm text-muted-foreground">
