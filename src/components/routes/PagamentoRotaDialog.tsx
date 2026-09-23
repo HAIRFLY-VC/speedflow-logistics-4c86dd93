@@ -352,6 +352,97 @@ export function PagamentoRotaDialog({
           </div>
         )}
 
+        {(filasQ.data?.valores.length ?? 0) > 0 || (filasQ.data?.financeiro.length ?? 0) > 0 ? (
+          <div className="rounded-md border">
+            <div className="border-b bg-muted/40 px-3 py-2 text-sm font-semibold">
+              Envios desta rota
+            </div>
+            <table className="w-full text-xs">
+              <thead className="text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-1 text-left font-medium">Lançamento</th>
+                  <th className="px-3 py-1 text-left font-medium">Situação</th>
+                  <th className="px-3 py-1 text-right font-medium">Tent.</th>
+                  <th className="px-3 py-1 text-left font-medium">Retorno</th>
+                  <th className="px-3 py-1" />
+                </tr>
+              </thead>
+              <tbody>
+                {(filasQ.data?.valores ?? []).map((v) => (
+                  <tr key={v.id} className="border-t">
+                    <td className="px-3 py-1">
+                      ERP · pedido {v.cod_pedido ?? "—"} · NF {v.nro_nf ?? "—"} · filial{" "}
+                      {v.cod_filial ?? "—"} · borderô {v.bordero ?? "—"}
+                      <span className="block text-[10px] text-muted-foreground tabular-nums">
+                        {brl(v.valor)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1">{ROTULO_FILA[v.status] ?? v.status}</td>
+                    <td className="px-3 py-1 text-right tabular-nums">{v.tentativas ?? 0}</td>
+                    <td className="px-3 py-1 text-muted-foreground">
+                      {v.ultimo_erro ?? v.referencia_erp ?? "—"}
+                    </td>
+                    <td className="px-3 py-1 text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title="Reenviar"
+                        disabled={reenviar.isPending || v.status === "CONCLUIDO"}
+                        onClick={() => reenviar.mutate({ fila: "valores", filaId: v.id })}
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                {(filasQ.data?.financeiro ?? []).map((f) => {
+                  const url = f.referencia_erp ? bitrixTaskUrl(f.referencia_erp) : null;
+                  return (
+                    <tr key={f.id} className="border-t">
+                      <td className="px-3 py-1">Tarefa de pagamento (financeiro)</td>
+                      <td className="px-3 py-1">{ROTULO_FILA[f.status] ?? f.status}</td>
+                      <td className="px-3 py-1 text-right tabular-nums">{f.tentativas ?? 0}</td>
+                      <td className="px-3 py-1 text-muted-foreground">
+                        {f.ultimo_erro ??
+                          (url ? (
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-primary underline"
+                            >
+                              Abrir tarefa no Bitrix <ExternalLink className="h-3 w-3" />
+                            </a>
+                          ) : (
+                            "—"
+                          ))}
+                      </td>
+                      <td className="px-3 py-1 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="Reenviar"
+                          disabled={reenviar.isPending || f.status === "CONCLUIDO"}
+                          onClick={() => reenviar.mutate({ fila: "financeiro", filaId: f.id })}
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {!(filasQ.data?.financeiro_configurado ?? true) &&
+            (filasQ.data?.financeiro.length ?? 0) > 0 ? (
+              <p className="border-t bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
+                O fluxo que cria a tarefa de pagamento ainda não está ativo — a solicitação fica
+                aguardando e nenhuma tarefa é aberta no Bitrix.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="rounded-md border">
           <div className="border-b bg-muted/40 px-3 py-2 text-sm font-semibold">
             Histórico de pagamentos
