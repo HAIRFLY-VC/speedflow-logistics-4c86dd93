@@ -96,7 +96,9 @@ type PedidoCarregado = {
 async function carregarRota(routeId: string): Promise<RotaCarregada> {
   const { data, error } = await centralDb
     .from("routes")
-    .select("id, code, notes, erp_route_id, total_freight, frete_confirmado_em")
+    .select(
+      "id, code, notes, erp_route_id, total_freight, frete_confirmado_em, driver_name, erp_carrier_code",
+    )
     .eq("id", routeId)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -109,6 +111,8 @@ async function carregarRota(routeId: string): Promise<RotaCarregada> {
     erp_route_id: r.erp_route_id ?? null,
     total_freight: Number(r.total_freight ?? 0),
     frete_confirmado_em: r.frete_confirmado_em ?? null,
+    driver_name: (r.driver_name ?? "").trim() || null,
+    erp_carrier_code: (r.erp_carrier_code ?? "").trim() || null,
   };
 }
 
