@@ -9,13 +9,14 @@ A autorização da rota 414 (M- ARCOMIX, R$ 700,00) foi gravada em 22/09 às 21:
 
 ## Causa 1 — falta o número da nota no envio ao ERP
 
-A gravação em GER_ENTREGAS é feita por **filial + nota fiscal**, mas o envio da rota manda apenas filial + pedido. Por isso os dois lançamentos foram recusados.
+A gravação em GER_ENTREGAS é feita por **filial + nota fiscal + borderô**, mas o envio da rota manda apenas filial + pedido + borderô. Por isso os dois lançamentos foram recusados.
 
-Correção: cada linha enviada ao ERP passa a levar também o **número da nota fiscal** do pedido (e a chave, quando existir), buscada no espelho de entregas do ERP; quando a nota ainda não estiver disponível, o app consulta o ERP na hora. Como cada pedido tem sempre uma nota, continua uma linha por pedido.
+Correção: cada linha enviada ao ERP passa a levar também o **número da nota fiscal** do pedido (e a chave, quando existir), buscada no espelho de entregas do ERP; quando a nota ainda não estiver disponível, o app consulta o ERP na hora. Como cada pedido tem sempre uma nota, continua uma linha por pedido, agora com a tríade filial + nota + borderô.
+
 
 Além disso:
 
-- A confirmação passa a exigir que **todos os pedidos tenham nota**, com mensagem clara de quantos faltam — hoje o app deixa confirmar e o erro só aparece depois.
+- A confirmação passa a exigir que **todos os pedidos tenham nota e borderô**, com mensagem clara de quantos faltam — hoje o app deixa confirmar sem nota e o erro só aparece depois.
 - A filial usada no lançamento passa a ser a **filial de faturamento da nota**, e não só a do pedido.
 
 ## Causa 2 — a tarefa do Bitrix nunca chegou a ser tentada
