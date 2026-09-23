@@ -123,7 +123,7 @@ export async function historicoTentativas(raizId: string): Promise<TentativaHist
     .eq("raiz_id", raizId)
     .order("criado_em", { ascending: false })
     .limit(50);
-  return ((data ?? []) as unknown as TentativaHistorico[]) ?? [];
+  return (data ?? []) as unknown as TentativaHistorico[];
 }
 
 /** Tenta agora, a pedido do usuário. */
