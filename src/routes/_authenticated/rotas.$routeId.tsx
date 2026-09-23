@@ -58,6 +58,14 @@ const ROUTE_STATUS_TONE: Record<RouteStatus, string> = {
 };
 
 export const Route = createFileRoute("/_authenticated/rotas/$routeId")({
+  head: () => ({ meta: [
+    { title: "Detalhes da rota — SpeedFlow Logistics" },
+    { name: "description", content: "Consulte pedidos, responsável e andamento da rota de entrega." },
+    { property: "og:title", content: "Detalhes da rota — SpeedFlow Logistics" },
+    { property: "og:description", content: "Consulte pedidos, responsável e andamento da rota de entrega." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: RouteDetailPage,
 });
 

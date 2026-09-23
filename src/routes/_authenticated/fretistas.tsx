@@ -25,6 +25,14 @@ import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/fretistas")({
+  head: () => ({ meta: [
+    { title: "Fretistas — SpeedFlow Logistics" },
+    { name: "description", content: "Consulte e gerencie os fretistas, motoristas e veículos das entregas." },
+    { property: "og:title", content: "Fretistas — SpeedFlow Logistics" },
+    { property: "og:description", content: "Consulte e gerencie os fretistas, motoristas e veículos das entregas." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: FretistasPage,
 });
 

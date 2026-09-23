@@ -18,7 +18,7 @@ import {
 import {
   MOTIVOS_ADICIONAIS,
   PRAZO_PAGAMENTO_DIAS,
-  dataMinimaPagamento,
+  dataSugeridaPagamento,
   formatarDataBr,
   type MotivoAdicional,
   type TipoPagamentoRota,
@@ -48,6 +48,7 @@ const ROTULO_FILA: Record<string, string> = {
 
 export function PagamentoRotaDialog({
   routeId,
+  dataExpedicao,
   rotulo,
   valor,
   isAdmin,
@@ -56,6 +57,7 @@ export function PagamentoRotaDialog({
   onOpenChange,
 }: {
   routeId: string | null;
+  dataExpedicao: string | null;
   rotulo: string;
   valor: number;
   isAdmin: boolean;
@@ -78,8 +80,8 @@ export function PagamentoRotaDialog({
   const [valorDebounced, setValorDebounced] = useState(0);
   // Notas escolhidas para o rateio do valor adicional (null = todas).
   const [selecionados, setSelecionados] = useState<string[] | null>(null);
-  const dataMinima = useMemo(() => dataMinimaPagamento(), [open]);
-  const [dataPagamento, setDataPagamento] = useState(dataMinima);
+  const dataSugerida = useMemo(() => dataSugeridaPagamento(dataExpedicao), [dataExpedicao]);
+  const [dataPagamento, setDataPagamento] = useState(dataSugerida);
 
   useEffect(() => {
     if (open) {
@@ -88,11 +90,11 @@ export function PagamentoRotaDialog({
       setObservacao("");
       setValorAdicional("");
       setValorFrete(valor > 0 ? String(valor) : "");
-      setDataPagamento(dataMinimaPagamento());
+      setDataPagamento(dataSugerida);
       setSelecionados(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, routeId]);
+  }, [open, routeId, dataSugerida]);
 
   useEffect(() => {
     // Ao trocar de tipo, volta a considerar todas as notas.
@@ -200,7 +202,7 @@ export function PagamentoRotaDialog({
   const p = previewQ.data;
   const semBordero = (p?.pedidos_sem_bordero ?? 0) > 0;
   const semNota = (p?.pedidos_sem_faturamento ?? 0) > 0;
-  const dataInvalida = dataPagamento < dataMinima;
+  const dataInvalida = !dataPagamento;
   const recalculando = valorEfetivo !== valorDebounced || previewQ.isFetching;
 
   const escolherNotas = tipo === "ADICIONAL";
@@ -268,19 +270,18 @@ export function PagamentoRotaDialog({
             <Label className="text-xs">Data sugerida de pagamento</Label>
             <input
               type="date"
-              min={dataMinima}
               className="h-9 rounded-md border border-input bg-background px-2 text-sm"
               value={dataPagamento}
-              onChange={(e) => {
-                const v = e.target.value;
-                setDataPagamento(v && v < dataMinima ? dataMinima : v || dataMinima);
-              }}
+              onChange={(e) => setDataPagamento(e.target.value)}
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            Prazo mínimo de {PRAZO_PAGAMENTO_DIAS} dias — não é possível escolher uma data anterior a{" "}
-            {formatarDataBr(dataMinima)}. Essa data vai na tarefa do Bitrix como instrução de
-            pagamento.
+            {dataExpedicao && !dataExpedicao.startsWith("3000-") && !dataExpedicao.startsWith("4000-")
+              ? `Sugestão: ${PRAZO_PAGAMENTO_DIAS} dias após a data planejada de expedição`
+              : `Sem data de expedição planejada: sugestão de ${PRAZO_PAGAMENTO_DIAS} dias após hoje`}
+            {dataExpedicao && !dataExpedicao.startsWith("3000-") && !dataExpedicao.startsWith("4000-")
+              ? ` (${formatarDataBr(dataExpedicao.slice(0, 10))})`
+              : ""}. Você pode alterar a data; ela será enviada na tarefa do Bitrix.
           </p>
         </div>
 

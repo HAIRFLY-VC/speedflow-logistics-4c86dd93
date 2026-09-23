@@ -15,6 +15,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
+  head: () => ({ meta: [
+    { title: "Configurações — SpeedFlow Logistics" },
+    { name: "description", content: "Gerencie dados da empresa, aprovações e parâmetros das rotas." },
+    { property: "og:title", content: "Configurações — SpeedFlow Logistics" },
+    { property: "og:description", content: "Gerencie dados da empresa, aprovações e parâmetros das rotas." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ConfiguracoesPage,
 });
 

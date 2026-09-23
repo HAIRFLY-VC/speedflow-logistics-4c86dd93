@@ -11,6 +11,14 @@ import { listClientesExternos } from "@/lib/external-catalog.functions";
 import type { ExternalCliente } from "@/lib/external-catalog.types";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
+  head: () => ({ meta: [
+    { title: "Clientes — SpeedFlow Logistics" },
+    { name: "description", content: "Consulte o cadastro de clientes e seus dados comerciais." },
+    { property: "og:title", content: "Clientes — SpeedFlow Logistics" },
+    { property: "og:description", content: "Consulte o cadastro de clientes e seus dados comerciais." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ClientesPage,
 });
 

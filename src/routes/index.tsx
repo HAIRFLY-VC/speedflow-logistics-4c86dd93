@@ -11,6 +11,10 @@ export const Route = createFileRoute("/")({
         content:
           "Otimize o ciclo do pedido de venda até a entrega: aprovações, faturamento, rotas e canhotos em um só lugar.",
       },
+      { property: "og:title", content: "SpeedFlow Logistics — Hairfly Cosméticos" },
+      { property: "og:description", content: "Acompanhe pedidos, faturamento, rotas e entregas da Hairfly Cosméticos." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Index,

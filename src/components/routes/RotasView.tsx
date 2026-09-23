@@ -1651,6 +1651,7 @@ export function RotasView({
       />
       <PagamentoRotaDialog
         routeId={pagamento?.rota.id ?? null}
+        dataExpedicao={pagamento?.rota.route_date ?? null}
         rotulo={
           pagamento
             ? `${pagamento.rota.erp_route_id ? `ID ${pagamento.rota.erp_route_id} · ` : ""}${nomeRotaOf(pagamento.rota)}`

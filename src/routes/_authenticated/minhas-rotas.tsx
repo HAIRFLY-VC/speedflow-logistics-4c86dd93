@@ -13,6 +13,14 @@ import { Badge } from "@/components/ui/badge";
 import { ORDER_STATUS_LABEL, STATUS_TONE, formatCurrency } from "@/lib/orderStatus";
 
 export const Route = createFileRoute("/_authenticated/minhas-rotas")({
+  head: () => ({ meta: [
+    { title: "Minhas rotas — SpeedFlow Logistics" },
+    { name: "description", content: "Consulte as rotas atribuídas e acompanhe suas entregas." },
+    { property: "og:title", content: "Minhas rotas — SpeedFlow Logistics" },
+    { property: "og:description", content: "Consulte as rotas atribuídas e acompanhe suas entregas." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: MinhasRotasPage,
 });
 

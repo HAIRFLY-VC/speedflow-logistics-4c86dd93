@@ -9,6 +9,14 @@ import { supabase } from "@/integrations/central/client";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
 
 export const Route = createFileRoute("/_authenticated/borderos")({
+  head: () => ({ meta: [
+    { title: "Borderôs — SpeedFlow Logistics" },
+    { name: "description", content: "Consulte os borderôs emitidos para as rotas de entrega." },
+    { property: "og:title", content: "Borderôs — SpeedFlow Logistics" },
+    { property: "og:description", content: "Consulte os borderôs emitidos para as rotas de entrega." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: BorderosPage,
 });
 
