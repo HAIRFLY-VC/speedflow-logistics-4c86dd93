@@ -20,6 +20,14 @@ import { ptBR } from "date-fns/locale";
 
 
 export const Route = createFileRoute("/_authenticated/kanban")({
+  head: () => ({ meta: [
+    { title: "Etapas dos pedidos — SpeedFlow Logistics" },
+    { name: "description", content: "Acompanhe as etapas dos pedidos até a entrega." },
+    { property: "og:title", content: "Etapas dos pedidos — SpeedFlow Logistics" },
+    { property: "og:description", content: "Acompanhe as etapas dos pedidos até a entrega." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: KanbanPage,
 });
 

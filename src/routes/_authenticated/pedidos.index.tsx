@@ -42,6 +42,14 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export const Route = createFileRoute("/_authenticated/pedidos/")({
+  head: () => ({ meta: [
+    { title: "Pedidos — SpeedFlow Logistics" },
+    { name: "description", content: "Consulte os pedidos de venda, valores e previsão de expedição." },
+    { property: "og:title", content: "Pedidos — SpeedFlow Logistics" },
+    { property: "og:description", content: "Consulte os pedidos de venda, valores e previsão de expedição." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: PedidosPage,
 });
 

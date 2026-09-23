@@ -32,6 +32,14 @@ import {
 } from "recharts";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  head: () => ({ meta: [
+    { title: "Visão geral — SpeedFlow Logistics" },
+    { name: "description", content: "Acompanhe os pedidos e os indicadores da operação logística." },
+    { property: "og:title", content: "Visão geral — SpeedFlow Logistics" },
+    { property: "og:description", content: "Acompanhe os pedidos e os indicadores da operação logística." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: DashboardPage,
 });
 
