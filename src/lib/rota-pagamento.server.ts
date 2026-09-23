@@ -432,6 +432,17 @@ export async function confirmarPagamentoRota(params: {
 
   const dataPagamento = normalizarDataPagamento(params.dataPagamento);
 
+  if (params.tipo !== "ADICIONAL") {
+    const { auditarEImportarRotas } = await import("./rota-auditoria.server");
+    const [aud] = await auditarEImportarRotas([params.routeId]);
+    if (!aud || aud.erro) throw new Error(aud?.erro ?? "Não foi possível auditar a rota no ERP.");
+    if (!aud.completa) {
+      throw new Error(
+        `Rota incompleta no ERP: faltam os pedidos ${aud.faltantes.map((f) => `${f.pedido} (${f.motivo})`).join(", ")}.`,
+      );
+    }
+  }
+
   const preview = await montarPreviewPagamentoRota({
     routeId: params.routeId,
     valor,
