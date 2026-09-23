@@ -560,6 +560,60 @@ export async function confirmarPagamentoRota(params: {
   return { ok: true, ordem_id: ordemId, linhas: linhas.length };
 }
 
+/**
+ * Cria a tarefa de pagamento no Bitrix para uma linha da fila financeira de
+ * rota e grava o resultado na própria linha (concluído com o código da tarefa
+ * ou erro com a mensagem devolvida pelo Bitrix).
+ */
+export async function processarTarefaFinanceiraRota(
+  filaId: string,
+): Promise<{ ok: boolean; referencia?: string; erro?: string }> {
+  const { data: linha, error } = await centralDb
+    .from("fila_provisionamento_financeiro")
+    .select("id, tentativas, payload, cte_id")
+    .eq("id", filaId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!linha) throw new Error("Item da fila não encontrado");
+
+  const row = linha as { tentativas?: number | null; payload?: Record<string, unknown> | null };
+  const payload = (row.payload ?? {}) as Record<string, unknown>;
+  const tentativas = Number(row.tentativas ?? 0) + 1;
+
+  const { criarTarefaBitrix } = await import("./bitrix-task.server");
+
+  const titulo = String(payload["titulo_tarefa"] ?? "#FRETE Pagamento de rota");
+  const descricao = String(payload["texto_tarefa"] ?? "");
+  const prazo = (payload["data_pagamento"] as string | null) ?? null;
+
+  try {
+    const { id } = await criarTarefaBitrix({ titulo, descricao, prazo });
+    await centralDb
+      .from("fila_provisionamento_financeiro")
+      .update({
+        status: "CONCLUIDO",
+        tentativas,
+        ultimo_erro: null,
+        referencia_erp: id,
+        processado_em: new Date().toISOString(),
+      } as never)
+      .eq("id", filaId);
+    return { ok: true, referencia: id };
+  } catch (e) {
+    const erro = (e as Error).message;
+    await centralDb
+      .from("fila_provisionamento_financeiro")
+      .update({
+        status: "ERRO",
+        tentativas,
+        ultimo_erro: erro,
+        processado_em: new Date().toISOString(),
+      } as never)
+      .eq("id", filaId);
+    return { ok: false, erro };
+  }
+}
+
 export async function listarPagamentosDaRota(
   routeId: string,
 ): Promise<PagamentoRotaHistorico[]> {
