@@ -527,6 +527,7 @@ export async function confirmarPagamentoRota(params: {
         valor_mercadoria: f.valor_mercadoria,
         pedidos: f.pedidos.map((p) => ({
           cod_pedido: p.cod_pedido,
+          nro_nf: p.nro_nf,
           bordero: p.bordero,
           cliente: p.cliente,
           valor_mercadoria: p.valor_mercadoria,
