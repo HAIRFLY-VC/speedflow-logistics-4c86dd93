@@ -202,6 +202,33 @@ export function PagamentoRotaDialog({
   const dataInvalida = dataPagamento < dataMinima;
   const recalculando = valorEfetivo !== valorDebounced || previewQ.isFetching;
 
+  const escolherNotas = tipo === "ADICIONAL";
+  const todosPedidos = useMemo(
+    () => (p?.filiais ?? []).flatMap((f) => f.pedidos.map((x) => x.cod_pedido)),
+    [p],
+  );
+  const marcados = useMemo(
+    () => new Set(selecionados ?? todosPedidos),
+    [selecionados, todosPedidos],
+  );
+  const semSelecao = escolherNotas && marcados.size === 0;
+
+  const alternarPedido = (cod: string) => {
+    const atual = new Set(selecionados ?? todosPedidos);
+    if (atual.has(cod)) atual.delete(cod);
+    else atual.add(cod);
+    setSelecionados([...atual]);
+  };
+
+  const alternarFilial = (codigos: string[], marcarTodos: boolean) => {
+    const atual = new Set(selecionados ?? todosPedidos);
+    for (const c of codigos) {
+      if (marcarTodos) atual.add(c);
+      else atual.delete(c);
+    }
+    setSelecionados([...atual]);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[92vh] max-w-5xl flex-col overflow-y-auto">
