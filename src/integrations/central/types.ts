@@ -98,8 +98,41 @@ type RoutesWrite = Pub["Tables"]["routes"]["Insert"] & {
   bordero_emitido_em?: string | null;
 };
 
-type FilaValoresRow = {
+/** Controle de reenvio automático comum às duas filas. */
+type FilaRetryCols = {
+  raiz_id: string | null;
+  proxima_tentativa_em: string | null;
+  pausada_em: string | null;
+  resolvida_manual_em: string | null;
+  resolvida_manual_por: string | null;
+  resolvida_manual_motivo: string | null;
+};
+
+type FilaTentativaRow = {
   id: string;
+  fila: "valores" | "financeiro";
+  fila_id: string;
+  raiz_id: string;
+  tentativa: number;
+  ok: boolean;
+  mensagem: string | null;
+  origem: "AUTOMATICA" | "MANUAL" | "CALLBACK";
+  criado_em: string;
+};
+
+type NotificacaoPendenciaRow = {
+  id: string;
+  canal: "EMAIL" | "WHATSAPP";
+  destinatario: string;
+  quantidade: number;
+  assinatura: string | null;
+  ok: boolean;
+  mensagem: string | null;
+  enviado_em: string;
+};
+
+type FilaValoresRow = FilaRetryCols & {
+
   ordem_pagamento_id: string;
   cte_id: string | null;
   route_id: string | null;
