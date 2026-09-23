@@ -67,6 +67,8 @@ export function PagamentoRotaDialog({
   const preview = useServerFn(previewPagamentoRota);
   const confirmar = useServerFn(confirmarPagamentoRotaFn);
   const historico = useServerFn(listarPagamentosRota);
+  const filas = useServerFn(listarFilasRota);
+  const reenviarFn = useServerFn(reenviarFilaRota);
 
   const [tipo, setTipo] = useState<TipoPagamentoRota>("FRETE");
   const [motivo, setMotivo] = useState<MotivoAdicional>("PERNOITE");
