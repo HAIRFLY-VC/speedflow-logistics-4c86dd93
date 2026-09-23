@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Bell } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
@@ -9,6 +11,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useAuth } from "@/hooks/useAuth";
+import { listarPendenciasIntegracao } from "@/lib/fila-pendencias.functions";
 import { ORDER_STATUS_LABEL, type OrderStatus } from "@/lib/orderStatus";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -46,6 +50,15 @@ function save(items: Notif[]) {
 export function NotificationsBell() {
   const [items, setItems] = useState<Notif[]>(() => load());
   const [open, setOpen] = useState(false);
+  const { role } = useAuth();
+  const listarPendencias = useServerFn(listarPendenciasIntegracao);
+  const pendenciasQuery = useQuery({
+    queryKey: ["pendencias-integracao-contador"],
+    queryFn: () => listarPendencias({ data: { incluirResolvidas: false } }),
+    enabled: role === "adm",
+    refetchInterval: 120_000,
+  });
+  const pendencias = role === "adm" ? (pendenciasQuery.data?.pendentes ?? 0) : 0;
 
   useEffect(() => {
     const lastSeen =
