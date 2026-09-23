@@ -298,7 +298,11 @@ async function fetchPendingOrdersFromErp(): Promise<ErpOrderRow[]> {
 const RESPONSAVEIS_SQL = `
   SELECT TRIM(T.DBA_TIP_CODIGO_1) COD_ERP,
          TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOCIAL,
-         T.DBA_TIP_NATUREZA COD_NAT
+         T.DBA_TIP_NATUREZA COD_NAT,
+         (SELECT MAX(TRIM(C.DBA_CONT_EMAIL))
+            FROM GKS.A_CADCCONT C
+           WHERE C.DBA_CONT_CODIGO = T.DBA_TIP_CODIGO_1
+             AND UPPER(TRIM(C.DBA_CONT_CONTATO)) = 'PIX') PIX
     FROM GKS.A_CADCTIPO T
    WHERE T.DBA_TIP_NATUREZA IN ('ET','EF','EM')
 `;
@@ -331,7 +335,7 @@ async function sincronizarEspelhoResponsaveis(opts: { maxAgeMs: number }) {
   });
   if (!res.ok) throw new Error(friendlyErpError(res.status, await res.text()));
   const json = (await res.json()) as ErpQueryResponse;
-  const byCode = new Map<string, { cod_erp: string; razao_social: string | null; natureza: string; tipo_frete: "F" | "T" | "P" | null }>();
+  const byCode = new Map<string, { cod_erp: string; razao_social: string | null; natureza: string; tipo_frete: "F" | "T" | "P" | null; pix: string | null }>();
   for (const row of json.rows ?? []) {
     const cod = String(row.COD_ERP ?? row.cod_erp ?? "").trim();
     if (!cod || byCode.has(cod)) continue;
