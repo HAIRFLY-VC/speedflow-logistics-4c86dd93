@@ -542,6 +542,7 @@ export async function confirmarPagamentoRota(params: {
     route_id: params.routeId,
     cte_id: null,
     status: "PENDENTE",
+    proxima_tentativa_em: new Date(Date.now() + 30 * 60_000).toISOString(),
     payload: {
       origem: "ROTA",
       route_id: params.routeId,
