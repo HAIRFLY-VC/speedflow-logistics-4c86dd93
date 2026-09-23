@@ -413,6 +413,11 @@ export async function confirmarPagamentoRota(params: {
       `Ainda há ${preview.pedidos_sem_bordero} pedido(s) sem borderô. Confirme o pagamento somente depois que todos os pedidos estiverem com borderô.`,
     );
   }
+  if (preview.pedidos_sem_faturamento > 0) {
+    throw new Error(
+      `Ainda há ${preview.pedidos_sem_faturamento} pedido(s) sem nota fiscal. O lançamento no ERP é feito por filial + nota fiscal + borderô, então todos os pedidos precisam estar faturados.`,
+    );
+  }
 
   const agora = new Date().toISOString();
   const { data: ordem, error: ordemErr } = await centralDb
