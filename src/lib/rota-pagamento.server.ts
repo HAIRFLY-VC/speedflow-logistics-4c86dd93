@@ -279,13 +279,18 @@ function agrupar(
   expedicao: Map<string, DadosExpedicao>,
   clientes: Map<string, string>,
   valor: number,
+  selecionados: Set<string> | null,
 ): {
   filiais: FilialPagamento[];
   semBordero: number;
   semFaturamento: number;
   valorMercadoria: number;
+  selecionadosAplicados: string[];
 } {
-  const pesos = pedidos.map((p) => Number(p.valor_mercadoria ?? 0));
+  const incluido = (cod: string) => !selecionados || selecionados.has(cod);
+  // Pedidos fora da seleção entram com peso 0: continuam visíveis, mas não
+  // recebem rateio do valor adicional.
+  const pesos = pedidos.map((p) => (incluido(p.cod_pedido) ? Number(p.valor_mercadoria ?? 0) : 0));
   const rateado = ratear(valor, pesos);
 
   const grupos = new Map<string, FilialPagamento>();
@@ -296,8 +301,10 @@ function agrupar(
     // Borderô: primeiro o gravado no pedido; senão o espelho de entregas.
     const bordero = p.bordero ?? exp?.bordero ?? null;
     const nf = exp?.nro_nf ?? null;
-    if (!bordero) semBordero += 1;
-    if (!nf) semFaturamento += 1;
+    if (incluido(p.cod_pedido)) {
+      if (!bordero) semBordero += 1;
+      if (!nf) semFaturamento += 1;
+    }
     // A gravação no ERP é por filial de faturamento da nota + NF + borderô.
     const filial = exp?.cod_filial ?? p.cod_filial ?? "SEM FILIAL";
     const item: PedidoPagamento = {
@@ -310,14 +317,14 @@ function agrupar(
     };
     const g = grupos.get(filial) ?? { cod_filial: filial, pedidos: [], valor_mercadoria: 0, frete: 0 };
     g.pedidos.push(item);
-    g.valor_mercadoria = cent(g.valor_mercadoria + item.valor_mercadoria);
+    g.valor_mercadoria = cent(g.valor_mercadoria + (incluido(p.cod_pedido) ? item.valor_mercadoria : 0));
     g.frete = cent(g.frete + item.frete);
     grupos.set(filial, g);
   });
 
-  const filiais = Array.from(grupos.values()).sort((a, b) =>
-    a.cod_filial.localeCompare(b.cod_filial, "pt-BR", { numeric: true }),
-  );
+  const filiais = Array.from(grupos.values())
+    .filter((f) => !selecionados || f.pedidos.some((p) => selecionados.has(p.cod_pedido)))
+    .sort((a, b) => a.cod_filial.localeCompare(b.cod_filial, "pt-BR", { numeric: true }));
   for (const f of filiais) {
     f.pedidos.sort((a, b) => a.cod_pedido.localeCompare(b.cod_pedido, "pt-BR", { numeric: true }));
   }
@@ -326,6 +333,7 @@ function agrupar(
     semBordero,
     semFaturamento,
     valorMercadoria: cent(pesos.reduce((s, v) => s + v, 0)),
+    selecionadosAplicados: pedidos.map((p) => p.cod_pedido).filter(incluido),
   };
 }
 
