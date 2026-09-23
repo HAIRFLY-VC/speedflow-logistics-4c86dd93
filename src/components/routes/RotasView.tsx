@@ -26,7 +26,6 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   listarResponsaveisErp,
   listarResponsaveisDeRotasErp,
-  listarNaturezasPorCodigoErp,
   sincronizarResponsaveisPorCodigo,
   type ResponsavelErp,
 } from "@/lib/rota-erp.functions";
@@ -804,19 +803,6 @@ export function RotasView({
   }, [codigosAusentes, responsaveisLocaisQ.isFetching, sincronizarAusentes, qc]);
 
 
-  /** Naturezas buscadas diretamente por código, sem filtro de natureza. */
-  const listarNaturezas = useServerFn(listarNaturezasPorCodigoErp);
-  const codsParaNatureza = useMemo(
-    () => Array.from(new Set(codResponsavelPorRota.values())).sort(),
-    [codResponsavelPorRota],
-  );
-  const naturezasQ = useQuery({
-    queryKey: ["naturezas-erp", codsParaNatureza],
-    queryFn: () => listarNaturezas({ data: { cods: codsParaNatureza } }),
-    enabled: codsParaNatureza.length > 0,
-    staleTime: 5 * 60 * 1000,
-  });
-
   const responsavelPorRota = useMemo(() => {
     const map = new Map<string, ResponsavelErp>();
     const responsaveis = responsaveisQ.data ?? [];
@@ -829,25 +815,11 @@ export function RotasView({
       }));
     const porCodigo = new Map(locais.map((item) => [normalizaCod(item.codErp), item]));
     for (const item of responsaveis) porCodigo.set(normalizaCod(item.codErp), item);
-    const naturezas = Object.values(naturezasQ.data ?? {});
     for (const r of data ?? []) {
       const cod = codResponsavelPorRota.get(r.id);
       const local = cod ? porCodigo.get(normalizaCod(cod)) : undefined;
       if (local) {
         map.set(r.id, local);
-        continue;
-      }
-      // Fallback: a consulta de natureza por código traz razão social + código
-      // mesmo para cadastros ausentes do espelho local / lista de responsáveis.
-      const natureza = cod
-        ? naturezas.find((n) => normalizaCod(n.codErp) === normalizaCod(cod))
-        : undefined;
-      if (natureza?.tipoFrete && natureza.razaoSocial) {
-        map.set(r.id, {
-          razaoSocial: natureza.razaoSocial,
-          codErp: natureza.codErp,
-          tipoFrete: natureza.tipoFrete,
-        });
         continue;
       }
       const nome = normalizaNome(r.driver_name ?? r.freight_carriers?.full_name ?? "");
@@ -863,22 +835,21 @@ export function RotasView({
 
     }
     return map;
-  }, [data, responsaveisQ.data, responsaveisLocaisQ.data, codResponsavelPorRota, naturezasQ.data]);
+  }, [data, responsaveisQ.data, responsaveisLocaisQ.data, codResponsavelPorRota]);
 
-  /** Natureza bruta do responsável da rota (quando encontrada por código). */
+  /** Natureza bruta do responsável da rota, lida do espelho local do ERP. */
   const naturezaDaRota = (r: RouteRow) => {
     const cod = codResponsavelPorRota.get(r.id);
     if (!cod) return null;
-    const mapa = naturezasQ.data ?? {};
-    return (
-      mapa[cod] ??
-      Object.values(mapa).find((n) => normalizaCod(n.codErp) === normalizaCod(cod)) ??
-      null
+    const local = (responsaveisLocaisQ.data ?? []).find(
+      (item) => normalizaCod(item.cod_erp) === normalizaCod(cod),
     );
+    if (!local?.natureza) return null;
+    return { codErp: local.cod_erp, natureza: local.natureza };
   };
 
   const tipoFreteOf = (r: RouteRow): TipoFrete | null =>
-    naturezaDaRota(r)?.tipoFrete ?? responsavelPorRota.get(r.id)?.tipoFrete ?? null;
+    responsavelPorRota.get(r.id)?.tipoFrete ?? null;
 
   const estimativas = useMemo(() => {
     const map = new Map<string, SimulacaoRota>();
@@ -924,7 +895,6 @@ export function RotasView({
     tabelasQ.data,
     vinculosQ.data,
     transpPorRota,
-    naturezasQ.data,
     responsavelPorRota,
     codResponsavelPorRota,
     cidadeCliente,
@@ -1100,9 +1070,9 @@ export function RotasView({
             );
           }
           const carregando =
-            codsRotaQ.isFetching || naturezasQ.isFetching || responsaveisQ.isFetching || responsaveisLocaisQ.isFetching;
+            codsRotaQ.isFetching || responsaveisQ.isFetching || responsaveisLocaisQ.isFetching;
           if (carregando) return <span className="text-muted-foreground">…</span>;
-          const erro = codsRotaQ.error ?? naturezasQ.error ?? responsaveisQ.error;
+          const erro = codsRotaQ.error ?? responsaveisQ.error;
           if (erro) {
             return (
               <span
@@ -1325,9 +1295,6 @@ export function RotasView({
       responsavelPorRota,
       transpPorRota,
       codResponsavelPorRota,
-      naturezasQ.data,
-      naturezasQ.isFetching,
-      naturezasQ.error,
       codsRotaQ.isFetching,
       codsRotaQ.error,
       responsaveisQ.isFetching,
