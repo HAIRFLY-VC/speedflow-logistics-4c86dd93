@@ -497,7 +497,9 @@ export async function confirmarPagamentoRota(params: {
     .insert(linhas as never);
   if (filaErr) throw new Error(filaErr.message);
 
-  const { error: finErr } = await centralDb.from("fila_provisionamento_financeiro").insert({
+  const { data: finRow, error: finErr } = await centralDb
+    .from("fila_provisionamento_financeiro")
+    .insert({
     ordem_pagamento_id: ordemId,
     route_id: params.routeId,
     cte_id: null,
