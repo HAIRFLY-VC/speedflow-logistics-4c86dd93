@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Bell } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
@@ -9,6 +11,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useAuth } from "@/hooks/useAuth";
+import { listarPendenciasIntegracao } from "@/lib/fila-pendencias.functions";
 import { ORDER_STATUS_LABEL, type OrderStatus } from "@/lib/orderStatus";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -46,6 +50,15 @@ function save(items: Notif[]) {
 export function NotificationsBell() {
   const [items, setItems] = useState<Notif[]>(() => load());
   const [open, setOpen] = useState(false);
+  const { role } = useAuth();
+  const listarPendencias = useServerFn(listarPendenciasIntegracao);
+  const pendenciasQuery = useQuery({
+    queryKey: ["pendencias-integracao-contador"],
+    queryFn: () => listarPendencias({ data: { incluirResolvidas: false } }),
+    enabled: role === "adm",
+    refetchInterval: 120_000,
+  });
+  const pendencias = role === "adm" ? (pendenciasQuery.data?.pendentes ?? 0) : 0;
 
   useEffect(() => {
     const lastSeen =
@@ -118,6 +131,8 @@ export function NotificationsBell() {
     localStorage.setItem(LAST_SEEN_KEY, new Date().toISOString());
   }
 
+  const total = unread + pendencias;
+
   return (
     <Popover
       open={open}
@@ -129,9 +144,9 @@ export function NotificationsBell() {
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          {unread > 0 ? (
+          {total > 0 ? (
             <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold flex items-center justify-center">
-              {unread > 9 ? "9+" : unread}
+              {total > 9 ? "9+" : total}
             </span>
           ) : null}
         </Button>
@@ -148,6 +163,23 @@ export function NotificationsBell() {
             </button>
           ) : null}
         </div>
+        {pendencias > 0 ? (
+          <Link
+            to="/pendencias-integracao"
+            onClick={() => setOpen(false)}
+            className="block border-b bg-destructive/10 px-3 py-2 hover:bg-destructive/15"
+          >
+            <span className="text-xs font-medium text-destructive">
+              {pendencias === 1
+                ? "1 pendência de integração aguardando solução"
+                : `${pendencias} pendências de integração aguardando solução`}
+            </span>
+            <span className="mt-0.5 block text-[10px] text-muted-foreground">
+              Lançamento no ERP ou tarefa no Bitrix — toque para gerenciar
+            </span>
+          </Link>
+        ) : null}
+
         <div className="max-h-80 overflow-auto">
           {items.length === 0 ? (
             <p className="text-xs text-muted-foreground px-3 py-6 text-center">

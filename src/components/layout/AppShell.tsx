@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -79,6 +80,8 @@ const NAV: NavItem[] = [
   { title: "Configurações", url: "/configuracoes", icon: Settings, roles: ["adm", "gestor", "operador", "fretista"] },
   { title: "Config. de fretes", url: "/configuracoes-fretes", icon: ShieldCheck, roles: ["adm"] },
   { title: "Captura de CT-e", url: "/captura-cte", icon: ShieldCheck, roles: ["adm"] },
+  { title: "Pendências de integração", url: "/pendencias-integracao", icon: AlertTriangle, roles: ["adm"] },
+
 ];
 
 export function AppShell({

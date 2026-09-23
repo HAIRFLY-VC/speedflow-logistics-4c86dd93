@@ -28,6 +28,7 @@ import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedMinhasRotasRouteImport } from './routes/_authenticated/minhas-rotas'
 import { Route as AuthenticatedPagamentoFretesRouteImport } from './routes/_authenticated/pagamento-fretes'
 import { Route as AuthenticatedPedidosSemRotaRouteImport } from './routes/_authenticated/pedidos-sem-rota'
+import { Route as AuthenticatedPendenciasIntegracaoRouteImport } from './routes/_authenticated/pendencias-integracao'
 import { Route as AuthenticatedSeparacaoRouteImport } from './routes/_authenticated/separacao'
 import { Route as AuthenticatedSugestaoRotasRouteImport } from './routes/_authenticated/sugestao-rotas'
 import { Route as AuthenticatedTabelasFreteRouteImport } from './routes/_authenticated/tabelas-frete'
@@ -44,6 +45,7 @@ import { Route as ApiCentralSplatRouteImport } from './routes/api/central/$'
 import { Route as ApiPublicHooksCteComandosRouteImport } from './routes/api/public/hooks/cte-comandos'
 import { Route as ApiPublicHooksErpFilaCallbackRouteImport } from './routes/api/public/hooks/erp-fila-callback'
 import { Route as ApiPublicHooksErpSyncRouteImport } from './routes/api/public/hooks/erp-sync'
+import { Route as ApiPublicHooksFilaRetryRouteImport } from './routes/api/public/hooks/fila-retry'
 import { Route as ApiPublicHooksIngestCteRouteImport } from './routes/api/public/hooks/ingest-cte'
 import { Route as ApiPublicHooksIngestNfeRouteImport } from './routes/api/public/hooks/ingest-nfe'
 import { Route as ApiPublicHooksNfePendentesRouteImport } from './routes/api/public/hooks/nfe-pendentes'
@@ -151,6 +153,12 @@ const AuthenticatedPedidosSemRotaRoute =
     path: '/pedidos-sem-rota',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPendenciasIntegracaoRoute =
+  AuthenticatedPendenciasIntegracaoRouteImport.update({
+    id: '/pendencias-integracao',
+    path: '/pendencias-integracao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSeparacaoRoute = AuthenticatedSeparacaoRouteImport.update({
   id: '/separacao',
   path: '/separacao',
@@ -239,6 +247,11 @@ const ApiPublicHooksErpSyncRoute = ApiPublicHooksErpSyncRouteImport.update({
   path: '/api/public/hooks/erp-sync',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksFilaRetryRoute = ApiPublicHooksFilaRetryRouteImport.update({
+  id: '/api/public/hooks/fila-retry',
+  path: '/api/public/hooks/fila-retry',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksIngestCteRoute = ApiPublicHooksIngestCteRouteImport.update({
   id: '/api/public/hooks/ingest-cte',
   path: '/api/public/hooks/ingest-cte',
@@ -281,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/pagamento-fretes': typeof AuthenticatedPagamentoFretesRoute
   '/pedidos-sem-rota': typeof AuthenticatedPedidosSemRotaRoute
+  '/pendencias-integracao': typeof AuthenticatedPendenciasIntegracaoRoute
   '/separacao': typeof AuthenticatedSeparacaoRoute
   '/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
   '/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
@@ -297,6 +311,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/cte-comandos': typeof ApiPublicHooksCteComandosRoute
   '/api/public/hooks/erp-fila-callback': typeof ApiPublicHooksErpFilaCallbackRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
+  '/api/public/hooks/fila-retry': typeof ApiPublicHooksFilaRetryRoute
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
   '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
   '/api/public/hooks/nfe-pendentes': typeof ApiPublicHooksNfePendentesRoute
@@ -320,6 +335,7 @@ export interface FileRoutesByTo {
   '/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/pagamento-fretes': typeof AuthenticatedPagamentoFretesRoute
   '/pedidos-sem-rota': typeof AuthenticatedPedidosSemRotaRoute
+  '/pendencias-integracao': typeof AuthenticatedPendenciasIntegracaoRoute
   '/separacao': typeof AuthenticatedSeparacaoRoute
   '/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
   '/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
@@ -336,6 +352,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/cte-comandos': typeof ApiPublicHooksCteComandosRoute
   '/api/public/hooks/erp-fila-callback': typeof ApiPublicHooksErpFilaCallbackRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
+  '/api/public/hooks/fila-retry': typeof ApiPublicHooksFilaRetryRoute
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
   '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
   '/api/public/hooks/nfe-pendentes': typeof ApiPublicHooksNfePendentesRoute
@@ -362,6 +379,7 @@ export interface FileRoutesById {
   '/_authenticated/minhas-rotas': typeof AuthenticatedMinhasRotasRoute
   '/_authenticated/pagamento-fretes': typeof AuthenticatedPagamentoFretesRoute
   '/_authenticated/pedidos-sem-rota': typeof AuthenticatedPedidosSemRotaRoute
+  '/_authenticated/pendencias-integracao': typeof AuthenticatedPendenciasIntegracaoRoute
   '/_authenticated/separacao': typeof AuthenticatedSeparacaoRoute
   '/_authenticated/sugestao-rotas': typeof AuthenticatedSugestaoRotasRoute
   '/_authenticated/tabelas-frete': typeof AuthenticatedTabelasFreteRoute
@@ -378,6 +396,7 @@ export interface FileRoutesById {
   '/api/public/hooks/cte-comandos': typeof ApiPublicHooksCteComandosRoute
   '/api/public/hooks/erp-fila-callback': typeof ApiPublicHooksErpFilaCallbackRoute
   '/api/public/hooks/erp-sync': typeof ApiPublicHooksErpSyncRoute
+  '/api/public/hooks/fila-retry': typeof ApiPublicHooksFilaRetryRoute
   '/api/public/hooks/ingest-cte': typeof ApiPublicHooksIngestCteRoute
   '/api/public/hooks/ingest-nfe': typeof ApiPublicHooksIngestNfeRoute
   '/api/public/hooks/nfe-pendentes': typeof ApiPublicHooksNfePendentesRoute
@@ -404,6 +423,7 @@ export interface FileRouteTypes {
     | '/minhas-rotas'
     | '/pagamento-fretes'
     | '/pedidos-sem-rota'
+    | '/pendencias-integracao'
     | '/separacao'
     | '/sugestao-rotas'
     | '/tabelas-frete'
@@ -420,6 +440,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cte-comandos'
     | '/api/public/hooks/erp-fila-callback'
     | '/api/public/hooks/erp-sync'
+    | '/api/public/hooks/fila-retry'
     | '/api/public/hooks/ingest-cte'
     | '/api/public/hooks/ingest-nfe'
     | '/api/public/hooks/nfe-pendentes'
@@ -443,6 +464,7 @@ export interface FileRouteTypes {
     | '/minhas-rotas'
     | '/pagamento-fretes'
     | '/pedidos-sem-rota'
+    | '/pendencias-integracao'
     | '/separacao'
     | '/sugestao-rotas'
     | '/tabelas-frete'
@@ -459,6 +481,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cte-comandos'
     | '/api/public/hooks/erp-fila-callback'
     | '/api/public/hooks/erp-sync'
+    | '/api/public/hooks/fila-retry'
     | '/api/public/hooks/ingest-cte'
     | '/api/public/hooks/ingest-nfe'
     | '/api/public/hooks/nfe-pendentes'
@@ -484,6 +507,7 @@ export interface FileRouteTypes {
     | '/_authenticated/minhas-rotas'
     | '/_authenticated/pagamento-fretes'
     | '/_authenticated/pedidos-sem-rota'
+    | '/_authenticated/pendencias-integracao'
     | '/_authenticated/separacao'
     | '/_authenticated/sugestao-rotas'
     | '/_authenticated/tabelas-frete'
@@ -500,6 +524,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cte-comandos'
     | '/api/public/hooks/erp-fila-callback'
     | '/api/public/hooks/erp-sync'
+    | '/api/public/hooks/fila-retry'
     | '/api/public/hooks/ingest-cte'
     | '/api/public/hooks/ingest-nfe'
     | '/api/public/hooks/nfe-pendentes'
@@ -514,6 +539,7 @@ export interface RootRouteChildren {
   ApiPublicHooksCteComandosRoute: typeof ApiPublicHooksCteComandosRoute
   ApiPublicHooksErpFilaCallbackRoute: typeof ApiPublicHooksErpFilaCallbackRoute
   ApiPublicHooksErpSyncRoute: typeof ApiPublicHooksErpSyncRoute
+  ApiPublicHooksFilaRetryRoute: typeof ApiPublicHooksFilaRetryRoute
   ApiPublicHooksIngestCteRoute: typeof ApiPublicHooksIngestCteRoute
   ApiPublicHooksIngestNfeRoute: typeof ApiPublicHooksIngestNfeRoute
   ApiPublicHooksNfePendentesRoute: typeof ApiPublicHooksNfePendentesRoute
@@ -655,6 +681,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPedidosSemRotaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pendencias-integracao': {
+      id: '/_authenticated/pendencias-integracao'
+      path: '/pendencias-integracao'
+      fullPath: '/pendencias-integracao'
+      preLoaderRoute: typeof AuthenticatedPendenciasIntegracaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/separacao': {
       id: '/_authenticated/separacao'
       path: '/separacao'
@@ -767,6 +800,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksErpSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/fila-retry': {
+      id: '/api/public/hooks/fila-retry'
+      path: '/api/public/hooks/fila-retry'
+      fullPath: '/api/public/hooks/fila-retry'
+      preLoaderRoute: typeof ApiPublicHooksFilaRetryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/ingest-cte': {
       id: '/api/public/hooks/ingest-cte'
       path: '/api/public/hooks/ingest-cte'
@@ -831,6 +871,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMinhasRotasRoute: typeof AuthenticatedMinhasRotasRoute
   AuthenticatedPagamentoFretesRoute: typeof AuthenticatedPagamentoFretesRoute
   AuthenticatedPedidosSemRotaRoute: typeof AuthenticatedPedidosSemRotaRoute
+  AuthenticatedPendenciasIntegracaoRoute: typeof AuthenticatedPendenciasIntegracaoRoute
   AuthenticatedSeparacaoRoute: typeof AuthenticatedSeparacaoRoute
   AuthenticatedSugestaoRotasRoute: typeof AuthenticatedSugestaoRotasRoute
   AuthenticatedTabelasFreteRoute: typeof AuthenticatedTabelasFreteRoute
@@ -861,6 +902,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMinhasRotasRoute: AuthenticatedMinhasRotasRoute,
   AuthenticatedPagamentoFretesRoute: AuthenticatedPagamentoFretesRoute,
   AuthenticatedPedidosSemRotaRoute: AuthenticatedPedidosSemRotaRoute,
+  AuthenticatedPendenciasIntegracaoRoute:
+    AuthenticatedPendenciasIntegracaoRoute,
   AuthenticatedSeparacaoRoute: AuthenticatedSeparacaoRoute,
   AuthenticatedSugestaoRotasRoute: AuthenticatedSugestaoRotasRoute,
   AuthenticatedTabelasFreteRoute: AuthenticatedTabelasFreteRoute,
@@ -884,6 +927,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksCteComandosRoute: ApiPublicHooksCteComandosRoute,
   ApiPublicHooksErpFilaCallbackRoute: ApiPublicHooksErpFilaCallbackRoute,
   ApiPublicHooksErpSyncRoute: ApiPublicHooksErpSyncRoute,
+  ApiPublicHooksFilaRetryRoute: ApiPublicHooksFilaRetryRoute,
   ApiPublicHooksIngestCteRoute: ApiPublicHooksIngestCteRoute,
   ApiPublicHooksIngestNfeRoute: ApiPublicHooksIngestNfeRoute,
   ApiPublicHooksNfePendentesRoute: ApiPublicHooksNfePendentesRoute,
