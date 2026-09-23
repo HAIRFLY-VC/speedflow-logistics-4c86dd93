@@ -159,8 +159,9 @@ type FilaValoresRow = FilaRetryCols & {
   updated_at: string;
 };
 
-type FilaFinanceiroRow = {
+type FilaFinanceiroRow = FilaRetryCols & {
   id: string;
+
   ordem_pagamento_id: string;
   cte_id: string | null;
   route_id: string | null;
