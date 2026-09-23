@@ -835,22 +835,21 @@ export function RotasView({
 
     }
     return map;
-  }, [data, responsaveisQ.data, responsaveisLocaisQ.data, codResponsavelPorRota, naturezasQ.data]);
+  }, [data, responsaveisQ.data, responsaveisLocaisQ.data, codResponsavelPorRota]);
 
-  /** Natureza bruta do responsável da rota (quando encontrada por código). */
+  /** Natureza bruta do responsável da rota, lida do espelho local do ERP. */
   const naturezaDaRota = (r: RouteRow) => {
     const cod = codResponsavelPorRota.get(r.id);
     if (!cod) return null;
-    const mapa = naturezasQ.data ?? {};
-    return (
-      mapa[cod] ??
-      Object.values(mapa).find((n) => normalizaCod(n.codErp) === normalizaCod(cod)) ??
-      null
+    const local = (responsaveisLocaisQ.data ?? []).find(
+      (item) => normalizaCod(item.cod_erp) === normalizaCod(cod),
     );
+    if (!local?.natureza) return null;
+    return { codErp: local.cod_erp, natureza: local.natureza };
   };
 
   const tipoFreteOf = (r: RouteRow): TipoFrete | null =>
-    naturezaDaRota(r)?.tipoFrete ?? responsavelPorRota.get(r.id)?.tipoFrete ?? null;
+    responsavelPorRota.get(r.id)?.tipoFrete ?? null;
 
   const estimativas = useMemo(() => {
     const map = new Map<string, SimulacaoRota>();
