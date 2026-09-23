@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Sidebar,
