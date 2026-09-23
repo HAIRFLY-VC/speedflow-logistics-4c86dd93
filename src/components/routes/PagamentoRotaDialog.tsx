@@ -125,6 +125,32 @@ export function PagamentoRotaDialog({
     queryFn: () => historico({ data: { routeId: routeId! } }),
   });
 
+  const filasQ = useQuery({
+    queryKey: ["rota-pagamento", "filas", routeId],
+    enabled: open && !!routeId,
+    queryFn: () => filas({ data: { routeId: routeId! } }),
+    refetchInterval: (q) => {
+      const d = q.state.data as
+        | { valores?: { status: string }[]; financeiro?: { status: string }[] }
+        | undefined;
+      const andando = [...(d?.valores ?? []), ...(d?.financeiro ?? [])].some(
+        (i) => i.status === "PENDENTE" || i.status === "PROCESSANDO",
+      );
+      return andando ? 15_000 : false;
+    },
+  });
+
+  const reenviar = useMutation({
+    mutationFn: async (v: { fila: "valores" | "financeiro"; filaId: string }) =>
+      reenviarFn({ data: v }),
+    onSuccess: () => {
+      toast.success("Envio reenviado para a fila.");
+      void qc.invalidateQueries({ queryKey: ["rota-pagamento", "filas", routeId] });
+      void qc.invalidateQueries({ queryKey: ["rota-pagamento", "historico", routeId] });
+    },
+    onError: (e: unknown) => toast.error(mensagemErro(e, "Não foi possível reenviar.")),
+  });
+
   const enviar = useMutation({
     mutationFn: async () =>
       confirmar({
