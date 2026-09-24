@@ -381,6 +381,7 @@ export async function montarPreviewPagamentoRota(params: {
 
   const valor = cent(Number(params.valor ?? 0));
   const dataPagamento = normalizarDataPagamento(params.dataPagamento, rota.route_date);
+  const pix = await situacaoPix(await codResponsavelDaRota(rota));
 
   const escolhidos = (params.pedidos ?? []).map((c) => String(c));
   const selecao =
