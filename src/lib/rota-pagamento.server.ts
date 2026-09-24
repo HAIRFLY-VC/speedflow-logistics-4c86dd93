@@ -418,7 +418,9 @@ export async function montarPreviewPagamentoRota(params: {
       params.observacao ?? null,
       dataPagamento,
       selecao,
+      pix,
     ),
+    pix,
   };
 }
 
