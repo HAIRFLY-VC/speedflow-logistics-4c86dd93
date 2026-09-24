@@ -21,3 +21,17 @@
 - `PagamentoRotaDialog.tsx`: exibe o PIX e o favorecido.
 - `roadmap.md`: registrar a tarefa.
 - Verificação: tsgo, build e Playwright nas rotas 419 e 421.
+
+## Histórico do PIX usado na autorização (novo pedido)
+- Cada autorização (frete e adicional) grava o PIX usado e o favorecido. O favorecido não é conferido.
+- Se o PIX atual do fretista for diferente do usado na última autorização dele, o botão "Confirmar Pgto" fica desabilitado. A mensagem abaixo do botão mostra o PIX anterior e o novo: "PIX alterado — aguardando liberação de um administrador".
+- O administrador vê um botão "Liberar novo PIX" nessa mesma área. A liberação fica registrada (quem, quando, PIX anterior e novo). A partir dela, o novo PIX passa a ser a referência.
+- O servidor também recusa a confirmação com PIX alterado e ainda não liberado.
+
+### Técnico
+- Nova migração `db/central/2026-09-24_pix_controle.sql`:
+  - colunas `pix_utilizado` e `favorecido_pix` em `ordens_pagamento_frete`;
+  - nova tabela `pix_liberacoes` (cod_erp, pix_anterior, pix_novo, liberado_por, liberado_em), com GRANTs;
+  - você roda o script no banco, como os anteriores.
+- Função `verificarPixRota` (servidor): compara com a última ordem da rota daquele responsável e com a última liberação. Fica exposta à tela e é usada em `confirmarPagamentoRota`.
+- Nova função `liberarNovoPix`, só para administradores.
