@@ -81,6 +81,18 @@ export type PreviewPagamentoRota = {
   pedidos_selecionados: string[];
   filiais: FilialPagamento[];
   texto_tarefa: string;
+  /** PIX do responsável que receberá o pagamento. */
+  pix: SituacaoPix;
+};
+
+export type SituacaoPix = {
+  cod_erp: string | null;
+  tipo: "F" | "T" | "P" | null;
+  pix: string | null;
+  favorecido: string | null;
+  /** PIX usado na última autorização (ou última liberação). */
+  pix_referencia: string | null;
+  bloqueio: "SEM_PIX" | "PIX_ALTERADO" | null;
 };
 
 export type PagamentoRotaHistorico = {
