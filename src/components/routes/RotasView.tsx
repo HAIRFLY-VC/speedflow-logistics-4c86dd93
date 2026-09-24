@@ -22,6 +22,8 @@ import {
 } from "@/lib/frete-simulacao";
 import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEditDialog";
 import { PagamentoRotaDialog } from "@/components/routes/PagamentoRotaDialog";
+import { liberarNovoPix, situacaoPixResponsaveis } from "@/lib/rota-pagamento.functions";
+import type { SituacaoPix } from "@/lib/rota-pagamento.types";
 import { useAuth } from "@/hooks/useAuth";
 import {
   listarResponsaveisErp,
@@ -363,7 +365,13 @@ function FreightInput({
   onReauditar,
   onValorChange,
   onConfirmar,
+  pix,
+  onLiberarPix,
+  liberandoPix = false,
 }: {
+  pix?: SituacaoPix | null;
+  onLiberarPix?: (codErp: string) => void;
+  liberandoPix?: boolean;
   auditoria?: AuditoriaInfo;
   auditoriaCarregando?: boolean;
   onReauditar?: () => void;
@@ -402,7 +410,30 @@ function FreightInput({
     bordero.total > 0 &&
     pendentes === 0 &&
     (!confirmado || isAdmin) &&
-    (confirmado || !mostrarConfirmar || auditoria?.completa === true);
+    (confirmado || !mostrarConfirmar || auditoria?.completa === true) &&
+    (!mostrarConfirmar || !pix?.bloqueio);
+  const mensagemPix =
+    mostrarConfirmar && pix?.bloqueio === "SEM_PIX"
+      ? `Fretista sem PIX cadastrado no ERP. Cadastre o contato PIX do fretista (código ${pix.cod_erp}) e clique em "Atualizar cadastro" na tela Transportadoras.`
+      : mostrarConfirmar && pix?.bloqueio === "PIX_ALTERADO"
+        ? `PIX alterado (anterior: ${pix.pix_referencia}; novo: ${pix.pix}) — aguardando liberação de um administrador.`
+        : null;
+  const avisoPix = mensagemPix ? (
+    <div className="flex max-w-[220px] flex-col items-end gap-1">
+      <span className="text-right text-[10px] leading-tight text-destructive">{mensagemPix}</span>
+      {pix?.bloqueio === "PIX_ALTERADO" && isAdmin && pix.cod_erp && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-6 px-2 text-[11px]"
+          disabled={liberandoPix}
+          onClick={() => onLiberarPix?.(pix.cod_erp!)}
+        >
+          Liberar novo PIX
+        </Button>
+      )}
+    </div>
+  ) : null;
 
   // Grava o valor planejado ao sair do campo, sem criar pagamento.
   const salvarPlanejado = async () => {
@@ -472,6 +503,7 @@ function FreightInput({
             Reabrir / Lançar adicional
           </Button>
         )}
+        {confirmado && avisoPix}
       </div>
     );
   }
@@ -555,6 +587,7 @@ function FreightInput({
           >
             {confirmado ? "Reabrir / Lançar adicional" : "Confirmar Pgto"}
           </Button>
+          {avisoPix}
           {!confirmado && (
             <AuditoriaBadge
               info={auditoria}
@@ -857,7 +890,15 @@ export function RotasView({
         .from("erp_responsaveis")
         .select("cod_erp,razao_social,natureza,tipo_frete,pix")
         .order("razao_social");
-      if (error) throw error;
+      if (error) {
+        // Sem a coluna PIX (script ainda não aplicado), lê o cadastro sem ela.
+        const alt = await supabase
+          .from("erp_responsaveis")
+          .select("cod_erp,razao_social,natureza,tipo_frete")
+          .order("razao_social");
+        if (alt.error) throw alt.error;
+        return (alt.data ?? []).map((d) => ({ ...(d as object), pix: null })) as { cod_erp: string; razao_social: string | null; natureza: string | null; tipo_frete: TipoFrete | null; pix: string | null }[];
+      }
       return (data ?? []) as { cod_erp: string; razao_social: string | null; natureza: string | null; tipo_frete: TipoFrete | null; pix: string | null }[];
     },
     staleTime: 30 * 60 * 1000,
@@ -1126,6 +1167,39 @@ export function RotasView({
     },
   });
   const auditoriaMap = auditoriaQ.data;
+
+  const situacaoPixFn = useServerFn(situacaoPixResponsaveis);
+  const liberarPixFn = useServerFn(liberarNovoPix);
+  const codigosPix = useMemo(() => {
+    if (!permitirConfirmacao) return [] as string[];
+    return Array.from(new Set(Array.from(codResponsavelPorRota.values()).map((c) => c.trim()))).sort();
+  }, [permitirConfirmacao, codResponsavelPorRota]);
+  const pixQ = useQuery({
+    queryKey: ["situacao-pix", codigosPix, responsaveisLocaisQ.dataUpdatedAt],
+    enabled: codigosPix.length > 0,
+    staleTime: 60_000,
+    queryFn: () => situacaoPixFn({ data: { codigos: codigosPix } }),
+  });
+  const liberarPix = useMutation({
+    mutationFn: (codErp: string) => liberarPixFn({ data: { codErp } }),
+    onSuccess: () => {
+      toast.success("Novo PIX liberado.");
+      qc.invalidateQueries({ queryKey: ["situacao-pix"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const pixDaRota = (r: RouteRow): SituacaoPix | null => {
+    const cod = codResponsavelPorRota.get(r.id)?.trim();
+    if (!cod) return null;
+    const s = pixQ.data?.[cod];
+    if (s) return s;
+    // Enquanto a consulta não volta, usa o espelho local para exigir o PIX do fretista.
+    const tipo = tipoFreteOf(r);
+    const local = responsavelPorRota.get(r.id);
+    return tipo === "F" && !local?.pix
+      ? { cod_erp: cod, tipo, pix: null, favorecido: local?.razaoSocial ?? null, pix_referencia: null, bloqueio: "SEM_PIX" }
+      : null;
+  };
   const reauditar = auditoriaQ.refetch;
 
   const columns = useMemo<ColumnDef<RouteRow>[]>(
@@ -1315,6 +1389,9 @@ export function RotasView({
               mostrarConfirmar={permitirConfirmacao}
               valorTotalConfirmado={permitirConfirmacao && r.frete_confirmado_em ? freteOf(r) : undefined}
               auditoria={auditoriaMap?.get(r.id)}
+              pix={permitirConfirmacao ? pixDaRota(r) : null}
+              onLiberarPix={(cod) => liberarPix.mutate(cod)}
+              liberandoPix={liberarPix.isPending}
               auditoriaCarregando={auditoriaQ.isFetching}
               onReauditar={() => void reauditar()}
               onValorChange={(id, v) =>

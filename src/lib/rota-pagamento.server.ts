@@ -15,8 +15,10 @@ import type {
   PagamentoRotaHistorico,
   PedidoPagamento,
   PreviewPagamentoRota,
+  SituacaoPix,
   TipoPagamentoRota,
 } from "./rota-pagamento.types";
+import { codResponsavelDaRota, mensagemBloqueioPix, situacaoPix } from "./pix-controle.server";
 import {
   MOTIVOS_ADICIONAIS,
   dataSugeridaPagamento,
@@ -247,6 +249,7 @@ function montarTextoTarefa(
   observacao: string | null,
   dataPagamento: string,
   selecionados: Set<string> | null = null,
+  pix: SituacaoPix | null = null,
 ): string {
   const linhas: string[] = [];
   const titulo =
@@ -281,6 +284,14 @@ function montarTextoTarefa(
     linhas.push(`  Filial ${f.cod_filial}: ${brl(f.frete)}`);
   }
   linhas.push(`  Total: ${brl(valor)}`);
+  linhas.push("");
+  linhas.push("Instrução de pagamento");
+  linhas.push(`  Depositar via PIX: ${pix?.pix ?? "PIX NÃO CADASTRADO"}`);
+  linhas.push(
+    `  Favorecido: ${pix?.favorecido ?? rota.driver_name ?? "—"}${pix?.cod_erp ? ` (código ${pix.cod_erp})` : ""}`,
+  );
+  linhas.push(`  Valor total: ${brl(valor)}`);
+  linhas.push(`  Data de pagamento: ${formatarDataBr(dataPagamento)}`);
   if (observacao) {
     linhas.push("");
     linhas.push(`Observação: ${observacao}`);
@@ -370,6 +381,7 @@ export async function montarPreviewPagamentoRota(params: {
 
   const valor = cent(Number(params.valor ?? 0));
   const dataPagamento = normalizarDataPagamento(params.dataPagamento, rota.route_date);
+  const pix = await situacaoPix(await codResponsavelDaRota(rota));
 
   const escolhidos = (params.pedidos ?? []).map((c) => String(c));
   const selecao =
@@ -407,7 +419,9 @@ export async function montarPreviewPagamentoRota(params: {
       params.observacao ?? null,
       dataPagamento,
       selecao,
+      pix,
     ),
+    pix,
   };
 }
 

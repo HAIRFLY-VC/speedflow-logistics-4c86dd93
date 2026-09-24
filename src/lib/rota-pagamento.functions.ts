@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type {
   PagamentoRotaHistorico,
   PreviewPagamentoRota,
+  SituacaoPix,
 } from "@/lib/rota-pagamento.types";
 
 const motivoSchema = z.enum([
@@ -123,4 +124,27 @@ export const reenviarFilaRota = createServerFn({ method: "POST" })
     }
     const { reenviarItemFila } = await import("./frete-aprovacao.server");
     return reenviarItemFila(data.fila, data.filaId);
+  });
+
+/** Situação do PIX (obrigatório / alterado) por código de responsável. */
+export const situacaoPixResponsaveis = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ codigos: z.array(z.string().trim().min(1)).max(200) }).parse(input),
+  )
+  .handler(async ({ data }): Promise<Record<string, SituacaoPix>> => {
+    const { situacaoPix } = await import("./pix-controle.server");
+    const lista = await Promise.all(Array.from(new Set(data.codigos)).map((c) => situacaoPix(c)));
+    return Object.fromEntries(lista.map((s) => [s.cod_erp ?? "", s]));
+  });
+
+/** Administrador libera a troca do PIX de um responsável. */
+export const liberarNovoPix = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ codErp: z.string().trim().min(1) }).parse(input))
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    if (!(await ehAdmin(ctx))) throw new Error("Apenas administradores podem liberar um novo PIX.");
+    const { liberarPix } = await import("./pix-controle.server");
+    return liberarPix(data.codErp, ctx.userId);
   });
