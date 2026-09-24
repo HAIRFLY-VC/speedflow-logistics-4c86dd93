@@ -503,6 +503,7 @@ function FreightInput({
             Reabrir / Lançar adicional
           </Button>
         )}
+        {confirmado && avisoPix}
       </div>
     );
   }
