@@ -243,6 +243,30 @@ export function PagamentoRotaDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {p?.pix && (
+          <div
+            className={`rounded-md border p-3 text-sm ${p.pix.bloqueio ? "border-destructive/40 bg-destructive/10 text-destructive" : "bg-muted/30"}`}
+          >
+            <div>
+              <span className="font-medium">PIX para depósito:</span> {p.pix.pix ?? "não cadastrado"}
+            </div>
+            <div className="text-xs">
+              Favorecido: {p.pix.favorecido ?? "—"}
+              {p.pix.cod_erp ? ` (código ${p.pix.cod_erp})` : ""}
+            </div>
+            {p.pix.bloqueio === "SEM_PIX" && (
+              <div className="mt-1 text-xs">
+                Fretista sem PIX cadastrado no ERP. Cadastre o contato PIX e clique em "Atualizar cadastro" na tela Transportadoras.
+              </div>
+            )}
+            {p.pix.bloqueio === "PIX_ALTERADO" && (
+              <div className="mt-1 text-xs">
+                PIX alterado (anterior: {p.pix.pix_referencia}) — aguardando liberação de um administrador.
+              </div>
+            )}
+          </div>
+        )}
+
         {tipo === "FRETE" && (
           <div className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/30 p-3">
             <div className="grid gap-1">
