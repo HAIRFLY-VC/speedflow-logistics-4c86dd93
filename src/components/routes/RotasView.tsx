@@ -1187,6 +1187,14 @@ export function RotasView({
     staleTime: 60_000,
     queryFn: () => situacaoPixFn({ data: { codigos: codigosPix } }),
   });
+  const vinculoBitrixFn = useServerFn(meuVinculoBitrix);
+  const vinculoBitrixQ = useQuery({
+    queryKey: ["meu-vinculo-bitrix"],
+    enabled: permitirConfirmacao,
+    staleTime: 60_000,
+    queryFn: () => vinculoBitrixFn({ data: undefined }),
+  });
+  const vinculoBitrixOk = vinculoBitrixQ.data != null;
   const liberarPix = useMutation({
     mutationFn: (codErp: string) => liberarPixFn({ data: { codErp } }),
     onSuccess: () => {
