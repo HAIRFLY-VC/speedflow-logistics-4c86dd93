@@ -184,9 +184,25 @@ export async function auditarEImportarRotas(routeIds: string[]): Promise<Auditor
         status: txt(v, "STATUS"),
         atualizado_em: agora,
       }));
+      // O ERP pode repetir a mesma NF/pedido (uma linha por ocorrência):
+      // junta em uma só linha para não gravar a mesma chave duas vezes.
+      const unicas = new Map<string, (typeof entregas)[number]>();
+      for (const e of entregas) {
+        const k = `${e.nro_nf}|${e.cod_pedido}`;
+        const prev = unicas.get(k);
+        if (prev) {
+          const oc = new Set(
+            [prev.tipos_ocorrencia, e.tipos_ocorrencia]
+              .flatMap((t) => (t ?? "").split(","))
+              .map((t) => t.trim())
+              .filter(Boolean),
+          );
+          unicas.set(k, { ...e, tipos_ocorrencia: oc.size ? Array.from(oc).join(", ") : null });
+        } else unicas.set(k, e);
+      }
       const { error: eErr } = await centralDb
         .from("entregas_abertas")
-        .upsert(entregas as never, { onConflict: "nro_nf,cod_pedido" });
+        .upsert(Array.from(unicas.values()) as never, { onConflict: "nro_nf,cod_pedido" });
       if (eErr) throw new Error(`Gravar notas: ${eErr.message}`);
 
       // 2) Pedidos: agrega por pedido (pode ter mais de uma NF)
