@@ -10,12 +10,12 @@ const SQL_RESPONSIVEIS = `select TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOCIAL, T.DB
 const SQL_CADASTRO_RESPONSAVEIS = `select TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOCIAL,
        TRIM(T.DBA_TIP_CODIGO_1) COD_ERP,
        T.DBA_TIP_NATUREZA COD_NAT,
-       (select max(case when trim(C.DBA_CONT_CONTATO) <> ''
-                        then trim(C.DBA_CONT_CONTATO)
+       (select max(CASE WHEN C.DBA_CONT_CONTATO <> '                                                            '
+                        THEN TRIM(C.DBA_CONT_CONTATO)
                         else trim(C.DBA_CONT_EMAIL) end)
           from gks.a_cadccont C
          where C.DBA_CONT_CODIGO = T.DBA_TIP_CODIGO_1
-           and upper(trim(C.DBA_CONT_CARGO)) = 'PIX') PIX
+           and C.DBA_CONT_CARGO = 'PIX                                                         ') PIX
   from gks.a_cadctipo T
  where T.DBA_TIP_NATUREZA in ('ET','EF','EM')`;
 
@@ -281,12 +281,12 @@ export const sincronizarResponsaveisPorCodigo = createServerFn({ method: "POST" 
         const rows = await consultarErp(
           `select T.DBA_TIP_CODIGO_1 COD_ERP, TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOCIAL,
               T.DBA_TIP_NATUREZA COD_NAT,
-              (select max(case when trim(C.DBA_CONT_CONTATO) <> ''
-                               then trim(C.DBA_CONT_CONTATO)
+              (select max(CASE WHEN C.DBA_CONT_CONTATO <> '                                                            '
+                               THEN TRIM(C.DBA_CONT_CONTATO)
                                else trim(C.DBA_CONT_EMAIL) end)
                  from gks.a_cadccont C
                 where C.DBA_CONT_CODIGO = T.DBA_TIP_CODIGO_1
-                  and upper(trim(C.DBA_CONT_CARGO)) = 'PIX') PIX
+                  and C.DBA_CONT_CARGO = 'PIX                                                         ') PIX
          from gks.a_cadctipo T
          where TRIM(T.DBA_TIP_CODIGO_1) in (${lista})`,
           1000,
