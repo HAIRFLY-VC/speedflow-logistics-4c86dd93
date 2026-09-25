@@ -295,14 +295,17 @@ async function fetchPendingOrdersFromErp(): Promise<ErpOrderRow[]> {
   throw lastErr ?? new Error("Falha desconhecida ao consultar o ERP");
 }
 
+// PIX: contato cujo CARGO é 'PIX'; a chave é o nome do contato (ou o e-mail, se o nome estiver em branco).
 const RESPONSAVEIS_SQL = `
   SELECT TRIM(T.DBA_TIP_CODIGO_1) COD_ERP,
          TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOCIAL,
          T.DBA_TIP_NATUREZA COD_NAT,
-         (SELECT MAX(TRIM(C.DBA_CONT_EMAIL))
+         (SELECT MAX(CASE WHEN TRIM(C.DBA_CONT_CONTATO) <> ''
+                          THEN TRIM(C.DBA_CONT_CONTATO)
+                          ELSE TRIM(C.DBA_CONT_EMAIL) END)
             FROM GKS.A_CADCCONT C
            WHERE C.DBA_CONT_CODIGO = T.DBA_TIP_CODIGO_1
-             AND UPPER(TRIM(C.DBA_CONT_CONTATO)) = 'PIX') PIX
+             AND UPPER(TRIM(C.DBA_CONT_CARGO)) = 'PIX') PIX
     FROM GKS.A_CADCTIPO T
    WHERE T.DBA_TIP_NATUREZA IN ('ET','EF','EM')
 `;
