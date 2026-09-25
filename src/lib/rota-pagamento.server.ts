@@ -445,6 +445,16 @@ export async function confirmarPagamentoRota(params: {
   if (params.tipo === "ADICIONAL" && !params.motivo) {
     throw new Error("Informe o motivo do valor adicional.");
   }
+
+  // O criador da tarefa do Bitrix é o usuário vinculado a quem autorizou.
+  const { vinculoBitrixDoUsuario } = await import("./bitrix-task.server");
+  const vinculo = await vinculoBitrixDoUsuario(params.userId);
+  if (!vinculo) {
+    throw new Error(
+      "Seu usuário não está vinculado ao Bitrix. Peça ao administrador para fazer o vínculo em Configurações.",
+    );
+  }
+
   const valor = cent(Number(params.valor ?? 0));
   if (!(valor > 0)) throw new Error("Informe um valor de frete maior que zero.");
 
@@ -577,6 +587,7 @@ export async function confirmarPagamentoRota(params: {
       route_id: params.routeId,
       rota: preview.rota,
       erp_route_id: preview.erp_route_id,
+      autorizado_por: params.userId,
       titulo_tarefa:
         params.tipo === "FRETE"
           ? `#FRETE Rota ${preview.rota}${rota.driver_name ? ` — ${rota.driver_name}` : ""}`
@@ -640,24 +651,51 @@ export async function processarTarefaFinanceiraRota(
 ): Promise<{ ok: boolean; referencia?: string; erro?: string }> {
   const { data: linha, error } = await centralDb
     .from("fila_provisionamento_financeiro")
-    .select("id, tentativas, payload, cte_id")
+    .select("id, tentativas, payload, cte_id, ordem_pagamento_id")
     .eq("id", filaId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!linha) throw new Error("Item da fila não encontrado");
 
-  const row = linha as { tentativas?: number | null; payload?: Record<string, unknown> | null };
+  const row = linha as {
+    tentativas?: number | null;
+    payload?: Record<string, unknown> | null;
+    ordem_pagamento_id?: string | null;
+  };
   const payload = (row.payload ?? {}) as Record<string, unknown>;
   const tentativas = Number(row.tentativas ?? 0) + 1;
 
-  const { criarTarefaBitrix } = await import("./bitrix-task.server");
+  const { criarTarefaBitrix, vinculoBitrixDoUsuario } = await import("./bitrix-task.server");
 
   const titulo = String(payload["titulo_tarefa"] ?? "#FRETE Pagamento de rota");
   const descricao = String(payload["texto_tarefa"] ?? "");
   const prazo = (payload["data_pagamento"] as string | null) ?? null;
 
+  // Criador da tarefa: usuário do Bitrix vinculado a quem autorizou o
+  // pagamento. Em pendências antigas sem o autor no payload, busca na ordem.
+  let autorId = (payload["autorizado_por"] as string | null) ?? null;
+  if (!autorId && row.ordem_pagamento_id) {
+    const { data: ordem } = await centralDb
+      .from("ordens_pagamento_frete")
+      .select("autorizado_por")
+      .eq("id", row.ordem_pagamento_id)
+      .maybeSingle();
+    autorId = ((ordem as { autorizado_por?: string | null } | null)?.autorizado_por ?? null) as string | null;
+  }
+  const vinculo = autorId ? await vinculoBitrixDoUsuario(autorId) : null;
+  if (!vinculo) {
+    throw new Error(
+      "O usuário que autorizou o pagamento não está vinculado ao Bitrix. Peça ao administrador para fazer o vínculo em Configurações e reenvie.",
+    );
+  }
+
   try {
-    const { id } = await criarTarefaBitrix({ titulo, descricao, prazo });
+    const { id } = await criarTarefaBitrix({
+      titulo,
+      descricao,
+      prazo,
+      criadoPorBitrixId: vinculo.bitrix_user_id,
+    });
     await centralDb
       .from("fila_provisionamento_financeiro")
       .update({

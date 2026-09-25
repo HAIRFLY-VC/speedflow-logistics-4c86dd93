@@ -23,6 +23,7 @@ import {
 import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEditDialog";
 import { PagamentoRotaDialog } from "@/components/routes/PagamentoRotaDialog";
 import { liberarNovoPix, situacaoPixResponsaveis } from "@/lib/rota-pagamento.functions";
+import { meuVinculoBitrix } from "@/lib/bitrix-config.functions";
 import type { SituacaoPix } from "@/lib/rota-pagamento.types";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -368,10 +369,13 @@ function FreightInput({
   pix,
   onLiberarPix,
   liberandoPix = false,
+  vinculoBitrixOk = true,
 }: {
   pix?: SituacaoPix | null;
   onLiberarPix?: (codErp: string) => void;
   liberandoPix?: boolean;
+  /** false quando o usuário logado não tem vínculo com o Bitrix. */
+  vinculoBitrixOk?: boolean;
   auditoria?: AuditoriaInfo;
   auditoriaCarregando?: boolean;
   onReauditar?: () => void;
@@ -411,17 +415,20 @@ function FreightInput({
     pendentes === 0 &&
     (!confirmado || isAdmin) &&
     (confirmado || !mostrarConfirmar || auditoria?.completa === true) &&
-    (!mostrarConfirmar || !pix?.bloqueio);
+    (!mostrarConfirmar || !pix?.bloqueio) &&
+    (!mostrarConfirmar || vinculoBitrixOk);
   const mensagemPix =
-    mostrarConfirmar && pix?.bloqueio === "SEM_PIX"
-      ? `Fretista sem PIX cadastrado no ERP. Cadastre o contato PIX do fretista (código ${pix.cod_erp}) e clique em "Atualizar cadastro" na tela Transportadoras.`
-      : mostrarConfirmar && pix?.bloqueio === "PIX_ALTERADO"
-        ? `PIX alterado (anterior: ${pix.pix_referencia}; novo: ${pix.pix}) — aguardando liberação de um administrador.`
-        : null;
+    mostrarConfirmar && !vinculoBitrixOk
+      ? "Seu usuário não está vinculado ao Bitrix. Peça ao administrador para fazer o vínculo em Configurações."
+      : mostrarConfirmar && pix?.bloqueio === "SEM_PIX"
+        ? `Fretista sem PIX cadastrado no ERP. Cadastre o contato PIX do fretista (código ${pix.cod_erp}) e clique em "Atualizar cadastro" na tela Transportadoras.`
+        : mostrarConfirmar && pix?.bloqueio === "PIX_ALTERADO"
+          ? `PIX alterado (anterior: ${pix.pix_referencia}; novo: ${pix.pix}) — aguardando liberação de um administrador.`
+          : null;
   const avisoPix = mensagemPix ? (
     <div className="flex max-w-[220px] flex-col items-end gap-1">
       <span className="text-right text-[10px] leading-tight text-destructive">{mensagemPix}</span>
-      {pix?.bloqueio === "PIX_ALTERADO" && isAdmin && pix.cod_erp && (
+      {vinculoBitrixOk && pix?.bloqueio === "PIX_ALTERADO" && isAdmin && pix.cod_erp && (
         <Button
           size="sm"
           variant="outline"
@@ -1180,6 +1187,14 @@ export function RotasView({
     staleTime: 60_000,
     queryFn: () => situacaoPixFn({ data: { codigos: codigosPix } }),
   });
+  const vinculoBitrixFn = useServerFn(meuVinculoBitrix);
+  const vinculoBitrixQ = useQuery({
+    queryKey: ["meu-vinculo-bitrix"],
+    enabled: permitirConfirmacao,
+    staleTime: 60_000,
+    queryFn: () => vinculoBitrixFn({ data: undefined }),
+  });
+  const vinculoBitrixOk = vinculoBitrixQ.data != null;
   const liberarPix = useMutation({
     mutationFn: (codErp: string) => liberarPixFn({ data: { codErp } }),
     onSuccess: () => {
@@ -1389,9 +1404,10 @@ export function RotasView({
               mostrarConfirmar={permitirConfirmacao}
               valorTotalConfirmado={permitirConfirmacao && r.frete_confirmado_em ? freteOf(r) : undefined}
               auditoria={auditoriaMap?.get(r.id)}
-              pix={permitirConfirmacao ? pixDaRota(r) : null}
-              onLiberarPix={(cod) => liberarPix.mutate(cod)}
-              liberandoPix={liberarPix.isPending}
+               pix={permitirConfirmacao ? pixDaRota(r) : null}
+               onLiberarPix={(cod) => liberarPix.mutate(cod)}
+               liberandoPix={liberarPix.isPending}
+               vinculoBitrixOk={vinculoBitrixOk}
               auditoriaCarregando={auditoriaQ.isFetching}
               onReauditar={() => void reauditar()}
               onValorChange={(id, v) =>
