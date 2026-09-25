@@ -43,6 +43,7 @@ import {
   type ManagedUser,
 } from "@/lib/users.functions";
 import { mensagemErro } from "@/lib/mensagem-erro";
+import { VinculoBitrixSection } from "@/components/usuarios/VinculoBitrixSection";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
   head: () => ({
@@ -312,6 +313,8 @@ function UsuariosPage() {
             />
           </CardContent>
         </Card>
+
+        <VinculoBitrixSection />
         <AlertDialog open={confirmingUser !== null} onOpenChange={(value) => !value && setConfirmingUser(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
