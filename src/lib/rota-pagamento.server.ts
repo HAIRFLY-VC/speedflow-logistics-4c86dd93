@@ -674,11 +674,11 @@ export async function processarTarefaFinanceiraRota(
   // Criador da tarefa: usuário do Bitrix vinculado a quem autorizou o
   // pagamento. Em pendências antigas sem o autor no payload, busca na ordem.
   let autorId = (payload["autorizado_por"] as string | null) ?? null;
-  if (!autorId) {
+  if (!autorId && row.ordem_pagamento_id) {
     const { data: ordem } = await centralDb
       .from("ordens_pagamento_frete")
       .select("autorizado_por")
-      .eq("id", String(payload["ordem_pagamento_id"] ?? ""))
+      .eq("id", row.ordem_pagamento_id)
       .maybeSingle();
     autorId = ((ordem as { autorizado_por?: string | null } | null)?.autorizado_por ?? null) as string | null;
   }
