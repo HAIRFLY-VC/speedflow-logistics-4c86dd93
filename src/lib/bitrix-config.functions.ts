@@ -91,22 +91,45 @@ export const listarVinculosBitrix = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<UsuarioAppVinculoDto[]> => {
     await exigirAdmin(context as unknown as Ctx);
+    // E-mails vivem no cadastro de acesso (auth), não em profiles.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    if (authError) throw new Error(authError.message);
+
     const { centralDb } = await import("./central-db");
-    let { data, error } = await centralDb
-      .from("profiles")
-      .select("id, full_name, email, bitrix_user_id, bitrix_user_nome")
-      .order("full_name", { ascending: true });
-    // Enquanto o script das colunas não é rodado, lista sem o vínculo.
-    if (error && ((error as { code?: string }).code === "42703" || error.message.includes("bitrix_user_id"))) {
-      const semColunas = await centralDb
+    const ids = authData.users.map((u) => u.id);
+    let perfis: Record<string, unknown>[] = [];
+    if (ids.length > 0) {
+      const comVinculo = await centralDb
         .from("profiles")
-        .select("id, full_name, email")
-        .order("full_name", { ascending: true });
-      data = (semColunas.data ?? []).map((p) => ({ ...(p as Record<string, unknown>), bitrix_user_id: null, bitrix_user_nome: null })) as never;
-      error = semColunas.error;
+        .select("id, full_name, bitrix_user_id, bitrix_user_nome")
+        .in("id", ids);
+      if (comVinculo.error && ((comVinculo.error as { code?: string }).code === "42703" || comVinculo.error.message.includes("bitrix_user_id"))) {
+        // Enquanto o script das colunas não é rodado, lista sem o vínculo.
+        const semColunas = await centralDb.from("profiles").select("id, full_name").in("id", ids);
+        if (semColunas.error) throw new Error(semColunas.error.message);
+        perfis = (semColunas.data ?? []) as unknown as Record<string, unknown>[];
+      } else {
+        if (comVinculo.error) throw new Error(comVinculo.error.message);
+        perfis = (comVinculo.data ?? []) as unknown as Record<string, unknown>[];
+      }
     }
-    if (error) throw new Error(error.message);
-    return (data ?? []) as unknown as UsuarioAppVinculoDto[];
+    const porId = new Map(perfis.map((p) => [String(p["id"]), p]));
+    return authData.users
+      .map((u) => {
+        const p = porId.get(u.id);
+        return {
+          id: u.id,
+          full_name: (p?.["full_name"] as string | null) ?? (typeof u.user_metadata?.full_name === "string" ? u.user_metadata.full_name : null),
+          email: u.email ?? null,
+          bitrix_user_id: (p?.["bitrix_user_id"] as number | null) ?? null,
+          bitrix_user_nome: (p?.["bitrix_user_nome"] as string | null) ?? null,
+        };
+      })
+      .sort((a, b) => (a.full_name ?? a.email ?? "").localeCompare(b.full_name ?? b.email ?? "", "pt-BR"));
   });
 
 /** Grava o vínculo de um usuário do app com um usuário do Bitrix (só adm). */
