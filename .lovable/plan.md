@@ -21,12 +21,10 @@ Nova área **"Tarefas do Bitrix"** (só administradores), com duas partes:
 - Responsável e observadores vêm da configuração salva, não mais fixos no código.
 - Vale para a tarefa normal, a de valor adicional e os reenvios da fila de pendências (o reenvio mantém o autor original).
 
-## Observação (verificado em 25/09, 09:14)
-Novo webhook informado pelo usuário: `https://hairfly.bitrix24.com.br/rest/1/yb9gx6rdzojf3t0r/` — pertence a Lucas Sultanum (código 1), administrador do Bitrix, então o Bitrix aceita outro usuário como criador. Porém, testado agora, ele **não tem nenhuma permissão marcada** (escopo vazio): falta "Tarefas (task)" e "Usuários (user)".
+## Observação (verificado em 25/09, 09:17)
+Webhook definitivo informado pelo usuário: `https://hairfly.bitrix24.com.br/rest/1/vudzzdzvccplzbep/` — pertence a Lucas Sultanum (código 1), administrador do Bitrix, então o Bitrix aceita outro usuário como criador. Testado agora: permissões OK (`task`, `tasks_extended`, `user_basic`, `user_brief`, `disk`) e a **lista de usuários ativos carregou com sucesso** (`user.get` retornou Lucas, Wagner, Letyane etc.).
 
-**Ação sua antes de testar:** no Bitrix, em Aplicativos > Webhooks, edite o webhook da chave `yb9gx6rdzojf3t0r`, marque "Tarefas (task)" e "Usuários (user)" e salve. Enquanto não for liberado, a tela avisa em português o que falta.
-
-**Na implementação:** atualizar o endereço do webhook do Bitrix no app para o novo (chave `yb9gx6rdzojf3t0r`).
+**Na implementação:** atualizar o endereço do webhook do Bitrix no app para este novo (chave `vudzzdzvccplzbep`).
 
 ## Detalhes técnicos
 - Bitrix: `user.get` com `FILTER: { ACTIVE: true }`, paginado (`start`, 50 por página), cache de 10 min no servidor; busca feita no navegador sobre a lista completa.
