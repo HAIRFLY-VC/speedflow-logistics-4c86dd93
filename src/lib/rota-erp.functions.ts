@@ -401,15 +401,11 @@ export const excluirPedidoFaltanteDaRota = createServerFn({ method: "POST" })
     const apiKey = process.env["ERP_API_KEY"];
     if (!baseUrl || !apiKey) throw new Error("Integração com o ERP não configurada");
     const base = baseUrl.replace(/\/+$/, "").replace(/\/v1\/(query|execute)$/, "");
-    const res = await fetch(`${base}/v1/query`, {
+    const res = await fetch(`${base}/v1/execute/delete_pedido_da_rota`, {
       method: "POST",
       signal: AbortSignal.timeout(25_000),
       headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
-      body: JSON.stringify({
-        sql: "delete from gks.A_GER_ROTAS_PEDIDOS x where x.id=:codrota and x.pedido=:codpedido",
-        binds: { codrota: Number(codRota), codpedido: data.pedido },
-        limit: 1,
-      }),
+      body: JSON.stringify({ binds: { rota: Number(codRota), pedido: data.pedido } }),
     });
     if (!res.ok) {
       const t = (await res.text()).replace(/\s+/g, " ").slice(0, 240);
@@ -446,15 +442,11 @@ export const excluirTodosFaltantesDaRota = createServerFn({ method: "POST" })
     const falhas: { pedido: string; erro: string }[] = [];
     for (const f of aud.faltantes) {
       try {
-        const res = await fetch(`${base}/v1/query`, {
+        const res = await fetch(`${base}/v1/execute/delete_pedido_da_rota`, {
           method: "POST",
           signal: AbortSignal.timeout(25_000),
           headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
-          body: JSON.stringify({
-            sql: "delete from gks.A_GER_ROTAS_PEDIDOS x where x.id=:codrota and x.pedido=:codpedido",
-            binds: { codrota: Number(codRota), codpedido: f.pedido },
-            limit: 1,
-          }),
+          body: JSON.stringify({ binds: { rota: Number(codRota), pedido: f.pedido } }),
         });
         if (!res.ok) {
           const t = (await res.text()).replace(/\s+/g, " ").slice(0, 240);
