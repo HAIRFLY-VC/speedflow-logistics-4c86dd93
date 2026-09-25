@@ -219,7 +219,7 @@ export function PagamentoRotaDialog({
   // Reavalia com os dados atuais da tela (valor digitado e auditoria refeita).
   const bloqueioAtual = (() => {
     if (!bloqueio) {
-      return aud && aud.completa !== true && !jaConfirmadoRef()
+      return aud && aud.completa !== true
         ? "Rota incompleta na auditoria."
         : null;
     }
@@ -231,7 +231,7 @@ export function PagamentoRotaDialog({
       if (auditoriaQ.isFetching) return "Conferindo a rota no ERP...";
       return aud?.completa === true ? null : bloqueio;
     }
-    if (bloqueio.startsWith("Aguardando borderô")) return semBordero ? bloqueio : null;
+    if (bloqueio.startsWith("Aguardando borderô")) return (p?.pedidos_sem_bordero ?? 0) > 0 ? bloqueio : null;
     return bloqueio;
   })();
   const excluir = useMutation({
