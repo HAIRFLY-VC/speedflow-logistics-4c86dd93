@@ -1330,7 +1330,7 @@ export function RotasView({
             </span>
           );
         },
-      }]),
+      }] as ColumnDef<RouteRow>[]),
       {
         id: "paradas",
         header: "Qtd Entregas",
