@@ -674,7 +674,10 @@ export function PagamentoRotaDialog({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="items-center">
+          {bloqueio && (
+            <span className="mr-auto text-xs text-destructive">{bloqueio}</span>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
