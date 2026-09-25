@@ -1225,6 +1225,7 @@ export function RotasView({
         header: "ID",
         pinFirst: true,
         sortable: false,
+        width: permitirConfirmacao ? "58px" : undefined,
         accessor: (r) => r.erp_route_id ?? "",
         render: (r) =>
           r.erp_route_id ? (
@@ -1237,6 +1238,8 @@ export function RotasView({
         id: "route_date",
         header: "Data planejada",
         sortable: false,
+        width: permitirConfirmacao ? "70px" : undefined,
+        verticalHeader: permitirConfirmacao,
         accessor: (r) => r.route_date,
         render: (r) => (
           <span className="text-primary">
@@ -1248,12 +1251,14 @@ export function RotasView({
         id: "nome_rota",
         header: "Nome da rota",
         sortable: false,
+        width: permitirConfirmacao ? "92px" : undefined,
         accessor: (r) => nomeRotaOf(r),
       },
       {
         id: "motorista",
         header: "Fret / Transp",
         sortable: false,
+        width: permitirConfirmacao ? "150px" : undefined,
         accessor: (r) =>
           motoristaOf(
             r,
@@ -1267,7 +1272,10 @@ export function RotasView({
             responsavelPorRota.get(r.id),
           ) || <span className="text-muted-foreground">—</span>,
       },
-      {
+      ...(permitirConfirmacao
+        ? []
+        : [
+            {
         id: "tipo_frete",
         header: "Tipo",
         sortable: false,
@@ -1322,11 +1330,13 @@ export function RotasView({
             </span>
           );
         },
-      },
+      }] as ColumnDef<RouteRow>[]),
       {
         id: "paradas",
         header: "Qtd Entregas",
         sortable: false,
+        width: permitirConfirmacao ? "46px" : undefined,
+        verticalHeader: permitirConfirmacao,
         align: "right",
         accessor: (r) => paradasOf(r),
         className: "tabular-nums",
@@ -1341,6 +1351,8 @@ export function RotasView({
         header: "Valor total",
         sortable: false,
         align: "right",
+        width: permitirConfirmacao ? "88px" : undefined,
+        verticalHeader: permitirConfirmacao,
         accessor: (r) => valorOf(r),
         render: (r) => currencyFmt.format(valorOf(r)),
         className: "tabular-nums",
@@ -1355,6 +1367,8 @@ export function RotasView({
         header: "Peso total (kg)",
         sortable: false,
         align: "right",
+        width: permitirConfirmacao ? "74px" : undefined,
+        verticalHeader: permitirConfirmacao,
         accessor: (r) => pesoOf(r),
         render: (r) => weightFmt.format(pesoOf(r)),
         className: "tabular-nums",
@@ -1369,6 +1383,8 @@ export function RotasView({
         header: "Distância (km)",
         sortable: false,
         align: "right",
+        width: permitirConfirmacao ? "68px" : undefined,
+        verticalHeader: permitirConfirmacao,
         filterable: false,
         accessor: (r) => Number(r.total_distance_km ?? 0),
         render: (r) => (
@@ -1390,6 +1406,8 @@ export function RotasView({
         header: "Frete (R$)",
         sortable: false,
         align: "right",
+        width: permitirConfirmacao ? "132px" : undefined,
+        verticalHeader: permitirConfirmacao,
         filterable: false,
         accessor: (r) => freteOf(r),
         render: (r) => (
@@ -1430,6 +1448,8 @@ export function RotasView({
         header: "% Frete",
         sortable: false,
         align: "right",
+        width: permitirConfirmacao ? "58px" : undefined,
+        verticalHeader: permitirConfirmacao,
         filterable: false,
         accessor: (r) => {
           const v = valorOf(r);
@@ -1465,6 +1485,8 @@ export function RotasView({
         header: "Pedidos por status",
         sortable: false,
         filterable: false,
+        width: permitirConfirmacao ? "112px" : undefined,
+        verticalHeader: permitirConfirmacao,
         accessor: (r) =>
           Array.from(statusMapOf(r).keys()).join(", "),
         render: (r) => <StatusList map={statusMapOf(r)} />,
@@ -1501,6 +1523,7 @@ export function RotasView({
         header: "",
         hideOnCard: true,
         sortable: false,
+        width: permitirConfirmacao ? "44px" : undefined,
         align: "right",
         filterable: false,
         accessor: () => "",
@@ -1670,6 +1693,7 @@ export function RotasView({
           emptyMessage={mensagemVazia}
           onFilteredChange={setFilteredData}
           forceTableLayout={permitirConfirmacao}
+          fitColumns={permitirConfirmacao}
           onRowClick={(r) =>
             navigate({ to: "/rotas/$routeId", params: { routeId: r.id } })
           }

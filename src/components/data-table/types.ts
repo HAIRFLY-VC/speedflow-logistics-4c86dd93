@@ -27,7 +27,10 @@ export type ColumnDef<T> = {
   /** Hides the column from the mobile card layout (still shown in the table). */
   hideOnCard?: boolean;
 
+  /** Preferred width for the column (applied to th/td as a style). */
   width?: string;
+  /** Renders the header label rotated vertically to save horizontal space. */
+  verticalHeader?: boolean;
 };
 
 export type SortState = { id: string; dir: "asc" | "desc" } | null;
@@ -49,6 +52,8 @@ export type DataTableProps<T> = {
   scrollable?: boolean;
   /** Keep a horizontally scrollable table instead of cards on narrow screens. */
   forceTableLayout?: boolean;
+  /** Compact layout: no min-width, smaller font, narrower cells — table fits the viewport. */
+  fitColumns?: boolean;
   /** Optional action rendered at the top-right corner of each mobile card. */
   cardHeaderAction?: (row: T) => ReactNode;
 
