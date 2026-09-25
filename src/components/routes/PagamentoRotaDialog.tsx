@@ -453,6 +453,11 @@ export function PagamentoRotaDialog({
                   <thead>
                     <tr className="text-left">
                       <th className="py-1 font-medium">Pedido</th>
+                      <th className="py-1 font-medium">Cód. cliente</th>
+                      <th className="py-1 font-medium">Cliente</th>
+                      <th className="py-1 font-medium">Agenda</th>
+                      <th className="py-1 font-medium">Filial</th>
+                      <th className="py-1 font-medium text-right">Valor</th>
                       <th className="py-1 font-medium">Crítica</th>
                       <th className="py-1 text-right">
                         <Button
@@ -481,6 +486,13 @@ export function PagamentoRotaDialog({
                     {aud.faltantes.map((f) => (
                       <tr key={f.pedido} className="border-t border-destructive/20">
                         <td className="py-1 tabular-nums">{f.pedido}</td>
+                        <td className="py-1 tabular-nums">{f.codCliente ?? "—"}</td>
+                        <td className="py-1">{f.cliente ?? "—"}</td>
+                        <td className="py-1 tabular-nums">{f.agenda ?? "—"}</td>
+                        <td className="py-1 tabular-nums">{f.filial ?? "—"}</td>
+                        <td className="py-1 text-right tabular-nums">
+                          {f.valor != null ? brl(f.valor) : "—"}
+                        </td>
                         <td className="py-1">{f.motivo}</td>
                         <td className="py-1 text-right">
                           <Button
