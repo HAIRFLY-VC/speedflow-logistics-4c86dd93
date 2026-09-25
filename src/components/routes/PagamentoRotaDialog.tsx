@@ -454,7 +454,27 @@ export function PagamentoRotaDialog({
                     <tr className="text-left">
                       <th className="py-1 font-medium">Pedido</th>
                       <th className="py-1 font-medium">Crítica</th>
-                      <th className="py-1" />
+                      <th className="py-1 text-right">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="h-7 text-xs"
+                          disabled={excluirTodos.isPending || excluir.isPending}
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Excluir TODOS os ${aud.faltantes.length} pedidos não faturados da rota ${aud.erp_route_id} no ERP?`,
+                              )
+                            )
+                              excluirTodos.mutate();
+                          }}
+                        >
+                          {excluirTodos.isPending && (
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          )}
+                          Excluir todos
+                        </Button>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
