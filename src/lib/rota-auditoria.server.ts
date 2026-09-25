@@ -144,12 +144,12 @@ export async function auditarEImportarRotas(routeIds: string[]): Promise<Auditor
     const detalhe = new Map<string, Row>();
     if (semValido.length > 0) {
       const rows = await erp(
-        `SELECT G.COD_PEDIDO, G.NRO_NF, G.STATUS, G.DT_SAIDA, G.DT_ENTREGA_CLI
+        `SELECT G.COD_PEDIDO, G.NRO_NF, G.BORDERO, G.STATUS
            FROM GKS.A_GERENTREGAS G WHERE G.COD_PEDIDO IN (${lista(semValido)})`,
       );
       for (const r of rows) {
         const c = txt(r, "COD_PEDIDO");
-        if (c && (!detalhe.has(c) || txt(r, "STATUS") === "A")) detalhe.set(c, r);
+        if (c && (!detalhe.has(c) || (txt(r, "NRO_NF") && !txt(detalhe.get(c)!, "NRO_NF")))) detalhe.set(c, r);
       }
     }
 
