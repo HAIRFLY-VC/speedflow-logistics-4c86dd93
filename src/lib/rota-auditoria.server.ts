@@ -59,12 +59,11 @@ async function erp(sql: string, limit = 5000): Promise<Row[]> {
 
 const lista = (vals: string[]) => vals.map((v) => `'${v.replace(/'/g, "")}'`).join(",");
 
+// Mesma regra do detalhamento do pagamento: pedido com NF emitida e borderô.
 function motivoDe(g: Row | undefined): string {
-  if (!g || !txt(g, "NRO_NF")) return "Sem nota fiscal emitida";
-  if (!txt(g, "DT_SAIDA")) return "Nota sem data de saída";
-  if (txt(g, "DT_ENTREGA_CLI")) return "Já entregue ao cliente";
-  const st = txt(g, "STATUS");
-  if (st !== "A") return `Status da entrega "${st ?? "—"}"`;
+  if (!g) return "Não encontrado";
+  if (!txt(g, "NRO_NF")) return "Sem nota fiscal emitida";
+  if (!txt(g, "BORDERO")) return "Sem borderô";
   return "Não encontrado";
 }
 
@@ -115,9 +114,8 @@ export async function auditarEImportarRotas(routeIds: string[]): Promise<Auditor
  WHERE R.ID IN (${inRotas})
    AND P.ID = R.ID
    AND G.COD_PEDIDO = P.PEDIDO
-   AND G.STATUS = 'A'
-   AND G.DT_SAIDA IS NOT NULL
-   AND G.DT_ENTREGA_CLI IS NULL`),
+   AND G.NRO_NF IS NOT NULL
+   AND TRIM(G.BORDERO) IS NOT NULL`),
     ]);
 
     // Pedidos esperados por rota (ERP)
@@ -146,12 +144,12 @@ export async function auditarEImportarRotas(routeIds: string[]): Promise<Auditor
     const detalhe = new Map<string, Row>();
     if (semValido.length > 0) {
       const rows = await erp(
-        `SELECT G.COD_PEDIDO, G.NRO_NF, G.STATUS, G.DT_SAIDA, G.DT_ENTREGA_CLI
+        `SELECT G.COD_PEDIDO, G.NRO_NF, G.BORDERO, G.STATUS
            FROM GKS.A_GERENTREGAS G WHERE G.COD_PEDIDO IN (${lista(semValido)})`,
       );
       for (const r of rows) {
         const c = txt(r, "COD_PEDIDO");
-        if (c && (!detalhe.has(c) || txt(r, "STATUS") === "A")) detalhe.set(c, r);
+        if (c && (!detalhe.has(c) || (txt(r, "NRO_NF") && !txt(detalhe.get(c)!, "NRO_NF")))) detalhe.set(c, r);
       }
     }
 
