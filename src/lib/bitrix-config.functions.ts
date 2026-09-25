@@ -92,10 +92,19 @@ export const listarVinculosBitrix = createServerFn({ method: "POST" })
   .handler(async ({ context }): Promise<UsuarioAppVinculoDto[]> => {
     await exigirAdmin(context as unknown as Ctx);
     const { centralDb } = await import("./central-db");
-    const { data, error } = await centralDb
+    let { data, error } = await centralDb
       .from("profiles")
       .select("id, full_name, email, bitrix_user_id, bitrix_user_nome")
       .order("full_name", { ascending: true });
+    // Enquanto o script das colunas não é rodado, lista sem o vínculo.
+    if (error && ((error as { code?: string }).code === "42703" || error.message.includes("bitrix_user_id"))) {
+      const semColunas = await centralDb
+        .from("profiles")
+        .select("id, full_name, email")
+        .order("full_name", { ascending: true });
+      data = (semColunas.data ?? []).map((p) => ({ ...p, bitrix_user_id: null, bitrix_user_nome: null })) as never;
+      error = semColunas.error;
+    }
     if (error) throw new Error(error.message);
     return (data ?? []) as unknown as UsuarioAppVinculoDto[];
   });

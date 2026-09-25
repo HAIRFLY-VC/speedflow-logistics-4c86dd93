@@ -101,7 +101,9 @@ export async function obterConfigTarefa(): Promise<ConfigTarefaBitrix> {
     .eq("id", 1)
     .maybeSingle();
   // Enquanto o script da tabela não é rodado, usa os valores padrão.
-  if (error && (error as { code?: string }).code === "42P01") {
+  const codigoErro = (error as { code?: string } | null)?.code ?? "";
+  const msgErro = (error as { message?: string } | null)?.message ?? "";
+  if (error && (codigoErro === "42P01" || codigoErro === "PGRST205" || msgErro.includes("bitrix_task_config"))) {
     return {
       responsavel_id: TAREFA_RESPONSAVEL_ID,
       responsavel_nome: null,
