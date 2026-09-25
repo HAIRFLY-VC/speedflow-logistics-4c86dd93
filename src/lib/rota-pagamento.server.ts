@@ -288,6 +288,9 @@ function montarTextoTarefa(
   linhas.push("Instrução de pagamento");
   linhas.push(`  Depositar via PIX: ${pix?.pix ?? "PIX NÃO CADASTRADO"}`);
   linhas.push(
+    `  Fretista: ${rota.driver_name ?? pix?.favorecido ?? "—"} (código ERP: ${rota.erp_carrier_code ?? pix?.cod_erp ?? "—"})`,
+  );
+  linhas.push(
     `  Favorecido: ${pix?.favorecido ?? rota.driver_name ?? "—"}${pix?.cod_erp ? ` (código ${pix.cod_erp})` : ""}`,
   );
   linhas.push(`  Valor total: ${brl(valor)}`);
@@ -590,8 +593,8 @@ export async function confirmarPagamentoRota(params: {
       autorizado_por: params.userId,
       titulo_tarefa:
         params.tipo === "FRETE"
-          ? `#FRETE Rota ${preview.rota}${rota.driver_name ? ` — ${rota.driver_name}` : ""}`
-          : `#FRETE Adicional (${rotuloMotivo(params.motivo) ?? "adicional"}) — Rota ${preview.rota}${rota.driver_name ? ` — ${rota.driver_name}` : ""}`,
+          ? `#FRETE Rota ${preview.rota}${rota.driver_name ? ` — ${rota.erp_carrier_code ? `${rota.erp_carrier_code} - ` : ""}${rota.driver_name}` : ""}`
+          : `#FRETE Adicional (${rotuloMotivo(params.motivo) ?? "adicional"}) — Rota ${preview.rota}${rota.driver_name ? ` — ${rota.erp_carrier_code ? `${rota.erp_carrier_code} - ` : ""}${rota.driver_name}` : ""}`,
       responsavel_frete: {
         nome: rota.driver_name,
         cod_erp: rota.erp_carrier_code,
