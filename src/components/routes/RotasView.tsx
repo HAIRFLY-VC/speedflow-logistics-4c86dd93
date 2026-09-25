@@ -1225,6 +1225,7 @@ export function RotasView({
         header: "ID",
         pinFirst: true,
         sortable: false,
+        width: permitirConfirmacao ? "58px" : undefined,
         accessor: (r) => r.erp_route_id ?? "",
         render: (r) =>
           r.erp_route_id ? (
@@ -1237,6 +1238,8 @@ export function RotasView({
         id: "route_date",
         header: "Data planejada",
         sortable: false,
+        width: permitirConfirmacao ? "70px" : undefined,
+        verticalHeader: permitirConfirmacao,
         accessor: (r) => r.route_date,
         render: (r) => (
           <span className="text-primary">
@@ -1248,12 +1251,14 @@ export function RotasView({
         id: "nome_rota",
         header: "Nome da rota",
         sortable: false,
+        width: permitirConfirmacao ? "92px" : undefined,
         accessor: (r) => nomeRotaOf(r),
       },
       {
         id: "motorista",
         header: "Fret / Transp",
         sortable: false,
+        width: permitirConfirmacao ? "150px" : undefined,
         accessor: (r) =>
           motoristaOf(
             r,
@@ -1267,7 +1272,10 @@ export function RotasView({
             responsavelPorRota.get(r.id),
           ) || <span className="text-muted-foreground">—</span>,
       },
-      {
+      ...(permitirConfirmacao
+        ? []
+        : [
+            {
         id: "tipo_frete",
         header: "Tipo",
         sortable: false,
@@ -1322,11 +1330,13 @@ export function RotasView({
             </span>
           );
         },
-      },
+      }]),
       {
         id: "paradas",
         header: "Qtd Entregas",
         sortable: false,
+        width: permitirConfirmacao ? "46px" : undefined,
+        verticalHeader: permitirConfirmacao,
         align: "right",
         accessor: (r) => paradasOf(r),
         className: "tabular-nums",

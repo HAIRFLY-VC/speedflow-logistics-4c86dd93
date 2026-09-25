@@ -52,6 +52,8 @@ export type DataTableProps<T> = {
   scrollable?: boolean;
   /** Keep a horizontally scrollable table instead of cards on narrow screens. */
   forceTableLayout?: boolean;
+  /** Compact layout: no min-width, smaller font, narrower cells — table fits the viewport. */
+  fitColumns?: boolean;
   /** Optional action rendered at the top-right corner of each mobile card. */
   cardHeaderAction?: (row: T) => ReactNode;
 
