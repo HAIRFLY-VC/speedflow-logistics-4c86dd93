@@ -55,6 +55,7 @@ export function PagamentoRotaDialog({
   jaConfirmado,
   open,
   onOpenChange,
+  bloqueio = null,
 }: {
   routeId: string | null;
   dataExpedicao: string | null;
@@ -64,6 +65,8 @@ export function PagamentoRotaDialog({
   jaConfirmado: boolean;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** Motivo que impede salvar (mesmas regras do botão "Confirmar Pgto"). */
+  bloqueio?: string | null;
 }) {
   const qc = useQueryClient();
   const preview = useServerFn(previewPagamentoRota);
@@ -678,7 +681,7 @@ export function PagamentoRotaDialog({
           <Button
             onClick={() => enviar.mutate()}
             className={
-              enviar.isPending || !p || semBordero || semNota || dataInvalida || recalculando || valorEfetivo <= 0 || semSelecao || (jaConfirmado && !isAdmin)
+              enviar.isPending || !p || semBordero || semNota || dataInvalida || recalculando || valorEfetivo <= 0 || semSelecao || (jaConfirmado && !isAdmin) || !!bloqueio
                 ? "cursor-not-allowed"
                 : "bg-emerald-600 text-white hover:bg-emerald-700"
             }
@@ -691,9 +694,10 @@ export function PagamentoRotaDialog({
               recalculando ||
               valorEfetivo <= 0 ||
               semSelecao ||
-              (jaConfirmado && !isAdmin)
+              (jaConfirmado && !isAdmin) ||
+              !!bloqueio
             }
-            title={semSelecao ? "Selecione ao menos uma nota" : undefined}
+            title={bloqueio ?? (semSelecao ? "Selecione ao menos uma nota" : undefined)}
           >
             {enviar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {tipo === "ADICIONAL" ? "Lançar adicional" : "Confirmar e enviar"}
