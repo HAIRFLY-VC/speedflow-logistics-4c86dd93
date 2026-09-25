@@ -102,7 +102,7 @@ export const listarVinculosBitrix = createServerFn({ method: "POST" })
         .from("profiles")
         .select("id, full_name, email")
         .order("full_name", { ascending: true });
-      data = (semColunas.data ?? []).map((p) => ({ ...p, bitrix_user_id: null, bitrix_user_nome: null })) as never;
+      data = (semColunas.data ?? []).map((p) => ({ ...(p as Record<string, unknown>), bitrix_user_id: null, bitrix_user_nome: null })) as never;
       error = semColunas.error;
     }
     if (error) throw new Error(error.message);
