@@ -29,7 +29,7 @@ function rotulo(u: UsuarioBitrixDto): string {
 }
 
 /** Campo de busca de usuário do Bitrix com lista filtrada. */
-function BuscaUsuarioBitrix({
+export function BuscaUsuarioBitrix({
   usuarios,
   selecionado,
   onSelecionar,
@@ -309,7 +309,7 @@ export function ConfigBitrixSection() {
   );
 }
 
-function LinhaVinculo({
+export function LinhaVinculo({
   usuario,
   usuariosBitrix,
   salvando,
