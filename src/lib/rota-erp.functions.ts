@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { mensagemErro } from "@/lib/mensagem-erro";
 import { centralDb } from "@/lib/central-db";
 
 const SQL_RESPONSIVEIS = `select TRIM(T.DBA_TIP_RAZAO_SOCIAL) RAZAO_SOCIAL, T.DBA_TIP_CODIGO_1 COD_ERP, t.dba_tip_natureza COD_NAT
