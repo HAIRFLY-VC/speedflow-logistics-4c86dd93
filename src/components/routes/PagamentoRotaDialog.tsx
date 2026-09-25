@@ -208,6 +208,7 @@ export function PagamentoRotaDialog({
 
   const auditarFn = useServerFn(auditarRotasCompletas);
   const excluirFn = useServerFn(excluirPedidoFaltanteDaRota);
+  const excluirTodosFn = useServerFn(excluirTodosFaltantesDaRota);
   const auditoriaQ = useQuery({
     queryKey: ["auditoria-rota-dialog", routeId],
     enabled: open && !!routeId,
@@ -223,6 +224,28 @@ export function PagamentoRotaDialog({
       void qc.invalidateQueries({ queryKey: ["rota-pagamento"] });
     },
     onError: (e) => toast.error(mensagemErro(e, "Não foi possível excluir o pedido da rota.")),
+  });
+  const excluirTodos = useMutation({
+    mutationFn: () => excluirTodosFn({ data: { routeId: routeId! } }),
+    onSuccess: (r) => {
+      if (r.excluidos.length === 0) {
+        toast.error("Nenhum pedido foi excluído do ERP.");
+      } else if (r.falhas.length === 0) {
+        toast.success(
+          `${r.excluidos.length} pedido(s) excluído(s) da rota no ERP`,
+        );
+      } else {
+        toast.error(
+          `${r.excluidos.length} excluído(s), ${r.falhas.length} com erro: ${r.falhas
+            .map((f) => `${f.pedido} — ${f.erro}`)
+            .join(" | ")}`,
+        );
+      }
+      void auditoriaQ.refetch();
+      void qc.invalidateQueries({ queryKey: ["auditoria-rotas"] });
+      void qc.invalidateQueries({ queryKey: ["rota-pagamento"] });
+    },
+    onError: (e) => toast.error(mensagemErro(e, "Não foi possível excluir os pedidos da rota.")),
   });
   const semBordero = (p?.pedidos_sem_bordero ?? 0) > 0;
   const semNota = (p?.pedidos_sem_faturamento ?? 0) > 0;
