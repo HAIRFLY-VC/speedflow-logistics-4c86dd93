@@ -66,7 +66,6 @@ const schema = z.object({
   banco: z.string().trim().max(80).optional().or(z.literal("")),
   agencia: z.string().trim().max(20).optional().or(z.literal("")),
   conta: z.string().trim().max(30).optional().or(z.literal("")),
-  pix: z.string().trim().max(140).optional().or(z.literal("")),
   ativo: z.boolean(),
 });
 type FormInput = z.infer<typeof schema>;
@@ -147,7 +146,6 @@ function TransportadorasPage() {
         banco: input.banco || null,
         agencia: input.agencia || null,
         conta: input.conta || null,
-        pix: input.pix || null,
         ativo: input.ativo,
       };
       let id = editing?.id ?? null;
@@ -577,7 +575,6 @@ function TransportadoraDialog({
       agencia: editing?.agencia ?? "",
       conta: editing?.conta ?? "",
       cod_erp: editing?.cod_erp ?? "",
-      pix: editing?.pix ?? "",
       ativo: editing?.ativo ?? true,
     },
   });
