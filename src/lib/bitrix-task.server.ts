@@ -100,6 +100,14 @@ export async function obterConfigTarefa(): Promise<ConfigTarefaBitrix> {
     .select("responsavel_id, responsavel_nome, observadores")
     .eq("id", 1)
     .maybeSingle();
+  // Enquanto o script da tabela não é rodado, usa os valores padrão.
+  if (error && (error as { code?: string }).code === "42P01") {
+    return {
+      responsavel_id: TAREFA_RESPONSAVEL_ID,
+      responsavel_nome: null,
+      observadores: TAREFA_OBSERVADORES.map((id) => ({ id, nome: "" })),
+    };
+  }
   if (error) throw new Error((error as { message: string }).message);
   const row = (data ?? null) as {
     responsavel_id: number | null;
@@ -125,6 +133,8 @@ export async function vinculoBitrixDoUsuario(
     .select("bitrix_user_id, bitrix_user_nome")
     .eq("id", appUserId)
     .maybeSingle();
+  // Enquanto o script das colunas não é rodado, trata como "sem vínculo".
+  if (error && (error as { code?: string }).code === "42703") return null;
   if (error) throw new Error(error.message);
   const row = (data ?? null) as { bitrix_user_id: number | null; bitrix_user_nome: string | null } | null;
   if (!row?.bitrix_user_id) return null;
