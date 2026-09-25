@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { ConfigBitrixSection } from "@/components/configuracoes/ConfigBitrixSection";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({ meta: [
@@ -244,6 +245,8 @@ function ConfiguracoesPage() {
                 <Field label="Raio de agrupamento (km)" type="number" value={form.route_cluster_radius_km} onChange={set("route_cluster_radius_km")} disabled={!canEdit} />
               </CardContent>
             </Card>
+
+            {canEdit && <ConfigBitrixSection />}
 
             {canEdit ? (
               <div className="flex justify-end">

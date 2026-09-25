@@ -339,8 +339,6 @@ function LinhaVinculo({
     setSelecionado({ id: encontrado.id, nome: encontrado.nome });
   };
 
-  const pendente = selecionado !== null || (selecionado === null && vinculoAtual && false);
-
   return (
     <div className="flex flex-col gap-2 rounded-md border p-3 md:flex-row md:items-center">
       <div className="min-w-0 md:w-64">
@@ -418,7 +416,6 @@ function LinhaVinculo({
           />
         )}
       </div>
-      {pendente ? null : null}
     </div>
   );
 }
