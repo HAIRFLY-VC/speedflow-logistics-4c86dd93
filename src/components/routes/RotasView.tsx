@@ -1404,9 +1404,10 @@ export function RotasView({
               mostrarConfirmar={permitirConfirmacao}
               valorTotalConfirmado={permitirConfirmacao && r.frete_confirmado_em ? freteOf(r) : undefined}
               auditoria={auditoriaMap?.get(r.id)}
-              pix={permitirConfirmacao ? pixDaRota(r) : null}
-              onLiberarPix={(cod) => liberarPix.mutate(cod)}
-              liberandoPix={liberarPix.isPending}
+               pix={permitirConfirmacao ? pixDaRota(r) : null}
+               onLiberarPix={(cod) => liberarPix.mutate(cod)}
+               liberandoPix={liberarPix.isPending}
+               vinculoBitrixOk={vinculoBitrixOk}
               auditoriaCarregando={auditoriaQ.isFetching}
               onReauditar={() => void reauditar()}
               onValorChange={(id, v) =>
