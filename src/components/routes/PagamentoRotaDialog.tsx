@@ -23,6 +23,7 @@ import {
   type MotivoAdicional,
   type TipoPagamentoRota,
 } from "@/lib/rota-pagamento.types";
+import { auditarRotasCompletas, excluirPedidoFaltanteDaRota } from "@/lib/rota-erp.functions";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -204,6 +205,25 @@ export function PagamentoRotaDialog({
   });
 
   const p = previewQ.data;
+
+  const auditarFn = useServerFn(auditarRotasCompletas);
+  const excluirFn = useServerFn(excluirPedidoFaltanteDaRota);
+  const auditoriaQ = useQuery({
+    queryKey: ["auditoria-rota-dialog", routeId],
+    enabled: open && !!routeId,
+    queryFn: async () => (await auditarFn({ data: { routeIds: [routeId!] } }))[0] ?? null,
+  });
+  const aud = auditoriaQ.data;
+  const excluir = useMutation({
+    mutationFn: (pedido: string) => excluirFn({ data: { routeId: routeId!, pedido } }),
+    onSuccess: (_r, pedido) => {
+      toast.success(`Pedido ${pedido} excluído da rota no ERP`);
+      void auditoriaQ.refetch();
+      void qc.invalidateQueries({ queryKey: ["auditoria-rotas"] });
+      void qc.invalidateQueries({ queryKey: ["rota-pagamento"] });
+    },
+    onError: (e) => toast.error(mensagemErro(e, "Não foi possível excluir o pedido da rota.")),
+  });
   const semBordero = (p?.pedidos_sem_bordero ?? 0) > 0;
   const semNota = (p?.pedidos_sem_faturamento ?? 0) > 0;
   const dataInvalida = !dataPagamento;
@@ -398,6 +418,57 @@ export function PagamentoRotaDialog({
               </span>
               <span className="text-muted-foreground">{p.total_pedidos} pedido(s)</span>
             </div>
+
+            {aud && !aud.erro && aud.faltantes.length > 0 && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive space-y-2">
+                <p>
+                  <strong>Rota incompleta:</strong> {aud.completos} de {aud.total} pedidos da rota no
+                  ERP estão faturados com borderô. Os pedidos abaixo foram colocados na rota mas
+                  não foram faturados. Fature-os ou solicite a exclusão deles da rota.
+                </p>
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left">
+                      <th className="py-1 font-medium">Pedido</th>
+                      <th className="py-1 font-medium">Crítica</th>
+                      <th className="py-1" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {aud.faltantes.map((f) => (
+                      <tr key={f.pedido} className="border-t border-destructive/20">
+                        <td className="py-1 tabular-nums">{f.pedido}</td>
+                        <td className="py-1">{f.motivo}</td>
+                        <td className="py-1 text-right">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="h-7 text-xs"
+                            disabled={excluir.isPending}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Excluir o pedido ${f.pedido} da rota ${aud.erp_route_id} no ERP?`,
+                                )
+                              )
+                                excluir.mutate(f.pedido);
+                            }}
+                          >
+                            {excluir.isPending && excluir.variables === f.pedido && (
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            )}
+                            Excluir da rota
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {aud?.erro && (
+              <p className="text-xs text-destructive">{aud.erro}</p>
+            )}
 
             {semBordero && (
               <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">

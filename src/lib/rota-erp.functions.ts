@@ -376,3 +376,49 @@ export const auditarRotasCompletas = createServerFn({ method: "POST" })
     const { auditarEImportarRotas } = await import("./rota-auditoria.server");
     return auditarEImportarRotas(data.routeIds);
   });
+
+/**
+ * Exclui do ERP (GKS.A_GER_ROTAS_PEDIDOS) um pedido que está na rota mas não
+ * foi faturado. Só permite excluir pedidos apontados como faltantes pela auditoria.
+ */
+export const excluirPedidoFaltanteDaRota = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { routeId: string; pedido: string }) => {
+    const routeId = String(input?.routeId ?? "").trim();
+    const pedido = String(input?.pedido ?? "").trim();
+    if (!routeId || !/^\d+$/.test(pedido)) throw new Error("Pedido inválido");
+    return { routeId, pedido };
+  })
+  .handler(async ({ data }) => {
+    const { auditarEImportarRotas } = await import("./rota-auditoria.server");
+    const [aud] = await auditarEImportarRotas([data.routeId]);
+    if (!aud || aud.erro) throw new Error(aud?.erro ?? "Rota não encontrada");
+    if (!aud.faltantes.some((f) => f.pedido === data.pedido))
+      throw new Error("Só é possível excluir pedidos sem nota fiscal ou borderô");
+    const codRota = aud.erp_route_id!;
+    const baseUrl = process.env["ERP_API_BASE_URL"];
+    const apiKey = process.env["ERP_API_KEY"];
+    if (!baseUrl || !apiKey) throw new Error("Integração com o ERP não configurada");
+    const base = baseUrl.replace(/\/+$/, "").replace(/\/v1\/(query|execute)$/, "");
+    const res = await fetch(`${base}/v1/query`, {
+      method: "POST",
+      signal: AbortSignal.timeout(25_000),
+      headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+      body: JSON.stringify({
+        sql: "delete from gks.A_GER_ROTAS_PEDIDOS x where x.id=:codrota and x.pedido=:codpedido",
+        binds: { codrota: Number(codRota), codpedido: data.pedido },
+        limit: 1,
+      }),
+    });
+    if (!res.ok) {
+      const t = (await res.text()).replace(/\s+/g, " ").slice(0, 240);
+      throw new Error(`ERP recusou a exclusão (${res.status})${t ? `: ${t}` : ""}`);
+    }
+    // Remove também o vínculo local, se existir.
+    const { centralDb } = await import("./central-db");
+    const { data: ord } = await centralDb.from("orders").select("id").eq("erp_id", data.pedido);
+    const ids = (ord ?? []).map((o) => o.id as string);
+    if (ids.length)
+      await centralDb.from("route_orders").delete().eq("route_id", data.routeId).in("order_id", ids);
+    return { ok: true as const };
+  });
