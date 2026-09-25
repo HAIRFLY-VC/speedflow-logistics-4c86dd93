@@ -370,7 +370,9 @@ function FreightInput({
   onLiberarPix,
   liberandoPix = false,
   vinculoBitrixOk = true,
+  onEstado,
 }: {
+  onEstado?: (routeId: string, e: { valor: number; bloqueio: string | null }) => void;
   pix?: SituacaoPix | null;
   onLiberarPix?: (codErp: string) => void;
   liberandoPix?: boolean;
@@ -417,6 +419,26 @@ function FreightInput({
     (confirmado || !mostrarConfirmar || auditoria?.completa === true) &&
     (!mostrarConfirmar || !pix?.bloqueio) &&
     (!mostrarConfirmar || vinculoBitrixOk);
+  const motivoBloqueio = podeConfirmar
+    ? null
+    : valorNum <= 0
+      ? "Informe o valor do frete para salvar."
+      : bordero.total === 0 || pendentes > 0
+        ? `Aguardando borderô de ${pendentes} pedido${pendentes === 1 ? "" : "s"} de ${bordero.total}.`
+        : confirmado && !isAdmin
+          ? "Apenas administradores podem reabrir ou lançar valores adicionais."
+          : mostrarConfirmar && !vinculoBitrixOk
+            ? "Seu usuário não está vinculado ao Bitrix."
+            : mostrarConfirmar && pix?.bloqueio === "SEM_PIX"
+              ? "Fretista sem PIX cadastrado no ERP."
+              : mostrarConfirmar && pix?.bloqueio === "PIX_ALTERADO"
+                ? "PIX alterado — aguardando liberação de um administrador."
+                : auditoria?.erro
+                  ? "Auditoria indisponível — confira de novo antes de salvar."
+                  : "Rota incompleta na auditoria.";
+  useEffect(() => {
+    onEstado?.(route.id, { valor: valorNum, bloqueio: motivoBloqueio });
+  }, [onEstado, route.id, valorNum, motivoBloqueio]);
   const mensagemPix =
     mostrarConfirmar && !vinculoBitrixOk
       ? "Seu usuário não está vinculado ao Bitrix. Peça ao administrador para fazer o vínculo em Configurações."
