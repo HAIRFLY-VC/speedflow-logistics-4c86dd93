@@ -3,7 +3,15 @@
 // expedida e em aberto (GKS.A_GERENTREGAS) e importa para o app o que faltar.
 import { centralDb } from "@/lib/central-db";
 
-export type PedidoFaltante = { pedido: string; motivo: string };
+export type PedidoFaltante = {
+  pedido: string;
+  motivo: string;
+  codCliente: string | null;
+  cliente: string | null;
+  agenda: string | null;
+  filial: string | null;
+  valor: number | null;
+};
 export type AuditoriaRota = {
   route_id: string;
   erp_route_id: string | null;
@@ -144,13 +152,28 @@ export async function auditarEImportarRotas(routeIds: string[]): Promise<Auditor
     const detalhe = new Map<string, Row>();
     if (semValido.length > 0) {
       const rows = await erp(
-        `SELECT G.COD_PEDIDO, G.NRO_NF, G.BORDERO, G.STATUS
+        `SELECT G.COD_PEDIDO, G.NRO_NF, G.BORDERO, G.STATUS,
+                G.COD_CLIENTE, G.COD_FILIAL, G.COD_AGENDA, G.VALOR
            FROM GKS.A_GERENTREGAS G WHERE G.COD_PEDIDO IN (${lista(semValido)})`,
       );
       for (const r of rows) {
         const c = txt(r, "COD_PEDIDO");
         if (c && (!detalhe.has(c) || (txt(r, "NRO_NF") && !txt(detalhe.get(c)!, "NRO_NF")))) detalhe.set(c, r);
       }
+    }
+
+    // Nome dos clientes dos pedidos faltantes (espelho local de clientes do ERP)
+    const nomesClientes = new Map<string, string>();
+    const codsCliente = Array.from(
+      new Set(Array.from(detalhe.values()).map((r) => txt(r, "COD_CLIENTE")).filter(Boolean) as string[]),
+    );
+    if (codsCliente.length > 0) {
+      const { data: cls } = await centralDb
+        .from("clientes_erp")
+        .select("cod_cliente, razao_social, nome_nf")
+        .in("cod_cliente", codsCliente);
+      for (const c of (cls ?? []) as { cod_cliente: string; razao_social: string | null; nome_nf: string | null }[])
+        nomesClientes.set(c.cod_cliente, c.razao_social ?? c.nome_nf ?? c.cod_cliente);
     }
 
     // ---- Importação dos dados faltantes no app ----
@@ -318,7 +341,19 @@ export async function auditarEImportarRotas(routeIds: string[]): Promise<Auditor
       res.completos = Array.from(peds).filter((p) => ok.has(p)).length;
       res.faltantes = Array.from(peds)
         .filter((p) => !ok.has(p))
-        .map((p) => ({ pedido: p, motivo: motivoDe(detalhe.get(p)) }));
+        .map((p) => {
+          const d = detalhe.get(p);
+          const codCliente = d ? txt(d, "COD_CLIENTE") : null;
+          return {
+            pedido: p,
+            motivo: motivoDe(d),
+            codCliente,
+            cliente: (codCliente && nomesClientes.get(codCliente)) || codCliente,
+            agenda: d ? txt(d, "COD_AGENDA") : null,
+            filial: d ? txt(d, "COD_FILIAL") : null,
+            valor: d ? num(d, "VALOR") : null,
+          };
+        });
       res.importados = importadosPorRota.get(appId) ?? 0;
       res.completa = res.total > 0 && res.faltantes.length === 0;
       if (res.total === 0) res.erro = "Rota sem pedidos no ERP";
