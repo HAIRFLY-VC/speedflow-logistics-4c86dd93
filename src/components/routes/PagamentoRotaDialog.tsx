@@ -215,6 +215,25 @@ export function PagamentoRotaDialog({
     queryFn: async () => (await auditarFn({ data: { routeIds: [routeId!] } }))[0] ?? null,
   });
   const aud = auditoriaQ.data;
+  // O motivo vindo da listagem é uma foto do momento em que o lápis foi aberto.
+  // Reavalia com os dados atuais da tela (valor digitado e auditoria refeita).
+  const bloqueioAtual = (() => {
+    if (!bloqueio) {
+      return aud && aud.completa !== true && !jaConfirmadoRef()
+        ? "Rota incompleta na auditoria."
+        : null;
+    }
+    if (bloqueio.startsWith("Informe o valor")) {
+      if (valorEfetivo <= 0) return "Informe o valor do frete para salvar.";
+      return aud && aud.completa !== true ? "Rota incompleta na auditoria." : null;
+    }
+    if (bloqueio.startsWith("Rota incompleta") || bloqueio.startsWith("Auditoria indisponível")) {
+      if (auditoriaQ.isFetching) return "Conferindo a rota no ERP...";
+      return aud?.completa === true ? null : bloqueio;
+    }
+    if (bloqueio.startsWith("Aguardando borderô")) return semBordero ? bloqueio : null;
+    return bloqueio;
+  })();
   const excluir = useMutation({
     mutationFn: (pedido: string) => excluirFn({ data: { routeId: routeId!, pedido } }),
     onSuccess: (_r, pedido) => {
