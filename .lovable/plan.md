@@ -7,7 +7,7 @@ Nova área **"Tarefas do Bitrix"** (só administradores), com duas partes:
 - **Responsável** (um usuário), **Observadores** (vários) e **Criador padrão** (usado quando quem autorizou não tem vínculo com o Bitrix).
 - Cada campo abre uma lista com todos os usuários **ativos** do Bitrix (**código**, nome, cargo e e-mail), com busca digitando parte do nome ou o código.
 - O código do usuário do Bitrix aparece também nos itens já escolhidos e no vínculo com o usuário do app, pois é ele que define responsável, criador e observadores da tarefa.
-- Botão "Salvar". Os valores atuais (responsável 30, observadores 24, 54 e 1) já vêm preenchidos na primeira vez.
+- Botão "Salvar". Os valores atuais (responsável 30, observadores 24, 54 e 1) já vêm preenchidos na primeira vez, sempre mostrando código e nome de cada usuário (ex.: "30 — Nome do usuário"), buscados no Bitrix.
 
 ### 2. Vínculo usuário do app com usuário do Bitrix
 - Tabela com os usuários do app (nome e e-mail) e, ao lado, a escolha do usuário do Bitrix correspondente (com a mesma busca por nome).
