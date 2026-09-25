@@ -22,8 +22,8 @@ create policy "Staff le config bitrix"
 
 create policy "Adm grava config bitrix"
   on speedflow.bitrix_task_config for all to authenticated
-  using (speedflow.has_role(auth.uid(), 'adm'))
-  with check (speedflow.has_role(auth.uid(), 'adm'));
+  using (public.has_role(auth.uid(), 'adm'))
+  with check (public.has_role(auth.uid(), 'adm'));
 
 -- Valores atuais já preenchidos na primeira vez
 insert into speedflow.bitrix_task_config (id, responsavel_id, responsavel_nome, observadores)
