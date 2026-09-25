@@ -23,7 +23,7 @@ import {
   type MotivoAdicional,
   type TipoPagamentoRota,
 } from "@/lib/rota-pagamento.types";
-import { auditarRotasCompletas, excluirPedidoFaltanteDaRota } from "@/lib/rota-erp.functions";
+import { auditarRotasCompletas, excluirPedidoFaltanteDaRota, excluirTodosFaltantesDaRota } from "@/lib/rota-erp.functions";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -208,6 +208,7 @@ export function PagamentoRotaDialog({
 
   const auditarFn = useServerFn(auditarRotasCompletas);
   const excluirFn = useServerFn(excluirPedidoFaltanteDaRota);
+  const excluirTodosFn = useServerFn(excluirTodosFaltantesDaRota);
   const auditoriaQ = useQuery({
     queryKey: ["auditoria-rota-dialog", routeId],
     enabled: open && !!routeId,
@@ -223,6 +224,28 @@ export function PagamentoRotaDialog({
       void qc.invalidateQueries({ queryKey: ["rota-pagamento"] });
     },
     onError: (e) => toast.error(mensagemErro(e, "Não foi possível excluir o pedido da rota.")),
+  });
+  const excluirTodos = useMutation({
+    mutationFn: () => excluirTodosFn({ data: { routeId: routeId! } }),
+    onSuccess: (r) => {
+      if (r.excluidos.length === 0) {
+        toast.error("Nenhum pedido foi excluído do ERP.");
+      } else if (r.falhas.length === 0) {
+        toast.success(
+          `${r.excluidos.length} pedido(s) excluído(s) da rota no ERP`,
+        );
+      } else {
+        toast.error(
+          `${r.excluidos.length} excluído(s), ${r.falhas.length} com erro: ${r.falhas
+            .map((f) => `${f.pedido} — ${f.erro}`)
+            .join(" | ")}`,
+        );
+      }
+      void auditoriaQ.refetch();
+      void qc.invalidateQueries({ queryKey: ["auditoria-rotas"] });
+      void qc.invalidateQueries({ queryKey: ["rota-pagamento"] });
+    },
+    onError: (e) => toast.error(mensagemErro(e, "Não foi possível excluir os pedidos da rota.")),
   });
   const semBordero = (p?.pedidos_sem_bordero ?? 0) > 0;
   const semNota = (p?.pedidos_sem_faturamento ?? 0) > 0;
@@ -431,7 +454,27 @@ export function PagamentoRotaDialog({
                     <tr className="text-left">
                       <th className="py-1 font-medium">Pedido</th>
                       <th className="py-1 font-medium">Crítica</th>
-                      <th className="py-1" />
+                      <th className="py-1 text-right">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="h-7 text-xs"
+                          disabled={excluirTodos.isPending || excluir.isPending}
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Excluir TODOS os ${aud.faltantes.length} pedidos não faturados da rota ${aud.erp_route_id} no ERP?`,
+                              )
+                            )
+                              excluirTodos.mutate();
+                          }}
+                        >
+                          {excluirTodos.isPending && (
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          )}
+                          Excluir todos
+                        </Button>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
