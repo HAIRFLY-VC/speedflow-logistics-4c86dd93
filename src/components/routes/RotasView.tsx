@@ -779,7 +779,28 @@ export function RotasView({
   const [editCodErp, setEditCodErp] = useState<string | null>(null);
   const [editResponsavel, setEditResponsavel] = useState<ResponsavelErp | null>(null);
   const [freteEditado, setFreteEditado] = useState<Record<string, number | null>>({});
-  const [pagamento, setPagamento] = useState<{ rota: RouteRow; valor: number } | null>(null);
+  const [pagamento, setPagamento] = useState<
+    { rota: RouteRow; valor: number; bloqueio?: string | null } | null
+  >(null);
+  // Estado do botão "Confirmar Pgto" por rota, usado pelo lápis em Autorizar.
+  const estadoConfirmar = useRef(new Map<string, { valor: number; bloqueio: string | null }>());
+  const registrarEstado = useRef(
+    (id: string, e: { valor: number; bloqueio: string | null }) => {
+      estadoConfirmar.current.set(id, e);
+    },
+  ).current;
+  const abrirEdicao = (r: RouteRow) => {
+    if (permitirConfirmacao) {
+      const e = estadoConfirmar.current.get(r.id);
+      setPagamento({
+        rota: r,
+        valor: e?.valor ?? Number(r.total_freight ?? 0),
+        bloqueio: e ? e.bloqueio : "Aguarde o carregamento da rota.",
+      });
+      return;
+    }
+    setEditRoute(r);
+  };
 
   const depotQ = useQuery({
     queryKey: ["company_settings", "depot"],
@@ -1454,6 +1475,7 @@ export function RotasView({
                 setFreteEditado((prev) => ({ ...prev, [id]: v }))
               }
               onConfirmar={(rota, valor) => setPagamento({ rota, valor })}
+              onEstado={registrarEstado}
             />
           </span>
         ),
@@ -1559,7 +1581,7 @@ export function RotasView({
                 e.stopPropagation();
                 setEditCodErp(codResponsavelPorRota.get(r.id) ?? transpPorRota.get(r.id)?.cod_erp ?? null);
                 setEditResponsavel(responsavelPorRota.get(r.id) ?? null);
-                setEditRoute(r);
+                abrirEdicao(r);
               }}
             >
               <Pencil className="h-4 w-4" />
@@ -1730,7 +1752,7 @@ export function RotasView({
                   e.stopPropagation();
                   setEditCodErp(codResponsavelPorRota.get(r.id) ?? transpPorRota.get(r.id)?.cod_erp ?? null);
                   setEditResponsavel(responsavelPorRota.get(r.id) ?? null);
-                  setEditRoute(r);
+                  abrirEdicao(r);
                 }}
               >
                 <Pencil className="h-5 w-5" />
@@ -1800,6 +1822,7 @@ export function RotasView({
         valor={pagamento?.valor ?? 0}
         isAdmin={role === "adm"}
         jaConfirmado={!!pagamento?.rota.frete_confirmado_em}
+        bloqueio={pagamento?.bloqueio ?? null}
         open={!!pagamento}
         onOpenChange={(o) => {
           if (!o) setPagamento(null);
