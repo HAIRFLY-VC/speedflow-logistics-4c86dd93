@@ -802,8 +802,8 @@ export function PagamentoRotaDialog({
         </div>
 
         <DialogFooter className="items-center">
-          {bloqueio && (
-            <span className="mr-auto text-xs text-destructive">{bloqueio}</span>
+          {bloqueioAtual && (
+            <span className="mr-auto text-xs text-destructive">{bloqueioAtual}</span>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
@@ -811,7 +811,7 @@ export function PagamentoRotaDialog({
           <Button
             onClick={() => enviar.mutate()}
             className={
-              enviar.isPending || !p || semBordero || semNota || dataInvalida || recalculando || valorEfetivo <= 0 || semSelecao || (jaConfirmado && !isAdmin) || !!bloqueio
+              enviar.isPending || !p || semBordero || semNota || dataInvalida || recalculando || valorEfetivo <= 0 || semSelecao || (jaConfirmado && !isAdmin) || !!bloqueioAtual
                 ? "cursor-not-allowed"
                 : "bg-emerald-600 text-white hover:bg-emerald-700"
             }
@@ -825,9 +825,9 @@ export function PagamentoRotaDialog({
               valorEfetivo <= 0 ||
               semSelecao ||
               (jaConfirmado && !isAdmin) ||
-              !!bloqueio
+              !!bloqueioAtual
             }
-            title={bloqueio ?? (semSelecao ? "Selecione ao menos uma nota" : undefined)}
+            title={bloqueioAtual ?? (semSelecao ? "Selecione ao menos uma nota" : undefined)}
           >
             {enviar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {tipo === "ADICIONAL" ? "Lançar adicional" : "Confirmar e enviar"}
