@@ -21,10 +21,10 @@ Nova área **"Tarefas do Bitrix"** (só administradores), com duas partes:
 - Responsável e observadores vêm da configuração salva, não mais fixos no código.
 - Vale para a tarefa normal, a de valor adicional e os reenvios da fila de pendências (o reenvio mantém o autor original).
 
-## Observação (verificado em 25/09)
-O webhook atual pertence a Lucas Sultanum (código 1), que é administrador do Bitrix — então o Bitrix aceita outro usuário como criador. Porém ele só tem as permissões "Tarefas", "Tarefas (estendido)" e "Drive"; **falta a permissão "Usuários" (user)**, sem a qual a lista de usuários não carrega.
+## Observação (verificado em 25/09, 08:59)
+O webhook atual pertence a Lucas Sultanum (código 1), que é administrador do Bitrix — então o Bitrix aceita outro usuário como criador. Verificado novamente agora: ele continua só com as permissões "Tarefas", "Tarefas (estendido)" e "Drive"; **ainda falta a permissão "Usuários" (user)** — o Bitrix respondeu "insufficient_scope" ao pedir a lista de usuários.
 
-**Ação sua antes de testar:** no Bitrix, em Aplicativos > Webhooks, edite o webhook de entrada atual e marque também "Usuários (user)". O endereço continua o mesmo, nada muda no app. Enquanto não for liberado, a tela avisa em português o que falta.
+**Ação sua antes de testar:** no Bitrix, em Aplicativos > Webhooks, edite o webhook de entrada atual (o mesmo que já tem "Tarefas") e marque também "Usuários (user)", salvando a alteração. Se você criou um webhook novo, o endereço muda e precisa ser atualizado no app — me avise. Enquanto não for liberado, a tela avisa em português o que falta.
 
 ## Detalhes técnicos
 - Bitrix: `user.get` com `FILTER: { ACTIVE: true }`, paginado (`start`, 50 por página), cache de 10 min no servidor; busca feita no navegador sobre a lista completa.
