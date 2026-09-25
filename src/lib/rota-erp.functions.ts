@@ -422,3 +422,58 @@ export const excluirPedidoFaltanteDaRota = createServerFn({ method: "POST" })
       await centralDb.from("route_orders").delete().eq("route_id", data.routeId).in("order_id", ids);
     return { ok: true as const };
   });
+
+/** Exclui de uma só vez todos os pedidos faltantes da rota no ERP. */
+export const excluirTodosFaltantesDaRota = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { routeId: string }) => {
+    const routeId = String(input?.routeId ?? "").trim();
+    if (!routeId) throw new Error("Rota inválida");
+    return { routeId };
+  })
+  .handler(async ({ data }) => {
+    const { auditarEImportarRotas } = await import("./rota-auditoria.server");
+    const [aud] = await auditarEImportarRotas([data.routeId]);
+    if (!aud || aud.erro) throw new Error(aud?.erro ?? "Rota não encontrada");
+    if (aud.faltantes.length === 0) throw new Error("Não há pedidos pendentes para excluir");
+    const codRota = aud.erp_route_id!;
+    const baseUrl = process.env["ERP_API_BASE_URL"];
+    const apiKey = process.env["ERP_API_KEY"];
+    if (!baseUrl || !apiKey) throw new Error("Integração com o ERP não configurada");
+    const base = baseUrl.replace(/\/+$/, "").replace(/\/v1\/(query|execute)$/, "");
+    const excluidos: string[] = [];
+    const falhas: { pedido: string; erro: string }[] = [];
+    for (const f of aud.faltantes) {
+      try {
+        const res = await fetch(`${base}/v1/query`, {
+          method: "POST",
+          signal: AbortSignal.timeout(25_000),
+          headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+          body: JSON.stringify({
+            sql: "delete from gks.A_GER_ROTAS_PEDIDOS x where x.id=:codrota and x.pedido=:codpedido",
+            binds: { codrota: Number(codRota), codpedido: f.pedido },
+            limit: 1,
+          }),
+        });
+        if (!res.ok) {
+          const t = (await res.text()).replace(/\s+/g, " ").slice(0, 240);
+          throw new Error(`ERP recusou a exclusão (${res.status})${t ? `: ${t}` : ""}`);
+        }
+        excluidos.push(f.pedido);
+      } catch (e) {
+        falhas.push({ pedido: f.pedido, erro: mensagemErro(e, "Falha na exclusão") });
+      }
+    }
+    // Remove os vínculos locais dos pedidos excluídos, se existirem.
+    if (excluidos.length) {
+      const { centralDb } = await import("./central-db");
+      const { data: ord } = await centralDb
+        .from("orders")
+        .select("id, erp_id")
+        .in("erp_id", excluidos);
+      const ids = (ord ?? []).map((o) => o.id as string);
+      if (ids.length)
+        await centralDb.from("route_orders").delete().eq("route_id", data.routeId).in("order_id", ids);
+    }
+    return { ok: falhas.length === 0, excluidos, falhas };
+  });
