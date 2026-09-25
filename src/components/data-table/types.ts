@@ -27,7 +27,10 @@ export type ColumnDef<T> = {
   /** Hides the column from the mobile card layout (still shown in the table). */
   hideOnCard?: boolean;
 
+  /** Preferred width for the column (applied to th/td as a style). */
   width?: string;
+  /** Renders the header label rotated vertically to save horizontal space. */
+  verticalHeader?: boolean;
 };
 
 export type SortState = { id: string; dir: "asc" | "desc" } | null;

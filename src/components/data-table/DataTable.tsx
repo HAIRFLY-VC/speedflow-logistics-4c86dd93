@@ -115,6 +115,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     scrollable,
     cardHeaderAction,
     forceTableLayout = false,
+    fitColumns = false,
   } = props;
 
   const isMobile = useIsMobile();
@@ -436,7 +437,13 @@ export function DataTable<T>(props: DataTableProps<T>) {
         <ScrollWrapper scrollable={scrollable}>
           <Table
             wrapperClassName={scrollable ? "overflow-visible" : undefined}
-            className={`${scrollable ? "border-separate " : ""}${forceTableLayout ? "min-w-max" : ""}`}
+            className={`${scrollable ? "border-separate " : ""}${
+              forceTableLayout && !fitColumns ? "min-w-max" : ""
+            }${
+              fitColumns
+                ? "text-xs [&_th]:px-1.5 [&_td]:px-1.5 [&_th]:py-1 [&_td]:py-1"
+                : ""
+            }`}
           >
             <TableHeader>
             <TableRow>
@@ -536,8 +543,56 @@ function HeaderCell<T>({
       : column.align === "center"
         ? "text-center"
         : "";
+  const widthStyle = column.width ? { width: column.width } : undefined;
+  if (column.verticalHeader) {
+    return (
+      <TableHead
+        className={`${alignClass} ${column.headerClassName ?? ""} sticky top-0 z-10 bg-card`}
+        style={widthStyle}
+      >
+        <div className="flex flex-col items-center gap-1 py-1">
+          <button
+            type="button"
+            onClick={onSort}
+            disabled={column.sortable === false}
+            className={`inline-flex flex-col items-center gap-0.5 ${
+              column.sortable === false ? "cursor-default" : "hover:text-foreground"
+            }`}
+          >
+            <span className="[writing-mode:vertical-rl] rotate-180 whitespace-nowrap">
+              {column.header}
+            </span>
+            {column.sortable !== false && (
+              <span className="text-muted-foreground">
+                {isSorted ? (
+                  sort!.dir === "asc" ? (
+                    <ArrowUp className="h-3 w-3" />
+                  ) : (
+                    <ArrowDown className="h-3 w-3" />
+                  )
+                ) : (
+                  <ChevronsUpDown className="h-3 w-3 opacity-40" />
+                )}
+              </span>
+            )}
+          </button>
+          {column.filterable !== false && (
+            <FilterPopover
+              header={column.header}
+              options={options}
+              selected={selected}
+              onChange={onFilter}
+            />
+          )}
+        </div>
+      </TableHead>
+    );
+  }
   return (
-    <TableHead className={`${alignClass} ${column.headerClassName ?? ""} sticky top-0 z-10 bg-card`}>
+    <TableHead
+      className={`${alignClass} ${column.headerClassName ?? ""} sticky top-0 z-10 bg-card`}
+      style={widthStyle}
+    >
       <div
         className={`flex items-center gap-1 ${
           column.align === "right"
@@ -723,7 +778,11 @@ function BodyRow<T>({
               ? "text-center"
               : "";
         return (
-          <TableCell key={c.id} className={`${alignClass} ${c.className ?? ""}`}>
+          <TableCell
+            key={c.id}
+            className={`${alignClass} ${c.className ?? ""}`}
+            style={c.width ? { width: c.width } : undefined}
+          >
             {c.render ? c.render(row) : defaultRender(c, row)}
           </TableCell>
         );
@@ -786,7 +845,11 @@ function GroupBlock<T>({
             );
           }
           return (
-            <TableCell key={c.id} className={`${alignClass} ${c.className ?? ""}`}>
+            <TableCell
+              key={c.id}
+              className={`${alignClass} ${c.className ?? ""}`}
+              style={c.width ? { width: c.width } : undefined}
+            >
               {c.aggregate ? c.aggregate(rows) : null}
             </TableCell>
           );
