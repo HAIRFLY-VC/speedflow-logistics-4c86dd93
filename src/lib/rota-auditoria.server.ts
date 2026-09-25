@@ -207,8 +207,12 @@ export async function auditarEImportarRotas(routeIds: string[]): Promise<Auditor
 
       // 2) Pedidos: agrega por pedido (pode ter mais de uma NF)
       const porPedido = new Map<string, { row: Row; valor: number; peso: number }>();
+      const vistos = new Set<string>();
       for (const v of todosValidos) {
         const c = txt(v, "COD_PEDIDO")!;
+        const chave = `${txt(v, "NRO_NF")}|${c}`;
+        if (vistos.has(chave)) continue; // não soma valor/peso em dobro
+        vistos.add(chave);
         const a = porPedido.get(c);
         if (a) {
           a.valor += num(v, "VALOR");
