@@ -651,13 +651,17 @@ export async function processarTarefaFinanceiraRota(
 ): Promise<{ ok: boolean; referencia?: string; erro?: string }> {
   const { data: linha, error } = await centralDb
     .from("fila_provisionamento_financeiro")
-    .select("id, tentativas, payload, cte_id")
+    .select("id, tentativas, payload, cte_id, ordem_pagamento_id")
     .eq("id", filaId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!linha) throw new Error("Item da fila não encontrado");
 
-  const row = linha as { tentativas?: number | null; payload?: Record<string, unknown> | null };
+  const row = linha as {
+    tentativas?: number | null;
+    payload?: Record<string, unknown> | null;
+    ordem_pagamento_id?: string | null;
+  };
   const payload = (row.payload ?? {}) as Record<string, unknown>;
   const tentativas = Number(row.tentativas ?? 0) + 1;
 
