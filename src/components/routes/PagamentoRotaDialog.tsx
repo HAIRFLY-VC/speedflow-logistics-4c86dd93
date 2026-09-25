@@ -23,7 +23,7 @@ import {
   type MotivoAdicional,
   type TipoPagamentoRota,
 } from "@/lib/rota-pagamento.types";
-import { auditarRotasCompletas, excluirPedidoFaltanteDaRota } from "@/lib/rota-erp.functions";
+import { auditarRotasCompletas, excluirPedidoFaltanteDaRota, excluirTodosFaltantesDaRota } from "@/lib/rota-erp.functions";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
