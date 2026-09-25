@@ -559,8 +559,16 @@ function HeaderCell<T>({
               column.sortable === false ? "cursor-default" : "hover:text-foreground"
             }`}
           >
-            <span className="[writing-mode:vertical-rl] rotate-180 whitespace-nowrap">
-              {column.header}
+            {/* Título na vertical, quebrado palavra a palavra para reduzir a altura. */}
+            <span className="flex items-end justify-center gap-0.5">
+              {column.header.split(" ").map((w, i) => (
+                <span
+                  key={i}
+                  className="[writing-mode:vertical-rl] rotate-180 whitespace-nowrap"
+                >
+                  {w}
+                </span>
+              ))}
             </span>
             {column.sortable !== false && (
               <span className="text-muted-foreground">
