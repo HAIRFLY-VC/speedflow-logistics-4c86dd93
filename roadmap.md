@@ -7,6 +7,6 @@
 
 ## Configuração dos participantes da tarefa do Bitrix
 - [x] Webhook novo (vudzzdzvccplzbep) com Tarefas + Usuários
-- [x] Script 2026-09-25_bitrix_config.sql (bitrix_task_config + profiles.bitrix_user_id) — usuário precisa rodar no banco
+- [x] Script 2026-09-25_bitrix_config.sql (bitrix_task_config + profiles.bitrix_user_id) — rodado e validado no banco (gravação OK)
 - [x] Seção "Tarefas do Bitrix" em Configurações (responsável, observadores, vínculo app↔Bitrix)
 - [x] Criador da tarefa = usuário Bitrix vinculado a quem autorizou; sem vínculo, Confirmar Pgto bloqueado
