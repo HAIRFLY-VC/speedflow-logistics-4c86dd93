@@ -445,7 +445,7 @@ function FreightInput({
       : mostrarConfirmar && pix?.bloqueio === "SEM_PIX"
         ? `Fretista sem PIX cadastrado no ERP. Cadastre o contato PIX do fretista (código ${pix.cod_erp}) e clique em "Atualizar cadastro" na tela Transportadoras.`
         : mostrarConfirmar && pix?.bloqueio === "PIX_ALTERADO"
-          ? `PIX alterado (anterior: ${pix.pix_referencia}; novo: ${pix.pix}) — aguardando liberação de um administrador.`
+          ? "PIX alterado — aguardando liberação de um administrador."
           : null;
   const avisoPix = mensagemPix ? (
     <div className="flex max-w-[220px] flex-col items-end gap-1">

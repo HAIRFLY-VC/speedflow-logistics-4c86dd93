@@ -313,9 +313,6 @@ export function PagamentoRotaDialog({
           <div
             className={`rounded-md border p-3 text-sm ${p.pix.bloqueio ? "border-destructive/40 bg-destructive/10 text-destructive" : "bg-muted/30"}`}
           >
-            <div>
-              <span className="font-medium">PIX para depósito:</span> {p.pix.pix ?? "não cadastrado"}
-            </div>
             <div className="text-xs">
               Favorecido: {p.pix.favorecido ?? "—"}
               {p.pix.cod_erp ? ` (código ${p.pix.cod_erp})` : ""}
@@ -327,7 +324,7 @@ export function PagamentoRotaDialog({
             )}
             {p.pix.bloqueio === "PIX_ALTERADO" && (
               <div className="mt-1 text-xs">
-                PIX alterado (anterior: {p.pix.pix_referencia}) — aguardando liberação de um administrador.
+                PIX alterado — aguardando liberação de um administrador.
               </div>
             )}
           </div>

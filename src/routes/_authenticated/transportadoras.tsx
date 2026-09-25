@@ -339,7 +339,6 @@ function TransportadorasPage() {
             "—"
           ),
       },
-      { id: "pix", header: "PIX", accessor: (t) => t.pix ?? "" },
       {
         id: "ativo",
         header: "Ativo",
@@ -653,10 +652,6 @@ function TransportadoraDialog({
           <div className="space-y-1.5">
             <Label className="text-xs">Conta</Label>
             <Input {...form.register("conta")} />
-          </div>
-          <div className="md:col-span-2 space-y-1.5">
-            <Label className="text-xs">Chave PIX</Label>
-            <Input {...form.register("pix")} />
           </div>
           <div className="md:col-span-2 space-y-1.5">
             <Label className="text-xs">Tabela de frete vigente</Label>
