@@ -132,7 +132,8 @@ export function PagamentoRotaDialog({
       dataPagamento,
       pedidosEscolhidos?.join(",") ?? "todas",
     ],
-    enabled: open && !!routeId && valorDebounced > 0,
+    // Mesmo com frete zerado, mostra os pedidos da rota (fretes em R$ 0,00).
+    enabled: open && !!routeId && valorDebounced >= 0,
     queryFn: () =>
       preview({
         data: {
