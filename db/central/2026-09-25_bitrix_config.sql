@@ -11,19 +11,18 @@ create table if not exists speedflow.bitrix_task_config (
   constraint bitrix_task_config_single check (id = 1)
 );
 
-grant select on speedflow.bitrix_task_config to authenticated;
 grant all on speedflow.bitrix_task_config to service_role;
+
+-- O acesso a esta tabela é feito exclusivamente pelo servidor do SpeedFlow,
+-- depois que o usuário administrador é validado no banco de acesso.
+-- O banco central não possui a função has_role nem o tipo app_role.
+revoke all on speedflow.bitrix_task_config from anon, authenticated;
 
 alter table speedflow.bitrix_task_config enable row level security;
 
-create policy "Staff le config bitrix"
-  on speedflow.bitrix_task_config for select to authenticated
-  using (true);
-
-create policy "Adm grava config bitrix"
-  on speedflow.bitrix_task_config for all to authenticated
-  using (public.has_role(auth.uid(), 'adm'))
-  with check (public.has_role(auth.uid(), 'adm'));
+-- Limpa políticas que podem ter sido criadas por versões anteriores do script.
+drop policy if exists "Staff le config bitrix" on speedflow.bitrix_task_config;
+drop policy if exists "Adm grava config bitrix" on speedflow.bitrix_task_config;
 
 -- Valores atuais já preenchidos na primeira vez
 insert into speedflow.bitrix_task_config (id, responsavel_id, responsavel_nome, observadores)
