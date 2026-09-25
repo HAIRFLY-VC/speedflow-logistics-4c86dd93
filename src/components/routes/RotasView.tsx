@@ -1351,6 +1351,8 @@ export function RotasView({
         header: "Valor total",
         sortable: false,
         align: "right",
+        width: permitirConfirmacao ? "88px" : undefined,
+        verticalHeader: permitirConfirmacao,
         accessor: (r) => valorOf(r),
         render: (r) => currencyFmt.format(valorOf(r)),
         className: "tabular-nums",
@@ -1365,6 +1367,8 @@ export function RotasView({
         header: "Peso total (kg)",
         sortable: false,
         align: "right",
+        width: permitirConfirmacao ? "74px" : undefined,
+        verticalHeader: permitirConfirmacao,
         accessor: (r) => pesoOf(r),
         render: (r) => weightFmt.format(pesoOf(r)),
         className: "tabular-nums",
@@ -1379,6 +1383,8 @@ export function RotasView({
         header: "Distância (km)",
         sortable: false,
         align: "right",
+        width: permitirConfirmacao ? "68px" : undefined,
+        verticalHeader: permitirConfirmacao,
         filterable: false,
         accessor: (r) => Number(r.total_distance_km ?? 0),
         render: (r) => (
@@ -1400,6 +1406,8 @@ export function RotasView({
         header: "Frete (R$)",
         sortable: false,
         align: "right",
+        width: permitirConfirmacao ? "132px" : undefined,
+        verticalHeader: permitirConfirmacao,
         filterable: false,
         accessor: (r) => freteOf(r),
         render: (r) => (
@@ -1440,6 +1448,8 @@ export function RotasView({
         header: "% Frete",
         sortable: false,
         align: "right",
+        width: permitirConfirmacao ? "58px" : undefined,
+        verticalHeader: permitirConfirmacao,
         filterable: false,
         accessor: (r) => {
           const v = valorOf(r);
@@ -1475,6 +1485,8 @@ export function RotasView({
         header: "Pedidos por status",
         sortable: false,
         filterable: false,
+        width: permitirConfirmacao ? "112px" : undefined,
+        verticalHeader: permitirConfirmacao,
         accessor: (r) =>
           Array.from(statusMapOf(r).keys()).join(", "),
         render: (r) => <StatusList map={statusMapOf(r)} />,
@@ -1511,6 +1523,7 @@ export function RotasView({
         header: "",
         hideOnCard: true,
         sortable: false,
+        width: permitirConfirmacao ? "44px" : undefined,
         align: "right",
         filterable: false,
         accessor: () => "",
@@ -1680,6 +1693,7 @@ export function RotasView({
           emptyMessage={mensagemVazia}
           onFilteredChange={setFilteredData}
           forceTableLayout={permitirConfirmacao}
+          fitColumns={permitirConfirmacao}
           onRowClick={(r) =>
             navigate({ to: "/rotas/$routeId", params: { routeId: r.id } })
           }
