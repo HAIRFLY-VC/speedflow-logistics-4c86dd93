@@ -495,6 +495,13 @@ export async function confirmarPagamentoRota(params: {
     );
   }
 
+  // PIX validado no servidor (não confia no estado da tela).
+  const pixAtual = preview.pix as SituacaoPix | null;
+  if (pixAtual) {
+    const msgPix = mensagemBloqueioPix(pixAtual);
+    if (msgPix) throw new Error(msgPix);
+  }
+
   const agora = new Date().toISOString();
   const { data: ordem, error: ordemErr } = await centralDb
     .from("ordens_pagamento_frete")
@@ -511,6 +518,9 @@ export async function confirmarPagamentoRota(params: {
       decidido_por: params.userId,
       decidido_em: agora,
       observacao: params.observacao,
+      pix_utilizado: pixAtual?.pix ?? null,
+      favorecido_pix: pixAtual?.favorecido ?? null,
+      cod_responsavel_pix: pixAtual?.cod_erp ?? null,
     } as never)
     .select("id")
     .single();
