@@ -22,6 +22,7 @@ import {
 } from "@/lib/frete-simulacao";
 import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEditDialog";
 import { PagamentoRotaDialog } from "@/components/routes/PagamentoRotaDialog";
+import { ConsultarPixButton } from "@/components/routes/ConsultarPixButton";
 import { liberarNovoPix, situacaoPixResponsaveis } from "@/lib/rota-pagamento.functions";
 import { meuVinculoBitrix } from "@/lib/bitrix-config.functions";
 import type { SituacaoPix } from "@/lib/rota-pagamento.types";
@@ -444,13 +445,16 @@ function FreightInput({
     mostrarConfirmar && !vinculoBitrixOk
       ? "Seu usuário não está vinculado ao Bitrix. Peça ao administrador para fazer o vínculo em Configurações."
       : mostrarConfirmar && pix?.bloqueio === "SEM_PIX"
-        ? `Fretista sem PIX cadastrado no ERP. Cadastre o contato PIX do fretista (código ${pix.cod_erp}) e clique em "Atualizar cadastro" na tela Transportadoras.`
+        ? `Fretista sem PIX cadastrado no ERP (código ${pix.cod_erp}). Cadastre o contato PIX no ERP e clique em "Consultar PIX no ERP".`
         : mostrarConfirmar && pix?.bloqueio === "PIX_ALTERADO"
           ? "PIX alterado — aguardando liberação de um administrador."
           : null;
   const avisoPix = mensagemPix ? (
     <div className="flex max-w-[220px] flex-col items-end gap-1">
       <span className="text-right text-[10px] leading-tight text-destructive">{mensagemPix}</span>
+      {vinculoBitrixOk && pix?.bloqueio === "SEM_PIX" && pix.cod_erp && (
+        <ConsultarPixButton codErp={pix.cod_erp} />
+      )}
       {vinculoBitrixOk && pix?.bloqueio === "PIX_ALTERADO" && isAdmin && pix.cod_erp && (
         <Button
           size="sm"

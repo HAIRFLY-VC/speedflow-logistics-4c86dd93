@@ -7,6 +7,7 @@ import { ptBR } from "date-fns/locale";
 
 import { toast } from "@/lib/toast";
 import { mensagemErro } from "@/lib/mensagem-erro";
+import { ConsultarPixButton } from "@/components/routes/ConsultarPixButton";
 import { bitrixTaskUrl } from "@/lib/bitrix";
 import {
   confirmarPagamentoRotaFn,
@@ -318,8 +319,9 @@ export function PagamentoRotaDialog({
               {p.pix.cod_erp ? ` (código ${p.pix.cod_erp})` : ""}
             </div>
             {p.pix.bloqueio === "SEM_PIX" && (
-              <div className="mt-1 text-xs">
-                Fretista sem PIX cadastrado no ERP. Cadastre o contato PIX e clique em "Atualizar cadastro" na tela Transportadoras.
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                <span>Fretista sem PIX cadastrado no ERP. Cadastre o contato PIX no ERP e clique em "Consultar PIX no ERP".</span>
+                {p.pix.cod_erp && <ConsultarPixButton codErp={p.pix.cod_erp} />}
               </div>
             )}
             {p.pix.bloqueio === "PIX_ALTERADO" && (
