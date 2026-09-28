@@ -11,6 +11,10 @@ const TRADUCOES: Array<[RegExp, string]> = [
   [/unauthorized|forbidden|permission denied|not allowed/i, "Você não tem permissão para realizar esta ação."],
   [/failed to fetch|network|fetch failed|connection/i, "Não foi possível conectar ao serviço. Verifique sua conexão e tente novamente."],
   [/invalid email/i, "Informe um e-mail válido."],
+  [
+    /could not find the .* (column|table)|schema cache|does not exist/i,
+    "O banco central precisa ser atualizado para esta função. Avise o administrador.",
+  ],
 ];
 
 function textoDoErro(erro: unknown): string {
