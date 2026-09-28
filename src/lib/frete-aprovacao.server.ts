@@ -480,26 +480,8 @@ export async function reprovar(cteId: string, userId: string, observacao: string
 }
 
 export async function reenviarItemFila(fila: "valores" | "financeiro", filaId: string) {
-  const tabela =
-    fila === "valores" ? "fila_lancamento_erp_frete" : "fila_provisionamento_financeiro";
-  const { data: atual, error } = await centralDb
-    .from(tabela)
-    .select("*")
-    .eq("id", filaId)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!atual) throw new Error("Item da fila não encontrado");
-
-  await centralDb.from(tabela).delete().eq("id", filaId);
-  const linha = { ...(atual as Record<string, unknown>) };
-  delete linha["id"];
-  delete linha["created_at"];
-  delete linha["updated_at"];
-  linha["status"] = "PENDENTE";
-  linha["ultimo_erro"] = null;
-  linha["processado_em"] = null;
-  linha["tentativas"] = Number(atual["tentativas"] ?? 0);
-  const { error: insErr } = await centralDb.from(tabela).insert(linha as never);
-  if (insErr) throw new Error(insErr.message);
+  const { tentarItem } = await import("./fila-retry.server");
+  const r = await tentarItem(fila, filaId, "MANUAL");
+  if (!r.ok) throw new Error(r.erro ?? "Falha no reenvio");
   return { ok: true };
 }
