@@ -31,11 +31,10 @@ export function useMenuAccess(userId: string | null) {
 
 export function itemPermitido(item: NavItem, role: AppRole | null, liberados: string[] | null | undefined) {
   if (!role) return false;
-  const doPapel = item.roles.includes(role) || (role === "adm" && item.roles.includes("adm"));
   if (!liberados) return item.roles.includes(role);
   if (role === "adm" && item.url === "/usuarios") return true;
   if (ADMIN_ONLY_URLS.includes(item.url) && role !== "adm") return false;
-  return doPapel !== undefined && liberados.includes(item.url);
+  return liberados.includes(item.url);
 }
 
 export function urlPermitida(pathname: string, role: AppRole | null, liberados: string[] | null | undefined) {

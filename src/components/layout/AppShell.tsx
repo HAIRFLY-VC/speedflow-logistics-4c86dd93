@@ -245,7 +245,7 @@ function AppSidebar() {
 }
 
 function MenuGuard({ children }: { children: ReactNode }) {
-  const { role, user, loading } = useAuth() as ReturnType<typeof useAuth> & { loading?: boolean };
+  const { role, user, loading } = useAuth();
   const acesso = useMenuAccess(user?.id ?? null);
   const pathname = useRouterState({ select: (st) => st.location.pathname });
   if (loading || !role || acesso.isLoading) return <>{children}</>;
