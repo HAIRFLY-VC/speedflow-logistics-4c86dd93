@@ -25,9 +25,8 @@ export function ConsultarPixButton({ codErp }: { codErp: string }) {
       await qc.invalidateQueries();
       let temPix: boolean | null = null;
       try {
-        const res = (await situacao({ data: { cods: [codErp] } } as never)) as unknown;
-        const lista = Array.isArray(res) ? res : Object.values((res ?? {}) as object);
-        const s = lista.find((x: any) => x?.cod_erp === codErp) as { pix?: string | null } | undefined;
+        const res = await situacao({ data: { codigos: [codErp] } });
+        const s = res[codErp];
         if (s) temPix = Boolean(s.pix);
       } catch {
         /* sem verificação extra */

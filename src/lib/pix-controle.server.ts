@@ -58,7 +58,7 @@ export async function situacaoPix(codErp: string | null): Promise<SituacaoPix> {
 
 export function mensagemBloqueioPix(s: SituacaoPix): string | null {
   if (s.bloqueio === "SEM_PIX") {
-    return `Fretista sem PIX cadastrado no ERP. Cadastre o contato PIX do fretista (código ${s.cod_erp}) e clique em "Atualizar cadastro" na tela Transportadoras.`;
+    return `Fretista sem PIX cadastrado no ERP (código ${s.cod_erp}). Cadastre o contato PIX no ERP e clique em "Consultar PIX no ERP".`;
   }
   if (s.bloqueio === "PIX_ALTERADO") {
     // Nunca exibir a chave PIX. A mensagem do servidor não pode conter as chaves,
