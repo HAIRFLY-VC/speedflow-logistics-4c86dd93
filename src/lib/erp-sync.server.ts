@@ -611,7 +611,7 @@ type SyncResult = {
   skipped: number;
   customers_created: number;
   errors: { pedido: number; message: string }[];
-  status: "success" | "partial" | "failed";
+  status: "success" | "partial" | "failed" | "running";
 };
 
 export async function syncErpOrders(opts: {
@@ -648,7 +648,19 @@ export async function syncErpOrders(opts: {
       .gte("started_at", new Date(Date.now() - 10 * 60 * 1000).toISOString())
       .limit(1)
       .maybeSingle();
-    if (ativa) throw new Error("Sincronização já em andamento. Aguarde alguns minutos.");
+    if (ativa) {
+      // Já existe uma execução ativa: não inicia outra, devolve a atual para acompanhamento.
+      return {
+        runId: ativa.id as string,
+        fetched: 0,
+        created: 0,
+        updated: 0,
+        skipped: 0,
+        customers_created: 0,
+        errors: [],
+        status: "running",
+      };
+    }
   }
 
   // 1) Abre execução
