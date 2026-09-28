@@ -162,6 +162,7 @@ export type RouteRow = {
   total_freight: number;
   total_distance_km: number | null;
   driver_name: string | null;
+  erp_carrier_code?: string | null;
   notes: string | null;
   freight_carriers: {
     full_name: string;
@@ -827,7 +828,7 @@ export function RotasView({
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,erp_route_id,erp_status,route_date,status,total_freight,total_distance_km,driver_name,notes,frete_confirmado_em,bordero_emitido_em,freight_carriers(full_name,vehicle_plate,transportadoras(id,cod_erp)),route_orders(stop_order,orders(customer_id,erp_cod_cliente,order_number,total_amount,weight,erp_status,bordero,delivery_latitude,delivery_longitude))",
+          "id,code,erp_route_id,erp_status,route_date,status,total_freight,total_distance_km,driver_name,erp_carrier_code,notes,frete_confirmado_em,bordero_emitido_em,freight_carriers(full_name,vehicle_plate,transportadoras(id,cod_erp)),route_orders(stop_order,orders(customer_id,erp_cod_cliente,order_number,total_amount,weight,erp_status,bordero,delivery_latitude,delivery_longitude))",
         );
       if (error) throw error;
       const rows = ((data ?? []) as unknown as RouteRow[]).filter(
@@ -980,7 +981,7 @@ export function RotasView({
     const codsErp = codsRotaQ.data ?? {};
     for (const r of data ?? []) {
       const codRota = r.erp_route_id ? codsErp[String(Number(r.erp_route_id))] : undefined;
-      const cod = codRota ?? transpPorRota.get(r.id)?.cod_erp ?? null;
+      const cod = codRota ?? (r.erp_carrier_code?.trim() || null) ?? transpPorRota.get(r.id)?.cod_erp ?? null;
       if (cod && String(cod).trim()) map.set(r.id, String(cod).trim());
     }
     return map;
