@@ -51,7 +51,7 @@ export function ErpSyncButton({
     updated: number;
     skipped: number;
     errors: unknown[];
-    status?: "success" | "partial" | "failed";
+    status?: "success" | "partial" | "failed" | "running";
   };
 
   const sync = useMutation({
@@ -59,6 +59,12 @@ export function ErpSyncButton({
       const clickedAt = new Date(Date.now() - 5_000).toISOString();
       try {
         const result = await syncFn();
+        if (result.status === "running") {
+          toast.info("Já existe uma sincronização em andamento. Acompanhando até terminar...");
+          const finished = await waitForRun(clickedAt, result.runId);
+          if (finished) return finished;
+          throw new Error("A sincronização em andamento não terminou em 2 minutos. Verifique mais tarde.");
+        }
         if (result.status === "failed") {
           const firstError = result.errors[0]?.message;
           throw new Error(firstError ?? "Não foi possível atualizar os dados do ERP.");
@@ -114,13 +120,13 @@ export function ErpSyncButton({
     );
   }
 
-  async function waitForRun(sinceIso: string): Promise<SyncOutcome | null> {
+  async function waitForRun(sinceIso: string, runId?: string): Promise<SyncOutcome | null> {
     const deadline = Date.now() + 120_000;
     while (Date.now() < deadline) {
-      const { data } = await supabase
+      const base = supabase
         .from("erp_sync_runs")
-        .select("started_at, finished_at, status, orders_created, orders_updated, orders_skipped, errors")
-        .gte("started_at", sinceIso)
+        .select("started_at, finished_at, status, orders_created, orders_updated, orders_skipped, errors");
+      const { data } = await (runId ? base.eq("id", runId) : base.gte("started_at", sinceIso))
         .order("started_at", { ascending: false })
         .limit(1)
         .maybeSingle();
