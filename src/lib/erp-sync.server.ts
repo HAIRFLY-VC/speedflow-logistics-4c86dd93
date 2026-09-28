@@ -904,6 +904,9 @@ export async function syncErpOrders(opts: {
         g = { erpRouteId, nome, date: dateOnly, driver, carrierCode, erpStatus, pedidos: [] };
         groups.set(key, g);
       }
+      // O responsável pode vir só em alguns pedidos: usa o primeiro preenchido.
+      if (!g.driver && driver) g.driver = driver;
+      if (!g.carrierCode && carrierCode) g.carrierCode = carrierCode;
       g.pedidos.push(String(row.PEDIDO));
     }
 
@@ -1093,6 +1096,7 @@ export async function syncErpOrders(opts: {
           code: string;
           route_date: string;
           driver_name: string | null;
+          erp_carrier_code: string | null;
           notes: string;
           erp_route_id: string | null;
           erp_status: string;
@@ -1126,6 +1130,7 @@ export async function syncErpOrders(opts: {
           .from("routes")
           .update({
             driver_name: p.driver,
+            erp_carrier_code: p.carrierCode,
             route_date: p.date,
             erp_route_id: p.erpRouteId,
             erp_status: p.erpStatus,
@@ -1156,6 +1161,7 @@ export async function syncErpOrders(opts: {
           code: p.code,
           route_date: p.date,
           driver_name: p.driver,
+          erp_carrier_code: p.carrierCode,
           notes: notesDoNome(snap?.notes ?? null, p.nome),
 
           erp_route_id: p.erpRouteId,
