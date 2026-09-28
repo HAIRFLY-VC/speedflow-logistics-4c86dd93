@@ -164,7 +164,7 @@ export const buscarResponsavelRotaErp = createServerFn({ method: "POST" })
     const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30_000);
+    const timeout = setTimeout(() => controller.abort(), 60_000);
     try {
       const res = await fetch(`${cleanBase}/v1/query`, {
         method: "POST",
@@ -182,6 +182,10 @@ export const buscarResponsavelRotaErp = createServerFn({ method: "POST" })
       const bruto = getField(linha, "COD");
       const codErp = bruto == null || String(bruto).trim() === "" ? null : String(bruto).trim();
       return { codErp };
+    } catch (error) {
+      // ERP lento/indisponível: não derrubar a tela; o usuário escolhe manualmente.
+      console.error("buscarResponsavelRotaErp", error);
+      return { codErp: null as string | null };
     } finally {
       clearTimeout(timeout);
     }
