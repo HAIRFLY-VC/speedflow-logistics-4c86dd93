@@ -2,28 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { getSidebarPref, saveSidebarPref } from "@/lib/ui-prefs.functions";
-import {
-  LayoutDashboard,
-  Kanban,
-  Users,
-  Building2,
-  
-  ShoppingCart,
-  Truck,
-  Route as RouteIcon,
-  FileText,
-  Settings,
-  LogOut,
-  Menu,
-  Wand2,
-  MapPinned,
-  PackageSearch,
-  Boxes,
-  ShieldCheck,
-  PanelLeftClose,
-  PanelLeftOpen,
-  AlertTriangle,
-} from "lucide-react";
+import { Truck, LogOut, Menu, PanelLeftClose, PanelLeftOpen, ShieldOff } from "lucide-react";
+import { NAV, itemPermitido, urlPermitida, useMenuAccess } from "@/lib/menu-items";
 import {
   Sidebar,
   SidebarContent,
@@ -40,49 +20,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { useAuth, type AppRole } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/lib/toast";
 import { NotificationsBell } from "./NotificationsBell";
 import { ErpSyncButton } from "./ErpSyncButton";
 
-type NavItem = {
-  title: string;
-  url: string;
-  icon: typeof LayoutDashboard;
-  roles: AppRole[];
-};
 
-const NAV: NavItem[] = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: ["adm", "gestor", "operador"] },
-  { title: "Kanban", url: "/kanban", icon: Kanban, roles: ["adm", "gestor", "operador"] },
-  { title: "Pedidos", url: "/pedidos", icon: ShoppingCart, roles: ["adm", "gestor", "operador"] },
-  { title: "Clientes", url: "/clientes", icon: Users, roles: ["adm", "gestor", "operador"] },
-  { title: "Empresas", url: "/empresas", icon: Building2, roles: ["adm"] },
-  
-  { title: "Fretistas", url: "/fretistas", icon: Truck, roles: ["adm", "gestor", "operador"] },
-  { title: "Transportadoras", url: "/transportadoras", icon: Truck, roles: ["adm", "gestor", "operador"] },
-  { title: "Tabelas de frete", url: "/tabelas-frete", icon: FileText, roles: ["adm", "gestor", "operador"] },
-  { title: "CT-e", url: "/ctes", icon: FileText, roles: ["adm", "gestor", "operador"] },
-  { title: "Auditoria de fretes", url: "/auditoria-fretes", icon: FileText, roles: ["adm", "gestor", "operador"] },
-  { title: "Pagamento de CT-e", url: "/pagamento-fretes", icon: FileText, roles: ["adm", "gestor", "operador"] },
-
-
-
-  { title: "Rotas Pendentes", url: "/rotas", icon: RouteIcon, roles: ["adm", "gestor", "operador"] },
-  { title: "Autorizar pagamento de frete", url: "/autorizar-pagamento-frete", icon: ShieldCheck, roles: ["adm", "gestor", "operador"] },
-  { title: "Pedidos sem rota", url: "/pedidos-sem-rota", icon: MapPinned, roles: ["adm", "gestor", "operador"] },
-  { title: "Entregas em aberto", url: "/entregas-abertas", icon: PackageSearch, roles: ["adm", "gestor", "operador"] },
-  { title: "Separação", url: "/separacao", icon: Boxes, roles: ["adm", "gestor", "operador"] },
-  { title: "Sugestão de rotas", url: "/sugestao-rotas", icon: Wand2, roles: ["adm", "gestor", "operador"] },
-  { title: "Minhas Rotas", url: "/minhas-rotas", icon: RouteIcon, roles: ["fretista"] },
-  { title: "Borderôs", url: "/borderos", icon: FileText, roles: ["adm", "gestor", "operador"] },
-  { title: "Usuários", url: "/usuarios", icon: Users, roles: ["adm"] },
-  { title: "Configurações", url: "/configuracoes", icon: Settings, roles: ["adm", "gestor", "operador", "fretista"] },
-  { title: "Config. de fretes", url: "/configuracoes-fretes", icon: ShieldCheck, roles: ["adm"] },
-  { title: "Captura de CT-e", url: "/captura-cte", icon: ShieldCheck, roles: ["adm"] },
-  { title: "Pendências de integração", url: "/pendencias-integracao", icon: AlertTriangle, roles: ["adm"] },
-
-];
 
 export function AppShell({
   children,
@@ -151,7 +94,7 @@ export function AppShell({
               </div>
             </div>
           </header>
-          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">{children}</main>
+          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"><MenuGuard>{children}</MenuGuard></main>
         </div>
       </div>
     </SidebarProvider>
@@ -208,7 +151,8 @@ function AppSidebar() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const items = NAV.filter((i) => (role ? i.roles.includes(role) : false));
+  const acesso = useMenuAccess(user?.id ?? null);
+  const items = NAV.filter((i) => itemPermitido(i, role, acesso.data));
 
   async function handleSignOut() {
     if (isMobile) setOpenMobile(false);
@@ -264,5 +208,21 @@ function AppSidebar() {
         </Button>
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+function MenuGuard({ children }: { children: ReactNode }) {
+  const { role, user, loading } = useAuth();
+  const acesso = useMenuAccess(user?.id ?? null);
+  const pathname = useRouterState({ select: (st) => st.location.pathname });
+  if (loading || !role || acesso.isLoading) return <>{children}</>;
+  if (urlPermitida(pathname, role, acesso.data)) return <>{children}</>;
+  return (
+    <div className="max-w-md mx-auto mt-16 text-center space-y-3">
+      <ShieldOff className="h-10 w-10 mx-auto text-muted-foreground" />
+      <h1 className="text-lg font-semibold">Você não tem acesso a esta tela</h1>
+      <p className="text-sm text-muted-foreground">Peça ao administrador para liberar este item do menu.</p>
+      <Button asChild variant="outline"><Link to="/configuracoes">Ir para o início</Link></Button>
+    </div>
   );
 }

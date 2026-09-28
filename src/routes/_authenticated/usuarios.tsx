@@ -44,6 +44,8 @@ import {
 } from "@/lib/users.functions";
 import { mensagemErro } from "@/lib/mensagem-erro";
 import { VinculoBitrixSection } from "@/components/usuarios/VinculoBitrixSection";
+import { MenuAccessDialog } from "@/components/usuarios/MenuAccessDialog";
+import { CUSTOM_MARK } from "@/lib/menu-items";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
   head: () => ({
@@ -83,6 +85,16 @@ function UsuariosPage() {
   const [selectedRoles, setSelectedRoles] = useState<AppRole[]>(["operador"]);
   const [confirmingUser, setConfirmingUser] = useState<ManagedUser | null>(null);
   const [deletingUser, setDeletingUser] = useState<ManagedUser | null>(null);
+  const [menuUser, setMenuUser] = useState<ManagedUser | null>(null);
+  const customQ = useQuery({
+    queryKey: ["menu-access", "custom-list"],
+    enabled: role === "adm",
+    queryFn: async () => {
+      const { data, error } = await supabase.from("user_menu_access").select("user_id").eq("menu_url", CUSTOM_MARK);
+      if (error) throw error;
+      return new Set((data ?? []).map((r) => r.user_id));
+    },
+  });
 
   const isAdm = role === "adm";
 
@@ -299,6 +311,8 @@ function UsuariosPage() {
           <CardContent>
             <MembersTable
               profiles={usersQ.data ?? []}
+              customMenu={customQ.data ?? new Set<string>()}
+              onMenu={setMenuUser}
               isLoading={usersQ.isLoading}
               rolesByUser={rolesByUser}
               currentUserId={user?.id ?? null}
@@ -361,6 +375,11 @@ function UsuariosPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <MenuAccessDialog
+          user={menuUser ? { id: menuUser.id, nome: menuUser.fullName ?? menuUser.email } : null}
+          roles={menuUser ? rolesByUser.get(menuUser.id) ?? [] : []}
+          onClose={() => setMenuUser(null)}
+        />
       </div>
     </AppShell>
   );
@@ -375,7 +394,11 @@ function MembersTable({
   onRemove,
   onConfirm,
   onDelete,
+  customMenu,
+  onMenu,
 }: {
+  customMenu: Set<string>;
+  onMenu: (user: ManagedUser) => void;
   profiles: ManagedUser[];
   isLoading: boolean;
   rolesByUser: Map<string, AppRole[]>;
@@ -465,6 +488,16 @@ function MembersTable({
         },
       },
       {
+        id: "menu",
+        header: "Menu",
+        accessor: (p) => (customMenu.has(p.id) ? "Menu personalizado" : "Padrão do papel"),
+        render: (p) => (
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onMenu(p)}>
+            {customMenu.has(p.id) ? "Menu personalizado" : "Padrão do papel"}
+          </Button>
+        ),
+      },
+      {
         id: "actions",
         header: "Ações",
         sortable: false,
@@ -491,7 +524,7 @@ function MembersTable({
         ),
       },
     ],
-    [rolesByUser, currentUserId, onAdd, onRemove, onConfirm, onDelete],
+    [rolesByUser, currentUserId, onAdd, onRemove, onConfirm, onDelete, customMenu, onMenu],
   );
 
   return (
