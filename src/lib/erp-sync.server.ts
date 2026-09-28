@@ -106,7 +106,7 @@ async function erpQuery(sql: string, limit: number): Promise<Record<string, unkn
   const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
   const res = await fetch(`${cleanBase}/v1/query`, {
     method: "POST",
-      signal: AbortSignal.timeout(25_000),
+      signal: AbortSignal.timeout(60_000),
     headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
     body: JSON.stringify({ sql, binds: {}, limit }),
   });
@@ -272,7 +272,7 @@ async function fetchPendingOrdersFromErp(): Promise<ErpOrderRow[]> {
     try {
       const res = await fetch(url, {
         method: "POST",
-      signal: AbortSignal.timeout(25_000),
+      signal: AbortSignal.timeout(60_000),
         headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
         body: JSON.stringify({ sql: PENDING_ORDERS_SQL, binds: {}, limit: 5000 }),
       });
@@ -332,7 +332,7 @@ async function sincronizarEspelhoResponsaveis(opts: { maxAgeMs: number }) {
   const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
   const res = await fetch(`${cleanBase}/v1/query`, {
     method: "POST",
-      signal: AbortSignal.timeout(25_000),
+      signal: AbortSignal.timeout(60_000),
     headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
     body: JSON.stringify({ sql: RESPONSAVEIS_SQL, binds: {}, limit: 50000 }),
   });
@@ -466,7 +466,7 @@ async function completarCadastroClientesFaltantes(
     `;
     const res = await fetch(`${cleanBase}/v1/query`, {
       method: "POST",
-      signal: AbortSignal.timeout(25_000),
+      signal: AbortSignal.timeout(60_000),
       headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
       body: JSON.stringify({ sql, binds: {}, limit: 1000 }),
     });
@@ -535,7 +535,7 @@ async function sincronizarEntregasAbertas(): Promise<{ total: number; clientes: 
   const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
   const res = await fetch(`${cleanBase}/v1/query`, {
     method: "POST",
-      signal: AbortSignal.timeout(25_000),
+      signal: AbortSignal.timeout(60_000),
     headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
     body: JSON.stringify({ sql: ENTREGAS_ABERTAS_SQL, binds: {}, limit: 20000 }),
   });
@@ -775,7 +775,7 @@ export async function syncErpOrders(opts: {
   try {
     // Responsáveis do ERP em paralelo com a consulta de pedidos (etapa opcional,
     // renovada no máximo uma vez por hora).
-    const responsaveisPromise = sincronizarEspelhoResponsaveis({ maxAgeMs: 60 * 60 * 1000 }).catch(
+    const responsaveisPromise = sincronizarEspelhoResponsaveis({ maxAgeMs: opts.trigger === "manual" ? 0 : 60 * 60 * 1000 }).catch(
       (e) => {
         errors.push({ pedido: 0, message: `Atualizar responsáveis do ERP: ${describeError(e)}` });
         return 0;
