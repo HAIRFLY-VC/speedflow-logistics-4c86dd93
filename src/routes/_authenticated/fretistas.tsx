@@ -44,7 +44,7 @@ function FretistasPage() {
   });
 
   const atualizar = useMutation({
-    mutationFn: async () => sincronizar({ data: {} }),
+    mutationFn: async () => sincronizar(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["fretistas-erp"] });
       toast.success("Cadastro de fretistas atualizado a partir do ERP");
