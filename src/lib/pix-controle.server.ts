@@ -61,7 +61,9 @@ export function mensagemBloqueioPix(s: SituacaoPix): string | null {
     return `Fretista sem PIX cadastrado no ERP. Cadastre o contato PIX do fretista (código ${s.cod_erp}) e clique em "Atualizar cadastro" na tela Transportadoras.`;
   }
   if (s.bloqueio === "PIX_ALTERADO") {
-    return `PIX alterado (anterior: ${s.pix_referencia}; novo: ${s.pix}) — aguardando liberação de um administrador.`;
+    // Nunca exibir a chave PIX. A mensagem do servidor não pode conter as chaves,
+    // pois o erro chega à tela via toast (rota-pagamento.server.ts).
+    return "PIX alterado — aguardando liberação de um administrador.";
   }
   return null;
 }
