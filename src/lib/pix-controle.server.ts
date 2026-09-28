@@ -68,21 +68,73 @@ export function mensagemBloqueioPix(s: SituacaoPix): string | null {
   return null;
 }
 
-/** Descobre o código do responsável da rota (código gravado ou nome do motorista). */
+/** Busca no ERP o código do responsável (COD_FRT_TRP) da rota. */
+export async function codResponsavelNoErp(erpRouteId: string): Promise<string | null> {
+  const id = Number(norm(erpRouteId));
+  const baseUrl = process.env["ERP_API_BASE_URL"];
+  const apiKey = process.env["ERP_API_KEY"];
+  if (!Number.isFinite(id) || id <= 0 || !baseUrl || !apiKey) return null;
+  const base = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), 20_000);
+  try {
+    const res = await fetch(`${base}/v1/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+      body: JSON.stringify({
+        sql: `select R.COD_FRT_TRP COD from gks.a_ger_rotas R where R.ID = ${id}`,
+        binds: {},
+        limit: 1,
+      }),
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const rows = ((await res.json()) as { rows?: Record<string, unknown>[] }).rows ?? [];
+    const row = rows[0] ?? {};
+    const v = Object.entries(row).find(([k]) => k.toUpperCase() === "COD")?.[1];
+    return norm(v == null ? null : String(v)) || null;
+  } catch (e) {
+    console.error("codResponsavelNoErp", e);
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/** Descobre o código do responsável da rota (código gravado, nome do motorista ou ERP). */
 export async function codResponsavelDaRota(rota: {
+  id?: string;
+  erp_route_id?: string | null;
   erp_carrier_code: string | null;
   driver_name: string | null;
 }): Promise<string | null> {
   if (norm(rota.erp_carrier_code)) return norm(rota.erp_carrier_code);
   const nome = norm(rota.driver_name);
-  if (nome.length < 4) return null;
-  const { data } = await centralDb
-    .from("erp_responsaveis")
-    .select("cod_erp")
-    .ilike("razao_social", nome)
-    .limit(1)
-    .maybeSingle();
-  return norm((data as { cod_erp?: string } | null)?.cod_erp) || null;
+  if (nome.length >= 4) {
+    const { data } = await centralDb
+      .from("erp_responsaveis")
+      .select("cod_erp")
+      .ilike("razao_social", nome)
+      .limit(1)
+      .maybeSingle();
+    const cod = norm((data as { cod_erp?: string } | null)?.cod_erp);
+    if (cod) return cod;
+  }
+  if (!rota.erp_route_id) return null;
+  const cod = await codResponsavelNoErp(rota.erp_route_id);
+  if (cod && rota.id) {
+    const { data: resp } = await centralDb
+      .from("erp_responsaveis")
+      .select("razao_social")
+      .eq("cod_erp", cod)
+      .maybeSingle();
+    const razao = norm((resp as { razao_social?: string } | null)?.razao_social) || null;
+    await centralDb
+      .from("routes")
+      .update({ erp_carrier_code: cod, ...(razao && !nome ? { driver_name: razao } : {}) } as never)
+      .eq("id", rota.id);
+  }
+  return cod;
 }
 
 export async function liberarPix(codErp: string, userId: string) {
