@@ -61,7 +61,14 @@ export function CteAprovacaoPanel({ cteId }: { cteId: string }) {
         },
       }),
     onSuccess: (r) => {
-      toast.success(`CT-e aprovado. ${r.linhas} lançamento(s) enviados para a fila do ERP.`);
+      if (r.ok)
+        toast.success(
+          `CT-e aprovado e lançado no ERP (${r.linhas} NF-e).${r.tarefaId ? ` Tarefa Bitrix #${r.tarefaId} criada.` : ""}`,
+        );
+      else
+        toast.error(
+          `CT-e aprovado, mas houve falha: ${r.erros.join(" · ")}. O item ficou na fila de pendências para reenvio.`,
+        );
       invalidar();
     },
     onError: (e: Error) => toast.error(e.message),

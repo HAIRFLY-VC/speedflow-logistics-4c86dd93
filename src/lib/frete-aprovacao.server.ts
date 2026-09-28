@@ -1,5 +1,5 @@
 // Aprovação de CT-e: distribuição dos valores nos campos do ERP, rateio por
-// NF-e e publicação nas filas consumidas pelo n8n.
+// NF-e e envio direto ao ERP e ao Bitrix pelo app.
 import { centralDb } from "@/lib/central-db";
 import { buscarFretesContabilizados, numeroDaChaveNfe } from "@/lib/frete-nfe-erp.server";
 import { statusErpCtes } from "@/lib/cte-status-erp.server";
@@ -308,6 +308,13 @@ export async function aprovar(
       throw new Error(`Selecione o registro do ERP para a NF-e ${nota.numero}`);
   }
 
+  const { vinculoBitrixDoUsuario } = await import("./bitrix-task.server");
+  const vinculo = await vinculoBitrixDoUsuario(userId);
+  if (!vinculo)
+    throw new Error(
+      "Seu usuário não está vinculado ao Bitrix. Peça ao administrador para fazer o vínculo antes de aprovar.",
+    );
+
   const cte = await carregarCte(cteId);
   const { data: transp } = cte.transportadora_id
     ? await centralDb
@@ -358,9 +365,10 @@ export async function aprovar(
     };
   });
 
-  const { error: filaErr } = await centralDb
+  const { data: filaRows, error: filaErr } = await centralDb
     .from("fila_lancamento_erp_frete")
-    .insert(linhas as never);
+    .insert(linhas as never)
+    .select("id");
   if (filaErr) throw new Error(filaErr.message);
 
   const t = transp as {
@@ -375,7 +383,24 @@ export async function aprovar(
   // Regra: 1 registro por CT-e na fila financeira (reprocesso substitui o anterior).
   await centralDb.from("fila_provisionamento_financeiro").delete().eq("cte_id", cteId);
 
-  const { error: finErr } = await centralDb.from("fila_provisionamento_financeiro").insert({
+  const dataPagamento = new Date(Date.now() + 8 * 86_400_000).toISOString().slice(0, 10);
+  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const textoTarefa = [
+    `Pagamento de frete — CT-e ${cte.numero ?? ""}`,
+    `Chave: ${cte.chave_acesso}`,
+    `Transportadora: ${t?.razao_social ?? "—"}${t?.cnpj ? ` (CNPJ ${t.cnpj})` : ""}`,
+    `Filial: ${preview.cod_filial}`,
+    `Valor total: ${fmt(preview.valor_total)}`,
+    `Vencimento sugerido: ${dataPagamento.split("-").reverse().join("/")}`,
+    "",
+    "Notas:",
+    ...preview.notas.map(
+      (nt) => `- NF ${nt.numero} — borderô ${escolha.get(nt.chave) ?? nt.registros[0]?.bordero ?? "—"}`,
+    ),
+    ...(observacao ? ["", `Observação: ${observacao}`] : []),
+  ].join("\n");
+
+  const { data: finRow, error: finErr } = await centralDb.from("fila_provisionamento_financeiro").insert({
     ordem_pagamento_id: ordem.id,
     cte_id: cteId,
     status: "PENDENTE",
@@ -401,13 +426,38 @@ export async function aprovar(
         bordero: escolha.get(n.chave) ?? n.registros[0]?.bordero ?? null,
       })),
       valores: preview.valores,
+      autorizado_por: userId,
+      titulo_tarefa: `#FRETE CT-e ${cte.numero ?? ""}${t?.razao_social ? ` — ${t.razao_social}` : ""}`,
+      texto_tarefa: textoTarefa,
+      data_pagamento: dataPagamento,
     },
-  } as never);
+  } as never).select("id").single();
   if (finErr) throw new Error(finErr.message);
 
   await centralDb.from("ctes").update({ status: "AUTORIZADO" }).eq("id", cteId);
 
-  return { ok: true, ordem_id: ordem.id, linhas: linhas.length };
+  // Envio direto pelo app (sem n8n): valores no ERP e tarefa no Bitrix.
+  const { gravarLinhaValores, consolidarOrdem } = await import("./erp-lancamento.server");
+  const erros: string[] = [];
+  for (const r of (filaRows ?? []) as { id: string }[]) {
+    const res = await gravarLinhaValores(r.id, "MANUAL");
+    if (!res.ok && res.erro) erros.push(res.erro);
+  }
+  let tarefaId: string | null = null;
+  const finId = (finRow as { id?: string } | null)?.id;
+  if (finId) {
+    const { processarTarefaFinanceiraRota } = await import("./rota-pagamento.server");
+    try {
+      const r = await processarTarefaFinanceiraRota(finId);
+      if (r.ok) tarefaId = r.referencia ?? null;
+      else if (r.erro) erros.push(`Bitrix: ${r.erro}`);
+    } catch (e) {
+      erros.push(`Bitrix: ${(e as Error).message}`);
+    }
+  }
+  await consolidarOrdem(ordem.id);
+
+  return { ok: erros.length === 0, ordem_id: ordem.id, linhas: linhas.length, erros, tarefaId };
 }
 
 export async function reprovar(cteId: string, userId: string, observacao: string) {
@@ -430,26 +480,8 @@ export async function reprovar(cteId: string, userId: string, observacao: string
 }
 
 export async function reenviarItemFila(fila: "valores" | "financeiro", filaId: string) {
-  const tabela =
-    fila === "valores" ? "fila_lancamento_erp_frete" : "fila_provisionamento_financeiro";
-  const { data: atual, error } = await centralDb
-    .from(tabela)
-    .select("*")
-    .eq("id", filaId)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!atual) throw new Error("Item da fila não encontrado");
-
-  await centralDb.from(tabela).delete().eq("id", filaId);
-  const linha = { ...(atual as Record<string, unknown>) };
-  delete linha["id"];
-  delete linha["created_at"];
-  delete linha["updated_at"];
-  linha["status"] = "PENDENTE";
-  linha["ultimo_erro"] = null;
-  linha["processado_em"] = null;
-  linha["tentativas"] = Number(atual["tentativas"] ?? 0);
-  const { error: insErr } = await centralDb.from(tabela).insert(linha as never);
-  if (insErr) throw new Error(insErr.message);
+  const { tentarItem } = await import("./fila-retry.server");
+  const r = await tentarItem(fila, filaId, "MANUAL");
+  if (!r.ok) throw new Error(r.erro ?? "Falha no reenvio");
   return { ok: true };
 }

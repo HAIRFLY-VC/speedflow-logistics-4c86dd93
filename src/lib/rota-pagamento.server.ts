@@ -582,10 +582,17 @@ export async function confirmarPagamentoRota(params: {
     })),
   );
 
-  const { error: filaErr } = await centralDb
+  const { data: filaRows, error: filaErr } = await centralDb
     .from("fila_lancamento_erp_frete")
-    .insert(linhas as never);
+    .insert(linhas as never)
+    .select("id");
   if (filaErr) throw new Error(filaErr.message);
+
+  // Valores gravados direto no ERP pelo app (sem n8n).
+  {
+    const { gravarLinhaValores } = await import("./erp-lancamento.server");
+    for (const r of (filaRows ?? []) as { id: string }[]) await gravarLinhaValores(r.id, "MANUAL");
+  }
 
   const { data: finRow, error: finErr } = await centralDb
     .from("fila_provisionamento_financeiro")

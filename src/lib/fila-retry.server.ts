@@ -141,8 +141,15 @@ export async function tentarItem(
   const raiz = linha.raiz_id ?? linha.id;
   const tentativas = Number(linha.tentativas ?? 0);
 
-  // Tarefa do Bitrix de rota: criada pelo próprio app.
-  if (fila === "financeiro" && linha.route_id && !linha.cte_id) {
+  // Valores: gravados direto no ERP pelo app.
+  if (fila === "valores") {
+    const { gravarLinhaValores } = await import("./erp-lancamento.server");
+    await centralDb.from(tabela).update({ raiz_id: raiz } as never).eq("id", filaId);
+    return gravarLinhaValores(filaId, origem);
+  }
+
+  // Tarefa do Bitrix (rota ou CT-e): criada pelo próprio app.
+  if (fila === "financeiro") {
     const { processarTarefaFinanceiraRota } = await import("./rota-pagamento.server");
     let resultado: { ok: boolean; erro?: string };
     try {
