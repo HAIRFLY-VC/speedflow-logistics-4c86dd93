@@ -2,28 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { getSidebarPref, saveSidebarPref } from "@/lib/ui-prefs.functions";
-import {
-  LayoutDashboard,
-  Kanban,
-  Users,
-  Building2,
-  
-  ShoppingCart,
-  Truck,
-  Route as RouteIcon,
-  FileText,
-  Settings,
-  LogOut,
-  Menu,
-  Wand2,
-  MapPinned,
-  PackageSearch,
-  Boxes,
-  ShieldCheck,
-  PanelLeftClose,
-  PanelLeftOpen,
-  AlertTriangle,
-} from "lucide-react";
+import { Truck, LogOut, Menu, PanelLeftClose, PanelLeftOpen, ShieldOff } from "lucide-react";
+import { NAV, itemPermitido, urlPermitida, useMenuAccess } from "@/lib/menu-items";
 import {
   Sidebar,
   SidebarContent,
@@ -40,16 +20,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { useAuth, type AppRole } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/lib/toast";
 import { NotificationsBell } from "./NotificationsBell";
 import { ErpSyncButton } from "./ErpSyncButton";
 
-type NavItem = {
-  title: string;
-  url: string;
-  icon: typeof LayoutDashboard;
-  roles: AppRole[];
+
 };
 
 const NAV: NavItem[] = [
@@ -151,7 +127,7 @@ export function AppShell({
               </div>
             </div>
           </header>
-          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">{children}</main>
+          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"><MenuGuard>{children}</MenuGuard></main>
         </div>
       </div>
     </SidebarProvider>
@@ -208,7 +184,8 @@ function AppSidebar() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const items = NAV.filter((i) => (role ? i.roles.includes(role) : false));
+  const acesso = useMenuAccess(user?.id ?? null);
+  const items = NAV.filter((i) => itemPermitido(i, role, acesso.data));
 
   async function handleSignOut() {
     if (isMobile) setOpenMobile(false);
@@ -264,5 +241,21 @@ function AppSidebar() {
         </Button>
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+function MenuGuard({ children }: { children: ReactNode }) {
+  const { role, user, loading } = useAuth() as ReturnType<typeof useAuth> & { loading?: boolean };
+  const acesso = useMenuAccess(user?.id ?? null);
+  const pathname = useRouterState({ select: (st) => st.location.pathname });
+  if (loading || !role || acesso.isLoading) return <>{children}</>;
+  if (urlPermitida(pathname, role, acesso.data)) return <>{children}</>;
+  return (
+    <div className="max-w-md mx-auto mt-16 text-center space-y-3">
+      <ShieldOff className="h-10 w-10 mx-auto text-muted-foreground" />
+      <h1 className="text-lg font-semibold">Você não tem acesso a esta tela</h1>
+      <p className="text-sm text-muted-foreground">Peça ao administrador para liberar este item do menu.</p>
+      <Button asChild variant="outline"><Link to="/configuracoes">Ir para o início</Link></Button>
+    </div>
   );
 }
