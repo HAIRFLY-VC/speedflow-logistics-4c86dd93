@@ -95,6 +95,8 @@ export function ErpSyncButton({
       qc.invalidateQueries({ queryKey: ["rotas-responsaveis-erp"] });
       qc.invalidateQueries({ queryKey: ["naturezas-erp"] });
       qc.invalidateQueries({ queryKey: ["erp", "last-sync"] });
+      qc.invalidateQueries({ queryKey: ["pagamento-rota"] });
+      qc.invalidateQueries({ queryKey: ["situacao-pix"] });
     },
     onError: (e: Error) => {
       if (e.message.includes("ERP fora do ar")) {
