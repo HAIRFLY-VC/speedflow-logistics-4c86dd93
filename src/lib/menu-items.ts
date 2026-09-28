@@ -49,7 +49,6 @@ export const NAV: NavItem[] = [
   { title: "Separação", url: "/separacao", icon: Boxes, roles: ["adm", "gestor", "operador"] },
   { title: "Sugestão de rotas", url: "/sugestao-rotas", icon: Wand2, roles: ["adm", "gestor", "operador"] },
   { title: "Minhas Rotas", url: "/minhas-rotas", icon: RouteIcon, roles: ["fretista"] },
-  { title: "Borderôs", url: "/borderos", icon: FileText, roles: ["adm", "gestor", "operador"] },
   { title: "Usuários", url: "/usuarios", icon: Users, roles: ["adm"] },
   { title: "Configurações", url: "/configuracoes", icon: Settings, roles: ["adm", "gestor", "operador", "fretista"] },
   { title: "Config. de fretes", url: "/configuracoes-fretes", icon: ShieldCheck, roles: ["adm"] },
