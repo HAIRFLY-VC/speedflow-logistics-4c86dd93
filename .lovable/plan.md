@@ -1,12 +1,13 @@
-# Alargar coluna "Pedidos por status" sem quebra de linha
+# Coluna "Pedidos por status": status em uma linha
 
 ## O que muda
-Na tabela de rotas, a coluna "Pedidos por status" mostra cada status quebrado em várias linhas (ex.: "06-SEPARACAO SOLICITADA" quebra). Vamos aumentar a largura da coluna para que cada status caiba em uma única linha ao lado da sua contagem.
+Na tabela de rotas (Rotas Pendentes e Autorizar pagamento de frete), o status "06-SEPARACAO SOLICITADA" quebra em duas linhas. Vamos abreviá-lo para "06-SEP. SOLIC." e garantir que cada status apareça em uma única linha ao lado da contagem.
 
 ## Mudança técnica
-- `src/components/routes/RotasView.tsx`, coluna `pedidos_status`:
-  - Largura fixa de **200px** nas duas telas (Rotas Pendentes e Autorizar pagamento de frete), em vez de 112px só na tela de autorização.
-  - O status mais longo ("06-SEPARACAO SOLICITADA") mede cerca de 165px em fonte pequena; 200px garante uma linha sem quebra e espaço para a contagem à direita.
+- `src/components/routes/RotasView.tsx`:
+  - Nova função `statusCurto(st)` que abrevia os rótulos longos vindos do ERP (começando por "06-SEPARACAO SOLICITADA" → "06-SEP. SOLIC."); demais statuses permanecem como estão.
+  - Aplicada tanto na exibição (`StatusList`) quanto no filtro da coluna `pedidos_status`, para listagem e filtro ficarem consistentes.
+  - Largura da coluna ajustada de 112px para 128px na tela de autorização, para caber o texto abreviado sem quebra.
 
 ## Versão
 - PATCH → v1.7.1, com entrada no `CHANGELOG.md`.
