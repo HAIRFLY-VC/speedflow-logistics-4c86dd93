@@ -228,6 +228,8 @@ function PedidosSemRotaPage() {
         obs: detalhe?.obs ?? null,
         obsLogist: detalhe?.obsLogist ?? null,
         infCmp: detalhe?.infCmp ?? null,
+        deliveryLatitude: p.delivery_latitude,
+        deliveryLongitude: p.delivery_longitude,
       };
     });
   }, [pedidosQ.data, detalhesQ.data, nomeCliente, cidadeCliente, bairroCliente, ufCliente]);
@@ -255,7 +257,13 @@ function PedidosSemRotaPage() {
     const gruposBase = Array.from(porCliente.entries())
       .map(([chave, pedidos]) => {
         const ref = pedidos[0];
-        const geo = ref.codCliente ? geoPorCliente.get(ref.codCliente) : undefined;
+        const coordenadaPedido = pedidos
+          .filter(
+            (pedido) => pedido.deliveryLatitude != null && pedido.deliveryLongitude != null,
+          )
+          .map((pedido) => ({ lat: Number(pedido.deliveryLatitude), lng: Number(pedido.deliveryLongitude) }))
+          .find((coordenada) => Number.isFinite(coordenada.lat) && Number.isFinite(coordenada.lng));
+        const geo = coordenadaPedido ?? (ref.codCliente ? geoPorCliente.get(ref.codCliente) : undefined);
         const distanciaKm =
           deposito && geo ? haversineKm(deposito.lat, deposito.lng, geo.lat, geo.lng) : null;
         return {
@@ -579,7 +587,12 @@ function PedidosSemRotaPage() {
                       </p>
                     </div>
                     <div className="shrink-0 text-right text-[10px] leading-4 text-muted-foreground">
-                      <p>{g.distanciaKm != null ? `${g.distanciaKm.toFixed(0)} km` : "—"} · {g.pedidos.length} pedido(s)</p>
+                      <p>
+                        {g.distanciaKm != null
+                          ? `${g.distanciaKm.toFixed(0)} km`
+                          : "Endereço não localizado"}{" "}
+                        · {g.pedidos.length} pedido(s)
+                      </p>
                       <p>{brl(g.valor)} · {g.peso.toFixed(0)} kg</p>
                     </div>
                   </div>

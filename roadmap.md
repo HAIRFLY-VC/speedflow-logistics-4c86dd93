@@ -18,3 +18,4 @@
 - [x] Agrupar clientes sem repetição e ordenar geograficamente por UF, cidade, bairro e cliente.
 - [x] Exibir detalhes dos pedidos e observações do ERP sem rolagem lateral.
 - [x] Validar seleção, filtros e apresentação em computador e celular.
+- [x] Calcular quilometragem com coordenadas do pedido ou do cliente e identificar endereços não localizados.

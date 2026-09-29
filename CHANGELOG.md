@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.11.1] - 2026-09-29
+### Corrigido
+- Pedidos sem rota agora calcula a quilometragem usando primeiro as coordenadas específicas do pedido e identifica claramente os endereços ainda não localizados.
+
 ## [1.11.0] - 2026-09-29
 ### Alterado
 - Pedidos sem rota agora agrupa cada cliente uma única vez, ordena por distância nos níveis UF, cidade, bairro e cliente e exibe os detalhes operacionais dos pedidos e suas observações sem rolagem lateral.

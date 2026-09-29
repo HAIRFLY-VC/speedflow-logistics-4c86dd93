@@ -14,6 +14,8 @@ export type PedidoSemRota = {
   cod_filial: string | null;
   dt_prev_exp: string | null;
   delivery_address: string | null;
+  delivery_latitude: number | null;
+  delivery_longitude: number | null;
 };
 
 export const pedidosSemRotaQueryOptions = () =>
@@ -27,7 +29,7 @@ export const pedidosSemRotaQueryOptions = () =>
         const { data, error } = await supabase
           .from("orders")
           .select(
-            "id, order_number, erp_id, erp_cod_cliente, total_amount, weight, cod_agenda, cod_filial, dt_prev_exp, delivery_address",
+            "id, order_number, erp_id, erp_cod_cliente, total_amount, weight, cod_agenda, cod_filial, dt_prev_exp, delivery_address, delivery_latitude, delivery_longitude",
           )
           .or(`dt_prev_exp.is.null,dt_prev_exp.gte.${SEM_ROTA_DATE}`)
           .or("erp_status.is.null,erp_status.neq.11-EXPEDIDO")
