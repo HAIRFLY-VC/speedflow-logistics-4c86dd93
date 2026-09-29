@@ -199,8 +199,10 @@ export function PagamentoRotaDialog({
       }),
     onSuccess: () => {
       toast.success("Pagamento confirmado e enviado para lançamento.");
-      qc.invalidateQueries({ queryKey: ["routes"] });
+      toast.info("Tarefa do Bitrix sendo criada em segundo plano.");
+      qc.invalidateQueries({ queryKey: ["routes"], refetchType: "active" });
       qc.invalidateQueries({ queryKey: ["rotas-adicionais-autorizados"] });
+      setTimeout(() => void qc.invalidateQueries({ queryKey: ["rota-pagamento", "filas", routeId] }), 8000);
       qc.invalidateQueries({ queryKey: ["rota-pagamento", "historico", routeId] });
       onOpenChange(false);
     },
