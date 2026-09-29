@@ -1882,7 +1882,8 @@ export function RotasView({
               </Card>
             </Link>
           )}
-        </div>}
+          </div>
+        )}
 
         {routesError ? (
           <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
