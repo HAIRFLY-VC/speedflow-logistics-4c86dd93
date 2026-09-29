@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.5] - 2026-09-29
+### Corrigido
+- Pedidos sem rota: pedidos que ainda estavam no agrupamento anterior (ex.: "NÃO PLANEJADO") agora são movidos para a rota escolhida, em vez de dar erro de pedido duplicado.
+
 ## [1.8.4] - 2026-09-29
 ### Corrigido
 - Pedidos sem rota: atribuir a uma rota existente funciona mesmo quando a sincronização com o ERP recriou a rota no meio do processo (busca pelo número da rota no ERP).
