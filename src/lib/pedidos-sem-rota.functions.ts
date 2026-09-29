@@ -124,7 +124,11 @@ export const atribuirPedidosARota = createServerFn({ method: "POST" })
         .eq("id", routeId)
         .maybeSingle();
       if (error) throw error;
-      if (!rota) throw new Error("Rota não encontrada");
+      if (!rota) {
+        throw new Error(
+          "Rota não encontrada: ela foi removida ou reorganizada pela sincronização do ERP. A lista de rotas foi atualizada — escolha a rota novamente.",
+        );
+      }
       routeDate = rota.route_date;
       nomeRota = (rota.notes?.startsWith("Rota ") ? rota.notes.slice(5) : rota.code).toUpperCase();
       erpRouteId = rota.erp_route_id ?? null;
