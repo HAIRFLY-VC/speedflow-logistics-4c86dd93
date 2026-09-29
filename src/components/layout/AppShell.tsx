@@ -25,6 +25,7 @@ import { toast } from "@/lib/toast";
 import { NotificationsBell } from "./NotificationsBell";
 import { ErpSyncButton } from "./ErpSyncButton";
 import { AppVersion } from "./AppVersion";
+import { isFeatureOn } from "@/config/features";
 
 
 
@@ -56,18 +57,38 @@ export function AppShell({
     };
   }, [loadPref]);
 
+  const [hoverOpen, setHoverOpen] = useState(false);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   function handleOpenChange(next: boolean) {
+    // Clique no botão enquanto aberto pelo mouse = fixar aberto.
+    if (hoverOpen) {
+      next = !open;
+      setHoverOpen(false);
+    }
     setOpen(next);
     if (!loadedRef.current) return;
     savePref({ data: { open: next } }).catch(() => {});
   }
 
+  function onSidebarEnter() {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    if (open || window.innerWidth < 768 || !isFeatureOn("sidebarHoverExpand")) return;
+    setHoverOpen(true);
+  }
+  function onSidebarLeave() {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setHoverOpen(false), 150);
+  }
+
   return (
-    <SidebarProvider open={open} onOpenChange={handleOpenChange}>
+    <SidebarProvider open={open || hoverOpen} onOpenChange={handleOpenChange}>
       <div
-        className={`${constrainViewport ? "h-dvh overflow-hidden" : "min-h-dvh"} flex w-full bg-background`}
+        className={`${constrainViewport ? "h-dvh overflow-hidden" : "min-h-dvh"} flex w-full bg-background ${
+          hoverOpen ? "[&>.group>div:first-child]:!w-[var(--sidebar-width-icon)] [&>.group>div:nth-child(2)]:!z-40 [&>.group>div:nth-child(2)]:shadow-xl" : ""
+        }`}
       >
-        <AppSidebar />
+        <AppSidebar onMouseEnter={onSidebarEnter} onMouseLeave={onSidebarLeave} />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-14 border-b flex items-center justify-between px-2 sm:px-3 gap-2 bg-card sticky top-0 z-10">
             <div className="flex items-center gap-2 min-w-0 order-1 sm:order-2">
@@ -149,7 +170,13 @@ function SidebarToggleButton() {
   );
 }
 
-function AppSidebar() {
+function AppSidebar({
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+}) {
   const { role, user, signOut } = useAuth();
   const { isMobile, setOpenMobile } = useSidebar();
   const navigate = useNavigate();
@@ -166,7 +193,7 @@ function AppSidebar() {
   }
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       <SidebarHeader>
         <div className="flex items-center justify-between gap-2 px-2 py-2 group-data-[collapsible=icon]:justify-center">
           <div className="text-xs text-muted-foreground truncate group-data-[collapsible=icon]:hidden">
