@@ -558,3 +558,79 @@ export const atribuirResponsavelRota = createServerFn({ method: "POST" })
     if (upd.error) throw new Error(upd.error.message);
     return { ok: true as const };
   });
+
+export type PedidoDetalheRota = {
+  pedido: string;
+  codCliente: string | null;
+  cliente: string | null;
+  uf: string | null;
+  cidade: string | null;
+  bairro: string | null;
+  status: string | null;
+  codFilial: string | null;
+  nf: string | null;
+  codVendedor: string | null;
+  vendedor: string | null;
+  codAgenda: string | null;
+  dtPedido: string | null;
+  dtAgenda: string | null;
+  obs: string | null;
+  obsLogist: string | null;
+  infCmp: string | null;
+};
+
+/** Detalhes (somente leitura) dos pedidos de uma rota, direto do ERP. */
+export const listarPedidosDetalheRota = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { pedidos: string[] }) => {
+    const pedidos = Array.from(
+      new Set((input?.pedidos ?? []).map((p) => String(p).trim()).filter((p) => /^\d+$/.test(p))),
+    ).slice(0, 1000);
+    return { pedidos };
+  })
+  .handler(async ({ data }) => {
+    if (data.pedidos.length === 0) return [] as PedidoDetalheRota[];
+    const txt = (v: unknown) => {
+      if (v == null) return null;
+      const s = String(v).trim();
+      return s === "" ? null : s;
+    };
+    const out = new Map<string, PedidoDetalheRota>();
+    try {
+      for (let i = 0; i < data.pedidos.length; i += 500) {
+        const lote = data.pedidos.slice(i, i + 500).join(",");
+        const sql = `SELECT E.PEDIDO, E.COD_CLIENTE, E.CLIENTE_RS, E.UF, E.CIDADE, E.BAIRRO, E.STATUS,
+                            E.COD_FILIAL, E.NR_DOCUMENTO, E.COD_VENDEDOR, E.VENDEDOR, E.COD_AGENDA,
+                            E.DT_PEDIDO, E.DT_AGENDA, E.OBS, E.OBS_LOGIST, E.INF_CMP
+                       FROM ERP_PEDIDOS_EXPEDICAO_PENDENTE E
+                      WHERE E.PEDIDO IN (${lote})`;
+        const rows = await consultarErp(sql, 5000, 60_000);
+        for (const r of rows) {
+          const pedido = txt(getField(r, "PEDIDO"));
+          if (!pedido || out.has(pedido)) continue;
+          out.set(pedido, {
+            pedido,
+            codCliente: txt(getField(r, "COD_CLIENTE")),
+            cliente: txt(getField(r, "CLIENTE_RS")),
+            uf: txt(getField(r, "UF")),
+            cidade: txt(getField(r, "CIDADE")),
+            bairro: txt(getField(r, "BAIRRO")),
+            status: txt(getField(r, "STATUS")),
+            codFilial: txt(getField(r, "COD_FILIAL")),
+            nf: txt(getField(r, "NR_DOCUMENTO")),
+            codVendedor: txt(getField(r, "COD_VENDEDOR")),
+            vendedor: txt(getField(r, "VENDEDOR")),
+            codAgenda: txt(getField(r, "COD_AGENDA")),
+            dtPedido: txt(getField(r, "DT_PEDIDO")),
+            dtAgenda: txt(getField(r, "DT_AGENDA")),
+            obs: txt(getField(r, "OBS")),
+            obsLogist: txt(getField(r, "OBS_LOGIST")),
+            infCmp: txt(getField(r, "INF_CMP")),
+          });
+        }
+      }
+    } catch (error) {
+      console.error("listarPedidosDetalheRota", mensagemErro(error));
+    }
+    return Array.from(out.values());
+  });

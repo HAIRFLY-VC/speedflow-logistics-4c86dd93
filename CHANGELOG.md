@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.10.0] - 2026-09-29
+### Alterado
+- A lista de pedidos abaixo do mapa da rota agora agrupa por cliente, segue a ordem de entrega e mostra status, filial, nota, vendedor, agenda, datas e observações (ao passar o mouse).
+
 ## [1.9.3] - 2026-09-29
 ### Alterado
 - A capa da rota agora exibe no resumo o percentual do frete, a quantidade de pedidos e o peso total.

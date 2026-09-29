@@ -1,5 +1,8 @@
 import { PedidoCodigo } from "@/components/orders/PedidoCodigo";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { listarPedidosDetalheRota, type PedidoDetalheRota } from "@/lib/rota-erp.functions";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -11,6 +14,7 @@ import {
   FileText,
   Loader2,
   Pencil,
+  MessageSquareText,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { format } from "date-fns";
@@ -682,6 +686,7 @@ function RouteMapSection({
          lat: coord.lat,
          lng: coord.lng,
          orderNumber: o.order_number,
+         customerCode: o.erp_cod_cliente ?? null,
          customerName: o.erp_cod_cliente ? nomeCliente(o.erp_cod_cliente) : "—",
          city: null,
          state: null,
@@ -716,29 +721,151 @@ function RouteMapSection({
             <span className="text-muted-foreground">Origem: depósito configurado</span>
           )}
         </div>
-        <ol className="list-decimal list-inside space-y-0.5 text-sm">
-          {ordered.map((st, i) => {
-            const full = mapStops.find((m) => m.orderId === (st as typeof mapStops[number]).orderId)!;
-            return (
-              <li key={`${full.orderId}-${i}`}>
-                <span className="text-emerald-600 font-medium">{full.orderNumber}</span>{" "}
-                <span className="text-emerald-700/80">
-                  — {full.customerName} · {full.city ?? "?"}/{full.state ?? "?"} ·{" "}
-                  {weightFmt.format(full.weight)} kg · {formatCurrency(full.amount)}
-                </span>
-                {full.coordSource === "order" && full.deliveryAddress ? (
-                  <span
-                    className="ml-2 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800"
-                    title={`Endereço alternativo (OBS_LOGIST): ${full.deliveryAddress}`}
-                  >
-                    endereço alternativo
-                  </span>
-                ) : null}
-              </li>
-            );
-          })}
-        </ol>
+        <PedidosDaRotaTabela
+          ordered={ordered.map((st) => mapStops.find((m) => m.orderId === (st as typeof mapStops[number]).orderId)!)}
+          nomeCliente={nomeCliente}
+        />
       </CardContent>
     </Card>
+  );
+}
+
+function fmtDataErp(v: string | null) {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return v;
+  return format(d, "dd/MM/yyyy");
+}
+
+function ObsHover({ texto }: { texto: string | null }) {
+  if (!texto) return <span className="text-muted-foreground">—</span>;
+  return (
+    <HoverCard openDelay={100} closeDelay={50}>
+      <HoverCardTrigger asChild>
+        <button type="button" className="inline-flex items-center text-primary" aria-label="Ver conteúdo">
+          <MessageSquareText className="h-4 w-4" />
+        </button>
+      </HoverCardTrigger>
+      <HoverCardContent className="w-80 max-w-[90vw] whitespace-pre-wrap break-words text-xs">
+        {texto}
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
+
+function PedidosDaRotaTabela({
+  ordered,
+  nomeCliente,
+}: {
+  ordered: { orderNumber: string; customerCode?: string | null; coordSource: string; deliveryAddress: string | null }[];
+  nomeCliente: (cod: string | null | undefined) => string;
+}) {
+  const fetchDetalhes = useServerFn(listarPedidosDetalheRota);
+  const pedidos = ordered.map((o) => o.orderNumber);
+  const detQ = useQuery({
+    queryKey: ["rota-pedidos-detalhe", pedidos],
+    queryFn: () => fetchDetalhes({ data: { pedidos } }),
+    staleTime: 60_000,
+    enabled: pedidos.length > 0,
+  });
+  const det = new Map((detQ.data ?? []).map((d) => [d.pedido, d]));
+
+  // Agrupa por cliente mantendo a ordem da primeira parada de cada cliente.
+  type Grupo = { key: string; cod: string | null; nome: string; uf: string | null; cidade: string | null; bairro: string | null; alt: string | null; itens: { num: string; d?: PedidoDetalheRota }[] };
+  const grupos: Grupo[] = [];
+  const idx = new Map<string, Grupo>();
+  for (const o of ordered) {
+    const d = det.get(o.orderNumber);
+    const cod = d?.codCliente ?? o.customerCode ?? null;
+    const key = cod ?? `p-${o.orderNumber}`;
+    let g = idx.get(key);
+    if (!g) {
+      g = {
+        key,
+        cod,
+        nome: d?.cliente ?? (cod ? nomeCliente(cod) : "—"),
+        uf: d?.uf ?? null,
+        cidade: d?.cidade ?? null,
+        bairro: d?.bairro ?? null,
+        alt: o.coordSource === "order" ? o.deliveryAddress : null,
+        itens: [],
+      };
+      idx.set(key, g);
+      grupos.push(g);
+    }
+    g.itens.push({ num: o.orderNumber, d });
+  }
+
+  const th = "px-1.5 py-1 text-left font-medium text-muted-foreground whitespace-nowrap";
+  const td = "px-1.5 py-1 align-top";
+  return (
+    <div className="rounded border">
+      {detQ.isLoading && (
+        <div className="flex items-center gap-2 p-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" /> Carregando detalhes do ERP…
+        </div>
+      )}
+      <table className="w-full table-auto text-[11px]">
+        <thead className="bg-muted/50">
+          <tr>
+            <th className={th}>Pedido</th>
+            <th className={th}>Status</th>
+            <th className={th}>Filial</th>
+            <th className={th}>NF</th>
+            <th className={th}>Vendedor</th>
+            <th className={th}>Agenda</th>
+            <th className={th}>Dt. pedido</th>
+            <th className={th}>Dt. agenda</th>
+            <th className={th}>OBS</th>
+            <th className={th}>OBS Logist</th>
+            <th className={th}>INF_CMP</th>
+          </tr>
+        </thead>
+        <tbody>
+          {grupos.map((g, gi) => (
+            <Fragment key={g.key}>
+              <tr className="border-t bg-primary/5">
+                <td colSpan={11} className="px-1.5 py-1 text-xs">
+                  <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+                    {gi + 1}
+                  </span>
+                  <span className="font-semibold">{g.nome}</span>
+                  {g.cod && <span className="text-muted-foreground"> ({g.cod})</span>}
+                  <span className="text-muted-foreground">
+                    {" · "}{g.uf ?? "—"} · {g.cidade ?? "—"} · {g.bairro ?? "—"}
+                  </span>
+                  {g.alt ? (
+                    <span
+                      className="ml-2 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800"
+                      title={`Endereço alternativo (OBS_LOGIST): ${g.alt}`}
+                    >
+                      endereço alternativo
+                    </span>
+                  ) : null}
+                </td>
+              </tr>
+              {g.itens.map(({ num, d }) => (
+                <tr key={num} className="border-t border-dashed">
+                  <td className={`${td} pl-8 whitespace-nowrap`}><PedidoCodigo codigo={num} /></td>
+                  <td className={`${td} whitespace-nowrap`}>{d?.status ?? "—"}</td>
+                  <td className={td}>{d?.codFilial ?? "—"}</td>
+                  <td className={td}>{d?.nf ?? "—"}</td>
+                  <td className={td}>
+                    {d?.vendedor ?? "—"}
+                    {d?.codVendedor && <span className="text-muted-foreground"> ({d.codVendedor})</span>}
+                  </td>
+                  <td className={td}>{d?.codAgenda ?? "—"}</td>
+                  <td className={`${td} whitespace-nowrap`}>{fmtDataErp(d?.dtPedido ?? null)}</td>
+                  <td className={`${td} whitespace-nowrap`}>{fmtDataErp(d?.dtAgenda ?? null)}</td>
+                  <td className={td}><ObsHover texto={d?.obs ?? null} /></td>
+                  <td className={td}><ObsHover texto={d?.obsLogist ?? null} /></td>
+                  <td className={td}><ObsHover texto={d?.infCmp ?? null} /></td>
+                </tr>
+              ))}
+            </Fragment>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
