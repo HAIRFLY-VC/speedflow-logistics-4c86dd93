@@ -1403,7 +1403,7 @@ export function RotasView({
         id: "route_date",
         header: "Data planejada",
         sortable: false,
-        width: usarTabelaCompacta ? "72px" : undefined,
+        width: usarTabelaCompacta ? "76px" : undefined,
         verticalHeader: usarTabelaCompacta,
         accessor: (r) => r.route_date,
         render: (r) => (
@@ -1424,7 +1424,7 @@ export function RotasView({
         id: "motorista",
         header: "Fret / Transp",
         sortable: false,
-        width: usarTabelaCompacta ? "118px" : undefined,
+        width: usarTabelaCompacta ? "110px" : undefined,
         className: usarTabelaCompacta ? "break-words leading-tight" : undefined,
         accessor: (r) =>
           motoristaOf(
@@ -1517,7 +1517,7 @@ export function RotasView({
         header: "Valor total",
         sortable: false,
         align: "right",
-        width: usarTabelaCompacta ? "84px" : undefined,
+        width: usarTabelaCompacta ? "91px" : undefined,
         verticalHeader: usarTabelaCompacta,
         accessor: (r) => valorOf(r),
         render: (r) => currencyFmt.format(valorOf(r)),
@@ -1549,7 +1549,7 @@ export function RotasView({
         header: "Distância (km)",
         sortable: false,
         align: "right",
-        width: usarTabelaCompacta ? "56px" : undefined,
+        width: usarTabelaCompacta ? "59px" : undefined,
         verticalHeader: usarTabelaCompacta,
         filterable: false,
         accessor: (r) => Number(r.total_distance_km ?? 0),
@@ -1655,7 +1655,7 @@ export function RotasView({
         header: "Pedidos por status",
         sortable: false,
         filterable: false,
-        width: usarTabelaCompacta ? "150px" : "190px",
+        width: usarTabelaCompacta ? "144px" : "190px",
         verticalHeader: usarTabelaCompacta,
         accessor: (r) =>
           Array.from(statusMapOf(r).keys()).join(", "),
