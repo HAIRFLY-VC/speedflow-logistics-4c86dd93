@@ -56,6 +56,7 @@ export function PagamentoRotaDialog({
   rotulo,
   valor,
   isAdmin,
+  isGestor = false,
   jaConfirmado,
   open,
   onOpenChange,
@@ -66,6 +67,8 @@ export function PagamentoRotaDialog({
   rotulo: string;
   valor: number;
   isAdmin: boolean;
+  /** Gestor pode lançar valores adicionais (mas não reabrir o frete). */
+  isGestor?: boolean;
   jaConfirmado: boolean;
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -79,6 +82,8 @@ export function PagamentoRotaDialog({
   const filas = useServerFn(listarFilasRota);
   const reenviarFn = useServerFn(reenviarFilaRota);
 
+  // Gestor pode lançar adicional; reabrir o frete continua só para administrador.
+  const podeAdicional = isAdmin || isGestor;
   const [tipo, setTipo] = useState<TipoPagamentoRota>("FRETE");
   const [motivo, setMotivo] = useState<MotivoAdicional>("PERNOITE");
   const [observacao, setObservacao] = useState("");
@@ -92,7 +97,8 @@ export function PagamentoRotaDialog({
 
   useEffect(() => {
     if (open) {
-      setTipo("FRETE");
+      // Gestor em rota já confirmada só pode lançar adicional.
+      setTipo(jaConfirmado && !isAdmin && isGestor ? "ADICIONAL" : "FRETE");
       setMotivo("PERNOITE");
       setObservacao("");
       setValorAdicional("");
@@ -396,21 +402,25 @@ export function PagamentoRotaDialog({
             Esta rota já teve o pagamento do frete confirmado.
             {isAdmin
               ? " Você pode reenviar o valor do frete (substitui o lançamento anterior) ou lançar um valor adicional."
-              : " Somente administradores podem reabrir ou lançar valores adicionais."}
+              : isGestor
+                ? " Você pode lançar um valor adicional. Reenviar o valor do frete é permitido somente a administradores."
+                : " Somente administradores ou gestores podem lançar valores adicionais."}
           </div>
         )}
 
-        {jaConfirmado && isAdmin && (
+        {jaConfirmado && podeAdicional && (
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant={tipo === "FRETE" ? "default" : "outline"}
-                onClick={() => setTipo("FRETE")}
-              >
-                Frete da rota
-              </Button>
+              {isAdmin && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={tipo === "FRETE" ? "default" : "outline"}
+                  onClick={() => setTipo("FRETE")}
+                >
+                  Frete da rota
+                </Button>
+              )}
               <Button
                 type="button"
                 size="sm"
@@ -860,7 +870,7 @@ export function PagamentoRotaDialog({
           <Button
             onClick={() => enviar.mutate()}
             className={
-              enviar.isPending || !p || semBordero || semNota || dataInvalida || recalculando || valorEfetivo <= 0 || semSelecao || (jaConfirmado && !isAdmin) || !!bloqueioAtual
+              enviar.isPending || !p || semBordero || semNota || dataInvalida || recalculando || valorEfetivo <= 0 || semSelecao || (jaConfirmado && (tipo === "ADICIONAL" ? !podeAdicional : !isAdmin)) || !!bloqueioAtual
                 ? "cursor-not-allowed"
                 : "bg-emerald-600 text-white hover:bg-emerald-700"
             }
@@ -873,7 +883,7 @@ export function PagamentoRotaDialog({
               recalculando ||
               valorEfetivo <= 0 ||
               semSelecao ||
-              (jaConfirmado && !isAdmin) ||
+              (jaConfirmado && (tipo === "ADICIONAL" ? !podeAdicional : !isAdmin)) ||
               !!bloqueioAtual
             }
             title={bloqueioAtual ?? (semSelecao ? "Selecione ao menos uma nota" : undefined)}

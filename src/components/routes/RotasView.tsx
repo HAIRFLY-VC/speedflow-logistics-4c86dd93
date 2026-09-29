@@ -362,6 +362,7 @@ function FreightInput({
   tipo,
   bordero,
   isAdmin,
+  isGestor = false,
   mostrarConfirmar = false,
   valorTotalConfirmado,
   auditoria,
@@ -392,6 +393,8 @@ function FreightInput({
   tipo: TipoFrete | null;
   bordero: { total: number; comBordero: number; faturados: number };
   isAdmin: boolean;
+  /** Gestor pode lançar valores adicionais (mas não reabrir o frete). */
+  isGestor?: boolean;
   mostrarConfirmar?: boolean;
   valorTotalConfirmado?: number;
   onValorChange: (routeId: string, valor: number | null) => void;
@@ -417,11 +420,13 @@ function FreightInput({
   const valorNum = Number.isFinite(numero) ? numero : 0;
   // Só é possível confirmar o pagamento quando todos os pedidos tiverem borderô.
   const pendentes = Math.max(0, bordero.total - bordero.comBordero);
+  // Gestor pode abrir o diálogo em rota confirmada para lançar adicional.
+  const podeAdicional = isAdmin || isGestor;
   const podeConfirmar =
     valorNum > 0 &&
     bordero.total > 0 &&
     pendentes === 0 &&
-    (!confirmado || isAdmin) &&
+    (!confirmado || podeAdicional) &&
     (confirmado || !mostrarConfirmar || auditoria?.completa === true) &&
     (!mostrarConfirmar || !pix?.bloqueio) &&
     (!mostrarConfirmar || vinculoBitrixOk);
@@ -431,8 +436,8 @@ function FreightInput({
       ? "Informe o valor do frete para salvar."
       : bordero.total === 0 || pendentes > 0
         ? `Aguardando borderô de ${pendentes} pedido${pendentes === 1 ? "" : "s"} de ${bordero.total}.`
-        : confirmado && !isAdmin
-          ? "Apenas administradores podem reabrir ou lançar valores adicionais."
+        : confirmado && !podeAdicional
+          ? "Apenas administradores ou gestores podem lançar valores adicionais."
           : mostrarConfirmar && !vinculoBitrixOk
             ? "Seu usuário não está vinculado ao Bitrix."
             : mostrarConfirmar && pix?.bloqueio === "SEM_PIX"
@@ -546,8 +551,8 @@ function FreightInput({
             className={`h-6 px-2 text-[11px] ${podeConfirmar ? "" : "cursor-not-allowed"}`}
             disabled={!podeConfirmar}
             title={
-              !isAdmin
-                ? "Apenas administradores podem reabrir ou lançar valores adicionais"
+              !podeAdicional
+                ? "Apenas administradores ou gestores podem lançar valores adicionais"
                 : undefined
             }
             onClick={() => onConfirmar(route, valorNum)}
@@ -1523,6 +1528,7 @@ export function RotasView({
               tipo={tipoFreteOf(r)}
               bordero={borderoDaRota(r)}
               isAdmin={role === "adm"}
+              isGestor={role === "gestor"}
               mostrarConfirmar={permitirConfirmacao}
               valorTotalConfirmado={permitirConfirmacao && r.frete_confirmado_em ? freteOf(r) : undefined}
               auditoria={auditoriaMap?.get(r.id)}
@@ -1887,6 +1893,7 @@ export function RotasView({
         }
         valor={pagamento?.valor ?? 0}
         isAdmin={role === "adm"}
+        isGestor={role === "gestor"}
         jaConfirmado={!!pagamento?.rota.frete_confirmado_em}
         bloqueio={pagamento?.bloqueio ?? null}
         open={!!pagamento}
