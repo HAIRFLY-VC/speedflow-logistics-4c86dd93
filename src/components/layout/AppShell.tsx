@@ -24,6 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/lib/toast";
 import { NotificationsBell } from "./NotificationsBell";
 import { ErpSyncButton } from "./ErpSyncButton";
+import { AppVersion } from "./AppVersion";
 
 
 
@@ -71,10 +72,13 @@ export function AppShell({
           <header className="h-14 border-b flex items-center justify-between px-2 sm:px-3 gap-2 bg-card sticky top-0 z-10">
             <div className="flex items-center gap-2 min-w-0 order-1 sm:order-2">
               <Truck className="h-5 w-5 text-primary shrink-0" />
-              <span className="font-semibold tracking-tight truncate">
-                <span className="sm:hidden">SpeedFlow</span>
-                <span className="hidden sm:inline">SpeedFlow Logistics</span>
-              </span>
+              <div className="flex flex-col min-w-0 gap-0.5">
+                <span className="font-semibold tracking-tight truncate leading-tight">
+                  <span className="sm:hidden">SpeedFlow</span>
+                  <span className="hidden sm:inline">SpeedFlow Logistics</span>
+                </span>
+                <AppVersion />
+              </div>
             </div>
             <div className="flex items-center gap-1 sm:gap-2 order-2 sm:order-3">
               <div>
