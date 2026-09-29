@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.5.2] - 2026-09-29
+### Alterado
+- Histórico de status do pedido (clique no código do pedido) liberado também na versão oficial, para todos os tipos de usuário.
+
 ## [1.5.1] - 2026-09-29
 ### Corrigido
 - Pedidos reexpedidos após ocorrência (borderô com status O) passam a usar o borderô novo no detalhamento da autorização de pagamento e na tarefa do Bitrix (ex.: pedido 4135213 → borderô 32381). Rotas já pagas mantêm o borderô gravado.
