@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.0] - 2026-09-29
+### Alterado
+- A versão oficial passa a ter todas as funcionalidades do teste ao publicar: menu lateral automático (computador) e conferência dos pedidos da rota com o ERP em Autorizar pagamento de frete.
+
 ## [1.5.2] - 2026-09-29
 ### Alterado
 - Histórico de status do pedido (clique no código do pedido) liberado também na versão oficial, para todos os tipos de usuário.
