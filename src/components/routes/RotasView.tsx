@@ -358,8 +358,8 @@ function StatusList({ map }: { map: Map<string, number> }) {
   return (
     <div className="flex flex-col gap-0.5 text-xs">
       {sorted.map(([st, count]) => (
-        <div key={st} className="flex items-center justify-between gap-3">
-          <span className="font-medium">{st}</span>
+        <div key={st} className="flex items-center justify-between gap-2">
+          <span className="font-medium whitespace-nowrap">{st}</span>
           <span className="tabular-nums text-muted-foreground">{count}</span>
         </div>
       ))}
@@ -1608,7 +1608,7 @@ export function RotasView({
         header: "Pedidos por status",
         sortable: false,
         filterable: false,
-        width: permitirConfirmacao ? "128px" : undefined,
+        width: permitirConfirmacao ? "140px" : undefined,
         verticalHeader: permitirConfirmacao,
         accessor: (r) =>
           Array.from(statusMapOf(r).keys()).join(", "),
