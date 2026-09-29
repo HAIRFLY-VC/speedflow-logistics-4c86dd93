@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.1.1] - 2026-09-29
+### Corrigido
+- A crítica de falta de PIX só aparece quando o tipo do responsável é fretista (F). Para transportadoras e frota própria, atualizar o cadastro informa apenas que os dados foram atualizados, sem mencionar PIX.
+
 ## [1.1.0] - 2026-09-29
 ### Adicionado
 - Aviso em vermelho nas telas de rotas quando o tipo do fretista no ERP não é EF/ET/EM (ou o código não existe no cadastro), com botão para consultar o ERP novamente.
