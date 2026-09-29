@@ -56,6 +56,7 @@ export function PagamentoRotaDialog({
   rotulo,
   valor,
   isAdmin,
+  isGestor = false,
   jaConfirmado,
   open,
   onOpenChange,
@@ -66,6 +67,8 @@ export function PagamentoRotaDialog({
   rotulo: string;
   valor: number;
   isAdmin: boolean;
+  /** Gestor pode lançar valores adicionais (mas não reabrir o frete). */
+  isGestor?: boolean;
   jaConfirmado: boolean;
   open: boolean;
   onOpenChange: (v: boolean) => void;
