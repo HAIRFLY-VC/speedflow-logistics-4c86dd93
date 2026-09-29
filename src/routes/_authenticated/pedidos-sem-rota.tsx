@@ -8,7 +8,6 @@ import { Loader2, MessageSquareText, RefreshCw, Search } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { MultiFiltro, type OpcaoFiltro } from "@/components/pedidos-sem-rota/MultiFiltro";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
