@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.7.3] - 2026-09-29
+### Alterado
+- Código da rota exibido sem o prefixo "ID" em todas as telas; coluna do código mais estreita.
+- Coluna "Pedidos por status" mais larga e sem quebra de linha em nenhum status (ex.: "09-CONFERIDO").
+
 ## [1.7.2] - 2026-09-29
 ### Alterado
 - Na listagem de rotas, os status longos do ERP agora aparecem abreviados ("06-SEP. SOLIC.", "03.1-*LIB-CRIT.", "04-LIB. PRO"), para cada status caber em uma única linha na coluna "Pedidos por status".
