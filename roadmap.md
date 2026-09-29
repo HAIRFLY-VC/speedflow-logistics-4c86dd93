@@ -13,3 +13,8 @@
 
 ## Oficial igual ao teste
 - [x] Todas as funcionalidades do teste ligadas na oficial (v1.6.0); novas nascem ligadas nos dois
+
+## Pedidos sem rota — detalhes operacionais
+- [ ] Agrupar clientes sem repetição e ordenar geograficamente por UF, cidade, bairro e cliente.
+- [ ] Exibir detalhes dos pedidos e observações do ERP sem rolagem lateral.
+- [ ] Validar seleção, filtros e apresentação em computador e celular.
