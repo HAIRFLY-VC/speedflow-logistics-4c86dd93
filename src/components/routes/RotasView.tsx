@@ -318,12 +318,19 @@ function pesoOf(r: RouteRow) {
   for (const ro of r.route_orders ?? []) total += Number(ro.orders?.weight ?? 0);
   return total;
 }
+// Abrevia rótulos longos de status do ERP para caberem em uma linha na coluna.
+const STATUS_ABREV: Record<string, string> = {
+  "06-SEPARACAO SOLICITADA": "06-SEP. SOLIC.",
+};
+function statusCurto(st: string) {
+  return STATUS_ABREV[st.trim().toUpperCase()] ?? st;
+}
 function statusMapOf(r: RouteRow) {
   const m = new Map<string, Set<string>>();
   for (const ro of r.route_orders ?? []) {
     const o = ro.orders;
     if (!o) continue;
-    const st = o.erp_status ?? "—";
+    const st = statusCurto(o.erp_status ?? "—");
     if (!m.has(st)) m.set(st, new Set());
     m.get(st)!.add(o.order_number ?? "");
   }
@@ -1597,7 +1604,7 @@ export function RotasView({
         header: "Pedidos por status",
         sortable: false,
         filterable: false,
-        width: permitirConfirmacao ? "112px" : undefined,
+        width: permitirConfirmacao ? "128px" : undefined,
         verticalHeader: permitirConfirmacao,
         accessor: (r) =>
           Array.from(statusMapOf(r).keys()).join(", "),
