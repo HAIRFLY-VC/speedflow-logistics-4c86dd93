@@ -1,3 +1,4 @@
+import { PedidoCodigo } from "@/components/orders/PedidoCodigo";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FileText, MapPin, User } from "lucide-react";
@@ -135,7 +136,7 @@ function OrderDetailPage() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-bold tracking-tight font-mono">
-                  {order.order_number}
+                  <PedidoCodigo codigo={order.order_number} />
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   Criado em {format(new Date(order.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}

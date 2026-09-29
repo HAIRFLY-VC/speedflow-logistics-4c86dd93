@@ -1,3 +1,4 @@
+import { PedidoCodigo } from "@/components/orders/PedidoCodigo";
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -199,6 +200,7 @@ function PedidosPage() {
         accessor: (o) => o.order_number,
         sortable: false,
         render: (o) => (
+          <span className="inline-flex items-center">
           <Link
             to="/pedidos/$orderId"
             params={{ orderId: o.id }}
@@ -206,6 +208,8 @@ function PedidosPage() {
           >
             {o.order_number}
           </Link>
+          <PedidoCodigo codigo={o.order_number} somenteIcone className="ml-1 align-middle" />
+          </span>
         ),
       },
       {

@@ -1,3 +1,4 @@
+import { PedidoCodigo } from "@/components/orders/PedidoCodigo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -488,7 +489,7 @@ function PedidosSemRotaPage() {
                       )}
                       {unico && (
                         <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
-                          <span className="text-xs text-muted-foreground">#{unico.numero}</span>
+                          <span className="text-xs text-muted-foreground">#<PedidoCodigo codigo={unico.numero} /></span>
                           {unico.agenda && (
                             <Badge variant="outline" className="h-4 px-1 text-[10px]">
                               Ag. {unico.agenda}
@@ -525,7 +526,7 @@ function PedidosSemRotaPage() {
                             >
                               <Checkbox checked={marcado} className="pointer-events-none" />
                               <span className="shrink-0 text-xs text-muted-foreground">
-                                #{p.numero}
+                                #<PedidoCodigo codigo={p.numero} />
                               </span>
                               {p.agenda && (
                                 <Badge variant="outline" className="h-4 px-1 text-[10px]">
