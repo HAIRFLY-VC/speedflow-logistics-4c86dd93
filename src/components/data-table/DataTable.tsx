@@ -167,7 +167,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
       if (c.filterable === false) continue;
       const seen = new Map<string, { label: string; raw: unknown }>();
       for (const r of rows) {
-        const v = c.accessor(r);
+        const v = c.filterAccessor ? c.filterAccessor(r) : c.accessor(r);
         const key = filterKey(v);
         if (seen.has(key)) continue;
         const label = columnFilterLabel(c, r);
@@ -201,7 +201,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
           const c = colById.get(id);
           if (!c) return true;
           const set = new Set(selected);
-          return set.has(filterKey(c.accessor(r)));
+          return set.has(filterKey(c.filterAccessor ? c.filterAccessor(r) : c.accessor(r)));
         }),
       );
     }
