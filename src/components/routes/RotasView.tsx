@@ -927,6 +927,10 @@ export function RotasView({
     };
   }, [pedidosSemRotaQ.data, nomeCliente]);
 
+  // O card de pendências sem rota só existe quando há pedidos aguardando rota.
+  const exibirCardSemRota = mostrarCardSemRota && resumoSemRota.pedidos > 0;
+
+
   // O total_freight da rota guarda apenas o frete original. Adicionais são
   // autorizações independentes e não devem alterar esse valor (usado ao reabrir).
   const idsComPagamento = useMemo(
