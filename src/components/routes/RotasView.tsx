@@ -1320,15 +1320,14 @@ export function RotasView({
             responsavelPorRota.get(r.id),
           ) || <span className="text-muted-foreground">—</span>,
       },
-      ...(permitirConfirmacao
-        ? []
-        : [
-            {
+      {
         id: "tipo_frete",
         header: "Tipo",
         sortable: false,
         pinAfter: "motorista",
         align: "center",
+        width: permitirConfirmacao ? "40px" : undefined,
+        verticalHeader: permitirConfirmacao,
 
         accessor: (r) => tipoFreteOf(r) ?? "",
         render: (r) => {
