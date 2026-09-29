@@ -1790,70 +1790,12 @@ export function RotasView({
           </div>
         )}
 
-        {mostrarCardSemRota && (
-          <Link
-            to="/pedidos-sem-rota"
-            className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            aria-label={`Abrir pedidos sem rota: ${resumoSemRota.pedidos} pedido(s)`}
+        {!permitirConfirmacao && (
+          <div
+            className={`grid grid-cols-2 gap-2 sm:gap-3 ${
+              exibirCardSemRota ? "lg:grid-cols-5" : "lg:grid-cols-4"
+            }`}
           >
-            <Card
-              className={`overflow-hidden border-destructive/35 transition-shadow hover:shadow-md ${
-                resumoSemRota.pedidos > 0 ? "animate-pending-route-alert" : ""
-              }`}
-            >
-              <CardHeader className="flex flex-row items-center justify-between gap-3 p-3 pb-2 sm:px-5 sm:pt-4">
-                <div className="space-y-0.5">
-                  <CardTitle className="text-sm font-semibold text-destructive sm:text-base">
-                    Pedidos pendentes sem rota
-                  </CardTitle>
-                  <p className="text-xs text-muted-foreground">
-                    {pedidosSemRotaQ.isLoading
-                      ? "Consultando pedidos…"
-                      : pedidosSemRotaQ.isError
-                        ? "Não foi possível consultar os totais"
-                        : resumoSemRota.pedidos > 0
-                          ? "Atenção necessária"
-                          : "Nenhuma pendência"}
-                  </p>
-                </div>
-                {pedidosSemRotaQ.isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                ) : (
-                  <ArrowRight className="h-5 w-5 text-destructive" aria-hidden="true" />
-                )}
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-x-4 gap-y-3 p-3 pt-1 sm:grid-cols-4 sm:px-5 sm:pb-4">
-                <div>
-                  <p className="text-[11px] text-muted-foreground sm:text-xs">Mercadorias</p>
-                  <p className="text-base font-bold tabular-nums sm:text-lg">
-                    {currencyFmt.format(resumoSemRota.valor)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-muted-foreground sm:text-xs">Peso</p>
-                  <p className="text-base font-bold tabular-nums sm:text-lg">
-                    {weightFmt.format(resumoSemRota.peso)} kg
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-muted-foreground sm:text-xs">Pedidos</p>
-                  <p className="text-base font-bold tabular-nums sm:text-lg">
-                    {resumoSemRota.pedidos.toLocaleString("pt-BR")}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-muted-foreground sm:text-xs">Entregas</p>
-                  <p className="text-base font-bold tabular-nums sm:text-lg">
-                    {resumoSemRota.entregas.toLocaleString("pt-BR")}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        )}
-
-
-        {!permitirConfirmacao && <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           <Card>
             <CardHeader className="flex flex-row items-start justify-between gap-2 p-3 pb-1 space-y-0 sm:p-6 sm:pb-2">
               <CardTitle className="text-xs sm:text-sm font-medium leading-tight">Valor total das mercadorias</CardTitle>
