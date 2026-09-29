@@ -716,28 +716,10 @@ function RouteMapSection({
             <span className="text-muted-foreground">Origem: depósito configurado</span>
           )}
         </div>
-        <ol className="list-decimal list-inside space-y-0.5 text-sm">
-          {ordered.map((st, i) => {
-            const full = mapStops.find((m) => m.orderId === (st as typeof mapStops[number]).orderId)!;
-            return (
-              <li key={`${full.orderId}-${i}`}>
-                <span className="text-emerald-600 font-medium">{full.orderNumber}</span>{" "}
-                <span className="text-emerald-700/80">
-                  — {full.customerName} · {full.city ?? "?"}/{full.state ?? "?"} ·{" "}
-                  {weightFmt.format(full.weight)} kg · {formatCurrency(full.amount)}
-                </span>
-                {full.coordSource === "order" && full.deliveryAddress ? (
-                  <span
-                    className="ml-2 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800"
-                    title={`Endereço alternativo (OBS_LOGIST): ${full.deliveryAddress}`}
-                  >
-                    endereço alternativo
-                  </span>
-                ) : null}
-              </li>
-            );
-          })}
-        </ol>
+        <PedidosDaRotaTabela
+          ordered={ordered.map((st) => mapStops.find((m) => m.orderId === (st as typeof mapStops[number]).orderId)!)}
+          nomeCliente={nomeCliente}
+        />
       </CardContent>
     </Card>
   );
