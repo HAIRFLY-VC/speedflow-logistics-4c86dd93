@@ -1793,7 +1793,11 @@ export function RotasView({
           forceTableLayout={permitirConfirmacao}
           fitColumns={permitirConfirmacao}
           onRowClick={(r) =>
-            navigate({ to: "/rotas/$routeId", params: { routeId: r.id } })
+            navigate({
+              to: "/rotas/$routeId",
+              params: { routeId: r.id },
+              search: { from: permitirConfirmacao ? "autorizar" : "pendentes" },
+            })
           }
           cardHeaderAction={(r) =>
             r.erp_route_id ? (

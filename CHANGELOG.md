@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.0] - 2026-09-29
+### Adicionado
+- Gestor/Administrador pode atribuir o responsável de uma rota sem responsável; a alteração é gravada no ERP.
+### Corrigido
+- A seta de voltar da rota retorna para a tela de origem (Rotas Pendentes ou Autorizar pagamento de frete).
+
 ## [1.2.0] - 2026-09-29
 ### Alterado
 - Usuários com papel Gestor podem autorizar pagamento a fretista (rotas) e aprovar/autorizar pagamento de CT-e.

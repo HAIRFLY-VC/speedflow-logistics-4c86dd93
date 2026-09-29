@@ -40,6 +40,7 @@ import {
   TIPO_FRETE_TONE,
 } from "@/lib/rota-responsavel";
 import type { Database } from "@/integrations/supabase/types";
+import { AtribuirResponsavel } from "@/components/routes/AtribuirResponsavel";
 
 const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
 
@@ -66,6 +67,8 @@ export const Route = createFileRoute("/_authenticated/rotas/$routeId")({
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary" },
   ] }),
+  validateSearch: (s: Record<string, unknown>): { from?: "autorizar" | "pendentes" } =>
+    s.from === "autorizar" || s.from === "pendentes" ? { from: s.from } : {},
   component: RouteDetailPage,
 });
 
@@ -118,6 +121,7 @@ type Manifest = {
 
 function RouteDetailPage() {
   const { routeId } = Route.useParams();
+  const { from: origem } = Route.useSearch();
   const qc = useQueryClient();
   const { user, role } = useAuth();
   const { nomeCliente } = useClientesErp();
@@ -410,10 +414,17 @@ function RouteDetailPage() {
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="sm">
-            <Link to="/rotas">
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Rotas
-            </Link>
+            {origem === "autorizar" ? (
+              <Link to="/autorizar-pagamento-frete">
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Autorizar pagamento de frete
+              </Link>
+            ) : (
+              <Link to="/rotas">
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Rotas Pendentes
+              </Link>
+            )}
           </Button>
         </div>
 
@@ -482,7 +493,15 @@ function RouteDetailPage() {
                   ) : null}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Sem responsável informado.</p>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Sem responsável informado.</p>
+                  {(role === "adm" || role === "gestor") && route.erp_route_id ? (
+                    <AtribuirResponsavel
+                      routeId={route.id}
+                      nomeRota={nomeRotaDeNotes(route.notes, route.code)}
+                    />
+                  ) : null}
+                </div>
               )}
 
               {editable && canOperate ? (
