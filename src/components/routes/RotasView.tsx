@@ -1887,6 +1887,7 @@ export function RotasView({
         }
         valor={pagamento?.valor ?? 0}
         isAdmin={role === "adm"}
+        isGestor={role === "gestor"}
         jaConfirmado={!!pagamento?.rota.frete_confirmado_em}
         bloqueio={pagamento?.bloqueio ?? null}
         open={!!pagamento}
