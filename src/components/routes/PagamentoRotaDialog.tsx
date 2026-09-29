@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 import { toast } from "@/lib/toast";
+import { isFeatureOn } from "@/config/features";
 import { mensagemErro } from "@/lib/mensagem-erro";
 import { ConsultarPixButton } from "@/components/routes/ConsultarPixButton";
 import { bitrixTaskUrl } from "@/lib/bitrix";
@@ -214,7 +215,20 @@ export function PagamentoRotaDialog({
   const auditoriaQ = useQuery({
     queryKey: ["auditoria-rota-dialog", routeId],
     enabled: open && !!routeId,
-    queryFn: async () => (await auditarFn({ data: { routeIds: [routeId!] } }))[0] ?? null,
+    queryFn: async () => {
+      const r =
+        (await auditarFn({
+          data: { routeIds: [routeId!], reconciliar: isFeatureOn("reconciliarPedidosRota") },
+        }))[0] ?? null;
+      if (r && ((r.removidos ?? 0) > 0 || r.importados > 0)) {
+        toast.info(
+          `Rota ajustada ao ERP: ${r.removidos ?? 0} removido(s), ${r.importados} incluído(s).`,
+        );
+        void qc.invalidateQueries({ queryKey: ["rota-pagamento"] });
+        void qc.invalidateQueries({ queryKey: ["routes"] });
+      }
+      return r;
+    },
   });
   const aud = auditoriaQ.data;
   // O motivo vindo da listagem é uma foto do momento em que o lápis foi aberto.
@@ -469,6 +483,12 @@ export function PagamentoRotaDialog({
               <span className="text-muted-foreground">{p.total_pedidos} pedido(s)</span>
             </div>
 
+            {aud && (aud.pedidos_fora_do_erp?.length ?? 0) > 0 && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
+                Pedido(s) no app que não estão mais nesta rota no ERP: {aud.pedidos_fora_do_erp!.join(", ")}.
+                {" "}Não foram ajustados automaticamente porque o pagamento já foi confirmado.
+              </div>
+            )}
             {aud && !aud.erro && aud.faltantes.length > 0 && (
               <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive space-y-2">
                 <p>

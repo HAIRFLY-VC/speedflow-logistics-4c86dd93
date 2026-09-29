@@ -20,6 +20,10 @@ export type AuditoriaRota = {
   completa: boolean;
   importados: number;
   faltantes: PedidoFaltante[];
+  /** Vínculos removidos do app por não existirem mais na rota do ERP. */
+  removidos?: number;
+  /** Pedidos no app fora da rota do ERP que não foram ajustados (ex.: pagamento confirmado). */
+  pedidos_fora_do_erp?: string[];
   erro?: string;
 };
 
@@ -79,11 +83,14 @@ function motivoDe(g: Row | undefined): string {
  * Audita as rotas do app (ids) e importa os dados faltantes. Nunca lança por
  * falha do ERP: devolve `erro` por rota para a tela bloquear a confirmação.
  */
-export async function auditarEImportarRotas(routeIds: string[]): Promise<AuditoriaRota[]> {
+export async function auditarEImportarRotas(
+  routeIds: string[],
+  opts: { reconciliar?: boolean } = {},
+): Promise<AuditoriaRota[]> {
   if (routeIds.length === 0) return [];
   const { data: rotas, error } = await centralDb
     .from("routes")
-    .select("id, erp_route_id")
+    .select("id, erp_route_id, frete_confirmado_em")
     .in("id", routeIds);
   if (error) throw new Error(error.message);
 
@@ -330,8 +337,38 @@ export async function auditarEImportarRotas(routeIds: string[]): Promise<Auditor
       }
     }
 
+    // ---- Pedidos no app que não estão mais na rota do ERP ----
+    const confirmada = new Map<string, boolean>();
+    for (const r of rotas ?? []) confirmada.set(r.id as string, (r as { frete_confirmado_em?: string | null }).frete_confirmado_em != null);
+    const { data: vinculosApp } = await centralDb
+      .from("route_orders")
+      .select("id, route_id, orders(erp_id)")
+      .in("route_id", Array.from(erpParaApp.values()));
+    const extrasPorRota = new Map<string, { id: string; pedido: string }[]>();
+    for (const [erpId, appId] of erpParaApp) {
+      const peds = esperados.get(erpId);
+      if (!peds || peds.size === 0) continue; // ERP sem pedidos: não mexe
+      for (const v of (vinculosApp ?? []) as { id: string; route_id: string; orders: { erp_id: string | null } | null }[]) {
+        if (v.route_id !== appId) continue;
+        const ped = v.orders?.erp_id ? String(v.orders.erp_id).trim() : null;
+        if (ped && peds.has(ped)) continue;
+        if (!extrasPorRota.has(appId)) extrasPorRota.set(appId, []);
+        extrasPorRota.get(appId)!.push({ id: v.id, pedido: ped ?? "?" });
+      }
+    }
+    const removidosPorRota = new Map<string, number>();
+    for (const [appId, extras] of extrasPorRota) {
+      resultado.get(appId)!.pedidos_fora_do_erp = extras.map((e) => e.pedido);
+      if (!opts.reconciliar || confirmada.get(appId)) continue;
+      const { error: xErr } = await centralDb.from("route_orders").delete().in("id", extras.map((e) => e.id));
+      if (xErr) throw new Error(`Ajustar rota ao ERP: ${xErr.message}`);
+      removidosPorRota.set(appId, extras.length);
+      resultado.get(appId)!.pedidos_fora_do_erp = [];
+    }
+
     // ---- Resultado por rota ----
     for (const [erpId, appId] of erpParaApp) {
+      resultado.get(appId)!.removidos = removidosPorRota.get(appId) ?? 0;
       const res = resultado.get(appId)!;
       const peds = esperados.get(erpId) ?? new Set<string>();
       const ok = new Set(

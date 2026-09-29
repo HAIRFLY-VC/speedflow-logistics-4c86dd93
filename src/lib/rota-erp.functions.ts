@@ -374,12 +374,13 @@ export const atualizarCapaRotaErp = createServerFn({ method: "POST" })
 /** Audita se as rotas estão completas no ERP e importa pedidos/notas faltantes. */
 export const auditarRotasCompletas = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { routeIds: string[] }) => ({
+  .inputValidator((input: { routeIds: string[]; reconciliar?: boolean }) => ({
     routeIds: (input.routeIds ?? []).filter((x) => typeof x === "string").slice(0, 300),
+    reconciliar: input.reconciliar === true,
   }))
   .handler(async ({ data }) => {
     const { auditarEImportarRotas } = await import("./rota-auditoria.server");
-    return auditarEImportarRotas(data.routeIds);
+    return auditarEImportarRotas(data.routeIds, { reconciliar: data.reconciliar });
   });
 
 /**
