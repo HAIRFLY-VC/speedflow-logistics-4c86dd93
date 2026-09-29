@@ -368,14 +368,14 @@ function StatusList({ map }: { map: Map<string, number> }) {
           <span
             className={
               "shrink-0 font-medium whitespace-nowrap " +
-              (statusVermelho(st) ? "text-red-600" : "")
+              (statusVermelho(st) ? "text-destructive" : "")
             }
           >
             {st}
           </span>
           <span
             className={
-              "tabular-nums " + (statusVermelho(st) ? "text-red-600" : "text-muted-foreground")
+              "tabular-nums " + (statusVermelho(st) ? "text-destructive" : "text-muted-foreground")
             }
           >
             {count}
