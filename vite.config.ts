@@ -5,7 +5,7 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
-import pkg from "./package.json";
+import { APP_VERSION } from "./src/config/version";
 
 export default defineConfig({
   tanstackStart: {
@@ -15,7 +15,7 @@ export default defineConfig({
   },
   vite: {
     define: {
-      __APP_VERSION__: JSON.stringify((pkg as { version?: string }).version ?? "1.0.0"),
+      __APP_VERSION__: JSON.stringify(APP_VERSION),
       __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
     },
   },
