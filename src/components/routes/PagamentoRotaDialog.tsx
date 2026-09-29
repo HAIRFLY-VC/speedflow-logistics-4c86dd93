@@ -82,6 +82,8 @@ export function PagamentoRotaDialog({
   const filas = useServerFn(listarFilasRota);
   const reenviarFn = useServerFn(reenviarFilaRota);
 
+  // Gestor pode lançar adicional; reabrir o frete continua só para administrador.
+  const podeAdicional = isAdmin || isGestor;
   const [tipo, setTipo] = useState<TipoPagamentoRota>("FRETE");
   const [motivo, setMotivo] = useState<MotivoAdicional>("PERNOITE");
   const [observacao, setObservacao] = useState("");
@@ -95,7 +97,8 @@ export function PagamentoRotaDialog({
 
   useEffect(() => {
     if (open) {
-      setTipo("FRETE");
+      // Gestor em rota já confirmada só pode lançar adicional.
+      setTipo(jaConfirmado && !isAdmin && isGestor ? "ADICIONAL" : "FRETE");
       setMotivo("PERNOITE");
       setObservacao("");
       setValorAdicional("");
