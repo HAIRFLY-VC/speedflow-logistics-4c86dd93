@@ -23,16 +23,17 @@ export function ConsultarPixButton({ codErp }: { codErp: string }) {
         return;
       }
       await qc.invalidateQueries();
-      let temPix: boolean | null = null;
+      let semPixFretista = false;
       try {
         const res = await situacao({ data: { codigos: [codErp] } });
         const s = res[codErp];
-        if (s) temPix = Boolean(s.pix);
+        // A falta de PIX só é crítica para fretista (tipo F).
+        semPixFretista = Boolean(s && s.tipo === "F" && !s.pix);
       } catch {
         /* sem verificação extra */
       }
-      if (temPix === false) toast.error(`O ERP continua sem PIX para o fretista (código ${codErp}).`);
-      else toast.success("Cadastro do fretista atualizado a partir do ERP.");
+      if (semPixFretista) toast.error(`O ERP continua sem PIX para o fretista (código ${codErp}).`);
+      else toast.success("Cadastro atualizado a partir do ERP.");
     } catch {
       toast.error("Não foi possível consultar o ERP. Tente novamente.");
     } finally {
