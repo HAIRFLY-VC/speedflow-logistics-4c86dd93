@@ -64,4 +64,6 @@ export type DataTableProps<T> = {
     accessor: (row: T) => string;
     label: (key: string, rows: T[]) => ReactNode;
   };
+  /** Opens grouped rows on first render while preserving the collapse control. */
+  defaultGroupsExpanded?: boolean;
 };

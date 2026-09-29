@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.0] - 2026-09-29
+### Alterado
+- Rotas Pendentes agora abre os grupos de datas já expandidos, mantendo o controle individual para comprimir e reabrir.
+- A listagem de Rotas Pendentes foi compactada para exibir todas as colunas na largura disponível do computador, sem rolagem lateral.
+
 ## [1.8.5] - 2026-09-29
 ### Corrigido
 - Pedidos sem rota: pedidos que ainda estavam no agrupamento anterior (ex.: "NÃO PLANEJADO") agora são movidos para a rota escolhida, em vez de dar erro de pedido duplicado.
