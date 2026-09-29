@@ -1261,10 +1261,17 @@ export function RotasView({
     enabled: idsAuditoria.length > 0,
     staleTime: 60_000,
     queryFn: async () => {
-      const res = await auditarFn({ data: { routeIds: idsAuditoria } });
-      if (res.some((r) => r.importados > 0)) {
+      const res = await auditarFn({
+        data: { routeIds: idsAuditoria, reconciliar: isFeatureOn("reconciliarPedidosRota") },
+      });
+      const removidos = res.reduce((s, r) => s + (r.removidos ?? 0), 0);
+      if (res.some((r) => r.importados > 0) || removidos > 0) {
         qc.invalidateQueries({ queryKey: ["routes"] });
-        toast.success("Dados faltantes das rotas importados do ERP.");
+        toast.success(
+          removidos > 0
+            ? `Rotas ajustadas ao ERP: ${removidos} pedido(s) removido(s) que não estão mais na rota.`
+            : "Dados faltantes das rotas importados do ERP.",
+        );
       }
       return new Map(res.map((r) => [r.route_id, r as AuditoriaInfo]));
     },

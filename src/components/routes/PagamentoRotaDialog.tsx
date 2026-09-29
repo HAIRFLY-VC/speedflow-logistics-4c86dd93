@@ -214,7 +214,20 @@ export function PagamentoRotaDialog({
   const auditoriaQ = useQuery({
     queryKey: ["auditoria-rota-dialog", routeId],
     enabled: open && !!routeId,
-    queryFn: async () => (await auditarFn({ data: { routeIds: [routeId!] } }))[0] ?? null,
+    queryFn: async () => {
+      const r =
+        (await auditarFn({
+          data: { routeIds: [routeId!], reconciliar: isFeatureOn("reconciliarPedidosRota") },
+        }))[0] ?? null;
+      if (r && ((r.removidos ?? 0) > 0 || r.importados > 0)) {
+        toast.info(
+          `Rota ajustada ao ERP: ${r.removidos ?? 0} removido(s), ${r.importados} incluído(s).`,
+        );
+        void qc.invalidateQueries({ queryKey: ["rota-pagamento"] });
+        void qc.invalidateQueries({ queryKey: ["routes"] });
+      }
+      return r;
+    },
   });
   const aud = auditoriaQ.data;
   // O motivo vindo da listagem é uma foto do momento em que o lápis foi aberto.

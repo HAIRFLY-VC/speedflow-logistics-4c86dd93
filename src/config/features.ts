@@ -6,6 +6,8 @@ export const FEATURES = {
   sidebarHoverExpand: { test: true, production: false },
   /** Clique no código do pedido abre o histórico de status do ERP. */
   historicoStatusPedido: { test: true, production: false },
+  /** Autorizar pagamento: iguala os pedidos da rota no app aos do ERP. */
+  reconciliarPedidosRota: { test: true, production: false },
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;
