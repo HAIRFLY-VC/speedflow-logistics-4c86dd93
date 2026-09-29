@@ -402,21 +402,25 @@ export function PagamentoRotaDialog({
             Esta rota já teve o pagamento do frete confirmado.
             {isAdmin
               ? " Você pode reenviar o valor do frete (substitui o lançamento anterior) ou lançar um valor adicional."
-              : " Somente administradores podem reabrir ou lançar valores adicionais."}
+              : isGestor
+                ? " Você pode lançar um valor adicional. Reenviar o valor do frete é permitido somente a administradores."
+                : " Somente administradores ou gestores podem lançar valores adicionais."}
           </div>
         )}
 
-        {jaConfirmado && isAdmin && (
+        {jaConfirmado && podeAdicional && (
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant={tipo === "FRETE" ? "default" : "outline"}
-                onClick={() => setTipo("FRETE")}
-              >
-                Frete da rota
-              </Button>
+              {isAdmin && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={tipo === "FRETE" ? "default" : "outline"}
+                  onClick={() => setTipo("FRETE")}
+                >
+                  Frete da rota
+                </Button>
+              )}
               <Button
                 type="button"
                 size="sm"
