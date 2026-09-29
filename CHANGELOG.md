@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.0] - 2026-09-29
+### Alterado
+- Usuários com papel Gestor podem autorizar pagamento a fretista (rotas) e aprovar/autorizar pagamento de CT-e.
+
 ## [1.1.3] - 2026-09-29
 ### Corrigido
 - Vínculo com o Bitrix agora é gravado mesmo para usuários sem perfil no banco central (ex.: Gutemberg); a tela avisa se a gravação falhar.
