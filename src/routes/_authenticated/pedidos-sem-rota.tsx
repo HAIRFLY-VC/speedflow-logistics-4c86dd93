@@ -556,7 +556,13 @@ function PedidosSemRotaPage() {
               <Button variant="ghost" size="sm" onClick={() => setSelecionados([])}>
                 Limpar
               </Button>
-              <Button size="sm" onClick={() => setPainelAberto(true)}>
+              <Button
+                size="sm"
+                onClick={() => {
+                  void rotasQ.refetch();
+                  setPainelAberto(true);
+                }}
+              >
                 Atribuir rota
               </Button>
             </div>
