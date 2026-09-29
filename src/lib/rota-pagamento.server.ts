@@ -448,6 +448,8 @@ export async function confirmarPagamentoRota(params: {
   userId: string;
   isAdmin: boolean;
 }) {
+  const t0 = Date.now();
+  const etapa = (nome: string) => console.log(`[confirmarPagamento] ${params.routeId} ${nome}: ${Date.now() - t0}ms`);
   const rota = await carregarRota(params.routeId);
   const jaConfirmado = rota.frete_confirmado_em != null;
   if ((jaConfirmado || params.tipo === "ADICIONAL") && !params.isAdmin) {
@@ -472,8 +474,10 @@ export async function confirmarPagamentoRota(params: {
   const dataPagamento = normalizarDataPagamento(params.dataPagamento, rota.route_date);
 
   if (params.tipo !== "ADICIONAL") {
-    const { auditarEImportarRotas } = await import("./rota-auditoria.server");
-    const [aud] = await auditarEImportarRotas([params.routeId]);
+    const { auditarEImportarRotas, auditoriaRecente } = await import("./rota-auditoria.server");
+    // Reaproveita a conferência feita ao abrir o lápis (até 2 minutos).
+    const aud = auditoriaRecente(params.routeId, 120_000) ?? (await auditarEImportarRotas([params.routeId]))[0];
+    etapa("auditoria");
     if (!aud || aud.erro) throw new Error(aud?.erro ?? "Não foi possível auditar a rota no ERP.");
     if (!aud.completa) {
       throw new Error(
@@ -491,6 +495,7 @@ export async function confirmarPagamentoRota(params: {
     dataPagamento,
     pedidos: params.pedidos ?? null,
   });
+  etapa("detalhamento");
   const selecao = new Set(preview.pedidos_selecionados);
   if (preview.pedidos_sem_bordero > 0) {
     throw new Error(
@@ -608,7 +613,11 @@ export async function confirmarPagamentoRota(params: {
   // Valores gravados direto no ERP pelo app (sem n8n).
   {
     const { gravarLinhaValores } = await import("./erp-lancamento.server");
-    for (const r of (filaRows ?? []) as { id: string }[]) await gravarLinhaValores(r.id, "MANUAL");
+    // Até 5 envios simultâneos; falhas ficam na fila para reprocessamento.
+    const ids = ((filaRows ?? []) as { id: string }[]).map((r) => r.id);
+    for (let i = 0; i < ids.length; i += 5)
+      await Promise.allSettled(ids.slice(i, i + 5).map((id) => gravarLinhaValores(id, "MANUAL")));
+    etapa(`erp (${ids.length} linhas)`);
   }
 
   const { data: finRow, error: finErr } = await centralDb
@@ -662,7 +671,6 @@ export async function confirmarPagamentoRota(params: {
 
   // A tarefa do Bitrix é criada pelo próprio app (sem n8n) logo após enfileirar.
   const finId = (finRow as { id?: string } | null)?.id;
-  if (finId) await processarTarefaFinanceiraRota(finId);
 
   if (params.tipo === "FRETE") {
     await centralDb
@@ -675,6 +683,12 @@ export async function confirmarPagamentoRota(params: {
       .eq("id", params.routeId);
   }
 
+  // Bitrix sem prender a tela; se falhar, a fila de pendências reprocessa.
+  if (finId)
+    void processarTarefaFinanceiraRota(finId)
+      .then(() => etapa("bitrix"))
+      .catch((e) => console.error("[confirmarPagamento] bitrix", e));
+  etapa("resposta");
   return { ok: true, ordem_id: ordemId, linhas: linhas.length };
 }
 

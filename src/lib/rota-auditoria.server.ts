@@ -29,6 +29,13 @@ export type AuditoriaRota = {
 
 type Row = Record<string, unknown>;
 
+// Última conferência completa por rota (memória do servidor, melhor esforço).
+const cacheAuditoria = new Map<string, { em: number; aud: AuditoriaRota }>();
+export function auditoriaRecente(routeId: string, maxMs: number): AuditoriaRota | null {
+  const c = cacheAuditoria.get(routeId);
+  return c && Date.now() - c.em < maxMs && c.aud.completa && !c.aud.erro ? c.aud : null;
+}
+
 function campo(row: Row, nome: string): unknown {
   if (nome in row) return row[nome];
   return Object.entries(row).find(([k]) => k.toUpperCase() === nome)?.[1];
@@ -421,6 +428,11 @@ export async function auditarEImportarRotas(
       r.erro = `Auditoria indisponível: ${msg}`;
       r.completa = false;
     }
+  }
+  const agoraMs = Date.now();
+  for (const a of resultado.values()) {
+    if (a.completa && !a.erro) cacheAuditoria.set(a.route_id, { em: agoraMs, aud: a });
+    else cacheAuditoria.delete(a.route_id);
   }
   return Array.from(resultado.values());
 }

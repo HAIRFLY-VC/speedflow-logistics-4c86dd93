@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.1] - 2026-09-29
+### Alterado
+- Confirmar pagamento mais rápido: reaproveita a conferência feita ao abrir o lápis (até 2 min), grava no ERP até 5 pedidos ao mesmo tempo e cria a tarefa do Bitrix em segundo plano (falhas vão para a fila de pendências).
+
 ## [1.6.0] - 2026-09-29
 ### Alterado
 - A versão oficial passa a ter todas as funcionalidades do teste ao publicar: menu lateral automático (computador) e conferência dos pedidos da rota com o ERP em Autorizar pagamento de frete.
