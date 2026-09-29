@@ -1528,6 +1528,7 @@ export function RotasView({
               tipo={tipoFreteOf(r)}
               bordero={borderoDaRota(r)}
               isAdmin={role === "adm"}
+              isGestor={role === "gestor"}
               mostrarConfirmar={permitirConfirmacao}
               valorTotalConfirmado={permitirConfirmacao && r.frete_confirmado_em ? freteOf(r) : undefined}
               auditoria={auditoriaMap?.get(r.id)}
