@@ -1403,7 +1403,7 @@ export function RotasView({
         id: "route_date",
         header: "Data planejada",
         sortable: false,
-        width: usarTabelaCompacta ? "70px" : undefined,
+        width: usarTabelaCompacta ? "82px" : undefined,
         verticalHeader: usarTabelaCompacta,
         accessor: (r) => r.route_date,
         render: (r) => (

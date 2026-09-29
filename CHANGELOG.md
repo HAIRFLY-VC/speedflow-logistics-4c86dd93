@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.9.1] - 2026-09-29
+### Corrigido
+- As linhas totalizadoras de Rotas Pendentes agora têm destaque próprio, diferente do foco das rotas, e exibem a data completa na coluna correta.
+
 ## [1.9.0] - 2026-09-29
 ### Alterado
 - Rotas Pendentes agora abre os grupos de datas já expandidos, mantendo o controle individual para comprimir e reabrir.
