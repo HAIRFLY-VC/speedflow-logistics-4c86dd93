@@ -504,7 +504,15 @@ function FreightInput({
     : undefined;
 
   if (!editable) {
-    if (!value && !confirmado) return <span className="text-muted-foreground">—</span>;
+    if (!value && !confirmado) {
+      if (!avisoTipoEl) return <span className="text-muted-foreground">—</span>;
+      return (
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-muted-foreground">—</span>
+          {avisoTipoEl}
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col items-end gap-1">
         <span
