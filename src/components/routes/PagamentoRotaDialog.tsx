@@ -457,6 +457,14 @@ export function PagamentoRotaDialog({
               <span className="text-muted-foreground">
                 Mercadoria: <span className="tabular-nums">{brl(p.valor_mercadoria)}</span>
               </span>
+              <span className="text-muted-foreground">
+                Frete:{" "}
+                <span className="tabular-nums">
+                  {p.valor_mercadoria > 0 && p.valor > 0
+                    ? `${((p.valor / p.valor_mercadoria) * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+                    : "—"}
+                </span>
+              </span>
               <span className="text-muted-foreground">{p.total_pedidos} pedido(s)</span>
             </div>
 
