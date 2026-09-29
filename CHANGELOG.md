@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.8.2] - 2026-09-29
+### Corrigido
+- Os valores dos cards de indicadores (Rotas Pendentes) não quebram mais em duas linhas; fonte reduzida para caber.
+- O card "Pedidos pendentes sem rota" agora mostra os quatro totais em grade 2x2 (Mercadorias | Pedidos / Peso | Entregas), mantendo a mesma altura dos demais cards.
+
+
 ## [1.8.1] - 2026-09-29
 ### Alterado
 - O card "Pedidos pendentes sem rota" agora ocupa a mesma linha dos indicadores, na última posição à direita, e some quando não há pedidos pendentes.
