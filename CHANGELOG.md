@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.5.1] - 2026-09-29
+### Corrigido
+- Pedidos reexpedidos após ocorrência (borderô com status O) passam a usar o borderô novo no detalhamento da autorização de pagamento e na tarefa do Bitrix (ex.: pedido 4135213 → borderô 32381). Rotas já pagas mantêm o borderô gravado.
+
 ## [1.5.0] - 2026-09-29
 ### Adicionado
 - Autorizar pagamento de frete: ao abrir a tela ou o lápis, o app confere os pedidos de cada rota no ERP e iguala o app (remove os que saíram da rota e inclui os que faltam). Nada é alterado no ERP. Rotas com pagamento confirmado só exibem aviso. Ligado apenas no teste.

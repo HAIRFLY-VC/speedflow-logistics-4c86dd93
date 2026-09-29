@@ -183,7 +183,10 @@ async function tratarRotasComBorderoEmitido(routeIds: string[]): Promise<void> {
     const lote = codigos.slice(i, i + 300);
     const lista = lote.map((c) => `'${c.replace(/'/g, "''")}'`).join(",");
     const sql = `
-      SELECT G.COD_PEDIDO, MAX(G.BORDERO) BORDERO
+      SELECT G.COD_PEDIDO,
+             MAX(CASE WHEN NVL(G.STATUS, '-') <> 'O' THEN G.BORDERO END)
+               KEEP (DENSE_RANK LAST ORDER BY CASE WHEN NVL(G.STATUS, '-') <> 'O' THEN 1 ELSE 0 END,
+                     G.DT_SAIDA NULLS FIRST, G.BORDERO NULLS FIRST) BORDERO
         FROM GKS.A_GERENTREGAS G
        WHERE G.COD_PEDIDO IN (${lista})
        GROUP BY G.COD_PEDIDO

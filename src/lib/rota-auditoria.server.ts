@@ -76,6 +76,7 @@ function motivoDe(g: Row | undefined): string {
   if (!g) return "Não encontrado";
   if (!txt(g, "NRO_NF")) return "Sem nota fiscal emitida";
   if (!txt(g, "BORDERO")) return "Sem borderô";
+  if (txt(g, "STATUS") === "O") return "Borderô em ocorrência — aguardando novo borderô";
   return "Não encontrado";
 }
 
@@ -165,7 +166,9 @@ export async function auditarEImportarRotas(
       );
       for (const r of rows) {
         const c = txt(r, "COD_PEDIDO");
-        if (c && (!detalhe.has(c) || (txt(r, "NRO_NF") && !txt(detalhe.get(c)!, "NRO_NF")))) detalhe.set(c, r);
+        const d = c ? detalhe.get(c) : undefined;
+        if (c && (!d || (txt(r, "NRO_NF") && !txt(d, "NRO_NF")) || (txt(d, "STATUS") === "O" && txt(r, "STATUS") !== "O")))
+          detalhe.set(c, r);
       }
     }
 
@@ -184,7 +187,19 @@ export async function auditarEImportarRotas(
     }
 
     // ---- Importação dos dados faltantes no app ----
-    const todosValidos = validos.filter((v) => txt(v, "COD_PEDIDO") && txt(v, "NRO_NF"));
+    // Pedido reexpedido tem mais de uma linha por NF: fica a do borderô mais recente.
+    const maisRecente = new Map<string, Row>();
+    const chaveOrd = (r: Row) => `${txt(r, "DT_SAIDA") ?? ""}|${String(num(r, "BORDERO")).padStart(12, "0")}`;
+    for (const v of validos) {
+      if (!txt(v, "COD_PEDIDO") || !txt(v, "NRO_NF")) continue;
+      const k = `${txt(v, "ID_ROTA")}|${txt(v, "COD_PEDIDO")}|${txt(v, "NRO_NF")}`;
+      const prev = maisRecente.get(k);
+      if (!prev || chaveOrd(v) > chaveOrd(prev)) maisRecente.set(k, v);
+    }
+    const todosValidos = Array.from(maisRecente.values());
+    const rotaConfirmada = new Set(
+      (rotas ?? []).filter((r) => r.frete_confirmado_em != null).map((r) => String(r.erp_route_id ?? "").trim()),
+    );
     const importadosPorRota = new Map<string, number>();
     if (todosValidos.length > 0) {
       const agora = new Date().toISOString();
@@ -288,7 +303,10 @@ export async function auditarEImportarRotas(
         const r = porPedido.get(String(o.erp_id))?.row;
         if (!r) continue;
         const patch: Record<string, string> = {};
-        if (!o.bordero && txt(r, "BORDERO")) patch["bordero"] = txt(r, "BORDERO")!;
+        const novoBord = txt(r, "BORDERO");
+        // Atualiza o borderô quando o pedido foi reexpedido (exceto rota já paga).
+        if (novoBord && o.bordero !== novoBord && (!o.bordero || !rotaConfirmada.has(txt(r, "ID_ROTA") ?? "")))
+          patch["bordero"] = novoBord;
         if (!o.cod_filial && txt(r, "COD_FILIAL")) patch["cod_filial"] = txt(r, "COD_FILIAL")!;
         if (Object.keys(patch).length > 0)
           await centralDb.from("orders").update(patch as never).eq("id", o.id as string);
