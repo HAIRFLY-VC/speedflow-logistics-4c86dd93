@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.1] - 2026-09-29
+### Alterado
+- O card "Pedidos pendentes sem rota" agora ocupa a mesma linha dos indicadores, na última posição à direita, e some quando não há pedidos pendentes.
+
 ## [1.8.0] - 2026-09-29
 ### Adicionado
 - Rotas Pendentes ganhou um card com valor, peso, pedidos e entregas sem rota; quando há pendências, o fundo pisca em vermelho claro e o clique abre a tela "Pedidos sem rota".
