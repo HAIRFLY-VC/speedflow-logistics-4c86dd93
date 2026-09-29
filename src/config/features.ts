@@ -1,13 +1,13 @@
 import { getAppEnv } from "./environment";
 
-/** Feature flags: novidades nascem ligadas em teste e desligadas em produção. */
+/** Feature flags: por decisão do usuário, tudo que está no teste vai para a oficial ao publicar (production: true sempre). */
 export const FEATURES = {
   /** Menu lateral abre ao passar o mouse e recolhe ao sair (computador). */
-  sidebarHoverExpand: { test: true, production: false },
+  sidebarHoverExpand: { test: true, production: true },
   /** Clique no código do pedido abre o histórico de status do ERP. */
   historicoStatusPedido: { test: true, production: true },
   /** Autorizar pagamento: iguala os pedidos da rota no app aos do ERP. */
-  reconciliarPedidosRota: { test: true, production: false },
+  reconciliarPedidosRota: { test: true, production: true },
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;
