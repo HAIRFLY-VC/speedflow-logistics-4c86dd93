@@ -363,7 +363,7 @@ function StatusList({ map }: { map: Map<string, number> }) {
   const sorted = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   if (sorted.length === 0) return <span className="text-muted-foreground text-xs">—</span>;
   return (
-    <div className="flex min-w-max flex-col gap-0.5 text-xs">
+    <div className="flex w-full min-w-0 flex-col gap-0.5 text-[11px]">
       {sorted.map(([st, count]) => (
         <div key={st} className="flex items-center justify-between gap-2">
           <span
@@ -1390,11 +1390,11 @@ export function RotasView({
         header: "ID",
         pinFirst: true,
         sortable: false,
-        width: usarTabelaCompacta ? "40px" : undefined,
+        width: usarTabelaCompacta ? "34px" : undefined,
         accessor: (r) => r.erp_route_id ?? "",
         render: (r) =>
           r.erp_route_id ? (
-            <span className="font-semibold tabular-nums">{r.erp_route_id}</span>
+            <span className="whitespace-nowrap font-semibold tabular-nums">{r.erp_route_id}</span>
           ) : (
             <span className="text-muted-foreground">—</span>
           ),
@@ -1403,11 +1403,11 @@ export function RotasView({
         id: "route_date",
         header: "Data planejada",
         sortable: false,
-        width: usarTabelaCompacta ? "82px" : undefined,
+        width: usarTabelaCompacta ? "76px" : undefined,
         verticalHeader: usarTabelaCompacta,
         accessor: (r) => r.route_date,
         render: (r) => (
-          <span className="text-primary">
+          <span className="whitespace-nowrap text-primary">
             {formatRouteDate(r.route_date)}
           </span>
         ),
@@ -1416,14 +1416,16 @@ export function RotasView({
         id: "nome_rota",
         header: "Nome da rota",
         sortable: false,
-        width: usarTabelaCompacta ? "92px" : undefined,
+        width: usarTabelaCompacta ? "84px" : undefined,
+        className: usarTabelaCompacta ? "break-words leading-tight" : undefined,
         accessor: (r) => nomeRotaOf(r),
       },
       {
         id: "motorista",
         header: "Fret / Transp",
         sortable: false,
-        width: usarTabelaCompacta ? "150px" : undefined,
+        width: usarTabelaCompacta ? "140px" : undefined,
+        className: usarTabelaCompacta ? "break-words leading-tight" : undefined,
         accessor: (r) =>
           motoristaOf(
             r,
@@ -1443,7 +1445,7 @@ export function RotasView({
         sortable: false,
         pinAfter: "motorista",
         align: "center",
-        width: usarTabelaCompacta ? "40px" : undefined,
+        width: usarTabelaCompacta ? "36px" : undefined,
         verticalHeader: usarTabelaCompacta,
 
         accessor: (r) => tipoFreteOf(r) ?? "",
@@ -1499,11 +1501,11 @@ export function RotasView({
         id: "paradas",
         header: "Qtd Entregas",
         sortable: false,
-        width: usarTabelaCompacta ? "46px" : undefined,
+        width: usarTabelaCompacta ? "42px" : undefined,
         verticalHeader: usarTabelaCompacta,
         align: "right",
         accessor: (r) => paradasOf(r),
-        className: "tabular-nums",
+        className: "whitespace-nowrap tabular-nums",
         aggregate: (rows) => (
           <span className="tabular-nums">
             {rows.reduce((s, r) => s + paradasOf(r), 0)}
@@ -1515,11 +1517,11 @@ export function RotasView({
         header: "Valor total",
         sortable: false,
         align: "right",
-        width: usarTabelaCompacta ? "88px" : undefined,
+        width: usarTabelaCompacta ? "82px" : undefined,
         verticalHeader: usarTabelaCompacta,
         accessor: (r) => valorOf(r),
         render: (r) => currencyFmt.format(valorOf(r)),
-        className: "tabular-nums",
+        className: "whitespace-nowrap tabular-nums",
         aggregate: (rows) => (
           <span className="tabular-nums">
             {currencyFmt.format(rows.reduce((s, r) => s + valorOf(r), 0))}
@@ -1531,11 +1533,11 @@ export function RotasView({
         header: "Peso total (kg)",
         sortable: false,
         align: "right",
-        width: usarTabelaCompacta ? "74px" : undefined,
+        width: usarTabelaCompacta ? "68px" : undefined,
         verticalHeader: usarTabelaCompacta,
         accessor: (r) => pesoOf(r),
         render: (r) => weightFmt.format(pesoOf(r)),
-        className: "tabular-nums",
+        className: "whitespace-nowrap tabular-nums",
         aggregate: (rows) => (
           <span className="tabular-nums">
             {weightFmt.format(rows.reduce((s, r) => s + pesoOf(r), 0))}
@@ -1547,7 +1549,7 @@ export function RotasView({
         header: "Distância (km)",
         sortable: false,
         align: "right",
-        width: usarTabelaCompacta ? "68px" : undefined,
+        width: usarTabelaCompacta ? "62px" : undefined,
         verticalHeader: usarTabelaCompacta,
         filterable: false,
         accessor: (r) => Number(r.total_distance_km ?? 0),
@@ -1556,7 +1558,7 @@ export function RotasView({
             <DistanceCell route={r} depot={depot} />
           </span>
         ),
-        className: "tabular-nums text-xs",
+        className: "whitespace-nowrap tabular-nums text-xs",
         aggregate: (rows) => (
           <span className="tabular-nums">
             {rows
@@ -1570,7 +1572,7 @@ export function RotasView({
         header: "Frete (R$)",
         sortable: false,
         align: "right",
-        width: usarTabelaCompacta ? "132px" : undefined,
+        width: usarTabelaCompacta ? "120px" : undefined,
         verticalHeader: usarTabelaCompacta,
         filterAccessor: (r) => (r.frete_confirmado_em ? "Confirmado" : "Pendente"),
         filterLabel: (r) => (r.frete_confirmado_em ? "Confirmado" : "Pendente"),
@@ -1603,7 +1605,7 @@ export function RotasView({
             />
           </span>
         ),
-        className: "tabular-nums",
+        className: "whitespace-nowrap tabular-nums",
         aggregate: (rows) => (
           <span className="tabular-nums">
             {currencyFmt.format(rows.reduce((s, r) => s + freteOf(r), 0))}
@@ -1616,7 +1618,7 @@ export function RotasView({
         header: "% Frete",
         sortable: false,
         align: "right",
-        width: usarTabelaCompacta ? "40px" : undefined,
+        width: usarTabelaCompacta ? "38px" : undefined,
         verticalHeader: usarTabelaCompacta,
         filterable: false,
         accessor: (r) => {
@@ -1653,7 +1655,7 @@ export function RotasView({
         header: "Pedidos por status",
         sortable: false,
         filterable: false,
-        width: "190px",
+        width: usarTabelaCompacta ? "180px" : "190px",
         verticalHeader: usarTabelaCompacta,
         accessor: (r) =>
           Array.from(statusMapOf(r).keys()).join(", "),
@@ -1691,8 +1693,8 @@ export function RotasView({
         header: "",
         hideOnCard: true,
         sortable: false,
-        width: usarTabelaCompacta ? "44px" : undefined,
-        align: "right",
+        width: usarTabelaCompacta ? "32px" : undefined,
+        align: "center",
         filterable: false,
         accessor: () => "",
         render: (r) =>
@@ -1700,7 +1702,7 @@ export function RotasView({
             <button
               type="button"
               title="Editar rota"
-              className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
               onClick={(e) => {
                 e.stopPropagation();
                 setEditCodErp(codResponsavelPorRota.get(r.id) ?? transpPorRota.get(r.id)?.cod_erp ?? null);
