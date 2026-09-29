@@ -84,8 +84,10 @@ export function itemPermitido(item: NavItem, role: AppRole | null, liberados: st
 }
 
 export function urlPermitida(pathname: string, role: AppRole | null, liberados: string[] | null | undefined) {
-  const item = NAV.filter((i) => pathname === i.url || pathname.startsWith(i.url + "/"))
-    .sort((a, b) => b.url.length - a.url.length)[0];
+  // Só as telas de lista do menu são bloqueadas; telas de detalhe (ex.: /pedidos/123)
+  // continuam acessíveis por links diretos (Minhas Rotas, notificações).
+  const path = pathname.replace(/\/+$/, "") || "/";
+  const item = NAV.find((i) => path === i.url);
   if (!item) return true; // telas fora do menu não são bloqueadas aqui
   return itemPermitido(item, role, liberados);
 }

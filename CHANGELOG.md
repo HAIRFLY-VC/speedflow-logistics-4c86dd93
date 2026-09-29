@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.10.1] - 2026-09-29
+### Corrigido
+- Fretistas voltam a abrir o pedido a partir de "Minhas Rotas" e das notificações sem a mensagem "Você não tem acesso a esta tela".
+
 ## [1.10.0] - 2026-09-29
 ### Alterado
 - A lista de pedidos abaixo do mapa da rota agora agrupa por cliente, segue a ordem de entrega e mostra status, filial, nota, vendedor, agenda, datas e observações (ao passar o mouse).
