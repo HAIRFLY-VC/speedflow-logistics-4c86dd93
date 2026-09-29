@@ -199,6 +199,14 @@ export const atribuirPedidosARota = createServerFn({ method: "POST" })
 
     const novos = data.orderIds.filter((id) => !existentes.has(id));
     if (novos.length) {
+      // Cada pedido só pode estar em uma rota: remove o vínculo anterior
+      // (ex.: agrupamento "NÃO PLANEJADO") antes de vincular à rota escolhida.
+      const { error: delErr } = await centralDb
+        .from("route_orders")
+        .delete()
+        .in("order_id", novos)
+        .neq("route_id", routeId!);
+      if (delErr) throw delErr;
       const { error } = await centralDb.from("route_orders").insert(
         novos.map((order_id) => ({ route_id: routeId!, order_id, stop_order: proxima++ })),
       );
