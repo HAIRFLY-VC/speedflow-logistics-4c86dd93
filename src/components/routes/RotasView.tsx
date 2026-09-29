@@ -1416,7 +1416,7 @@ export function RotasView({
         id: "nome_rota",
         header: "Nome da rota",
         sortable: false,
-        width: usarTabelaCompacta ? "84px" : undefined,
+        width: usarTabelaCompacta ? "80px" : undefined,
         className: usarTabelaCompacta ? "break-words leading-tight" : undefined,
         accessor: (r) => nomeRotaOf(r),
       },
@@ -1424,7 +1424,7 @@ export function RotasView({
         id: "motorista",
         header: "Fret / Transp",
         sortable: false,
-        width: usarTabelaCompacta ? "140px" : undefined,
+        width: usarTabelaCompacta ? "136px" : undefined,
         className: usarTabelaCompacta ? "break-words leading-tight" : undefined,
         accessor: (r) =>
           motoristaOf(
@@ -1517,7 +1517,7 @@ export function RotasView({
         header: "Valor total",
         sortable: false,
         align: "right",
-        width: usarTabelaCompacta ? "82px" : undefined,
+        width: usarTabelaCompacta ? "86px" : undefined,
         verticalHeader: usarTabelaCompacta,
         accessor: (r) => valorOf(r),
         render: (r) => currencyFmt.format(valorOf(r)),
@@ -1618,7 +1618,7 @@ export function RotasView({
         header: "% Frete",
         sortable: false,
         align: "right",
-        width: usarTabelaCompacta ? "38px" : undefined,
+        width: usarTabelaCompacta ? "44px" : undefined,
         verticalHeader: usarTabelaCompacta,
         filterable: false,
         accessor: (r) => {
@@ -1655,7 +1655,7 @@ export function RotasView({
         header: "Pedidos por status",
         sortable: false,
         filterable: false,
-        width: usarTabelaCompacta ? "180px" : "190px",
+        width: usarTabelaCompacta ? "174px" : "190px",
         verticalHeader: usarTabelaCompacta,
         accessor: (r) =>
           Array.from(statusMapOf(r).keys()).join(", "),
@@ -1693,7 +1693,7 @@ export function RotasView({
         header: "",
         hideOnCard: true,
         sortable: false,
-        width: usarTabelaCompacta ? "32px" : undefined,
+        width: usarTabelaCompacta ? "36px" : undefined,
         align: "center",
         filterable: false,
         accessor: () => "",
@@ -1702,7 +1702,7 @@ export function RotasView({
             <button
               type="button"
               title="Editar rota"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
               onClick={(e) => {
                 e.stopPropagation();
                 setEditCodErp(codResponsavelPorRota.get(r.id) ?? transpPorRota.get(r.id)?.cod_erp ?? null);
