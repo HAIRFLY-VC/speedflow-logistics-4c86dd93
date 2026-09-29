@@ -890,7 +890,6 @@ function MobileCard<T>({
   onRowClick,
   rowClassName,
   cardHeaderAction,
-  defaultExpanded,
 }: {
   row: T;
   columns: ColumnDef<T>[];
@@ -960,6 +959,7 @@ function MobileGroup<T>({
   onRowClick,
   rowClassName,
   cardHeaderAction,
+  defaultExpanded,
 }: {
   groupKey: string;
   rows: T[];
