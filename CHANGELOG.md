@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.5.0] - 2026-09-29
+### Adicionado
+- Autorizar pagamento de frete: ao abrir a tela ou o lápis, o app confere os pedidos de cada rota no ERP e iguala o app (remove os que saíram da rota e inclui os que faltam). Nada é alterado no ERP. Rotas com pagamento confirmado só exibem aviso. Ligado apenas no teste.
+
 ## [1.4.0] - 2026-09-29
 ### Adicionado
 - Clique no código do pedido (em todas as telas) abre o histórico de status do pedido registrado no ERP (ligado só no ambiente de TESTE).
