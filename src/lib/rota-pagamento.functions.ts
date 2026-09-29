@@ -21,7 +21,11 @@ async function podeAutorizar(context: Ctx) {
   const { data: pode } = await context.supabase.rpc("pode_autorizar_frete", {
     _user_id: context.userId,
   });
-  if (!pode) throw new Error("Você não tem permissão para confirmar pagamento de frete.");
+  // Gestor também pode autorizar pagamentos (fretista e CT-e).
+  const { data: gestor } = pode
+    ? { data: true }
+    : await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "gestor" });
+  if (!pode && !gestor) throw new Error("Você não tem permissão para confirmar pagamento de frete.");
 }
 
 async function ehAdmin(context: Ctx): Promise<boolean> {
