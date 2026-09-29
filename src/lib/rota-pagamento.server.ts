@@ -447,13 +447,18 @@ export async function confirmarPagamentoRota(params: {
   pedidos?: string[] | null;
   userId: string;
   isAdmin: boolean;
+  isGestor?: boolean;
 }) {
   const t0 = Date.now();
   const etapa = (nome: string) => console.log(`[confirmarPagamento] ${params.routeId} ${nome}: ${Date.now() - t0}ms`);
   const rota = await carregarRota(params.routeId);
   const jaConfirmado = rota.frete_confirmado_em != null;
-  if ((jaConfirmado || params.tipo === "ADICIONAL") && !params.isAdmin) {
-    throw new Error("Apenas administradores podem reabrir ou lançar valores adicionais.");
+  // Lançamento adicional: administrador ou gestor. Reabrir/substituir o frete: só administrador.
+  if (params.tipo === "ADICIONAL" && !params.isAdmin && !params.isGestor) {
+    throw new Error("Apenas administradores ou gestores podem lançar valores adicionais.");
+  }
+  if (jaConfirmado && params.tipo === "FRETE" && !params.isAdmin) {
+    throw new Error("Apenas administradores podem reabrir o pagamento do frete.");
   }
   if (params.tipo === "ADICIONAL" && !params.motivo) {
     throw new Error("Informe o motivo do valor adicional.");

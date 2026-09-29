@@ -36,6 +36,14 @@ async function ehAdmin(context: Ctx): Promise<boolean> {
   return Boolean(data);
 }
 
+async function ehGestor(context: Ctx): Promise<boolean> {
+  const { data } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "gestor",
+  });
+  return Boolean(data);
+}
+
 /** Prévia do rateio do frete da rota (agrupado por filial de faturamento). */
 export const previewPagamentoRota = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -86,8 +94,9 @@ export const confirmarPagamentoRotaFn = createServerFn({ method: "POST" })
     const ctx = context as unknown as Ctx;
     await podeAutorizar(ctx);
     const isAdmin = await ehAdmin(ctx);
+    const isGestor = isAdmin ? true : await ehGestor(ctx);
     const { confirmarPagamentoRota } = await import("./rota-pagamento.server");
-    return confirmarPagamentoRota({ ...data, userId: ctx.userId, isAdmin });
+    return confirmarPagamentoRota({ ...data, userId: ctx.userId, isAdmin, isGestor });
   });
 
 /** Histórico de solicitações de pagamento da rota. */
