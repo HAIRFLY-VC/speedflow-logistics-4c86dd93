@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.2] - 2026-09-29
+### Alterado
+- Na listagem de rotas, o status "06-SEPARACAO SOLICITADA" agora aparece abreviado como "06-SEP. SOLIC.", para cada status caber em uma única linha na coluna "Pedidos por status".
+
 ## [1.7.1] - 2026-09-29
 ### Corrigido
 - Rotas que ficaram sem pedidos no ERP (ex.: 411) não mostram mais pedidos/entregas antigos: a conferência com o ERP passa a remover os vínculos também quando a rota está vazia (exceto rotas com pagamento confirmado).
