@@ -506,7 +506,7 @@ export async function confirmarPagamentoRota(params: {
   const resp = (preview as { responsavel?: { cod_erp: string | null; nome: string | null } }).responsavel;
   if (!resp?.cod_erp) {
     throw new Error(
-      "Responsável do frete não identificado no ERP — abra a rota no lápis e confirme o cadastro antes de autorizar.",
+      "Responsável do frete não identificado no ERP — verifique o cadastro da rota e tente novamente.",
     );
   }
   rota.erp_carrier_code = resp.cod_erp;
