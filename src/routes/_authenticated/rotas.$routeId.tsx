@@ -1,3 +1,4 @@
+import { PedidoCodigo } from "@/components/orders/PedidoCodigo";
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -624,7 +625,7 @@ function RouteDetailPage() {
                     ) : (
                       (availableQ.data ?? []).map((o) => (
                         <SelectItem key={o.id} value={o.id}>
-                          {o.order_number} — {nomeCliente(o.erp_cod_cliente)}
+                          <PedidoCodigo codigo={o.order_number} /> — {nomeCliente(o.erp_cod_cliente)}
                         </SelectItem>
                       ))
                     )}

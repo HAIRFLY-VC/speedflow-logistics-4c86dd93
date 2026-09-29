@@ -18,7 +18,9 @@ export function PedidoCodigo({
   codigo,
   children,
   className,
+  somenteIcone,
 }: {
+  somenteIcone?: boolean;
   codigo: string | number | null | undefined;
   children?: ReactNode;
   className?: string;
@@ -32,8 +34,9 @@ export function PedidoCodigo({
     enabled: aberto && /^\d+$/.test(cod),
     staleTime: 60_000,
   });
-  const conteudo = children ?? cod;
+  const conteudo = somenteIcone ? null : (children ?? cod);
   if (!cod || !/^\d+$/.test(cod) || !isFeatureOn("historicoStatusPedido")) {
+    if (somenteIcone) return null;
     return <span className={className}>{conteudo || "—"}</span>;
   }
   return (

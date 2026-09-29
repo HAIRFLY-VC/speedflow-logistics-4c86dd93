@@ -1,3 +1,4 @@
+import { PedidoCodigo } from "@/components/orders/PedidoCodigo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -265,7 +266,7 @@ function EntregasAbertasPage() {
         valor: (i) => i.nro_nf,
         cell: (i) => <span className="font-medium">{i.nro_nf}</span>,
       },
-      { id: "cod_pedido", header: "Pedido", tipo: "text", valor: (i) => i.cod_pedido, cell: (i) => i.cod_pedido },
+      { id: "cod_pedido", header: "Pedido", tipo: "text", valor: (i) => i.cod_pedido, cell: (i) => <PedidoCodigo codigo={i.cod_pedido} /> },
       {
         id: "cliente",
         header: "Cliente",

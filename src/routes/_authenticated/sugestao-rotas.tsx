@@ -1,3 +1,4 @@
+import { PedidoCodigo } from "@/components/orders/PedidoCodigo";
 import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -258,7 +259,7 @@ function SugestaoRotasPage() {
                       return (
                         <li key={r.id} className="px-3 py-2 flex flex-col gap-0.5">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="font-medium">{r.order_number}</span>
+                            <span className="font-medium"><PedidoCodigo codigo={r.order_number} /></span>
                             {noCoord && (
                               <Badge variant="outline" className="text-amber-600 border-amber-500/40">
                                 <AlertTriangle className="h-3 w-3 mr-1" /> sem lat/lng
@@ -336,7 +337,7 @@ function SugestaoRotasPage() {
                   <ul className="text-sm space-y-1">
                     {state.missingGeocode.map((m) => (
                       <li key={m.id}>
-                        <strong>{m.order_number}</strong> — {m.customer} · {m.city ?? "—"}
+                        <strong><PedidoCodigo codigo={m.order_number} /></strong> — {m.customer} · {m.city ?? "—"}
                       </li>
                     ))}
                   </ul>
@@ -719,7 +720,7 @@ function EditSuggestionDialog({
                   {draft.stops.map((s) => (
                     <li key={s.orderId} className="flex items-center justify-between gap-2 px-2 py-1.5">
                       <div>
-                        <span className="font-medium">{s.orderNumber}</span>{" "}
+                        <span className="font-medium"><PedidoCodigo codigo={s.orderNumber} /></span>{" "}
                         <span className="text-muted-foreground text-xs">
                           — {s.customerName} · {s.city ?? "?"}/{s.state ?? "?"}
                         </span>

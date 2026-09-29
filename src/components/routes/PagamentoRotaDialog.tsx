@@ -1,3 +1,4 @@
+import { PedidoCodigo } from "@/components/orders/PedidoCodigo";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -511,7 +512,7 @@ export function PagamentoRotaDialog({
                   <tbody>
                     {aud.faltantes.map((f) => (
                       <tr key={f.pedido} className="border-t border-destructive/20">
-                        <td className="py-1 tabular-nums">{f.pedido}</td>
+                        <td className="py-1 tabular-nums"><PedidoCodigo codigo={f.pedido} /></td>
                         <td className="py-1 tabular-nums">{f.codCliente ?? "—"}</td>
                         <td className="py-1">{f.cliente ?? "—"}</td>
                         <td className="py-1 tabular-nums">{f.agenda ?? "—"}</td>
@@ -623,7 +624,7 @@ export function PagamentoRotaDialog({
                             />
                           </td>
                         )}
-                        <td className="px-3 py-1 tabular-nums">{ped.cod_pedido}</td>
+                        <td className="px-3 py-1 tabular-nums"><PedidoCodigo codigo={ped.cod_pedido} /></td>
                         <td className="px-3 py-1 tabular-nums">
                           {ped.nro_nf ?? <span className="text-destructive">sem NF</span>}
                         </td>

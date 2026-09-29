@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.0] - 2026-09-29
+### Adicionado
+- Clique no código do pedido (em todas as telas) abre o histórico de status do pedido registrado no ERP (ligado só no ambiente de TESTE).
+
 ## [1.3.0] - 2026-09-29
 ### Adicionado
 - Gestor/Administrador pode atribuir o responsável de uma rota sem responsável; a alteração é gravada no ERP.

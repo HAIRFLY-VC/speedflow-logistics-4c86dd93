@@ -1,3 +1,4 @@
+import { PedidoCodigo } from "@/components/orders/PedidoCodigo";
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -601,7 +602,7 @@ function SeparacaoPage() {
                         const h = horasUteis(r.dt_inc, agora, movimento) ?? 0;
                         return (
                           <TableRow key={`${r.cod_pedido}-${r.cod_sep}`} className={h > 24 ? "bg-destructive/5" : ""}>
-                            <TableCell className="text-xs font-mono">{r.cod_pedido}</TableCell>
+                            <TableCell className="text-xs font-mono"><PedidoCodigo codigo={r.cod_pedido} /></TableCell>
                             <TableCell className="text-xs">{r.separador ?? "—"}</TableCell>
                             <TableCell className="text-xs">
                               <Badge variant={r.dt_ini_sep ? "default" : "secondary"} className="text-[10px]">
