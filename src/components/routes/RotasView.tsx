@@ -1456,7 +1456,8 @@ export function RotasView({
         align: "right",
         width: permitirConfirmacao ? "132px" : undefined,
         verticalHeader: permitirConfirmacao,
-        filterable: false,
+        filterAccessor: (r) => (r.frete_confirmado_em ? "Confirmado" : "Pendente"),
+        filterLabel: (r) => (r.frete_confirmado_em ? "Confirmado" : "Pendente"),
         accessor: (r) => freteOf(r),
         render: (r) => (
           <span onClick={(e) => e.stopPropagation()}>

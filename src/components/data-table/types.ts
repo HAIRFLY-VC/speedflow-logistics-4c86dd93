@@ -9,6 +9,8 @@ export type ColumnDef<T> = {
   render?: (row: T) => ReactNode;
   /** Optional human-readable label used in the filter list. Defaults to formatting the accessor. */
   filterLabel?: (row: T) => string;
+  /** Optional value used only for column filtering (falls back to accessor). */
+  filterAccessor?: (row: T) => unknown;
   /** Optional content type hint for ordering distinct filter values. */
   filterType?: "text" | "number" | "date";
   /** Aggregation cell used inside the group footer when groupBy is set. */
