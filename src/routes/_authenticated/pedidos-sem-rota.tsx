@@ -31,6 +31,7 @@ import { supabase } from "@/integrations/central/client";
 import { useClientesErp } from "@/hooks/useClientesErp";
 import { atribuirPedidosARota } from "@/lib/pedidos-sem-rota.functions";
 import { listarResponsaveisErp } from "@/lib/rota-erp.functions";
+import { pedidosSemRotaQueryOptions } from "@/lib/pedidos-sem-rota.query";
 
 export const Route = createFileRoute("/_authenticated/pedidos-sem-rota")({
   component: PedidosSemRotaPage,
@@ -53,8 +54,6 @@ export const Route = createFileRoute("/_authenticated/pedidos-sem-rota")({
   }),
 });
 
-const SEM_ROTA_DATE = "4000-01-01";
-
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
@@ -72,29 +71,7 @@ function PedidosSemRotaPage() {
   const qc = useQueryClient();
   const { nomeCliente, cidadeCliente, bairroCliente, ufCliente } = useClientesErp();
 
-  const pedidosQ = useQuery({
-    queryKey: ["pedidos-sem-rota"],
-    queryFn: async () => {
-      // Busca paginada (sem corte de 1000) e só pedidos ainda não expedidos.
-      const PAGINA = 1000;
-      const todos: any[] = [];
-      for (let de = 0; de < 20000; de += PAGINA) {
-        const { data, error } = await supabase
-          .from("orders")
-          .select(
-            "id, order_number, erp_id, erp_cod_cliente, total_amount, weight, cod_agenda, cod_filial, dt_prev_exp, delivery_address",
-          )
-          .or(`dt_prev_exp.is.null,dt_prev_exp.gte.${SEM_ROTA_DATE}`)
-          .or("erp_status.is.null,erp_status.neq.11-EXPEDIDO")
-          .order("order_number", { ascending: false })
-          .range(de, de + PAGINA - 1);
-        if (error) throw error;
-        todos.push(...(data ?? []));
-        if (!data || data.length < PAGINA) break;
-      }
-      return todos;
-    },
-  });
+  const pedidosQ = useQuery(pedidosSemRotaQueryOptions());
 
   const depositoQ = useQuery({
     queryKey: ["deposito-coords"],

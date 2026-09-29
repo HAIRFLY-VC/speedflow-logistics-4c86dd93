@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.0] - 2026-09-29
+### Adicionado
+- Rotas Pendentes ganhou um card com valor, peso, pedidos e entregas sem rota; quando há pendências, o fundo pisca em vermelho claro e o clique abre a tela "Pedidos sem rota".
+
 ## [1.7.4] - 2026-09-29
 ### Alterado
 - Na coluna "Pedidos por status", os status "01-DIGITADO" e "02-CRITICADO" aparecem em vermelho (código e contagem).
