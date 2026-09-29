@@ -319,10 +319,12 @@ function pesoOf(r: RouteRow) {
   return total;
 }
 // Abrevia rótulos longos de status do ERP para caberem em uma linha na coluna.
-// (o ERP usa "SOLICIDADA" para alguns pedidos — mapeamos as duas grafias)
+// (o ERP usa "SOLICIDADA" em alguns pedidos — mapeamos as duas grafias)
 const STATUS_ABREV: Record<string, string> = {
   "06-SEPARACAO SOLICITADA": "06-SEP. SOLIC.",
   "06-SEPARACAO SOLICIDADA": "06-SEP. SOLIC.",
+  "03.1-*LIB-CRITICADO": "03.1-*LIB-CRIT.",
+  "04-LIBERADO PRO": "04-LIB. PRO",
 };
 function statusCurto(st: string) {
   return STATUS_ABREV[st.trim().toUpperCase()] ?? st;
