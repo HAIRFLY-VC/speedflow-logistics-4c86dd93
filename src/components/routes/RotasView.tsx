@@ -373,7 +373,10 @@ function FreightInput({
   liberandoPix = false,
   vinculoBitrixOk = true,
   onEstado,
+  avisoTipo,
 }: {
+  /** Aviso quando a natureza do responsável no ERP não é EF/ET/EM. */
+  avisoTipo?: { mensagem: string; codErp: string | null } | null;
   onEstado?: (routeId: string, e: { valor: number; bloqueio: string | null }) => void;
   pix?: SituacaoPix | null;
   onLiberarPix?: (codErp: string) => void;
@@ -449,6 +452,12 @@ function FreightInput({
         : mostrarConfirmar && pix?.bloqueio === "PIX_ALTERADO"
           ? "PIX alterado — aguardando liberação de um administrador."
           : null;
+  const avisoTipoEl = avisoTipo ? (
+    <div className="flex max-w-[220px] flex-col items-end gap-1">
+      <span className="text-right text-[10px] leading-tight text-destructive">{avisoTipo.mensagem}</span>
+      {avisoTipo.codErp && <ConsultarPixButton codErp={avisoTipo.codErp} />}
+    </div>
+  ) : null;
   const avisoPix = mensagemPix ? (
     <div className="flex max-w-[220px] flex-col items-end gap-1">
       <span className="text-right text-[10px] leading-tight text-destructive">{mensagemPix}</span>
@@ -538,6 +547,7 @@ function FreightInput({
           </Button>
         )}
         {confirmado && avisoPix}
+        {avisoTipoEl}
       </div>
     );
   }
@@ -622,6 +632,7 @@ function FreightInput({
             {confirmado ? "Reabrir / Lançar adicional" : "Confirmar Pgto"}
           </Button>
           {avisoPix}
+          {avisoTipoEl}
           {!confirmado && (
             <AuditoriaBadge
               info={auditoria}
@@ -1076,6 +1087,22 @@ export function RotasView({
   const tipoFreteOf = (r: RouteRow): TipoFrete | null =>
     responsavelPorRota.get(r.id)?.tipoFrete ?? null;
 
+  /** Texto vermelho quando o tipo do responsável não é F/T/P. */
+  const avisoTipoDaRota = (r: RouteRow) => {
+    if (tipoFreteOf(r)) return null;
+    if (codsRotaQ.isFetching || responsaveisQ.isFetching || responsaveisLocaisQ.isFetching) return null;
+    const cod = codResponsavelPorRota.get(r.id);
+    if (!cod) return null;
+    const nat = naturezaDaRota(r);
+    if (nat) {
+      return {
+        mensagem: `Tipo do fretista inválido no ERP (natureza ${nat.natureza}, código ${nat.codErp}). Ajuste a natureza no ERP para EF, ET ou EM e clique em "Consultar PIX no ERP".`,
+        codErp: nat.codErp,
+      };
+    }
+    return { mensagem: `Fretista código ${cod} não encontrado no cadastro do ERP.`, codErp: cod };
+  };
+
   const estimativas = useMemo(() => {
     const map = new Map<string, SimulacaoRota>();
     const tabelas = tabelasQ.data ?? [];
@@ -1487,6 +1514,7 @@ export function RotasView({
                onLiberarPix={(cod) => liberarPix.mutate(cod)}
                liberandoPix={liberarPix.isPending}
                vinculoBitrixOk={vinculoBitrixOk}
+              avisoTipo={avisoTipoDaRota(r)}
               auditoriaCarregando={auditoriaQ.isFetching}
               onReauditar={() => void reauditar()}
               onValorChange={(id, v) =>

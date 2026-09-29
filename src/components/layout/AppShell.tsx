@@ -170,7 +170,13 @@ function SidebarToggleButton() {
   );
 }
 
-function AppSidebar() {
+function AppSidebar({
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+}) {
   const { role, user, signOut } = useAuth();
   const { isMobile, setOpenMobile } = useSidebar();
   const navigate = useNavigate();
@@ -187,7 +193,7 @@ function AppSidebar() {
   }
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       <SidebarHeader>
         <div className="flex items-center justify-between gap-2 px-2 py-2 group-data-[collapsible=icon]:justify-center">
           <div className="text-xs text-muted-foreground truncate group-data-[collapsible=icon]:hidden">
