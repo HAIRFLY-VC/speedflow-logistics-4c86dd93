@@ -941,20 +941,33 @@ export function RotasView({
   const responsaveisLocaisQ = useQuery({
     queryKey: ["erp-responsaveis"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("erp_responsaveis")
-        .select("cod_erp,razao_social,natureza,tipo_frete,pix")
-        .order("razao_social");
-      if (error) {
+      // O espelho passa de 1.000 registros e o PostgREST limita por página:
+      // percorrer todas as páginas, senão códigos além da primeira página
+      // ficam "não identificados" (sem tipo, sem PIX, sem natureza).
+      const COLS_COM_PIX = "cod_erp,razao_social,natureza,tipo_frete,pix";
+      const COLS_SEM_PIX = "cod_erp,razao_social,natureza,tipo_frete";
+      type Linha = { cod_erp: string; razao_social: string | null; natureza: string | null; tipo_frete: TipoFrete | null; pix: string | null };
+      const paginar = async (colunas: string): Promise<Linha[]> => {
+        const todas: Linha[] = [];
+        const PAGINA = 1000;
+        for (let de = 0; de < 100_000; de += PAGINA) {
+          const { data, error } = await supabase
+            .from("erp_responsaveis")
+            .select(colunas)
+            .order("razao_social")
+            .range(de, de + PAGINA - 1);
+          if (error) throw error;
+          todas.push(...((data ?? []) as unknown as Linha[]));
+          if ((data ?? []).length < PAGINA) break;
+        }
+        return todas;
+      };
+      try {
+        return await paginar(COLS_COM_PIX);
+      } catch {
         // Sem a coluna PIX (script ainda não aplicado), lê o cadastro sem ela.
-        const alt = await supabase
-          .from("erp_responsaveis")
-          .select("cod_erp,razao_social,natureza,tipo_frete")
-          .order("razao_social");
-        if (alt.error) throw alt.error;
-        return (alt.data ?? []).map((d) => ({ ...(d as object), pix: null })) as { cod_erp: string; razao_social: string | null; natureza: string | null; tipo_frete: TipoFrete | null; pix: string | null }[];
+        return (await paginar(COLS_SEM_PIX)).map((d) => ({ ...d, pix: null }));
       }
-      return (data ?? []) as { cod_erp: string; razao_social: string | null; natureza: string | null; tipo_frete: TipoFrete | null; pix: string | null }[];
     },
     staleTime: 30 * 60 * 1000,
   });
@@ -1320,15 +1333,14 @@ export function RotasView({
             responsavelPorRota.get(r.id),
           ) || <span className="text-muted-foreground">—</span>,
       },
-      ...(permitirConfirmacao
-        ? []
-        : [
-            {
+      {
         id: "tipo_frete",
         header: "Tipo",
         sortable: false,
         pinAfter: "motorista",
         align: "center",
+        width: permitirConfirmacao ? "40px" : undefined,
+        verticalHeader: permitirConfirmacao,
 
         accessor: (r) => tipoFreteOf(r) ?? "",
         render: (r) => {
@@ -1378,7 +1390,7 @@ export function RotasView({
             </span>
           );
         },
-      }] as ColumnDef<RouteRow>[]),
+      },
       {
         id: "paradas",
         header: "Qtd Entregas",
