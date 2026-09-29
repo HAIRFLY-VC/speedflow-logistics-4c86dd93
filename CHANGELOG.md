@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.0] - 2026-09-29
+### Adicionado
+- Aviso em vermelho nas telas de rotas quando o tipo do fretista no ERP não é EF/ET/EM (ou o código não existe no cadastro), com botão para consultar o ERP novamente.
+- Menu lateral abre ao passar o mouse e recolhe ao sair, no computador (ligado só no ambiente de TESTE).
+
 ## [1.0.1] - 2026-09-29
 ### Alterado
 - A coluna "Tipo" (F fretista, T transportadora, P próprio) voltou a aparecer em todas as telas de rotas, sempre imediatamente após "Fret / Transp", inclusive na tela "Autorizar pagamento de frete".
