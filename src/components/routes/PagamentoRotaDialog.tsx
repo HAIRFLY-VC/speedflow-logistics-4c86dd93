@@ -870,7 +870,7 @@ export function PagamentoRotaDialog({
           <Button
             onClick={() => enviar.mutate()}
             className={
-              enviar.isPending || !p || semBordero || semNota || dataInvalida || recalculando || valorEfetivo <= 0 || semSelecao || (jaConfirmado && !isAdmin) || !!bloqueioAtual
+              enviar.isPending || !p || semBordero || semNota || dataInvalida || recalculando || valorEfetivo <= 0 || semSelecao || (jaConfirmado && (tipo === "ADICIONAL" ? !podeAdicional : !isAdmin)) || !!bloqueioAtual
                 ? "cursor-not-allowed"
                 : "bg-emerald-600 text-white hover:bg-emerald-700"
             }
@@ -883,7 +883,7 @@ export function PagamentoRotaDialog({
               recalculando ||
               valorEfetivo <= 0 ||
               semSelecao ||
-              (jaConfirmado && !isAdmin) ||
+              (jaConfirmado && (tipo === "ADICIONAL" ? !podeAdicional : !isAdmin)) ||
               !!bloqueioAtual
             }
             title={bloqueioAtual ?? (semSelecao ? "Selecione ao menos uma nota" : undefined)}
