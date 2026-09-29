@@ -372,8 +372,8 @@ export async function auditarEImportarRotas(
       .in("route_id", Array.from(erpParaApp.values()));
     const extrasPorRota = new Map<string, { id: string; pedido: string }[]>();
     for (const [erpId, appId] of erpParaApp) {
-      const peds = esperados.get(erpId);
-      if (!peds || peds.size === 0) continue; // ERP sem pedidos: não mexe
+      // Consulta ao ERP bem-sucedida: rota vazia no ERP = nenhum pedido deve ficar no app.
+      const peds = esperados.get(erpId) ?? new Set<string>();
       for (const v of (vinculosApp ?? []) as { id: string; route_id: string; orders: { erp_id: string | null } | null }[]) {
         if (v.route_id !== appId) continue;
         const ped = v.orders?.erp_id ? String(v.orders.erp_id).trim() : null;
