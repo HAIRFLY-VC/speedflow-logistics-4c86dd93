@@ -15,7 +15,7 @@ A lista simples sob "Mapa e sequência da rota" vira uma tabela agrupada por cli
 - Agenda
 - Data do pedido
 - Data da agenda
-- OBS · OBS LOGIST · INF_CMP (textos longos quebram linha dentro da célula)
+- OBS · OBS LOGIST · INF_CMP: cada coluna mostra apenas um ícone destacado quando há conteúdo (vazio mostra "—"). Ao passar o mouse sobre o ícone, abre um popup com o texto completo do campo.
 
 **Ordem:** clientes na mesma sequência de entrega mostrada no mapa (parada 1, 2, 3...). Pedidos do mesmo cliente ficam juntos sob a parada dele.
 
@@ -27,7 +27,8 @@ O selo "endereço alternativo" continua aparecendo no cliente quando houver.
 
 ## Detalhes técnicos
 - Nova server function em `src/lib/rota-erp.functions.ts` (`listarPedidosDetalheRota`): recebe os códigos dos pedidos da rota e consulta o ERP (mesma base de `PENDING_ORDERS_SQL`/nota fiscal em `erp-sync.server.ts`) retornando cod_cliente, razão social, UF, cidade, bairro, status, cod_filial, nro_nf, cod/nome vendedor, cod_agenda, data pedido, data agenda, OBS, OBS_LOGIST, INF_CMP. Consulta em lotes, timeout de 60s com fallback vazio.
-- `RouteMapCard` em `src/routes/_authenticated/rotas.$routeId.tsx`: usa `useQuery` com essa função, junta pelos códigos, agrupa por cliente seguindo `sequenceStops` e renderiza tabela compacta (fonte pequena, sem rolagem lateral; OBS com quebra).
+- `RouteMapCard` em `src/routes/_authenticated/rotas.$routeId.tsx`: usa `useQuery` com essa função, junta pelos códigos, agrupa por cliente seguindo `sequenceStops` e renderiza tabela compacta (fonte pequena, sem rolagem lateral).
+- Campos OBS/OBS LOGIST/INF_CMP usam `HoverCard` (shadcn) com ícone de mensagem; conteúdo com `whitespace-pre-wrap` e largura máxima.
 - Status reutiliza a abreviação/cores existentes (`StatusList`) quando aplicável.
 - Atualizar `src/config/version.ts` e `CHANGELOG.md` para 1.10.0.
 
