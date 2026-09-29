@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.7.4] - 2026-09-29
+### Alterado
+- Na coluna "Pedidos por status", os status "01-DIGITADO" e "02-CRITICADO" aparecem em vermelho (código e contagem).
+
 ## [1.7.3] - 2026-09-29
 ### Alterado
 - Código da rota exibido sem o prefixo "ID" em todas as telas; coluna do código mais estreita.
