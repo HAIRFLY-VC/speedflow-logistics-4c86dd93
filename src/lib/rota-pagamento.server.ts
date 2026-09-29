@@ -384,7 +384,14 @@ export async function montarPreviewPagamentoRota(params: {
 
   const valor = cent(Number(params.valor ?? 0));
   const dataPagamento = normalizarDataPagamento(params.dataPagamento, rota.route_date);
-  const pix = await situacaoPix(await codResponsavelDaRota(rota));
+  const codResp = await codResponsavelDaRota(rota);
+  const pix = await situacaoPix(codResp);
+  // Usa sempre o responsável resolvido agora (a rota pode ter sido preenchida pelo ERP nesta chamada).
+  const rotaTexto = {
+    ...rota,
+    erp_carrier_code: pix.cod_erp ?? codResp ?? rota.erp_carrier_code,
+    driver_name: rota.driver_name ?? pix.favorecido,
+  };
 
   const escolhidos = (params.pedidos ?? []).map((c) => String(c));
   const selecao =
@@ -413,8 +420,9 @@ export async function montarPreviewPagamentoRota(params: {
     data_pagamento: dataPagamento,
     pedidos_selecionados: selecionadosAplicados,
     filiais,
+    responsavel: { cod_erp: rotaTexto.erp_carrier_code ?? null, nome: rotaTexto.driver_name ?? null },
     texto_tarefa: montarTextoTarefa(
-      rota,
+      rotaTexto,
       filiais,
       valor,
       params.tipo ?? "FRETE",
@@ -494,6 +502,13 @@ export async function confirmarPagamentoRota(params: {
       `Ainda há ${preview.pedidos_sem_faturamento} pedido(s) sem nota fiscal. O lançamento no ERP é feito por filial + nota fiscal + borderô, então todos os pedidos precisam estar faturados.`,
     );
   }
+
+  const resp = (preview as { responsavel?: { cod_erp: string | null; nome: string | null } }).responsavel;
+  if (!resp?.cod_erp) {
+    throw new Error("Fretista da rota não identificado — use \"Consultar PIX no ERP\" e tente novamente.");
+  }
+  rota.erp_carrier_code = resp.cod_erp;
+  rota.driver_name = resp.nome;
 
   // PIX validado no servidor (não confia no estado da tela).
   const pixAtual = preview.pix as SituacaoPix | null;
