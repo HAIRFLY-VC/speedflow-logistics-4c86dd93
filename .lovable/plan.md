@@ -1,16 +1,22 @@
-# Quantidade de entregas da rota 422
+# Histórico de status do pedido para todos os usuários (v1.5.2, PATCH)
 
 ## O que foi verificado
-- A coluna "Qtd Entregas" conta **1 entrega por cliente diferente** da rota.
-- No ERP, a rota 422 tem 25 pedidos com nota para **17 clientes diferentes**, ou seja, o 17 bate com o ERP pela regra atual.
-- O 26º pedido (4135456) está na rota, mas não tem nota nem cliente em entregas, por isso não entra na contagem.
+- A consulta do histórico não tem nenhuma restrição por tipo de usuário: qualquer pessoa logada pode usá-la.
+- A funcionalidade está **ligada só no ambiente de TESTE** e desligada na versão publicada (OFICIAL), como toda funcionalidade nova.
+- Provável causa: o administrador usa o TESTE (onde funciona) e os demais usuários usam a versão OFICIAL, onde o código do pedido não é clicável.
 
-## Proposta (PATCH v1.5.2)
-1. Contar entregas pelo código do cliente no ERP (mais confiável que o cadastro local), para que pedidos importados pela conferência nunca fiquem de fora.
-2. Mostrar ao passar o mouse na coluna: "17 clientes · 25 pedidos · 1 pedido sem nota", para deixar claro de onde vem o número.
+## O que muda
+1. Ligar o histórico de status do pedido também na versão OFICIAL.
+2. Atualizar versão para v1.5.2 e registrar no histórico de mudanças.
 
-Se a regra desejada for outra (1 por pedido, 1 por nota fiscal ou 1 por endereço), me diga ao rejeitar o plano que eu ajusto.
+## Riscos
+- Só leitura no ERP; nada é gravado. Sem mudança no banco.
+
+## Checklist para publicar
+- No preview, entrar com um usuário não administrador e clicar num código de pedido para ver o histórico.
+- Depois clicar em Publish/Update: só então os usuários da versão OFICIAL passam a ver.
+- Reverter: desligar a chave de novo ou voltar à versão anterior no histórico.
 
 ## Detalhes técnicos
-- `src/components/routes/RotasView.tsx` `paradasOf`: usar `orders.erp_cod_cliente` com fallback em `customer_id`; tooltip com contagens.
-- Sem migração; atualizar `version.ts` e `CHANGELOG.md`.
+- `src/config/features.ts`: `historicoStatusPedido: { test: true, production: true }`.
+- `src/config/version.ts` e `CHANGELOG.md`.
