@@ -34,7 +34,7 @@ export const historicoStatusPedido = createServerFn({ method: "POST" })
       const res = await fetch(`${cleanBase}/v1/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
-        body: JSON.stringify({ sql: SQL, binds: { codpedido: Number(data.codPedido) }, limit: 1000 }),
+        body: JSON.stringify({ sql: SQL, binds: { codpedido: data.codPedido }, limit: 1000 }),
         signal: controller.signal,
       });
       if (!res.ok) {
