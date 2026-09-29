@@ -16,13 +16,13 @@ Atualizar a tela **Pedidos sem rota** para usar toda a largura disponível, sem 
   - data da agenda;
   - indicadores de OBS, OBS LOGIST e INF_CMP.
 - Preservar a seleção por cliente, por pedido e “Selecionar todos os filtrados”, além do fluxo atual de atribuir uma rota.
-- Ordenar os grupos na sequência de entrega já calculada a partir do depósito; pedidos do mesmo cliente permanecem juntos.
+- Ordenar os grupos pela distância a partir do depósito, respeitando a hierarquia **UF → cidade → bairro → cliente**: primeiro as UFs mais próximas, depois as cidades dentro de cada UF, os bairros dentro de cada cidade e, por fim, os clientes dentro de cada bairro. Pedidos do mesmo cliente permanecem juntos.
 - Mostrar um ícone somente quando OBS, OBS LOGIST ou INF_CMP tiver conteúdo. No computador, o texto completo abre ao passar o mouse ou focar; em telas de toque, abre ao tocar.
 - Substituir a área estreita atual por uma composição responsiva de largura total:
   - no computador, cabeçalho do cliente e grade compacta de pedidos com larguras controladas e quebra apenas nos campos textuais;
   - em telas menores, cada pedido vira um bloco organizado, sem tabela larga e sem rolagem horizontal.
 - Manter busca, filtros, distância, valores, peso e quantidade de pedidos já existentes.
-- Reaproveitar a consulta de detalhes do ERP já utilizada na capa da rota, ajustando o carregamento em lotes para cobrir toda a lista filtrada sem o limite atual de 1.000 pedidos.
+- Reaproveitar a consulta de detalhes do ERP já utilizada na capa da rota, carregando os números em lotes para cobrir toda a lista filtrada sem o limite atual de 1.000 pedidos e sem alterar os totais compartilhados com o card de pendências.
 
 ## Versão e segurança
 - Classificação: **MINOR**, proposta **v1.11.0**, por ampliar a funcionalidade da listagem sem quebrar o fluxo atual.
@@ -33,7 +33,7 @@ Atualizar a tela **Pedidos sem rota** para usar toda a largura disponível, sem 
 
 ## Validação
 - Conferir cliente com um e com vários pedidos, garantindo que os dados do cliente não se repitam.
-- Conferir a ordem de entrega e a associação correta dos detalhes a cada pedido.
+- Conferir a ordem geográfica hierárquica por UF, cidade, bairro e cliente, além da associação correta dos detalhes a cada pedido.
 - Validar os três indicadores de observação com e sem conteúdo.
 - Validar busca, filtros, seleção individual, seleção por cliente e atribuição de rota.
 - Verificar em computador e celular que todos os dados cabem sem rolagem lateral.
