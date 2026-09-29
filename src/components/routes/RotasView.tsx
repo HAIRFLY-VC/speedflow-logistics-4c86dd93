@@ -1802,7 +1802,7 @@ export function RotasView({
               <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-lg sm:text-2xl font-bold tabular-nums break-words">
+              <div className="text-base sm:text-xl font-bold tabular-nums whitespace-nowrap">
                 {currencyFmt.format(totals.merchandise)}
               </div>
             </CardContent>
@@ -1813,7 +1813,7 @@ export function RotasView({
               <Weight className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-lg sm:text-2xl font-bold tabular-nums break-words">
+              <div className="text-base sm:text-xl font-bold tabular-nums whitespace-nowrap">
                 {weightFmt.format(totals.weight)} kg
               </div>
             </CardContent>
@@ -1824,7 +1824,7 @@ export function RotasView({
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-lg sm:text-2xl font-bold tabular-nums break-words">
+              <div className="text-base sm:text-xl font-bold tabular-nums whitespace-nowrap">
                 {totals.orders.toLocaleString("pt-BR")}
               </div>
             </CardContent>
@@ -1835,7 +1835,7 @@ export function RotasView({
               <MapPin className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-lg sm:text-2xl font-bold tabular-nums break-words">
+              <div className="text-base sm:text-xl font-bold tabular-nums whitespace-nowrap">
                 {totals.stops.toLocaleString("pt-BR")}
               </div>
             </CardContent>
@@ -1853,28 +1853,28 @@ export function RotasView({
                   </CardTitle>
                   <ArrowRight className="h-4 w-4 shrink-0 text-destructive" aria-hidden="true" />
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-x-3 gap-y-2 p-3 pt-0 lg:grid-cols-1">
+                <CardContent className="grid grid-cols-2 gap-x-3 gap-y-2 p-3 pt-0">
                   <div>
                     <p className="text-[11px] text-muted-foreground">Mercadorias</p>
-                    <p className="break-words text-sm font-bold tabular-nums">
+                    <p className="whitespace-nowrap text-sm font-bold tabular-nums">
                       {currencyFmt.format(resumoSemRota.valor)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[11px] text-muted-foreground">Peso</p>
-                    <p className="break-words text-sm font-bold tabular-nums">
-                      {weightFmt.format(resumoSemRota.peso)} kg
-                    </p>
-                  </div>
-                  <div>
                     <p className="text-[11px] text-muted-foreground">Pedidos</p>
-                    <p className="break-words text-sm font-bold tabular-nums">
+                    <p className="whitespace-nowrap text-sm font-bold tabular-nums">
                       {resumoSemRota.pedidos.toLocaleString("pt-BR")}
                     </p>
                   </div>
                   <div>
+                    <p className="text-[11px] text-muted-foreground">Peso</p>
+                    <p className="whitespace-nowrap text-sm font-bold tabular-nums">
+                      {weightFmt.format(resumoSemRota.peso)} kg
+                    </p>
+                  </div>
+                  <div>
                     <p className="text-[11px] text-muted-foreground">Entregas</p>
-                    <p className="break-words text-sm font-bold tabular-nums">
+                    <p className="whitespace-nowrap text-sm font-bold tabular-nums">
                       {resumoSemRota.entregas.toLocaleString("pt-BR")}
                     </p>
                   </div>
