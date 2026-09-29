@@ -258,10 +258,10 @@ function PedidosSemRotaPage() {
       .map(([chave, pedidos]) => {
         const ref = pedidos[0];
         const coordenadaPedido = pedidos
-          .map((pedido) => ({
-            lat: Number(pedido.deliveryLatitude),
-            lng: Number(pedido.deliveryLongitude),
-          }))
+          .filter(
+            (pedido) => pedido.deliveryLatitude != null && pedido.deliveryLongitude != null,
+          )
+          .map((pedido) => ({ lat: Number(pedido.deliveryLatitude), lng: Number(pedido.deliveryLongitude) }))
           .find((coordenada) => Number.isFinite(coordenada.lat) && Number.isFinite(coordenada.lng));
         const geo = coordenadaPedido ?? (ref.codCliente ? geoPorCliente.get(ref.codCliente) : undefined);
         const distanciaKm =
