@@ -44,6 +44,10 @@ import type { Database } from "@/integrations/supabase/types";
 import { AtribuirResponsavel } from "@/components/routes/AtribuirResponsavel";
 
 const weightFmt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
+const percentageFmt = new Intl.NumberFormat("pt-BR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 type RouteStatus = Database["public"]["Enums"]["route_status"];
 const ROUTE_STATUS_LABEL: Record<RouteStatus, string> = {
@@ -239,8 +243,15 @@ function RouteDetailPage() {
   const stops = stopsQ.data ?? [];
   const totals = useMemo(() => {
     let amount = 0;
-    for (const s of stops) amount += Number(s.orders?.total_amount ?? 0);
-    return { count: stops.length, amount };
+    let weight = 0;
+    let orders = 0;
+    for (const s of stops) {
+      if (!s.orders) continue;
+      amount += Number(s.orders.total_amount ?? 0);
+      weight += Number(s.orders.weight ?? 0);
+      orders += 1;
+    }
+    return { stops: stops.length, orders, amount, weight };
   }, [stops]);
 
   function invalidateAll() {
@@ -364,30 +375,6 @@ function RouteDetailPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const carrierAssign = useMutation({
-    mutationFn: async (cid: string) => {
-      const { error } = await supabase
-        .from("routes")
-        .update({ carrier_id: cid || null })
-        .eq("id", routeId);
-      if (error) throw error;
-    },
-    onSuccess: () => invalidateAll(),
-  });
-
-  const carriersQ = useQuery({
-    queryKey: ["carriers", "active"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("freight_carriers")
-        .select("id,full_name,vehicle_plate")
-        .eq("is_active", true)
-        .order("full_name");
-      if (error) throw error;
-      return data;
-    },
-  });
-
   if (routeQ.isLoading) {
     return (
       <AppShell>
@@ -505,27 +492,6 @@ function RouteDetailPage() {
                 </div>
               )}
 
-              {editable && canOperate ? (
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Fretista interno</p>
-                  <Select
-                    value={route.carrier_id ?? ""}
-                    onValueChange={(v) => carrierAssign.mutate(v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o fretista" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(carriersQ.data ?? []).map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.full_name}
-                          {c.vehicle_plate ? ` · ${c.vehicle_plate}` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : null}
             </CardContent>
           </Card>
 
@@ -536,15 +502,31 @@ function RouteDetailPage() {
             <CardContent className="text-sm space-y-1">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Paradas</span>
-                <span className="tabular-nums">{totals.count}</span>
+                <span className="tabular-nums">{totals.stops}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Pedidos</span>
+                <span className="tabular-nums">{totals.orders}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Valor total</span>
                 <span className="tabular-nums">{formatCurrency(totals.amount)}</span>
               </div>
               <div className="flex justify-between">
+                <span className="text-muted-foreground">Peso total</span>
+                <span className="tabular-nums">{weightFmt.format(totals.weight)} kg</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-muted-foreground">Frete</span>
                 <span className="tabular-nums">{formatCurrency(Number(route.total_freight))}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">% do frete</span>
+                <span className="tabular-nums">
+                  {totals.amount > 0
+                    ? `${percentageFmt.format((Number(route.total_freight) / totals.amount) * 100)}%`
+                    : "—"}
+                </span>
               </div>
             </CardContent>
           </Card>

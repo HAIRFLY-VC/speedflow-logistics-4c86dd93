@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.9.3] - 2026-09-29
+### Alterado
+- A capa da rota agora exibe no resumo o percentual do frete, a quantidade de pedidos e o peso total.
+- O campo "Fretista interno" não aparece mais no modo de visualização; a alteração do responsável permanece no botão "Editar".
+
 ## [1.9.2] - 2026-09-29
 ### Corrigido
 - A listagem de Rotas Pendentes agora reserva espaço para todas as colunas e exibe integralmente os valores e a ação de edição, sem rolagem lateral.
