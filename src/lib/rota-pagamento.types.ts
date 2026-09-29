@@ -81,6 +81,7 @@ export type PreviewPagamentoRota = {
   pedidos_selecionados: string[];
   filiais: FilialPagamento[];
   texto_tarefa: string;
+  responsavel?: { cod_erp: string | null; nome: string | null };
   /** PIX do responsável que receberá o pagamento. */
   pix: SituacaoPix;
 };
