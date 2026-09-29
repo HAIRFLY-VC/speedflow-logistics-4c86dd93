@@ -352,6 +352,12 @@ function slugify(s: string): string {
   );
 }
 
+// Status em destaque vermelho (situações críticas de digitação/crítica)
+const STATUS_VERMELHO = new Set(["01-DIGITADO", "02-CRITICADO"]);
+function statusVermelho(st: string) {
+  return STATUS_VERMELHO.has(st.trim().toUpperCase());
+}
+
 function StatusList({ map }: { map: Map<string, number> }) {
   const sorted = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   if (sorted.length === 0) return <span className="text-muted-foreground text-xs">—</span>;
@@ -359,8 +365,21 @@ function StatusList({ map }: { map: Map<string, number> }) {
     <div className="flex min-w-max flex-col gap-0.5 text-xs">
       {sorted.map(([st, count]) => (
         <div key={st} className="flex items-center justify-between gap-2">
-          <span className="shrink-0 font-medium whitespace-nowrap">{st}</span>
-          <span className="tabular-nums text-muted-foreground">{count}</span>
+          <span
+            className={
+              "shrink-0 font-medium whitespace-nowrap " +
+              (statusVermelho(st) ? "text-red-600" : "")
+            }
+          >
+            {st}
+          </span>
+          <span
+            className={
+              "tabular-nums " + (statusVermelho(st) ? "text-red-600" : "text-muted-foreground")
+            }
+          >
+            {count}
+          </span>
         </div>
       ))}
     </div>
