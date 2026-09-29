@@ -826,7 +826,7 @@ function GroupBlock<T>({
   const [expanded, setExpanded] = useState(defaultExpanded ?? false);
   return (
     <>
-      <TableRow className="bg-muted/50 font-semibold">
+      <TableRow className="border-y border-primary/25 bg-primary/10 font-semibold hover:bg-primary/15">
         {columns.map((c, idx) => {
           const alignClass =
             c.align === "right"
@@ -838,21 +838,40 @@ function GroupBlock<T>({
             return (
               <TableCell
                 key={c.id}
-                className="text-muted-foreground text-xs uppercase tracking-wider"
+                className="text-primary"
               >
                 <button
                   type="button"
                   onClick={() => setExpanded((e) => !e)}
-                  className="inline-flex items-center gap-1.5 hover:text-foreground"
+                  className="inline-flex items-center hover:text-foreground"
                   aria-expanded={expanded}
                   title={expanded ? "Comprimir detalhamento" : "Expandir detalhamento"}
+                  aria-label={expanded ? "Comprimir detalhamento" : "Expandir detalhamento"}
                 >
                   {expanded ? (
                     <ChevronDown className="h-4 w-4" />
                   ) : (
                     <ChevronRight className="h-4 w-4" />
                   )}
-                  <span>{groupBy.label(groupKey, rows)}</span>
+                </button>
+              </TableCell>
+            );
+          }
+          if (c.id === groupBy.id) {
+            return (
+              <TableCell
+                key={c.id}
+                className="whitespace-nowrap text-xs font-semibold text-primary"
+                style={c.width ? { width: c.width } : undefined}
+              >
+                <button
+                  type="button"
+                  onClick={() => setExpanded((e) => !e)}
+                  className="whitespace-nowrap hover:text-foreground"
+                  aria-expanded={expanded}
+                  title={expanded ? "Comprimir detalhamento" : "Expandir detalhamento"}
+                >
+                  {groupBy.label(groupKey, rows)}
                 </button>
               </TableCell>
             );
