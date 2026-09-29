@@ -43,6 +43,13 @@ export function AppShell({
 
   useEffect(() => {
     let cancelled = false;
+    // Modo automático (computador + flag): menu inicia recolhido e abre com o mouse.
+    const autoMode = window.innerWidth >= 768 && isFeatureOn("sidebarHoverExpand");
+    if (autoMode) {
+      setOpen(false);
+      loadedRef.current = true;
+      return;
+    }
     loadPref({})
       .then((res) => {
         if (cancelled) return;
