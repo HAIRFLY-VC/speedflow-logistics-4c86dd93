@@ -111,7 +111,7 @@ function PedidosSemRotaPage() {
       const hoje = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("routes")
-        .select("id, code, notes, route_date, driver_name")
+        .select("id, code, notes, route_date, driver_name, erp_route_id")
         .eq("status", "planejada")
         .gte("route_date", hoje)
         .lt("route_date", "3000-01-01")
@@ -319,7 +319,15 @@ function PedidosSemRotaPage() {
                   nomeResponsavel: resp?.razaoSocial ?? null,
                 },
               }
-            : { orderIds: selecionados, routeId: rotaExistente },
+            : (() => {
+                const r = (rotasQ.data ?? []).find((x) => x.id === rotaExistente);
+                return {
+                  orderIds: selecionados,
+                  routeId: rotaExistente,
+                  routeErpId: r?.erp_route_id ?? null,
+                  routeCode: r?.code ?? null,
+                };
+              })(),
       });
     },
     onSuccess: (r) => {
