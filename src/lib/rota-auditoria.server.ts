@@ -131,7 +131,8 @@ export async function auditarEImportarRotas(
    AND P.ID = R.ID
    AND G.COD_PEDIDO = P.PEDIDO
    AND G.NRO_NF IS NOT NULL
-   AND TRIM(G.BORDERO) IS NOT NULL`),
+   AND TRIM(G.BORDERO) IS NOT NULL
+   AND NVL(G.STATUS, '-') <> 'O'`),
     ]);
 
     // Pedidos esperados por rota (ERP)
