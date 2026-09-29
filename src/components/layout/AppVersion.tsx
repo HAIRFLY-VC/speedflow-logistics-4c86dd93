@@ -21,7 +21,7 @@ export function AppVersion() {
       {teste !== null && (
         <span
           className={`rounded px-1 py-0.5 font-bold tracking-wide ${
-            teste ? "bg-warning/20 text-warning-foreground border border-warning" : "bg-success/15 text-success border border-success"
+            teste ? "bg-accent text-accent-foreground border border-border" : "bg-primary text-primary-foreground border border-primary"
           }`}
         >
           {teste ? "TESTE" : "OFICIAL"}
