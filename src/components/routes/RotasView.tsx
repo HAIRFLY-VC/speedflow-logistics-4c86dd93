@@ -356,10 +356,10 @@ function StatusList({ map }: { map: Map<string, number> }) {
   const sorted = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   if (sorted.length === 0) return <span className="text-muted-foreground text-xs">—</span>;
   return (
-    <div className="flex flex-col gap-0.5 text-xs">
+    <div className="flex min-w-max flex-col gap-0.5 text-xs">
       {sorted.map(([st, count]) => (
         <div key={st} className="flex items-center justify-between gap-2">
-          <span className="font-medium whitespace-nowrap">{st}</span>
+          <span className="shrink-0 font-medium whitespace-nowrap">{st}</span>
           <span className="tabular-nums text-muted-foreground">{count}</span>
         </div>
       ))}
@@ -1345,11 +1345,11 @@ export function RotasView({
         header: "ID",
         pinFirst: true,
         sortable: false,
-        width: permitirConfirmacao ? "58px" : undefined,
+        width: permitirConfirmacao ? "40px" : undefined,
         accessor: (r) => r.erp_route_id ?? "",
         render: (r) =>
           r.erp_route_id ? (
-            <span className="font-semibold tabular-nums">ID {r.erp_route_id}</span>
+            <span className="font-semibold tabular-nums">{r.erp_route_id}</span>
           ) : (
             <span className="text-muted-foreground">—</span>
           ),
@@ -1571,7 +1571,7 @@ export function RotasView({
         header: "% Frete",
         sortable: false,
         align: "right",
-        width: permitirConfirmacao ? "58px" : undefined,
+        width: permitirConfirmacao ? "40px" : undefined,
         verticalHeader: permitirConfirmacao,
         filterable: false,
         accessor: (r) => {
@@ -1608,7 +1608,7 @@ export function RotasView({
         header: "Pedidos por status",
         sortable: false,
         filterable: false,
-        width: permitirConfirmacao ? "140px" : undefined,
+        width: permitirConfirmacao ? "190px" : "190px",
         verticalHeader: permitirConfirmacao,
         accessor: (r) =>
           Array.from(statusMapOf(r).keys()).join(", "),
@@ -1899,7 +1899,7 @@ export function RotasView({
         dataExpedicao={pagamento?.rota.route_date ?? null}
         rotulo={
           pagamento
-            ? `${pagamento.rota.erp_route_id ? `ID ${pagamento.rota.erp_route_id} · ` : ""}${nomeRotaOf(pagamento.rota)}`
+            ? `${pagamento.rota.erp_route_id ? `${pagamento.rota.erp_route_id} · ` : ""}${nomeRotaOf(pagamento.rota)}`
             : ""
         }
         valor={pagamento?.valor ?? 0}
