@@ -5,7 +5,7 @@ export const FEATURES = {
   /** Menu lateral abre ao passar o mouse e recolhe ao sair (computador). */
   sidebarHoverExpand: { test: true, production: false },
   /** Clique no código do pedido abre o histórico de status do ERP. */
-  historicoStatusPedido: { test: true, production: false },
+  historicoStatusPedido: { test: true, production: true },
   /** Autorizar pagamento: iguala os pedidos da rota no app aos do ERP. */
   reconciliarPedidosRota: { test: true, production: false },
 } as const;
