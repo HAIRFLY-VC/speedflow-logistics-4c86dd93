@@ -116,6 +116,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     cardHeaderAction,
     forceTableLayout = false,
     fitColumns = false,
+    defaultGroupsExpanded = false,
   } = props;
 
   const isMobile = useIsMobile();
@@ -344,6 +345,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                 onRowClick={onRowClick}
                 rowClassName={rowClassName}
                 cardHeaderAction={cardHeaderAction}
+                defaultExpanded={defaultGroupsExpanded}
               />
             ))}
           </div>
@@ -441,7 +443,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
               forceTableLayout && !fitColumns ? "min-w-max" : ""
             }${
               fitColumns
-                ? "text-xs [&_th]:px-1.5 [&_td]:px-1.5 [&_th]:py-1 [&_td]:py-1"
+                ? "table-fixed text-xs [&_th]:px-1.5 [&_td]:px-1.5 [&_th]:py-1 [&_td]:py-1 [&_th]:overflow-hidden [&_td]:overflow-hidden"
                 : ""
             }`}
           >
@@ -495,6 +497,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                   rowKey={rowKey}
                   onRowClick={onRowClick}
                   rowClassName={rowClassName}
+                  defaultExpanded={defaultGroupsExpanded}
                 />
               ))
             ) : (
@@ -808,6 +811,7 @@ function GroupBlock<T>({
   onRowClick,
   rowClassName,
   cardHeaderAction,
+  defaultExpanded,
 }: {
   groupKey: string;
   rows: T[];
@@ -817,8 +821,9 @@ function GroupBlock<T>({
   onRowClick?: (row: T) => void;
   rowClassName?: (row: T) => string | undefined;
   cardHeaderAction?: (row: T) => ReactNode;
+  defaultExpanded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded ?? false);
   return (
     <>
       <TableRow className="bg-muted/50 font-semibold">
@@ -885,6 +890,7 @@ function MobileCard<T>({
   onRowClick,
   rowClassName,
   cardHeaderAction,
+  defaultExpanded,
 }: {
   row: T;
   columns: ColumnDef<T>[];
@@ -963,8 +969,9 @@ function MobileGroup<T>({
   onRowClick?: (row: T) => void;
   rowClassName?: (row: T) => string | undefined;
   cardHeaderAction?: (row: T) => ReactNode;
+  defaultExpanded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded ?? false);
   return (
     <div className="border rounded-lg bg-card overflow-hidden">
       <button
