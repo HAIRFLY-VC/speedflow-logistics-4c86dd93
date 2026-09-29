@@ -120,6 +120,8 @@ function PedidosSemRotaPage() {
       if (error) throw error;
       return data ?? [];
     },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const carregarResponsaveis = useServerFn(listarResponsaveisErp);
@@ -333,8 +335,15 @@ function PedidosSemRotaPage() {
       qc.invalidateQueries({ queryKey: ["pedidos-sem-rota"] });
       qc.invalidateQueries({ queryKey: ["rotas-planejadas-sem-rota"] });
     },
-    onError: (e: unknown) =>
-      toast.error(e instanceof Error ? e.message : "Não foi possível atribuir os pedidos"),
+    onError: (e: unknown) => {
+      const msg = e instanceof Error ? e.message : "Não foi possível atribuir os pedidos";
+      toast.error(msg);
+      if (msg.includes("Rota não encontrada")) {
+        // A rota escolhida deixou de existir (ex.: removida/reorganizada pela sincronização do ERP).
+        setRotaExistente("");
+        qc.invalidateQueries({ queryKey: ["rotas-planejadas-sem-rota"] });
+      }
+    },
   });
 
   const podeSalvar =
@@ -547,7 +556,13 @@ function PedidosSemRotaPage() {
               <Button variant="ghost" size="sm" onClick={() => setSelecionados([])}>
                 Limpar
               </Button>
-              <Button size="sm" onClick={() => setPainelAberto(true)}>
+              <Button
+                size="sm"
+                onClick={() => {
+                  void rotasQ.refetch();
+                  setPainelAberto(true);
+                }}
+              >
                 Atribuir rota
               </Button>
             </div>

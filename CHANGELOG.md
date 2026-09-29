@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.3] - 2026-09-29
+### Corrigido
+- Pedidos sem rota: ao atribuir a uma rota que foi removida/reorganizada pela sincronização do ERP, o app avisa com mensagem clara e atualiza a lista de rotas; a lista é recarregada sempre que o painel é aberto.
+
 ## [1.8.2] - 2026-09-29
 ### Corrigido
 - Os valores dos cards de indicadores (Rotas Pendentes) não quebram mais em duas linhas; fonte reduzida para caber.
