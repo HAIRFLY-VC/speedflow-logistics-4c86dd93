@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.11.0] - 2026-09-29
+### Alterado
+- Pedidos sem rota agora agrupa cada cliente uma única vez, ordena por distância nos níveis UF, cidade, bairro e cliente e exibe os detalhes operacionais dos pedidos e suas observações sem rolagem lateral.
+
 ## [1.10.1] - 2026-09-29
 ### Corrigido
 - Fretistas voltam a abrir o pedido a partir de "Minhas Rotas" e das notificações sem a mensagem "Você não tem acesso a esta tela".

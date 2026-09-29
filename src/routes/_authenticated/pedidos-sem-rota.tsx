@@ -4,15 +4,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "@/lib/toast";
-import { Loader2, RefreshCw, Search } from "lucide-react";
+import { Loader2, MessageSquareText, RefreshCw, Search } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { MultiFiltro, type OpcaoFiltro } from "@/components/pedidos-sem-rota/MultiFiltro";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import {
   Sheet,
   SheetContent,
@@ -30,7 +30,11 @@ import {
 import { supabase } from "@/integrations/central/client";
 import { useClientesErp } from "@/hooks/useClientesErp";
 import { atribuirPedidosARota } from "@/lib/pedidos-sem-rota.functions";
-import { listarResponsaveisErp } from "@/lib/rota-erp.functions";
+import {
+  listarPedidosDetalheRota,
+  listarResponsaveisErp,
+  type PedidoDetalheRota,
+} from "@/lib/rota-erp.functions";
 import { pedidosSemRotaQueryOptions } from "@/lib/pedidos-sem-rota.query";
 
 export const Route = createFileRoute("/_authenticated/pedidos-sem-rota")({
@@ -56,6 +60,36 @@ export const Route = createFileRoute("/_authenticated/pedidos-sem-rota")({
 
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+
+const dataBr = (value: string | null) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString("pt-BR");
+};
+
+function Observacao({ label, texto }: { label: string; texto: string | null }) {
+  if (!texto) return <span className="text-muted-foreground/40">—</span>;
+  return (
+    <HoverCard openDelay={100} closeDelay={50}>
+      <HoverCardTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 text-primary"
+          aria-label={`Ver ${label}`}
+          title={`Ver ${label}`}
+        >
+          <MessageSquareText className="h-3.5 w-3.5" />
+        </Button>
+      </HoverCardTrigger>
+      <HoverCardContent className="w-80 max-w-[90vw] whitespace-pre-wrap break-words p-3 text-xs">
+        <p className="mb-1 font-semibold">{label}</p>
+        {texto}
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const rad = Math.PI / 180;
@@ -140,21 +174,63 @@ function PedidosSemRotaPage() {
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [painelAberto, setPainelAberto] = useState(false);
 
+  const numerosPedidos = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (pedidosQ.data ?? [])
+            .map((p) => String(p.erp_id ?? p.order_number ?? "").trim())
+            .filter(Boolean),
+        ),
+      ),
+    [pedidosQ.data],
+  );
+  const buscarDetalhes = useServerFn(listarPedidosDetalheRota);
+  const detalhesQ = useQuery({
+    queryKey: ["pedidos-sem-rota-detalhes", numerosPedidos],
+    queryFn: async () => {
+      const detalhes: PedidoDetalheRota[] = [];
+      for (let inicio = 0; inicio < numerosPedidos.length; inicio += 1000) {
+        detalhes.push(
+          ...(await buscarDetalhes({ data: { pedidos: numerosPedidos.slice(inicio, inicio + 1000) } })),
+        );
+      }
+      return detalhes;
+    },
+    enabled: numerosPedidos.length > 0,
+    staleTime: 60_000,
+  });
+
   const linhas = useMemo(() => {
-    return (pedidosQ.data ?? []).map((p) => ({
-      id: p.id,
-      numero: p.erp_id ?? p.order_number,
-      codCliente: p.erp_cod_cliente ? String(p.erp_cod_cliente).trim() : "",
-      cliente: nomeCliente(p.erp_cod_cliente),
-      cidade: cidadeCliente(p.erp_cod_cliente) ?? "",
-      bairro: bairroCliente(p.erp_cod_cliente) ?? "",
-      uf: ufCliente(p.erp_cod_cliente) ?? "",
-      agenda: p.cod_agenda == null ? "" : String(p.cod_agenda),
-      filial: p.cod_filial ? String(p.cod_filial) : "",
-      valor: Number(p.total_amount ?? 0),
-      peso: Number(p.weight ?? 0),
-    }));
-  }, [pedidosQ.data, nomeCliente, cidadeCliente, bairroCliente, ufCliente]);
+    const detalhePorPedido = new Map((detalhesQ.data ?? []).map((d) => [d.pedido, d]));
+    return (pedidosQ.data ?? []).map((p) => {
+      const numero = String(p.erp_id ?? p.order_number ?? "").trim();
+      const detalhe = detalhePorPedido.get(numero);
+      const codCliente = detalhe?.codCliente ?? (p.erp_cod_cliente ? String(p.erp_cod_cliente).trim() : "");
+      return {
+        id: p.id,
+        numero,
+        codCliente,
+        cliente: detalhe?.cliente ?? nomeCliente(codCliente),
+        cidade: detalhe?.cidade ?? cidadeCliente(codCliente) ?? "",
+        bairro: detalhe?.bairro ?? bairroCliente(codCliente) ?? "",
+        uf: detalhe?.uf ?? ufCliente(codCliente) ?? "",
+        agenda: detalhe?.codAgenda ?? (p.cod_agenda == null ? "" : String(p.cod_agenda)),
+        filial: detalhe?.codFilial ?? (p.cod_filial ? String(p.cod_filial) : ""),
+        valor: Number(p.total_amount ?? 0),
+        peso: Number(p.weight ?? 0),
+        status: detalhe?.status ?? null,
+        nf: detalhe?.nf ?? null,
+        codVendedor: detalhe?.codVendedor ?? null,
+        vendedor: detalhe?.vendedor ?? null,
+        dtPedido: detalhe?.dtPedido ?? null,
+        dtAgenda: detalhe?.dtAgenda ?? null,
+        obs: detalhe?.obs ?? null,
+        obsLogist: detalhe?.obsLogist ?? null,
+        infCmp: detalhe?.infCmp ?? null,
+      };
+    });
+  }, [pedidosQ.data, detalhesQ.data, nomeCliente, cidadeCliente, bairroCliente, ufCliente]);
 
   // Agrupa pedidos por cliente e ordena os clientes pela distância até o CD.
   const grupos = useMemo(() => {
@@ -176,7 +252,7 @@ function PedidosSemRotaPage() {
       porCliente.set(chave, arr);
     }
 
-    return Array.from(porCliente.entries())
+    const gruposBase = Array.from(porCliente.entries())
       .map(([chave, pedidos]) => {
         const ref = pedidos[0];
         const geo = ref.codCliente ? geoPorCliente.get(ref.codCliente) : undefined;
@@ -194,14 +270,36 @@ function PedidosSemRotaPage() {
           valor: pedidos.reduce((s, p) => s + p.valor, 0),
           peso: pedidos.reduce((s, p) => s + p.peso, 0),
         };
-      })
-      .sort((a, b) => {
-        if (a.distanciaKm == null && b.distanciaKm == null)
-          return a.cliente.localeCompare(b.cliente);
-        if (a.distanciaKm == null) return 1;
-        if (b.distanciaKm == null) return -1;
-        return a.distanciaKm - b.distanciaKm;
       });
+
+    const menorDistancia = (chave: (g: (typeof gruposBase)[number]) => string) => {
+      const mapa = new Map<string, number>();
+      for (const g of gruposBase) {
+        if (g.distanciaKm == null) continue;
+        const k = chave(g);
+        mapa.set(k, Math.min(mapa.get(k) ?? Number.POSITIVE_INFINITY, g.distanciaKm));
+      }
+      return mapa;
+    };
+    const ufKey = (g: (typeof gruposBase)[number]) => g.uf || "~";
+    const cidadeKey = (g: (typeof gruposBase)[number]) => `${ufKey(g)}|${g.cidade || "~"}`;
+    const bairroKey = (g: (typeof gruposBase)[number]) => `${cidadeKey(g)}|${g.bairro || "~"}`;
+    const distUf = menorDistancia(ufKey);
+    const distCidade = menorDistancia(cidadeKey);
+    const distBairro = menorDistancia(bairroKey);
+    const compararDistancia = (a: number | undefined, b: number | undefined) =>
+      (a ?? Number.POSITIVE_INFINITY) - (b ?? Number.POSITIVE_INFINITY);
+
+    return gruposBase.sort((a, b) =>
+      compararDistancia(distUf.get(ufKey(a)), distUf.get(ufKey(b))) ||
+      ufKey(a).localeCompare(ufKey(b)) ||
+      compararDistancia(distCidade.get(cidadeKey(a)), distCidade.get(cidadeKey(b))) ||
+      cidadeKey(a).localeCompare(cidadeKey(b)) ||
+      compararDistancia(distBairro.get(bairroKey(a)), distBairro.get(bairroKey(b))) ||
+      bairroKey(a).localeCompare(bairroKey(b)) ||
+      compararDistancia(a.distanciaKm ?? undefined, b.distanciaKm ?? undefined) ||
+      a.cliente.localeCompare(b.cliente),
+    );
   }, [linhas, geoQ.data, depositoQ.data]);
 
   const opcoes = useMemo(() => {
@@ -360,7 +458,7 @@ function PedidosSemRotaPage() {
 
   return (
     <AppShell>
-      <div className="mx-auto w-full max-w-3xl px-3 pb-28 pt-3 sm:px-4">
+      <div className="w-full px-3 pb-28 pt-3 sm:px-4 lg:px-5">
         <div className="mb-3 flex items-center justify-between gap-2">
           <div>
             <h1 className="text-lg font-semibold leading-tight">Pedidos sem rota</h1>
@@ -441,117 +539,105 @@ function PedidosSemRotaPage() {
             Nenhum pedido sem rota com esses filtros.
           </p>
         ) : (
-          <ul className="divide-y">
+          <div className="space-y-2">
+            {detalhesQ.isLoading && (
+              <div className="flex items-center gap-2 rounded border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando detalhes dos pedidos no ERP…
+              </div>
+            )}
+            {detalhesQ.isError && (
+              <div className="rounded border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                Os detalhes do ERP estão temporariamente indisponíveis. A seleção e a atribuição continuam disponíveis.
+              </div>
+            )}
             {gruposFiltrados.map((g) => {
               const idsGrupo = g.pedidos.map((p) => p.id);
               const marcadosGrupo = idsGrupo.filter((id) => selecionados.includes(id));
               const todosDoGrupo = marcadosGrupo.length === idsGrupo.length;
               const algumDoGrupo = marcadosGrupo.length > 0;
-              const unico = g.pedidos.length === 1 ? g.pedidos[0] : null;
               return (
-                <li key={g.chave} className="py-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setSelecionados((prev) =>
-                        todosDoGrupo
-                          ? prev.filter((id) => !idsGrupo.includes(id))
-                          : Array.from(new Set([...prev, ...idsGrupo])),
-                      )
-                    }
-                    className="flex w-full items-start gap-2 text-left"
-                  >
+                <section key={g.chave} className="overflow-hidden rounded border bg-card">
+                  <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 border-b bg-muted/45 px-2.5 py-2">
                     <Checkbox
                       checked={todosDoGrupo ? true : algumDoGrupo ? "indeterminate" : false}
-                      className="mt-0.5 pointer-events-none"
+                      className="mt-0.5"
+                      aria-label={`Selecionar pedidos de ${g.cliente}`}
+                      onCheckedChange={() =>
+                        setSelecionados((prev) =>
+                          todosDoGrupo
+                            ? prev.filter((id) => !idsGrupo.includes(id))
+                            : Array.from(new Set([...prev, ...idsGrupo])),
+                        )
+                      }
                     />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-sm font-medium">
-                          {g.codCliente ? `${g.codCliente} · ` : ""}
-                          {g.cliente}
-                        </span>
-                        <span className="shrink-0 text-[11px] text-muted-foreground">
-                          {g.distanciaKm != null ? `${g.distanciaKm.toFixed(0)} km` : ""}
-                          {g.pedidos.length > 1 ? ` · ${g.pedidos.length} pedidos` : ""}
-                        </span>
-                      </div>
-                      {(g.uf || g.cidade || g.bairro) && (
-                        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                          {[g.uf, g.cidade, g.bairro].filter(Boolean).join(" · ")}
-                        </p>
-                      )}
-                      {unico && (
-                        <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
-                          <span className="text-xs text-muted-foreground">#<PedidoCodigo codigo={unico.numero} /></span>
-                          {unico.agenda && (
-                            <Badge variant="outline" className="h-4 px-1 text-[10px]">
-                              Ag. {unico.agenda}
-                            </Badge>
-                          )}
-                          {unico.filial && (
-                            <Badge variant="outline" className="h-4 px-1 text-[10px]">
-                              Filial {unico.filial}
-                            </Badge>
-                          )}
-                          <span>{brl(unico.valor)}</span>
-                          {unico.peso > 0 && <span>{unico.peso.toFixed(0)} kg</span>}
-                        </div>
-                      )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold leading-tight">
+                        {g.cliente}{g.codCliente ? ` (${g.codCliente})` : ""}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        {[g.uf, g.cidade, g.bairro].filter(Boolean).join(" · ") || "Localidade não informada"}
+                      </p>
                     </div>
-                  </button>
+                    <div className="shrink-0 text-right text-[10px] leading-4 text-muted-foreground">
+                      <p>{g.distanciaKm != null ? `${g.distanciaKm.toFixed(0)} km` : "—"} · {g.pedidos.length} pedido(s)</p>
+                      <p>{brl(g.valor)} · {g.peso.toFixed(0)} kg</p>
+                    </div>
+                  </div>
 
-                  {!unico && (
-                    <ul className="mt-1 space-y-0.5 pl-6">
-                      {g.pedidos.map((p) => {
+                  <div className="hidden grid-cols-[26px_82px_minmax(92px,.8fr)_44px_70px_minmax(110px,1fr)_48px_68px_68px_34px_42px_42px] gap-x-1 border-b bg-muted/20 px-2 py-1 text-[9px] font-semibold text-muted-foreground lg:grid">
+                    <span />
+                    <span>Pedido</span><span>Status</span><span>Filial</span><span>NF</span><span>Vendedor</span>
+                    <span>Agenda</span><span>Dt. pedido</span><span>Dt. agenda</span><span>OBS</span><span>OBS LOG.</span><span>INF_CMP</span>
+                  </div>
+
+                  <ul className="divide-y divide-dashed">
+                    {[...g.pedidos]
+                      .sort((a, b) => (a.dtAgenda ?? "~").localeCompare(b.dtAgenda ?? "~") || a.numero.localeCompare(b.numero))
+                      .map((p) => {
                         const marcado = selecionados.includes(p.id);
                         return (
-                          <li key={p.id}>
-                            <button
-                              type="button"
-                              onClick={() =>
+                          <li key={p.id} className="px-2 py-2 lg:grid lg:grid-cols-[26px_82px_minmax(92px,.8fr)_44px_70px_minmax(110px,1fr)_48px_68px_68px_34px_42px_42px] lg:items-center lg:gap-x-1 lg:py-1.5 lg:text-[10px]">
+                            <Checkbox
+                              checked={marcado}
+                              aria-label={`Selecionar pedido ${p.numero}`}
+                              onCheckedChange={() =>
                                 setSelecionados((prev) =>
-                                  marcado
-                                    ? prev.filter((id) => id !== p.id)
-                                    : [...prev, p.id],
+                                  marcado ? prev.filter((id) => id !== p.id) : [...prev, p.id],
                                 )
                               }
-                              className="flex w-full items-center gap-2 rounded px-1 py-1 text-left"
-                            >
-                              <Checkbox checked={marcado} className="pointer-events-none" />
-                              <span className="shrink-0 text-xs text-muted-foreground">
-                                #<PedidoCodigo codigo={p.numero} />
-                              </span>
-                              {p.agenda && (
-                                <Badge variant="outline" className="h-4 px-1 text-[10px]">
-                                  Ag. {p.agenda}
-                                </Badge>
-                              )}
-                              {p.filial && (
-                                <Badge variant="outline" className="h-4 px-1 text-[10px]">
-                                  Filial {p.filial}
-                                </Badge>
-                              )}
-                              <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
-                                {brl(p.valor)}
-                                {p.peso > 0 ? ` · ${p.peso.toFixed(0)} kg` : ""}
-                              </span>
-                            </button>
+                            />
+                            <div className="ml-8 -mt-5 lg:m-0">
+                              <PedidoCodigo codigo={p.numero} />
+                              <p className="text-[9px] text-muted-foreground lg:hidden">{brl(p.valor)} · {p.peso.toFixed(0)} kg</p>
+                            </div>
+                            <p className="mt-2 text-xs font-medium lg:m-0 lg:text-[10px]">{p.status ?? "—"}</p>
+                            <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] sm:grid-cols-4 lg:contents">
+                              <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Filial</dt><dd>{p.filial || "—"}</dd></div>
+                              <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">NF</dt><dd className="break-words">{p.nf ?? "—"}</dd></div>
+                              <div className="min-w-0 lg:contents"><dt className="text-muted-foreground lg:hidden">Vendedor</dt><dd className="min-w-0 break-words">{p.vendedor ?? "—"}{p.codVendedor ? ` (${p.codVendedor})` : ""}</dd></div>
+                              <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Agenda</dt><dd>{p.agenda || "—"}</dd></div>
+                              <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Dt. pedido</dt><dd className="whitespace-nowrap">{dataBr(p.dtPedido)}</dd></div>
+                              <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Dt. agenda</dt><dd className="whitespace-nowrap">{dataBr(p.dtAgenda)}</dd></div>
+                            </dl>
+                            <div className="mt-2 flex items-center gap-2 lg:contents">
+                              <Observacao label="OBS" texto={p.obs} />
+                              <Observacao label="OBS LOGIST" texto={p.obsLogist} />
+                              <Observacao label="INF_CMP" texto={p.infCmp} />
+                            </div>
                           </li>
                         );
                       })}
-                    </ul>
-                  )}
-                </li>
+                  </ul>
+                </section>
               );
             })}
-          </ul>
+          </div>
         )}
       </div>
 
       {selecionados.length > 0 && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-3 py-2 backdrop-blur">
-          <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+          <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3">
             <div className="text-xs leading-tight">
               <p className="font-medium">
                 {resumoSelecao.qtd} pedido(s) · {resumoSelecao.entregas} entrega(s)
