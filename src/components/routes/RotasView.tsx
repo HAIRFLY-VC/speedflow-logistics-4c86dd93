@@ -318,12 +318,23 @@ function pesoOf(r: RouteRow) {
   for (const ro of r.route_orders ?? []) total += Number(ro.orders?.weight ?? 0);
   return total;
 }
+// Abrevia rótulos longos de status do ERP para caberem em uma linha na coluna.
+// (o ERP usa "SOLICIDADA" em alguns pedidos — mapeamos as duas grafias)
+const STATUS_ABREV: Record<string, string> = {
+  "06-SEPARACAO SOLICITADA": "06-SEP. SOLIC.",
+  "06-SEPARACAO SOLICIDADA": "06-SEP. SOLIC.",
+  "03.1-*LIB-CRITICADO": "03.1-*LIB-CRIT.",
+  "04-LIBERADO PRO": "04-LIB. PRO",
+};
+function statusCurto(st: string) {
+  return STATUS_ABREV[st.trim().toUpperCase()] ?? st;
+}
 function statusMapOf(r: RouteRow) {
   const m = new Map<string, Set<string>>();
   for (const ro of r.route_orders ?? []) {
     const o = ro.orders;
     if (!o) continue;
-    const st = o.erp_status ?? "—";
+    const st = statusCurto(o.erp_status ?? "—");
     if (!m.has(st)) m.set(st, new Set());
     m.get(st)!.add(o.order_number ?? "");
   }
@@ -347,8 +358,8 @@ function StatusList({ map }: { map: Map<string, number> }) {
   return (
     <div className="flex flex-col gap-0.5 text-xs">
       {sorted.map(([st, count]) => (
-        <div key={st} className="flex items-center justify-between gap-3">
-          <span className="font-medium">{st}</span>
+        <div key={st} className="flex items-center justify-between gap-2">
+          <span className="font-medium whitespace-nowrap">{st}</span>
           <span className="tabular-nums text-muted-foreground">{count}</span>
         </div>
       ))}
@@ -1597,7 +1608,7 @@ export function RotasView({
         header: "Pedidos por status",
         sortable: false,
         filterable: false,
-        width: permitirConfirmacao ? "112px" : undefined,
+        width: permitirConfirmacao ? "140px" : undefined,
         verticalHeader: permitirConfirmacao,
         accessor: (r) =>
           Array.from(statusMapOf(r).keys()).join(", "),
