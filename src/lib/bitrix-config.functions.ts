@@ -147,14 +147,30 @@ export const salvarVinculoBitrix = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await exigirAdmin(context as unknown as Ctx);
     const { centralDb } = await import("./central-db");
-    const { error } = await centralDb
+    const campos = {
+      bitrix_user_id: data.bitrix_user_id,
+      bitrix_user_nome: data.bitrix_user_id ? data.bitrix_user_nome : null,
+    };
+    // Tenta atualizar; se o perfil não existe no banco central, cria.
+    const upd = await centralDb
       .from("profiles")
-      .update({
-        bitrix_user_id: data.bitrix_user_id,
-        bitrix_user_nome: data.bitrix_user_id ? data.bitrix_user_nome : null,
-      } as never)
-      .eq("id", data.userId);
-    if (error) throw new Error(error.message);
+      .update(campos as never)
+      .eq("id", data.userId)
+      .select("id");
+    if (upd.error) throw new Error(upd.error.message);
+    if ((upd.data ?? []).length === 0) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: u } = await supabaseAdmin.auth.admin.getUserById(data.userId);
+      const meta = u?.user?.user_metadata as { full_name?: unknown } | undefined;
+      const fullName =
+        (typeof meta?.full_name === "string" ? meta.full_name : null) ?? u?.user?.email ?? null;
+      const ins = await centralDb
+        .from("profiles")
+        .upsert({ id: data.userId, full_name: fullName, ...campos } as never, { onConflict: "id" })
+        .select("id");
+      if (ins.error) throw new Error(ins.error.message);
+      if ((ins.data ?? []).length === 0) throw new Error("Não foi possível gravar o vínculo.");
+    }
     return { ok: true };
   });
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.1.3] - 2026-09-29
+### Corrigido
+- Vínculo com o Bitrix agora é gravado mesmo para usuários sem perfil no banco central (ex.: Gutemberg); a tela avisa se a gravação falhar.
+
 ## [1.1.2] - 2026-09-29
 ### Corrigido
 - Menu lateral automático (teste): no computador o menu inicia recolhido, abre ao passar o mouse e recolhe ao sair; o botão do topo fixa o menu aberto.
