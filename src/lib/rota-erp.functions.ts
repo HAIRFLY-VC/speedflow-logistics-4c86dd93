@@ -474,3 +474,86 @@ export const excluirTodosFaltantesDaRota = createServerFn({ method: "POST" })
     }
     return { ok: falhas.length === 0, excluidos, falhas };
   });
+
+/**
+ * Atribui o responsável (fretista/transportadora) a uma rota: grava no ERP
+ * (update_capa_rota) mantendo nome/data/status e depois atualiza o app.
+ * Somente Administrador ou Gestor.
+ */
+export const atribuirResponsavelRota = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { routeId: string; nomeRota: string; codErp: string; nome: string }) => {
+    if (!input?.routeId || !input?.codErp?.trim() || !input?.nome?.trim() || !input?.nomeRota?.trim())
+      throw new Error("Dados incompletos para atribuir o responsável");
+    return {
+      routeId: String(input.routeId),
+      nomeRota: input.nomeRota.trim().toUpperCase(),
+      codErp: input.codErp.trim(),
+      nome: input.nome.trim(),
+    };
+  })
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as {
+      supabase: { rpc: (fn: string, a: Record<string, unknown>) => Promise<{ data: unknown }> };
+      userId: string;
+    };
+    const [adm, gestor] = await Promise.all([
+      ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "adm" }),
+      ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "gestor" }),
+    ]);
+    if (!adm.data && !gestor.data)
+      throw new Error("Apenas Administrador ou Gestor pode atribuir o responsável da rota.");
+
+    const { data: rota, error } = await centralDb
+      .from("routes")
+      .select("id, erp_route_id, route_date, erp_status")
+      .eq("id", data.routeId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    const r = rota as { erp_route_id: string | null; route_date: string | null; erp_status: string | null } | null;
+    if (!r) throw new Error("Rota não encontrada");
+    const idErp = Number(String(r.erp_route_id ?? "").replace(/\D/g, ""));
+    if (!idErp) throw new Error("Rota sem código no ERP");
+
+    const baseUrl = process.env["ERP_API_BASE_URL"];
+    const apiKey = process.env["ERP_API_KEY"];
+    if (!baseUrl || !apiKey) throw new Error("Integração com o ERP não configurada");
+    const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/(query|execute)$/, "");
+    const dt = r.route_date ? r.route_date.slice(0, 10).replace(/-/g, "") : null;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45_000);
+    try {
+      const res = await fetch(`${cleanBase}/v1/execute/update_capa_rota`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+        body: JSON.stringify({
+          binds: {
+            id: idErp,
+            dt_prev_exp_yyyyMMdd: dt,
+            nome_rota: data.nomeRota,
+            nome_motorista: data.nome.toUpperCase(),
+            cod_frt_trp: data.codErp,
+            status: (r.erp_status ?? "P").trim().toUpperCase() || "P",
+          },
+        }),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        const texto = (await res.text()).replace(/\s+/g, " ").slice(0, 300);
+        throw new Error(`ERP recusou a alteração (${res.status})${texto ? `: ${texto}` : ""}`);
+      }
+    } catch (e) {
+      if ((e as Error).name === "AbortError") throw new Error("O ERP demorou para responder. Tente novamente.");
+      throw e;
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    const upd = await centralDb
+      .from("routes")
+      .update({ erp_carrier_code: data.codErp, driver_name: data.nome } as never)
+      .eq("id", data.routeId);
+    if (upd.error) throw new Error(upd.error.message);
+    return { ok: true as const };
+  });
