@@ -23,6 +23,8 @@ type NovaRota = {
 type Input = {
   orderIds: string[];
   routeId?: string | null;
+  routeErpId?: string | null;
+  routeCode?: string | null;
   nova?: NovaRota | null;
 };
 
@@ -106,7 +108,9 @@ export const atribuirPedidosARota = createServerFn({ method: "POST" })
       }
       if (!String(nova.nome ?? "").trim()) throw new Error("Informe o nome da rota");
     }
-    return { orderIds, routeId, nova };
+    const routeErpId = input?.routeErpId?.toString().trim() || null;
+    const routeCode = input?.routeCode?.trim() || null;
+    return { orderIds, routeId, routeErpId, routeCode, nova };
   })
   .handler(async ({ data, context }) => {
     await ensureStaff(context);
@@ -118,17 +122,29 @@ export const atribuirPedidosARota = createServerFn({ method: "POST" })
     let erpRouteId: string | null = null;
 
     if (routeId) {
-      const { data: rota, error } = await centralDb
-        .from("routes")
-        .select("id, code, notes, route_date, erp_route_id, driver_name")
-        .eq("id", routeId)
-        .maybeSingle();
+      // A sincronização com o ERP recria as rotas pendentes com novo id interno:
+      // procura pelo id e, se não achar, pelo número do ERP e pelo código.
+      const cols = "id, code, notes, route_date, erp_route_id, driver_name";
+      let { data: rota, error } = await centralDb.from("routes").select(cols).eq("id", routeId).maybeSingle();
       if (error) throw error;
+      if (!rota && data.routeErpId) {
+        const r = await centralDb.from("routes").select(cols).eq("erp_route_id", data.routeErpId)
+          .in("status", ["planejada", "em_andamento"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
+        if (r.error) throw r.error;
+        rota = r.data;
+      }
+      if (!rota && data.routeCode) {
+        const r = await centralDb.from("routes").select(cols).eq("code", data.routeCode)
+          .order("created_at", { ascending: false }).limit(1).maybeSingle();
+        if (r.error) throw r.error;
+        rota = r.data;
+      }
       if (!rota) {
         throw new Error(
           "Rota não encontrada: ela foi removida ou reorganizada pela sincronização do ERP. A lista de rotas foi atualizada — escolha a rota novamente.",
         );
       }
+      routeId = rota.id;
       routeDate = rota.route_date;
       nomeRota = (rota.notes?.startsWith("Rota ") ? rota.notes.slice(5) : rota.code).toUpperCase();
       erpRouteId = rota.erp_route_id ?? null;

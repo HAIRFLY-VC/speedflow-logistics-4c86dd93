@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.4] - 2026-09-29
+### Corrigido
+- Pedidos sem rota: atribuir a uma rota existente funciona mesmo quando a sincronização com o ERP recriou a rota no meio do processo (busca pelo número da rota no ERP).
+
 ## [1.8.3] - 2026-09-29
 ### Corrigido
 - Pedidos sem rota: ao atribuir a uma rota que foi removida/reorganizada pela sincronização do ERP, o app avisa com mensagem clara e atualiza a lista de rotas; a lista é recarregada sempre que o painel é aberto.
