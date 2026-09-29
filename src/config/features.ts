@@ -8,6 +8,8 @@ export const FEATURES = {
   historicoStatusPedido: { test: true, production: true },
   /** Autorizar pagamento: iguala os pedidos da rota no app aos do ERP. */
   reconciliarPedidosRota: { test: true, production: true },
+  /** Resumo pulsante dos pedidos sem rota na tela de Rotas Pendentes. */
+  cardPedidosSemRota: { test: true, production: true },
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;

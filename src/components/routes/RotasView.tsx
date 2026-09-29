@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator, Pencil } from "lucide-react";
+import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator, Pencil, ArrowRight } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { isFeatureOn } from "@/config/features";
 import { format } from "date-fns";
@@ -26,6 +26,7 @@ import { PagamentoRotaDialog } from "@/components/routes/PagamentoRotaDialog";
 import { ConsultarPixButton } from "@/components/routes/ConsultarPixButton";
 import { liberarNovoPix, situacaoPixResponsaveis } from "@/lib/rota-pagamento.functions";
 import { meuVinculoBitrix } from "@/lib/bitrix-config.functions";
+import { pedidosSemRotaQueryOptions } from "@/lib/pedidos-sem-rota.query";
 import type { SituacaoPix } from "@/lib/rota-pagamento.types";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -830,7 +831,7 @@ export function RotasView({
   tableKey,
 }: RotasViewProps) {
   const qc = useQueryClient();
-  const { cidadeCliente } = useClientesErp();
+  const { cidadeCliente, nomeCliente } = useClientesErp();
   const { role } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -905,6 +906,26 @@ export function RotasView({
       return rows;
     },
   });
+
+  const mostrarCardSemRota = mostrarAcoesDeRota && isFeatureOn("cardPedidosSemRota");
+  const pedidosSemRotaQ = useQuery({
+    ...pedidosSemRotaQueryOptions(),
+    enabled: mostrarCardSemRota,
+  });
+  const resumoSemRota = useMemo(() => {
+    const pedidos = pedidosSemRotaQ.data ?? [];
+    return {
+      valor: pedidos.reduce((s, p) => s + Number(p.total_amount ?? 0), 0),
+      peso: pedidos.reduce((s, p) => s + Number(p.weight ?? 0), 0),
+      pedidos: pedidos.length,
+      entregas: new Set(
+        pedidos.map((p) => {
+          const codigo = p.erp_cod_cliente == null ? "" : String(p.erp_cod_cliente).trim();
+          return codigo || nomeCliente(p.erp_cod_cliente);
+        }),
+      ).size,
+    };
+  }, [pedidosSemRotaQ.data, nomeCliente]);
 
   // O total_freight da rota guarda apenas o frete original. Adicionais são
   // autorizações independentes e não devem alterar esse valor (usado ao reabrir).
@@ -1763,6 +1784,68 @@ export function RotasView({
             {aguardandoValor} rota(s) de fretista com borderô completo aguardando a definição do
             valor do frete.
           </div>
+        )}
+
+        {mostrarCardSemRota && (
+          <Link
+            to="/pedidos-sem-rota"
+            className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label={`Abrir pedidos sem rota: ${resumoSemRota.pedidos} pedido(s)`}
+          >
+            <Card
+              className={`overflow-hidden border-destructive/35 transition-shadow hover:shadow-md ${
+                resumoSemRota.pedidos > 0 ? "animate-pending-route-alert" : ""
+              }`}
+            >
+              <CardHeader className="flex flex-row items-center justify-between gap-3 p-3 pb-2 sm:px-5 sm:pt-4">
+                <div className="space-y-0.5">
+                  <CardTitle className="text-sm font-semibold text-destructive sm:text-base">
+                    Pedidos pendentes sem rota
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    {pedidosSemRotaQ.isLoading
+                      ? "Consultando pedidos…"
+                      : pedidosSemRotaQ.isError
+                        ? "Não foi possível consultar os totais"
+                        : resumoSemRota.pedidos > 0
+                          ? "Atenção necessária"
+                          : "Nenhuma pendência"}
+                  </p>
+                </div>
+                {pedidosSemRotaQ.isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                ) : (
+                  <ArrowRight className="h-5 w-5 text-destructive" aria-hidden="true" />
+                )}
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-x-4 gap-y-3 p-3 pt-1 sm:grid-cols-4 sm:px-5 sm:pb-4">
+                <div>
+                  <p className="text-[11px] text-muted-foreground sm:text-xs">Mercadorias</p>
+                  <p className="text-base font-bold tabular-nums sm:text-lg">
+                    {currencyFmt.format(resumoSemRota.valor)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground sm:text-xs">Peso</p>
+                  <p className="text-base font-bold tabular-nums sm:text-lg">
+                    {weightFmt.format(resumoSemRota.peso)} kg
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground sm:text-xs">Pedidos</p>
+                  <p className="text-base font-bold tabular-nums sm:text-lg">
+                    {resumoSemRota.pedidos.toLocaleString("pt-BR")}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground sm:text-xs">Entregas</p>
+                  <p className="text-base font-bold tabular-nums sm:text-lg">
+                    {resumoSemRota.entregas.toLocaleString("pt-BR")}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         )}
 
 

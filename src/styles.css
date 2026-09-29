@@ -142,3 +142,21 @@
     color: var(--color-foreground);
   }
 }
+
+@keyframes pending-route-alert {
+  0%, 100% {
+    background-color: var(--color-card);
+  }
+  50% {
+    background-color: color-mix(in oklch, var(--color-destructive) 14%, var(--color-card));
+  }
+}
+
+@utility animate-pending-route-alert {
+  animation: pending-route-alert 1.6s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    background-color: color-mix(in oklch, var(--color-destructive) 14%, var(--color-card));
+  }
+}
