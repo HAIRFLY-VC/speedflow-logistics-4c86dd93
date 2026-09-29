@@ -2,7 +2,7 @@
 
 ## [1.7.2] - 2026-09-29
 ### Alterado
-- Na listagem de rotas, o status "06-SEPARACAO SOLICITADA" agora aparece abreviado como "06-SEP. SOLIC.", para cada status caber em uma única linha na coluna "Pedidos por status".
+- Na listagem de rotas, os status longos do ERP agora aparecem abreviados ("06-SEP. SOLIC.", "03.1-*LIB-CRIT.", "04-LIB. PRO"), para cada status caber em uma única linha na coluna "Pedidos por status".
 
 ## [1.7.1] - 2026-09-29
 ### Corrigido
