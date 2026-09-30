@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.13.1] - 2026-09-30
+### Removido
+- Rotas Pendentes: o botão "Atualizar rotas" (e o indicador "Atualizado há X minutos") saiu da tela; a sincronização continua disponível no cabeçalho do app.
+
 ## [1.13.0] - 2026-09-30
 ### Adicionado
 - Nova rota: o responsável (fretista, transportadora ou frota própria) agora é escolhido em uma lista pesquisável por nome ou código, igual à tela de edição de rota.
