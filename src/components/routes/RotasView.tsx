@@ -9,7 +9,6 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { ErpSyncButton } from "@/components/layout/ErpSyncButton";
 import { useClientesErp } from "@/hooks/useClientesErp";
 import { supabase } from "@/integrations/central/client";
 import { computeRoutePolyline } from "@/lib/route-directions.functions";
@@ -94,7 +93,7 @@ export type RotasViewProps = {
   titulo: string;
   /** Texto de apoio abaixo do título. */
   descricao: string;
-  /** Exibe o botão "Atualizar rotas" e "Nova rota". */
+  /** Exibe o botão "Nova rota". */
   mostrarAcoesDeRota?: boolean;
   /** Exibe o botão "Confirmar Pgto" na coluna de frete. */
   permitirConfirmacao?: boolean;
@@ -1791,7 +1790,6 @@ export function RotasView({
           </div>
           {mostrarAcoesDeRota && (
             <div className="flex w-full flex-wrap items-start gap-2 sm:w-auto">
-              <ErpSyncButton label="Atualizar rotas" lastSyncPrefix="Atualizado" />
               <Button onClick={() => setOpen(true)} className="flex-1 sm:flex-none">
                 <Plus className="h-4 w-4 mr-1" /> Nova rota
               </Button>
