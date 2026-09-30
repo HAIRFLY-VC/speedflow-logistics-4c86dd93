@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator, Pencil, ArrowRight } from "lucide-react";
+import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator, Pencil, ArrowRight, Check, ChevronsUpDown, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { isFeatureOn } from "@/config/features";
 import { format } from "date-fns";
@@ -60,6 +60,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DataTable, type ColumnDef } from "@/components/data-table/DataTable";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
 type RouteStatus = Database["public"]["Enums"]["route_status"];
