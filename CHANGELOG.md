@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0] - 2026-09-30
+### Adicionado
+- Nova rota: o responsável (fretista, transportadora ou frota própria) agora é escolhido em uma lista pesquisável por nome ou código, igual à tela de edição de rota.
+### Removido
+- Nova rota: removidos os campos "Frete total (R$)" e "Observações" — a rota nasce com frete zerado e observação padrão.
+
+
 ## [1.12.0] - 2026-09-30
 ### Adicionado
 - Pedidos sem rota: os filtros de Estado, Cidade e Bairro agora podem ser ordenados pela descrição (A–Z) ou pela distância em km do depósito, com a quilometragem exibida em cada item da lista.
