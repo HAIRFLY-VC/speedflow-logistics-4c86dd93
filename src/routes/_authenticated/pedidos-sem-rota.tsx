@@ -408,7 +408,7 @@ function PedidosSemRotaPage() {
       compararDistancia(a.distanciaKm ?? undefined, b.distanciaKm ?? undefined) ||
       a.cliente.localeCompare(b.cliente),
     );
-  }, [linhas, geoQ.data, depositoQ.data, clientesErp]);
+  }, [linhas, geoQ.data, depositoQ.data, clientesErp, localidadesQ.data]);
 
   const opcoes = useMemo(() => {
     const termo = busca.trim().toLowerCase();
