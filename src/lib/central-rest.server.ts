@@ -8,6 +8,15 @@
 
 /** Deriva `https://<ref>.supabase.co` a partir da string de conexão do banco. */
 export function getCentralRestUrl(): string {
+  const url = derivarCentralUrl();
+  const proprio = (process.env["SUPABASE_URL"] ?? "").replace(/\/+$/, "");
+  if (proprio && url === proprio) {
+    throw new Error("Banco central mal configurado: aponta para o banco do próprio app. Revise CENTRAL_SUPABASE_URL.");
+  }
+  return url;
+}
+
+function derivarCentralUrl(): string {
   const explicit = process.env["CENTRAL_SUPABASE_URL"];
   if (explicit) return explicit.replace(/\/+$/, "");
 

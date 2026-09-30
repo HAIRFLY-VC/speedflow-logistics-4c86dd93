@@ -15,10 +15,11 @@ export const chaveLocalidade = (l: Localidade) => `${norm(l.uf)}|${norm(l.cidade
 const MAX_NOVAS = 50;
 const CONCORRENCIA = 5;
 
-async function geocodificar(l: Localidade): Promise<{ lat: number; lng: number } | null> {
+/** undefined = falha temporária (não gravar no cache); null = não encontrado. */
+async function geocodificar(l: Localidade): Promise<{ lat: number; lng: number } | null | undefined> {
   const lovableKey = process.env["LOVABLE_API_KEY"];
   const gmKey = process.env["GOOGLE_MAPS_API_KEY"];
-  if (!lovableKey || !gmKey) return null;
+  if (!lovableKey || !gmKey) return undefined;
   const endereco = [l.bairro, l.cidade, l.uf, "Brasil"].filter((s) => s && s.trim()).join(", ");
   const comps = `country:BR|administrative_area:${encodeURIComponent(l.uf)}`;
   const url = `https://connector-gateway.lovable.dev/google_maps/maps/api/geocode/json?address=${encodeURIComponent(endereco)}&components=${comps}&region=br&language=pt-BR`;
@@ -27,14 +28,15 @@ async function geocodificar(l: Localidade): Promise<{ lat: number; lng: number }
   });
   if (!res.ok) {
     console.warn(`[geo-localidades] geocode ${res.status}: ${await res.text()}`);
-    return null;
+    return undefined;
   }
   const json = (await res.json()) as {
     status: string;
     results?: { geometry: { location: { lat: number; lng: number } }; address_components?: { short_name: string; types: string[] }[] }[];
   };
   const r = json.results?.[0];
-  if (json.status !== "OK" || !r) return null;
+  if (json.status === "ZERO_RESULTS") return null;
+  if (json.status !== "OK" || !r) return undefined;
   // Confere se o resultado está na UF pedida.
   const ufRes = r.address_components?.find((c) => c.types.includes("administrative_area_level_1"))?.short_name;
   if (ufRes && norm(ufRes) !== norm(l.uf)) return null;
@@ -61,14 +63,20 @@ export const localizarLocalidades = createServerFn({ method: "POST" })
       const { data: rows, error } = await (centralDb as any)
         .schema("speedflow")
         .from("geo_localidades")
-        .select("chave, uf, cidade, bairro, lat, lng")
+        .select("chave, uf, cidade, bairro, lat, lng, atualizado_em")
         .in("chave", chaves.slice(i, i + 200));
       if (error) {
         cacheOk = false;
         console.warn("[geo-localidades] cache indisponível:", error.message);
         break;
       }
-      for (const r of rows ?? []) resultado.set(r.chave, r);
+      for (const r of rows ?? []) {
+        // Entradas sem coordenada são reconsultadas depois de 7 dias.
+        const vazio = r.lat == null || r.lng == null;
+        const antigo = !r.atualizado_em || Date.now() - new Date(r.atualizado_em).getTime() > 7 * 86_400_000;
+        if (vazio && antigo) continue;
+        resultado.set(r.chave, r);
+      }
     }
 
     const faltando = chaves.filter((c) => !resultado.has(c)).slice(0, MAX_NOVAS);
@@ -79,6 +87,7 @@ export const localizarLocalidades = createServerFn({ method: "POST" })
           const l = unicas.get(chave)!;
           try {
             const geo = await geocodificar(l);
+            if (geo === undefined) return;
             const item = { chave, ...l, lat: geo?.lat ?? null, lng: geo?.lng ?? null };
             resultado.set(chave, item);
             novas.push(item);
@@ -95,5 +104,5 @@ export const localizarLocalidades = createServerFn({ method: "POST" })
         .upsert(novas.map((n) => ({ ...n, fonte: "google", atualizado_em: new Date().toISOString() })));
       if (error) console.warn("[geo-localidades] falha ao gravar cache:", error.message);
     }
-    return [...resultado.values()];
+    return [...resultado.values()].map(({ chave, uf, cidade, bairro, lat, lng }) => ({ chave, uf, cidade, bairro, lat, lng }));
   });

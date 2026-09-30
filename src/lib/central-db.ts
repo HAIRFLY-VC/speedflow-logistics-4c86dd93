@@ -17,6 +17,15 @@ type CentralClient = SupabaseClient<CentralDatabase>;
 let cached: CentralClient | null = null;
 
 function centralUrl(): string {
+  const url = derivarUrl();
+  const proprio = (process.env["SUPABASE_URL"] ?? "").replace(/\/+$/, "");
+  if (proprio && url === proprio) {
+    throw new Error("Banco central mal configurado: aponta para o banco do próprio app. Revise CENTRAL_SUPABASE_URL.");
+  }
+  return url;
+}
+
+function derivarUrl(): string {
   const explicit = process.env["CENTRAL_SUPABASE_URL"];
   if (explicit) return explicit.replace(/\/+$/, "");
   const raw = process.env["EXTERNAL_DB_URL"] ?? "";
