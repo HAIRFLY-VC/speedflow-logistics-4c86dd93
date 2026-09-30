@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.14.1] - 2026-09-30
+### Corrigido
+- Localização aproximada de bairro/cidade: falhas temporárias do Google Maps não ficam mais gravadas para sempre; locais sem coordenada são consultados de novo após 7 dias.
+- Detalhe da rota: falha na consulta ao ERP agora mostra erro em vez de tabela vazia.
+- Banco central: erro claro se a configuração apontar para o banco do próprio app.
+
 ## [1.14.0] - 2026-09-30
 ### Adicionado
 - Pedidos sem rota → Rota existente: opção para mostrar só rotas com entregas nas mesmas cidades dos pedidos escolhidos.
