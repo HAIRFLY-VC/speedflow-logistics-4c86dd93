@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.12.0] - 2026-09-30
+### Adicionado
+- Pedidos sem rota: os filtros de Estado, Cidade e Bairro agora podem ser ordenados pela descrição (A–Z) ou pela distância em km do depósito, com a quilometragem exibida em cada item da lista.
+
 ## [1.11.3] - 2026-09-30
 ### Corrigido
 - Pedidos sem rota: distância aproximada até bairro/cidade agora usa a localização do Google Maps (guardada para reuso) e, na falta dela, o ponto central dos clientes vizinhos ignorando cadastros com localização errada; distâncias improváveis deixam de ser exibidas.
