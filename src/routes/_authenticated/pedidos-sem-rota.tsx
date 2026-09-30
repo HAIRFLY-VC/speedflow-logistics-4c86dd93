@@ -103,7 +103,7 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 
 function PedidosSemRotaPage() {
   const qc = useQueryClient();
-  const { nomeCliente, cidadeCliente, bairroCliente, ufCliente } = useClientesErp();
+  const { nomeCliente, cidadeCliente, bairroCliente, ufCliente, clientes: clientesErp } = useClientesErp();
 
   const pedidosQ = useQuery(pedidosSemRotaQueryOptions());
 
@@ -246,6 +246,36 @@ function PedidosSemRotaPage() {
     }
     const deposito = depositoQ.data ?? null;
 
+    // Coordenadas médias por bairro e por cidade, derivadas dos clientes já
+    // geocodificados. Servem de aproximação quando o endereço exato do cliente
+    // ainda não foi localizado.
+    const norm = (v: string | null | undefined) => (v ?? "").trim().toUpperCase();
+    const acumuladores = new Map<string, { lat: number; lng: number; n: number }>();
+    const acumular = (chave: string, lat: number, lng: number) => {
+      const a = acumuladores.get(chave) ?? { lat: 0, lng: 0, n: 0 };
+      a.lat += lat;
+      a.lng += lng;
+      a.n += 1;
+      acumuladores.set(chave, a);
+    };
+    const chaveCidade = (uf: string, cidade: string) => `C|${uf}|${cidade}`;
+    const chaveBairro = (uf: string, cidade: string, bairro: string) => `B|${uf}|${cidade}|${bairro}`;
+    for (const c of clientesErp) {
+      const geo = geoPorCliente.get(String(c.cod_cliente).trim());
+      if (!geo) continue;
+      const uf = norm(c.uf);
+      const cidade = norm(c.cidade);
+      const bairro = norm(c.bairro);
+      if (uf && cidade) {
+        acumular(chaveCidade(uf, cidade), geo.lat, geo.lng);
+        if (bairro) acumular(chaveBairro(uf, cidade, bairro), geo.lat, geo.lng);
+      }
+    }
+    const centroide = (chave: string) => {
+      const a = acumuladores.get(chave);
+      return a && a.n > 0 ? { lat: a.lat / a.n, lng: a.lng / a.n } : undefined;
+    };
+
     const porCliente = new Map<string, typeof linhas>();
     for (const l of linhas) {
       const chave = l.codCliente || l.cliente;
@@ -263,7 +293,18 @@ function PedidosSemRotaPage() {
           )
           .map((pedido) => ({ lat: Number(pedido.deliveryLatitude), lng: Number(pedido.deliveryLongitude) }))
           .find((coordenada) => Number.isFinite(coordenada.lat) && Number.isFinite(coordenada.lng));
-        const geo = coordenadaPedido ?? (ref.codCliente ? geoPorCliente.get(ref.codCliente) : undefined);
+        const geoCadastro = ref.codCliente ? geoPorCliente.get(ref.codCliente) : undefined;
+        // Ordem: pedido → cadastro do cliente → bairro → cidade.
+        let geo = coordenadaPedido ?? geoCadastro;
+        let precisao: "exata" | "bairro" | "cidade" | null = geo ? "exata" : null;
+        if (!geo) {
+          geo = centroide(chaveBairro(norm(ref.uf), norm(ref.cidade), norm(ref.bairro)));
+          if (geo) precisao = "bairro";
+        }
+        if (!geo) {
+          geo = centroide(chaveCidade(norm(ref.uf), norm(ref.cidade)));
+          if (geo) precisao = "cidade";
+        }
         const distanciaKm =
           deposito && geo ? haversineKm(deposito.lat, deposito.lng, geo.lat, geo.lng) : null;
         return {
@@ -275,6 +316,7 @@ function PedidosSemRotaPage() {
           bairro: ref.bairro,
           uf: ref.uf,
           distanciaKm,
+          precisao: distanciaKm != null ? precisao : null,
           valor: pedidos.reduce((s, p) => s + p.valor, 0),
           peso: pedidos.reduce((s, p) => s + p.peso, 0),
         };
@@ -308,7 +350,7 @@ function PedidosSemRotaPage() {
       compararDistancia(a.distanciaKm ?? undefined, b.distanciaKm ?? undefined) ||
       a.cliente.localeCompare(b.cliente),
     );
-  }, [linhas, geoQ.data, depositoQ.data]);
+  }, [linhas, geoQ.data, depositoQ.data, clientesErp]);
 
   const opcoes = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -591,6 +633,22 @@ function PedidosSemRotaPage() {
                         {g.distanciaKm != null
                           ? `${g.distanciaKm.toFixed(0)} km`
                           : "Endereço não localizado"}{" "}
+                        {g.precisao === "bairro" && (
+                          <span
+                            className="rounded bg-amber-100 px-1 py-px text-[9px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                            title="Endereço exato não localizado; distância aproximada até o bairro"
+                          >
+                            ≈ bairro
+                          </span>
+                        )}
+                        {g.precisao === "cidade" && (
+                          <span
+                            className="rounded bg-amber-100 px-1 py-px text-[9px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                            title="Endereço exato não localizado; distância aproximada até a cidade"
+                          >
+                            ≈ cidade
+                          </span>
+                        )}{" "}
                         · {g.pedidos.length} pedido(s)
                       </p>
                       <p>{brl(g.valor)} · {g.peso.toFixed(0)} kg</p>
