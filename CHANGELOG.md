@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.11.3] - 2026-09-30
+### Corrigido
+- Pedidos sem rota: distância aproximada até bairro/cidade agora usa a localização do Google Maps (guardada para reuso) e, na falta dela, o ponto central dos clientes vizinhos ignorando cadastros com localização errada; distâncias improváveis deixam de ser exibidas.
+
 ## [1.11.2] - 2026-09-30
 ### Alterado
 - Pedidos sem rota: quando o endereço exato não foi localizado, a quilometragem passa a ser aproximada até o bairro (ou, na falta dele, até a cidade), com selo "≈ bairro" ou "≈ cidade" indicando a aproximação.

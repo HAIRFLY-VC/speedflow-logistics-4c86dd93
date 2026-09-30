@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/central/client";
+import { localizarLocalidades } from "@/lib/geo-localidades.functions";
 import { useClientesErp } from "@/hooks/useClientesErp";
 import { atribuirPedidosARota } from "@/lib/pedidos-sem-rota.functions";
 import {
@@ -234,6 +235,32 @@ function PedidosSemRotaPage() {
     });
   }, [pedidosQ.data, detalhesQ.data, nomeCliente, cidadeCliente, bairroCliente, ufCliente]);
 
+  // Localidades (bairro/cidade) de clientes sem endereço exato → Google Maps.
+  const localizar = useServerFn(localizarLocalidades);
+  const localidadesPendentes = useMemo(() => {
+    const comGeo = new Set((geoQ.data ?? []).map((g) => String(g.cod_cliente).trim()));
+    const mapa = new Map<string, { uf: string; cidade: string; bairro: string }>();
+    for (const l of linhas) {
+      if (l.deliveryLatitude != null && l.deliveryLongitude != null) continue;
+      if (l.codCliente && comGeo.has(l.codCliente)) continue;
+      if (!l.uf || !l.cidade) continue;
+      const up = (s: string) => s.trim().toUpperCase();
+      for (const bairro of l.bairro ? [l.bairro, ""] : [""]) {
+        const item = { uf: up(l.uf), cidade: up(l.cidade), bairro: up(bairro) };
+        mapa.set(`${item.uf}|${item.cidade}|${item.bairro}`, item);
+      }
+    }
+    return [...mapa.values()].sort((a, b) =>
+      `${a.uf}|${a.cidade}|${a.bairro}`.localeCompare(`${b.uf}|${b.cidade}|${b.bairro}`),
+    );
+  }, [linhas, geoQ.data]);
+  const localidadesQ = useQuery({
+    queryKey: ["geo-localidades", localidadesPendentes],
+    queryFn: () => localizar({ data: { localidades: localidadesPendentes } }),
+    enabled: localidadesPendentes.length > 0,
+    staleTime: 10 * 60_000,
+  });
+
   // Agrupa pedidos por cliente e ordena os clientes pela distância até o CD.
   const grupos = useMemo(() => {
     const geoPorCliente = new Map<string, { lat: number; lng: number }>();
@@ -246,17 +273,14 @@ function PedidosSemRotaPage() {
     }
     const deposito = depositoQ.data ?? null;
 
-    // Coordenadas médias por bairro e por cidade, derivadas dos clientes já
-    // geocodificados. Servem de aproximação quando o endereço exato do cliente
-    // ainda não foi localizado.
+    // Referências por bairro/cidade: 1º Google Maps (cache), 2º mediana dos
+    // clientes vizinhos já localizados, descartando pontos fora do padrão.
     const norm = (v: string | null | undefined) => (v ?? "").trim().toUpperCase();
-    const acumuladores = new Map<string, { lat: number; lng: number; n: number }>();
+    const pontos = new Map<string, { lat: number; lng: number }[]>();
     const acumular = (chave: string, lat: number, lng: number) => {
-      const a = acumuladores.get(chave) ?? { lat: 0, lng: 0, n: 0 };
-      a.lat += lat;
-      a.lng += lng;
-      a.n += 1;
-      acumuladores.set(chave, a);
+      const arr = pontos.get(chave) ?? [];
+      arr.push({ lat, lng });
+      pontos.set(chave, arr);
     };
     const chaveCidade = (uf: string, cidade: string) => `C|${uf}|${cidade}`;
     const chaveBairro = (uf: string, cidade: string, bairro: string) => `B|${uf}|${cidade}|${bairro}`;
@@ -271,10 +295,34 @@ function PedidosSemRotaPage() {
         if (bairro) acumular(chaveBairro(uf, cidade, bairro), geo.lat, geo.lng);
       }
     }
-    const centroide = (chave: string) => {
-      const a = acumuladores.get(chave);
-      return a && a.n > 0 ? { lat: a.lat / a.n, lng: a.lng / a.n } : undefined;
+    const mediana = (v: number[]) => {
+      const s = [...v].sort((a, b) => a - b);
+      const m = Math.floor(s.length / 2);
+      return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
     };
+    // Raio máximo aceitável em torno da mediana (km).
+    const RAIO_BAIRRO = 15;
+    const RAIO_CIDADE = 60;
+    const centroide = (chave: string, raio: number) => {
+      const arr = pontos.get(chave);
+      if (!arr?.length) return undefined;
+      const centro = { lat: mediana(arr.map((p) => p.lat)), lng: mediana(arr.map((p) => p.lng)) };
+      const proximos = arr.filter((p) => haversineKm(centro.lat, centro.lng, p.lat, p.lng) <= raio);
+      // Exige que a maioria concorde; senão a referência não é confiável.
+      if (proximos.length * 2 < arr.length || !proximos.length) return undefined;
+      return {
+        lat: mediana(proximos.map((p) => p.lat)),
+        lng: mediana(proximos.map((p) => p.lng)),
+      };
+    };
+    const geoLocalidade = new Map<string, { lat: number; lng: number }>();
+    for (const l of localidadesQ.data ?? []) {
+      if (l.lat != null && l.lng != null) geoLocalidade.set(l.chave, { lat: l.lat, lng: l.lng });
+    }
+    const googleLocal = (uf: string, cidade: string, bairro: string) =>
+      geoLocalidade.get(`${norm(uf)}|${norm(cidade)}|${norm(bairro)}`);
+    // Distância aproximada acima disso (km) é descartada como improvável.
+    const LIMITE_APROX_KM = 3000;
 
     const porCliente = new Map<string, typeof linhas>();
     for (const l of linhas) {
@@ -294,16 +342,26 @@ function PedidosSemRotaPage() {
           .map((pedido) => ({ lat: Number(pedido.deliveryLatitude), lng: Number(pedido.deliveryLongitude) }))
           .find((coordenada) => Number.isFinite(coordenada.lat) && Number.isFinite(coordenada.lng));
         const geoCadastro = ref.codCliente ? geoPorCliente.get(ref.codCliente) : undefined;
-        // Ordem: pedido → cadastro do cliente → bairro → cidade.
+        // Ordem: pedido → cadastro → bairro (Google/vizinhos) → cidade (Google/vizinhos).
         let geo = coordenadaPedido ?? geoCadastro;
         let precisao: "exata" | "bairro" | "cidade" | null = geo ? "exata" : null;
-        if (!geo) {
-          geo = centroide(chaveBairro(norm(ref.uf), norm(ref.cidade), norm(ref.bairro)));
+        const uf = norm(ref.uf);
+        const cid = norm(ref.cidade);
+        const bai = norm(ref.bairro);
+        if (!geo && bai) {
+          geo = googleLocal(uf, cid, bai) ?? centroide(chaveBairro(uf, cid, bai), RAIO_BAIRRO);
           if (geo) precisao = "bairro";
         }
-        if (!geo) {
-          geo = centroide(chaveCidade(norm(ref.uf), norm(ref.cidade)));
+        if (!geo && cid) {
+          geo = googleLocal(uf, cid, "") ?? centroide(chaveCidade(uf, cid), RAIO_CIDADE);
           if (geo) precisao = "cidade";
+        }
+        if (
+          geo && precisao !== "exata" && deposito &&
+          haversineKm(deposito.lat, deposito.lng, geo.lat, geo.lng) > LIMITE_APROX_KM
+        ) {
+          geo = undefined;
+          precisao = null;
         }
         const distanciaKm =
           deposito && geo ? haversineKm(deposito.lat, deposito.lng, geo.lat, geo.lng) : null;
@@ -350,7 +408,7 @@ function PedidosSemRotaPage() {
       compararDistancia(a.distanciaKm ?? undefined, b.distanciaKm ?? undefined) ||
       a.cliente.localeCompare(b.cliente),
     );
-  }, [linhas, geoQ.data, depositoQ.data, clientesErp]);
+  }, [linhas, geoQ.data, depositoQ.data, clientesErp, localidadesQ.data]);
 
   const opcoes = useMemo(() => {
     const termo = busca.trim().toLowerCase();
