@@ -62,6 +62,13 @@ export const Route = createFileRoute("/_authenticated/pedidos-sem-rota")({
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
+const chaveCidade = (uf: string, cidade: string) =>
+  `${uf}|${cidade}`
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .trim();
+
 const dataBr = (value: string | null) => {
   if (!value) return "—";
   const date = new Date(value);
@@ -532,6 +539,112 @@ function PedidosSemRotaPage() {
   const [nomeRota, setNomeRota] = useState("");
   const [responsavel, setResponsavel] = useState<string>("");
   const [rotaExistente, setRotaExistente] = useState<string>("");
+  const [soMesmasCidades, setSoMesmasCidades] = useState(true);
+  const [buscaRota, setBuscaRota] = useState("");
+
+  const idsRotas = useMemo(() => (rotasQ.data ?? []).map((r) => r.id), [rotasQ.data]);
+  const resumoRotasQ = useQuery({
+    queryKey: ["rotas-planejadas-resumo", idsRotas],
+    enabled: idsRotas.length > 0,
+    queryFn: async () => {
+      type Linha = {
+        route_id: string;
+        orders: { total_amount: number | null; weight: number | null; erp_cod_cliente: string | null } | null;
+      };
+      const todas: Linha[] = [];
+      for (let de = 0; de < 50_000; de += 1000) {
+        const { data, error } = await supabase
+          .from("route_orders")
+          .select("route_id, orders(total_amount, weight, erp_cod_cliente)")
+          .in("route_id", idsRotas)
+          .range(de, de + 999);
+        if (error) throw error;
+        todas.push(...((data ?? []) as unknown as Linha[]));
+        if (!data || data.length < 1000) break;
+      }
+      return todas;
+    },
+    staleTime: 0,
+  });
+
+  const resumoPorRota = useMemo(() => {
+    const acc = new Map<string, { valor: number; peso: number; clientes: Set<string> }>();
+    for (const l of resumoRotasQ.data ?? []) {
+      const o = l.orders;
+      if (!o) continue;
+      const r = acc.get(l.route_id) ?? { valor: 0, peso: 0, clientes: new Set<string>() };
+      r.valor += Number(o.total_amount ?? 0);
+      r.peso += Number(o.weight ?? 0);
+      if (o.erp_cod_cliente) r.clientes.add(o.erp_cod_cliente);
+      acc.set(l.route_id, r);
+    }
+    const out = new Map<
+      string,
+      {
+        valor: number;
+        peso: number;
+        entregas: number;
+        chaves: Set<string>;
+        ufs: { uf: string; cidades: { nome: string; qtd: number }[] }[];
+      }
+    >();
+    for (const [id, r] of acc) {
+      const porUf = new Map<string, Map<string, number>>();
+      const chaves = new Set<string>();
+      for (const cod of r.clientes) {
+        const uf = ufCliente(cod) || "—";
+        const cid = cidadeCliente(cod) || "Sem cidade";
+        chaves.add(chaveCidade(uf, cid));
+        const m = porUf.get(uf) ?? new Map<string, number>();
+        m.set(cid, (m.get(cid) ?? 0) + 1);
+        porUf.set(uf, m);
+      }
+      out.set(id, {
+        valor: r.valor,
+        peso: r.peso,
+        entregas: r.clientes.size,
+        chaves,
+        ufs: [...porUf.entries()]
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([uf, m]) => ({
+            uf,
+            cidades: [...m.entries()]
+              .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+              .map(([nome, qtd]) => ({ nome, qtd })),
+          })),
+      });
+    }
+    return out;
+  }, [resumoRotasQ.data, ufCliente, cidadeCliente]);
+
+  const cidadesSelecao = useMemo(() => {
+    const m = new Map<string, string>();
+    const sel = new Set(selecionados);
+    for (const p of pedidosQ.data ?? []) {
+      if (!sel.has(p.id) || !p.erp_cod_cliente) continue;
+      const uf = ufCliente(p.erp_cod_cliente) || "—";
+      const cid = cidadeCliente(p.erp_cod_cliente);
+      if (cid) m.set(chaveCidade(uf, cid), `${cid}/${uf}`);
+    }
+    return m;
+  }, [selecionados, pedidosQ.data, ufCliente, cidadeCliente]);
+
+  const rotasFiltradas = useMemo(() => {
+    const q = buscaRota.trim().toLowerCase();
+    return (rotasQ.data ?? [])
+      .map((r) => ({
+        rota: r,
+        nome: r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code,
+        resumo: resumoPorRota.get(r.id),
+      }))
+      .filter(({ nome, resumo }) => {
+        if (q && !nome.toLowerCase().includes(q)) return false;
+        if (!soMesmasCidades) return true;
+        if (!resumo) return false;
+        for (const k of cidadesSelecao.keys()) if (resumo.chaves.has(k)) return true;
+        return false;
+      });
+  }, [rotasQ.data, resumoPorRota, buscaRota, soMesmasCidades, cidadesSelecao]);
 
   const atribuir = useServerFn(atribuirPedidosARota);
   const mutation = useMutation({
@@ -882,23 +995,85 @@ function PedidosSemRotaPage() {
             </TabsContent>
 
             <TabsContent value="existente" className="space-y-3 pt-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Rota planejada</Label>
-                <Select value={rotaExistente} onValueChange={setRotaExistente}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Escolha a rota" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(rotasQ.data ?? []).map((r) => {
-                      const nome = r.notes?.startsWith("Rota ") ? r.notes.slice(5) : r.code;
-                      return (
-                        <SelectItem key={r.id} value={r.id}>
-                          {nome} · {r.route_date.split("-").reverse().join("/")}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+              <label className="flex items-center gap-2 text-xs">
+                <Checkbox
+                  checked={soMesmasCidades}
+                  onCheckedChange={(v) => setSoMesmasCidades(Boolean(v))}
+                />
+                Só rotas que passam nas mesmas cidades
+              </label>
+              <p className="text-[11px] text-muted-foreground">
+                {rotasFiltradas.length} de {(rotasQ.data ?? []).length} rotas
+                {soMesmasCidades && cidadesSelecao.size > 0 && (
+                  <> · cidades: {[...cidadesSelecao.values()].join(", ")}</>
+                )}
+              </p>
+              <Input
+                className="h-9"
+                placeholder="Buscar rota por nome"
+                value={buscaRota}
+                onChange={(e) => setBuscaRota(e.target.value)}
+              />
+              <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
+                {rotasQ.isLoading || resumoRotasQ.isLoading ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                ) : rotasFiltradas.length === 0 ? (
+                  <p className="py-4 text-center text-xs text-muted-foreground">
+                    Nenhuma rota encontrada.
+                  </p>
+                ) : (
+                  rotasFiltradas.map(({ rota: r, nome, resumo }) => {
+                    const ativo = rotaExistente === r.id;
+                    return (
+                      <button
+                        type="button"
+                        key={r.id}
+                        onClick={() => setRotaExistente(r.id)}
+                        className={`w-full rounded-md border p-2 text-left text-xs transition-colors ${
+                          ativo ? "border-primary bg-primary/10" : "hover:bg-muted"
+                        }`}
+                      >
+                        <div className="flex justify-between gap-2 font-medium">
+                          <span className="truncate">{nome}</span>
+                          <span>{r.route_date.split("-").reverse().join("/")}</span>
+                        </div>
+                        {!resumo || resumo.entregas === 0 ? (
+                          <p className="text-muted-foreground">Rota vazia</p>
+                        ) : (
+                          <>
+                            <p className="text-muted-foreground">
+                              {brl(resumo.valor)} · {resumo.peso.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} kg ·{" "}
+                              {resumo.entregas} entrega(s)
+                            </p>
+                            <p className="mt-0.5 leading-snug">
+                              {resumo.ufs.map((u, i) => (
+                                <span key={u.uf}>
+                                  {i > 0 && " · "}
+                                  <b>{u.uf}:</b>{" "}
+                                  {u.cidades.map((c, j) => (
+                                    <span
+                                      key={c.nome}
+                                      className={
+                                        cidadesSelecao.has(chaveCidade(u.uf, c.nome))
+                                          ? "font-semibold text-primary"
+                                          : undefined
+                                      }
+                                    >
+                                      {j > 0 && ", "}
+                                      {c.nome} ({c.qtd})
+                                    </span>
+                                  ))}
+                                </span>
+                              ))}
+                            </p>
+                          </>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
               </div>
             </TabsContent>
           </Tabs>

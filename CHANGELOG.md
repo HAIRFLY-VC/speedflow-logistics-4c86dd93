@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.14.0] - 2026-09-30
+### Adicionado
+- Pedidos sem rota → Rota existente: opção para mostrar só rotas com entregas nas mesmas cidades dos pedidos escolhidos.
+- Cada rota existente agora mostra valor total, peso, quantidade de entregas e resumo de UF/cidades, com busca por nome.
+
 ## [1.13.1] - 2026-09-30
 ### Removido
 - Rotas Pendentes: o botão "Atualizar rotas" (e o indicador "Atualizado há X minutos") saiu da tela; a sincronização continua disponível no cabeçalho do app.
