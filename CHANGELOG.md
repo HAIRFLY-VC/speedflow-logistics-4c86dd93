@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.11.2] - 2026-09-30
+### Alterado
+- Pedidos sem rota: quando o endereço exato não foi localizado, a quilometragem passa a ser aproximada até o bairro (ou, na falta dele, até a cidade), com selo "≈ bairro" ou "≈ cidade" indicando a aproximação.
+
 ## [1.11.1] - 2026-09-29
 ### Corrigido
 - Pedidos sem rota agora calcula a quilometragem usando primeiro as coordenadas específicas do pedido e identifica claramente os endereços ainda não localizados.
