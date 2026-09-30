@@ -620,18 +620,26 @@ function PedidosSemRotaPage() {
         </div>
 
         <div className="mb-2 flex flex-wrap gap-1.5">
-          <MultiFiltro label="Estado" opcoes={opcoes.uf} selecionados={uf} onChange={setUf} />
+          <MultiFiltro
+            label="Estado"
+            opcoes={opcoes.uf}
+            selecionados={uf}
+            onChange={setUf}
+            permiteOrdenarDistancia
+          />
           <MultiFiltro
             label="Cidade"
             opcoes={opcoes.cidade}
             selecionados={cidade}
             onChange={setCidade}
+            permiteOrdenarDistancia
           />
           <MultiFiltro
             label="Bairro"
             opcoes={opcoes.bairro}
             selecionados={bairro}
             onChange={setBairro}
+            permiteOrdenarDistancia
           />
           <MultiFiltro
             label="Agenda"
