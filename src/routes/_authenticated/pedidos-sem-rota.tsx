@@ -410,6 +410,24 @@ function PedidosSemRotaPage() {
     );
   }, [linhas, geoQ.data, depositoQ.data, clientesErp, localidadesQ.data]);
 
+  // Menor distância de cada UF/cidade/bairro até o depósito, reaproveitando
+  // as distâncias já calculadas para os grupos da listagem principal.
+  const distanciasFiltro = useMemo(() => {
+    const uf = new Map<string, number>();
+    const cidade = new Map<string, number>();
+    const bairro = new Map<string, number>();
+    const acumular = (mapa: Map<string, number>, chave: string, km: number | null) => {
+      if (km == null) return;
+      mapa.set(chave, Math.min(mapa.get(chave) ?? Number.POSITIVE_INFINITY, km));
+    };
+    for (const g of grupos) {
+      acumular(uf, g.uf || "(vazio)", g.distanciaKm);
+      acumular(cidade, g.cidade || "(vazio)", g.distanciaKm);
+      acumular(bairro, g.bairro || "(vazio)", g.distanciaKm);
+    }
+    return { uf, cidade, bairro };
+  }, [grupos]);
+
   const opcoes = useMemo(() => {
     const termo = busca.trim().toLowerCase();
 
@@ -429,7 +447,13 @@ function PedidosSemRotaPage() {
         atual.valorTotal += l.valor;
         map.set(v, atual);
       }
-      return Array.from(map.values()).sort((a, b) => a.valor.localeCompare(b.valor));
+      const distancias =
+        campo === "uf" || campo === "cidade" || campo === "bairro"
+          ? distanciasFiltro[campo]
+          : undefined;
+      return Array.from(map.values())
+        .map((o) => ({ ...o, distanciaKm: distancias?.get(o.valor) ?? null }))
+        .sort((a, b) => a.valor.localeCompare(b.valor));
     }
 
     return {
@@ -439,7 +463,7 @@ function PedidosSemRotaPage() {
       agenda: agrupar("agenda"),
       filial: agrupar("filial"),
     };
-  }, [linhas, uf, cidade, bairro, agenda, filial, busca]);
+  }, [linhas, uf, cidade, bairro, agenda, filial, busca, distanciasFiltro]);
 
   const filtradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -596,18 +620,26 @@ function PedidosSemRotaPage() {
         </div>
 
         <div className="mb-2 flex flex-wrap gap-1.5">
-          <MultiFiltro label="Estado" opcoes={opcoes.uf} selecionados={uf} onChange={setUf} />
+          <MultiFiltro
+            label="Estado"
+            opcoes={opcoes.uf}
+            selecionados={uf}
+            onChange={setUf}
+            permiteOrdenarDistancia
+          />
           <MultiFiltro
             label="Cidade"
             opcoes={opcoes.cidade}
             selecionados={cidade}
             onChange={setCidade}
+            permiteOrdenarDistancia
           />
           <MultiFiltro
             label="Bairro"
             opcoes={opcoes.bairro}
             selecionados={bairro}
             onChange={setBairro}
+            permiteOrdenarDistancia
           />
           <MultiFiltro
             label="Agenda"
