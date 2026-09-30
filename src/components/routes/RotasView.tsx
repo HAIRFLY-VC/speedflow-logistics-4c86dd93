@@ -2025,6 +2025,12 @@ export function RotasView({
   );
 }
 
+const TIPO_FRETE_LABEL_NOVA_ROTA: Record<ResponsavelErp["tipoFrete"], string> = {
+  P: "Própria",
+  F: "Fretista",
+  T: "Transportadora",
+};
+
 function NewRouteDialog({
   open,
   onOpenChange,
@@ -2034,11 +2040,19 @@ function NewRouteDialog({
   onOpenChange: (o: boolean) => void;
   onCreated: () => void;
 }) {
+  const getResponsaveis = useServerFn(listarResponsaveisErp);
   const [routeDate, setRouteDate] = useState(new Date().toISOString().slice(0, 10));
   const [routeName, setRouteName] = useState("");
-  const [driverName, setDriverName] = useState("");
-  const [freight, setFreight] = useState("0");
-  const [notes, setNotes] = useState("");
+  const [responsavel, setResponsavel] = useState<ResponsavelErp | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  const responsaveisQ = useQuery({
+    queryKey: ["responsaveis-erp"],
+    queryFn: () => getResponsaveis(),
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+  });
+  const responsaveis = responsaveisQ.data ?? [];
 
   const create = useMutation({
     mutationFn: async () => {
@@ -2047,9 +2061,10 @@ function NewRouteDialog({
       const { error } = await supabase.from("routes").insert({
         code,
         route_date: routeDate,
-        driver_name: driverName.trim() || null,
-        total_freight: Number(freight || 0),
-        notes: notes.trim() ? notes : `Rota ${routeName.trim()}`,
+        driver_name: responsavel?.razaoSocial?.trim().toUpperCase() || null,
+        erp_carrier_code: responsavel?.codErp ?? null,
+        total_freight: 0,
+        notes: `Rota ${routeName.trim()}`,
       });
       if (error) throw error;
     },
@@ -2058,9 +2073,7 @@ function NewRouteDialog({
       onCreated();
       onOpenChange(false);
       setRouteName("");
-      setDriverName("");
-      setFreight("0");
-      setNotes("");
+      setResponsavel(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -2087,27 +2100,83 @@ function NewRouteDialog({
             <Label className="text-xs">Data planejada de saída *</Label>
             <Input type="date" value={routeDate} onChange={(e) => setRouteDate(e.target.value)} />
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Frete total (R$)</Label>
-            <Input
-              type="number"
-              min="0"
-              step="0.01"
-              value={freight}
-              onChange={(e) => setFreight(e.target.value)}
-            />
-          </div>
           <div className="space-y-1.5 md:col-span-2">
-            <Label className="text-xs">Motorista</Label>
-            <Input
-              value={driverName}
-              onChange={(e) => setDriverName(e.target.value)}
-              placeholder="Nome do motorista"
-            />
-          </div>
-          <div className="space-y-1.5 md:col-span-2">
-            <Label className="text-xs">Observações</Label>
-            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <Label className="text-xs">Transportadora / Fretista / Frota própria</Label>
+            <div className="flex items-start gap-2">
+              <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={searchOpen}
+                    className="h-auto min-h-11 w-full min-w-0 items-start justify-between gap-2 whitespace-normal break-words py-2 text-left font-normal"
+                    disabled={responsaveisQ.isLoading}
+                  >
+                    {responsavel ? (
+                      <span className="flex min-w-0 flex-col">
+                        <span className="whitespace-normal break-words">{responsavel.razaoSocial}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {responsavel.codErp} · {TIPO_FRETE_LABEL_NOVA_ROTA[responsavel.tipoFrete]}
+                        </span>
+                      </span>
+                    ) : (
+                      "Selecione o responsável"
+                    )}
+                    <ChevronsUpDown className="mt-1 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-[--radix-popover-trigger-width] max-w-[calc(100vw-2rem)] p-0"
+                  align="start"
+                >
+                  <Command>
+                    <CommandInput placeholder="Buscar por razão social ou código..." />
+                    <CommandList>
+                      <CommandEmpty>
+                        {responsaveisQ.isLoading ? "Carregando..." : "Nenhum responsável encontrado."}
+                      </CommandEmpty>
+                      {responsaveis.map((r) => (
+                        <CommandItem
+                          key={r.codErp}
+                          value={`${r.razaoSocial} ${r.codErp} ${TIPO_FRETE_LABEL_NOVA_ROTA[r.tipoFrete]}`}
+                          onSelect={() => {
+                            setResponsavel(r);
+                            setSearchOpen(false);
+                          }}
+                          className="items-start"
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 mt-0.5 h-4 w-4 shrink-0",
+                              responsavel?.codErp === r.codErp ? "opacity-100" : "opacity-0",
+                            )}
+                          />
+                          <div className="flex min-w-0 flex-col">
+                            <span className="whitespace-normal break-words text-sm">{r.razaoSocial}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {r.codErp} · {TIPO_FRETE_LABEL_NOVA_ROTA[r.tipoFrete]}
+                            </span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {responsavel ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Limpar responsável"
+                  title="Limpar responsável"
+                  className="h-11 w-11 shrink-0"
+                  onClick={() => setResponsavel(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              ) : null}
+            </div>
           </div>
         </div>
         <DialogFooter>
