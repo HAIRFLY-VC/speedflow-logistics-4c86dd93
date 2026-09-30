@@ -631,6 +631,7 @@ export const listarPedidosDetalheRota = createServerFn({ method: "POST" })
       }
     } catch (error) {
       console.error("listarPedidosDetalheRota", mensagemErro(error));
+      if (out.size === 0) throw new Error(`Falha ao consultar pedidos no ERP: ${mensagemErro(error)}`);
     }
     return Array.from(out.values());
   });

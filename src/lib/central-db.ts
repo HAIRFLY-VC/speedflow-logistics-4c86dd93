@@ -9,6 +9,7 @@
  * este cliente, pois ele ignora RLS.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getCentralRestUrl } from "@/lib/central-rest.server";
 import type { CentralDatabase } from "@/integrations/central/types";
 
 /** Mesma tipagem das tabelas do app (os nomes são idênticos no esquema central). */
@@ -17,15 +18,7 @@ type CentralClient = SupabaseClient<CentralDatabase>;
 let cached: CentralClient | null = null;
 
 function centralUrl(): string {
-  const explicit = process.env["CENTRAL_SUPABASE_URL"];
-  if (explicit) return explicit.replace(/\/+$/, "");
-  const raw = process.env["EXTERNAL_DB_URL"] ?? "";
-  const host = /@([^:/@]+)/.exec(raw)?.[1] ?? "";
-  const direct = /^db\.([a-z0-9]+)\.supabase\.co$/.exec(host);
-  if (direct) return `https://${direct[1]}.supabase.co`;
-  const pooled = /:\/\/postgres\.([a-z0-9]+):/.exec(raw);
-  if (pooled) return `https://${pooled[1]}.supabase.co`;
-  throw new Error("URL da API do banco central não encontrada (CENTRAL_SUPABASE_URL).");
+  return getCentralRestUrl();
 }
 
 function makeClient(): CentralClient {
