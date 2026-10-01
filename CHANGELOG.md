@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.0] - 2026-10-01
+### Adicionado
+- Novo status de pagamento "Confirmado c/ pendência" quando a tarefa do Bitrix não é criada de primeira.
+- Ícone de alerta pulsante ao lado do ID da rota, com explicação da pendência ao passar o mouse.
+### Alterado
+- A tarefa do Bitrix é tentada novamente a cada minuto, até 10 vezes; o reenvio manual reinicia a contagem.
+
 ## [1.14.5] - 2026-10-01
 ### Corrigido
 - Autorizar pagamento de frete: rotas com borderô emitido cujos pedidos ainda não estavam no app (ex.: rota 423) agora aparecem e têm os pedidos importados do ERP automaticamente.

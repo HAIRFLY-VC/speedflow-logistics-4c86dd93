@@ -632,7 +632,7 @@ export async function confirmarPagamentoRota(params: {
     route_id: params.routeId,
     cte_id: null,
     status: "PENDENTE",
-    proxima_tentativa_em: new Date(Date.now() + 30 * 60_000).toISOString(),
+    proxima_tentativa_em: new Date(Date.now() + 60_000).toISOString(),
     payload: {
       origem: "ROTA",
       route_id: params.routeId,
@@ -766,16 +766,15 @@ export async function processarTarefaFinanceiraRota(
     return { ok: true, referencia: id };
   } catch (e) {
     const erro = (e as Error).message;
-    const { minutosAteProximaTentativa } = await import("./fila-retry.server");
     await centralDb
       .from("fila_provisionamento_financeiro")
       .update({
         status: "ERRO",
         tentativas,
         ultimo_erro: erro,
-        proxima_tentativa_em: new Date(
-          Date.now() + minutosAteProximaTentativa(tentativas) * 60_000,
-        ).toISOString(),
+        // Tarefa do Bitrix: uma tentativa por minuto, até 10.
+        proxima_tentativa_em:
+          tentativas >= 10 ? null : new Date(Date.now() + 60_000).toISOString(),
         processado_em: new Date().toISOString(),
       } as never)
       .eq("id", filaId);

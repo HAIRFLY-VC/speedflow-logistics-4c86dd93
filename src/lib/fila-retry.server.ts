@@ -22,6 +22,9 @@ const TABELA: Record<NomeFila, "fila_lancamento_erp_frete" | "fila_provisionamen
 /** Intervalos crescentes (minutos) por número de tentativas já realizadas. */
 const INTERVALOS = [1, 5, 15, 30];
 
+/** Tarefa do Bitrix: uma tentativa por minuto, no máximo 10. */
+export const MAX_TENTATIVAS_BITRIX = 10;
+
 export function minutosAteProximaTentativa(tentativas: number): number {
   const i = Math.max(0, Math.min(tentativas, INTERVALOS.length - 1));
   return INTERVALOS[i] ?? 30;
@@ -170,9 +173,9 @@ export async function tentarItem(
       .from(tabela)
       .update({
         raiz_id: raiz,
-        proxima_tentativa_em: resultado.ok
-          ? null
-          : emMinutos(minutosAteProximaTentativa(tentativas + 1)),
+        tentativas: tentativas + 1,
+        proxima_tentativa_em:
+          resultado.ok || tentativas + 1 >= MAX_TENTATIVAS_BITRIX ? null : emMinutos(1),
       } as never)
       .eq("id", filaId);
     return resultado.ok ? { ok: true } : { ok: false, erro: resultado.erro };
@@ -222,6 +225,7 @@ export async function processarPendencias(): Promise<{
       .limit(50);
     if (error) continue;
     for (const item of (data ?? []) as unknown as LinhaFila[]) {
+      if (fila === "financeiro" && Number(item.tentativas ?? 0) >= MAX_TENTATIVAS_BITRIX) continue;
       tentados += 1;
       const r = await tentarItem(fila, item.id, "AUTOMATICA");
       if (r.ok) resolvidos += 1;

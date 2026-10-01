@@ -113,3 +113,11 @@ export type PagamentoRotaHistorico = {
   tarefa_referencia: string | null;
   tarefa_erro: string | null;
 };
+
+export type PendenciaBitrixRota = {
+  route_id: string;
+  status: string;
+  tentativas: number;
+  ultimo_erro: string | null;
+  proxima_tentativa_em: string | null;
+};
