@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.15.4] - 2026-10-01
+### Corrigido
+- Detalhe da rota: clientes sem localização exata aparecem no mapa pela posição aproximada do bairro ou cidade, com o selo "≈ bairro"/"≈ cidade".
+- Sync: a busca de localização usa o endereço do cadastro do cliente no ERP e prioriza clientes de pedidos em aberto.
+
 ## [1.15.3] - 2026-10-01
 ### Corrigido
 - Detalhe da rota: a lista abaixo do mapa mostra todas as entregas. Pedidos sem localização aparecem no fim, com o aviso "Endereço não localizado".

@@ -788,6 +788,11 @@ function RouteMapSection({
           {depot && (
             <span className="text-muted-foreground">Origem: depósito configurado</span>
           )}
+          {aproximados.length > 0 && (
+            <span className="font-medium text-amber-700">
+              {aproximados.length} pedido(s) com posição aproximada (≈ bairro/cidade)
+            </span>
+          )}
           {semGeo.length > 0 && (
             <span className="font-medium text-amber-700">
               {semGeo.length} pedido(s) sem localização — listados no fim, fora do mapa
@@ -847,7 +852,7 @@ function PedidosDaRotaTabela({
   const det = new Map((detQ.data ?? []).map((d) => [d.pedido, d]));
 
   // Agrupa por cliente mantendo a ordem da primeira parada de cada cliente.
-  type Grupo = { key: string; cod: string | null; nome: string; uf: string | null; cidade: string | null; bairro: string | null; alt: string | null; semGeo: boolean; itens: { num: string; d?: PedidoDetalheRota }[] };
+  type Grupo = { key: string; cod: string | null; nome: string; uf: string | null; cidade: string | null; bairro: string | null; alt: string | null; semGeo: boolean; aprox: string | null; itens: { num: string; d?: PedidoDetalheRota }[] };
   const grupos: Grupo[] = [];
   const idx = new Map<string, Grupo>();
   for (const o of ordered) {
@@ -865,6 +870,7 @@ function PedidosDaRotaTabela({
         bairro: d?.bairro ?? null,
         alt: o.coordSource === "order" ? o.deliveryAddress : null,
         semGeo: o.coordSource === "none",
+        aprox: o.coordSource === "bairro" || o.coordSource === "cidade" ? o.coordSource : null,
         itens: [],
       };
       idx.set(key, g);
@@ -917,6 +923,14 @@ function PedidosDaRotaTabela({
                       title={`Endereço alternativo (OBS_LOGIST): ${g.alt}`}
                     >
                       endereço alternativo
+                    </span>
+                  ) : null}
+                  {g.aprox ? (
+                    <span
+                      className="ml-2 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800"
+                      title={`Cliente sem localização exata: posição aproximada pelo centro do ${g.aprox}`}
+                    >
+                      ≈ {g.aprox}
                     </span>
                   ) : null}
                   {g.semGeo ? (
