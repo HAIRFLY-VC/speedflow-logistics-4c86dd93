@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.15.5] - 2026-10-01
+### Alterado
+- Nova rota: o número da rota é reservado primeiro na sequência do ERP e enviado na gravação, garantindo o mesmo número no ERP e no app.
+
 ## [1.15.4] - 2026-10-01
 ### Corrigido
 - Detalhe da rota: clientes sem localização exata aparecem no mapa pela posição aproximada do bairro ou cidade, com o selo "≈ bairro"/"≈ cidade".
