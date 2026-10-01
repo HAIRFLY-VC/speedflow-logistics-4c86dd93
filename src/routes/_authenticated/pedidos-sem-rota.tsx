@@ -1025,6 +1025,32 @@ function PedidosSemRotaPage() {
             </TabsContent>
 
             <TabsContent value="existente" className="space-y-3 pt-3">
+              <div className="rounded-md border bg-muted/40 p-2 text-xs">
+                <div className="mb-0.5 font-medium">Pedidos selecionados</div>
+                <p className="text-muted-foreground">
+                  {brl(resumoSelecao.valor)} ·{" "}
+                  {resumoSelecao.peso.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} kg ·{" "}
+                  {resumoSelecao.entregas} entrega(s)
+                </p>
+                <p className="mt-0.5 leading-snug">
+                  {resumoSelecaoUfs.entregas === 0 ? (
+                    <span className="text-muted-foreground">Sem entregas identificadas</span>
+                  ) : (
+                    resumoSelecaoUfs.ufs.map((u, i) => (
+                      <span key={u.uf}>
+                        {i > 0 && " · "}
+                        <b>{u.uf}:</b>{" "}
+                        {u.cidades.map((c, j) => (
+                          <span key={c.nome}>
+                            {j > 0 && ", "}
+                            {c.nome} ({c.qtd})
+                          </span>
+                        ))}
+                      </span>
+                    ))
+                  )}
+                </p>
+              </div>
               <label className="flex items-center gap-2 text-xs">
                 <Checkbox
                   checked={soMesmasCidades}

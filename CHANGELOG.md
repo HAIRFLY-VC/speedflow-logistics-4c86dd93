@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.14.2] - 2026-10-01
+### Adicionado
+- Pedidos sem rota → Rota existente: cartão "Pedidos selecionados" mostra valor, peso, entregas e composição por UF/cidade dos pedidos escolhidos, no mesmo formato dos cartões de rota.
+
 ## [1.14.1] - 2026-09-30
 ### Corrigido
 - Localização aproximada de bairro/cidade: falhas temporárias do Google Maps não ficam mais gravadas para sempre; locais sem coordenada são consultados de novo após 7 dias.
