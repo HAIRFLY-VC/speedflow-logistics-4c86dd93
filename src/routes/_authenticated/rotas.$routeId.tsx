@@ -700,10 +700,21 @@ function RouteMapSection({
     })
     .filter((x): x is NonNullable<typeof x> => !!x);
 
-  if (mapStops.length === 0) return null;
+  // Entregas sem coordenadas não entram no mapa, mas continuam na lista.
+  const semGeo = stops
+    .map((s) => s.orders)
+    .filter((o): o is NonNullable<typeof o> => !!o && !mapStops.some((m) => m.orderId === o.id))
+    .map((o) => ({
+      orderNumber: o.order_number,
+      customerCode: o.erp_cod_cliente ?? null,
+      coordSource: "none",
+      deliveryAddress: o.delivery_address,
+    }));
 
-  const origin = depot ?? { lat: mapStops[0].lat, lng: mapStops[0].lng };
-  const ordered = sequenceStops(mapStops, origin);
+  if (mapStops.length === 0 && semGeo.length === 0) return null;
+
+  const origin = depot ?? (mapStops[0] ? { lat: mapStops[0].lat, lng: mapStops[0].lng } : { lat: 0, lng: 0 });
+  const ordered = mapStops.length > 0 ? sequenceStops(mapStops, origin) : [];
 
   return (
     <Card>
@@ -711,7 +722,7 @@ function RouteMapSection({
         <CardTitle className="text-base">Mapa e sequência da rota</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <SuggestionMap stops={mapStops} depot={depot} />
+        {mapStops.length > 0 && <SuggestionMap stops={mapStops} depot={depot} />}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
           <div className="flex items-center gap-1.5">
             <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-600" />
@@ -720,9 +731,17 @@ function RouteMapSection({
           {depot && (
             <span className="text-muted-foreground">Origem: depósito configurado</span>
           )}
+          {semGeo.length > 0 && (
+            <span className="font-medium text-amber-700">
+              {semGeo.length} pedido(s) sem localização — listados no fim, fora do mapa
+            </span>
+          )}
         </div>
         <PedidosDaRotaTabela
-          ordered={ordered.map((st) => mapStops.find((m) => m.orderId === (st as typeof mapStops[number]).orderId)!)}
+          ordered={[
+            ...ordered.map((st) => mapStops.find((m) => m.orderId === (st as typeof mapStops[number]).orderId)!),
+            ...semGeo,
+          ]}
           nomeCliente={nomeCliente}
         />
       </CardContent>
@@ -771,7 +790,7 @@ function PedidosDaRotaTabela({
   const det = new Map((detQ.data ?? []).map((d) => [d.pedido, d]));
 
   // Agrupa por cliente mantendo a ordem da primeira parada de cada cliente.
-  type Grupo = { key: string; cod: string | null; nome: string; uf: string | null; cidade: string | null; bairro: string | null; alt: string | null; itens: { num: string; d?: PedidoDetalheRota }[] };
+  type Grupo = { key: string; cod: string | null; nome: string; uf: string | null; cidade: string | null; bairro: string | null; alt: string | null; semGeo: boolean; itens: { num: string; d?: PedidoDetalheRota }[] };
   const grupos: Grupo[] = [];
   const idx = new Map<string, Grupo>();
   for (const o of ordered) {
@@ -788,6 +807,7 @@ function PedidosDaRotaTabela({
         cidade: d?.cidade ?? null,
         bairro: d?.bairro ?? null,
         alt: o.coordSource === "order" ? o.deliveryAddress : null,
+        semGeo: o.coordSource === "none",
         itens: [],
       };
       idx.set(key, g);
@@ -840,6 +860,14 @@ function PedidosDaRotaTabela({
                       title={`Endereço alternativo (OBS_LOGIST): ${g.alt}`}
                     >
                       endereço alternativo
+                    </span>
+                  ) : null}
+                  {g.semGeo ? (
+                    <span
+                      className="ml-2 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800"
+                      title="Fora do mapa: sem coordenadas no pedido nem no cadastro do cliente"
+                    >
+                      Endereço não localizado
                     </span>
                   ) : null}
                 </td>
