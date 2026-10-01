@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.16.1] - 2026-10-01
+### Adicionado
+- Detalhe da rota: valor e peso de cada pedido e totais (valor, peso e quantidade de pedidos) na linha de cada entrega.
+
 ## [1.16.0] - 2026-10-01
 ### Adicionado
 - Botão "Excluir rota" no detalhe de rotas sem pedidos (Administrador/Gestor): grava status E no ERP e remove a rota do app.

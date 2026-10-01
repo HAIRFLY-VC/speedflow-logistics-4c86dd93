@@ -763,7 +763,7 @@ function RouteMapSection({
   const geoMap = new Map((geoLocQ.data ?? []).map((g) => [g.chave, g]));
   const detMap = new Map((detPendQ.data ?? []).map((d) => [d.pedido, d]));
   const aproximados: typeof exatos = [];
-  const semGeo: { orderNumber: string; customerCode: string | null; coordSource: string; deliveryAddress: string | null }[] = [];
+  const semGeo: { orderNumber: string; customerCode: string | null; coordSource: string; deliveryAddress: string | null; amount: number; weight: number }[] = [];
   for (const o of pendentes) {
     const d = detMap.get(o.order_number);
     let hit: { lat: number; lng: number; src: string } | null = null;
@@ -795,6 +795,8 @@ function RouteMapSection({
         customerCode: o.erp_cod_cliente ?? null,
         coordSource: "none",
         deliveryAddress: o.delivery_address,
+        amount: Number(o.total_amount ?? 0),
+        weight: Number(o.weight ?? 0),
       });
     }
   }
@@ -870,7 +872,7 @@ function PedidosDaRotaTabela({
   ordered,
   nomeCliente,
 }: {
-  ordered: { orderNumber: string; customerCode?: string | null; coordSource: string; deliveryAddress: string | null }[];
+  ordered: { orderNumber: string; customerCode?: string | null; coordSource: string; deliveryAddress: string | null; amount?: number; weight?: number }[];
   nomeCliente: (cod: string | null | undefined) => string;
 }) {
   const fetchDetalhes = useServerFn(listarPedidosDetalheRota);
@@ -884,7 +886,7 @@ function PedidosDaRotaTabela({
   const det = new Map((detQ.data ?? []).map((d) => [d.pedido, d]));
 
   // Agrupa por cliente mantendo a ordem da primeira parada de cada cliente.
-  type Grupo = { key: string; cod: string | null; nome: string; uf: string | null; cidade: string | null; bairro: string | null; alt: string | null; semGeo: boolean; aprox: string | null; itens: { num: string; d?: PedidoDetalheRota }[] };
+  type Grupo = { key: string; cod: string | null; nome: string; uf: string | null; cidade: string | null; bairro: string | null; alt: string | null; semGeo: boolean; aprox: string | null; itens: { num: string; d?: PedidoDetalheRota; amount: number; weight: number }[] };
   const grupos: Grupo[] = [];
   const idx = new Map<string, Grupo>();
   for (const o of ordered) {
@@ -908,7 +910,7 @@ function PedidosDaRotaTabela({
       idx.set(key, g);
       grupos.push(g);
     }
-    g.itens.push({ num: o.orderNumber, d });
+    g.itens.push({ num: o.orderNumber, d, amount: Number(o.amount ?? 0), weight: Number(o.weight ?? 0) });
   }
 
   const th = "px-1.5 py-1 text-left font-medium text-muted-foreground whitespace-nowrap";
@@ -934,6 +936,8 @@ function PedidosDaRotaTabela({
             <th className={th}>OBS</th>
             <th className={th}>OBS Logist</th>
             <th className={th}>INF_CMP</th>
+            <th className={`${th} text-right`}>Valor</th>
+            <th className={`${th} text-right`}>Peso</th>
           </tr>
         </thead>
         <tbody>
@@ -941,6 +945,7 @@ function PedidosDaRotaTabela({
             <Fragment key={g.key}>
               <tr className="border-t bg-primary/5">
                 <td colSpan={11} className="px-1.5 py-1 text-xs">
+                  {/* totais da entrega nas colunas Valor/Peso */}
                   <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
                     {gi + 1}
                   </span>
@@ -973,9 +978,18 @@ function PedidosDaRotaTabela({
                       Endereço não localizado
                     </span>
                   ) : null}
+                  <span className="ml-2 text-muted-foreground">
+                    · {g.itens.length} {g.itens.length === 1 ? "pedido" : "pedidos"}
+                  </span>
+                </td>
+                <td className="px-1.5 py-1 text-right text-xs font-semibold tabular-nums whitespace-nowrap">
+                  {formatCurrency(g.itens.reduce((a, i) => a + i.amount, 0))}
+                </td>
+                <td className="px-1.5 py-1 text-right text-xs font-semibold tabular-nums whitespace-nowrap">
+                  {weightFmt.format(g.itens.reduce((a, i) => a + i.weight, 0))} kg
                 </td>
               </tr>
-              {g.itens.map(({ num, d }) => (
+              {g.itens.map(({ num, d, amount, weight }) => (
                 <tr key={num} className="border-t border-dashed">
                   <td className={`${td} pl-8 whitespace-nowrap`}><PedidoCodigo codigo={num} /></td>
                   <td className={`${td} whitespace-nowrap`}>{d?.status ?? "—"}</td>
@@ -991,6 +1005,8 @@ function PedidosDaRotaTabela({
                   <td className={td}><ObsHover texto={d?.obs ?? null} /></td>
                   <td className={td}><ObsHover texto={d?.obsLogist ?? null} /></td>
                   <td className={td}><ObsHover texto={d?.infCmp ?? null} /></td>
+                  <td className={`${td} text-right tabular-nums whitespace-nowrap`}>{formatCurrency(amount)}</td>
+                  <td className={`${td} text-right tabular-nums whitespace-nowrap`}>{weightFmt.format(weight)} kg</td>
                 </tr>
               ))}
             </Fragment>
