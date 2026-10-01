@@ -13,7 +13,7 @@ Os pedidos receberam borderô em só 4 minutos, então saíram da lista de "pend
 
 ## Correção (PATCH, v1.14.5)
 
-1. **Auditoria das rotas vazias com borderô:** antes de montar a lista, a tela identifica as rotas que têm número do ERP e borderô emitido, mas nenhum pedido vinculado. Ela as envia para a auditoria, que importa do ERP os pedidos e as notas. Em seguida a lista é recarregada.
+1. **Auditoria das rotas vazias com borderô:** antes de montar a lista, a tela identifica as rotas que têm número do ERP e borderô emitido, mas nenhum pedido vinculado, e as envia para a auditoria. A auditoria já consulta a mesma tabela que você usou (`GKS.A_GER_ROTAS_PEDIDOS` com o ID da rota), onde estão os 14 pedidos da rota 423, e importa os pedidos e as notas. Em seguida a lista é recarregada.
 2. **Exibição:** essas rotas passam a aparecer em "Autorizar pagamento de frete" mesmo durante a importação, com o aviso "Importando pedidos do ERP". Assim o usuário enxerga a rota em vez de ela sumir.
 3. Se a auditoria não encontrar pedidos no ERP, a rota continua visível com o selo "Sem pedidos no ERP", e a confirmação do pagamento fica bloqueada.
 4. Atualizar a versão para 1.14.5 e registrar no CHANGELOG.
