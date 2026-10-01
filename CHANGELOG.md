@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.15.7] - 2026-10-01
+### Corrigido
+- Sync ERP: rota recém-criada (ainda sem pedidos) não some mais de Rotas Pendentes após a sincronização.
+
 ## [1.15.6] - 2026-10-01
 ### Corrigido
 - Rotas Pendentes: a rota recém-criada aparece na listagem imediatamente, mesmo ainda sem pedidos. A tela "Autorizar pagamento de frete" continua ocultando rotas vazias.
