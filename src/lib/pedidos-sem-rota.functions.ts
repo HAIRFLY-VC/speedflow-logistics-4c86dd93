@@ -94,13 +94,39 @@ function slugRota(nome: string): string {
   );
 }
 
-/** Grava a capa da rota no ERP (insert_ger_rota) e devolve o ID oficial. */
+/** Reserva o próximo número de rota na sequência do ERP. */
+async function proximoIdRotaErp(): Promise<string> {
+  const { cleanBase, apiKey } = erpConfig();
+  const res = await fetch(`${cleanBase}/v1/query`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+    body: JSON.stringify({ sql: "select gks.SEQ_ROTA_ID.nextval from dual", binds: {}, limit: 1 }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  const texto = await res.text();
+  if (!res.ok) throw new Error(`ERP API ${res.status}: ${texto.replace(/\s+/g, " ").slice(0, 240)}`);
+  let linha: Record<string, unknown> | undefined;
+  try {
+    linha = (JSON.parse(texto) as { rows?: Record<string, unknown>[] }).rows?.[0];
+  } catch {
+    linha = undefined;
+  }
+  const chave = linha ? Object.keys(linha).find((k) => k.toLowerCase() === "nextval") ?? Object.keys(linha)[0] : undefined;
+  const valor = chave ? String(linha![chave] ?? "").trim() : "";
+  if (!/^\d+$/.test(valor)) throw new Error("O ERP não devolveu um novo número de rota.");
+  return valor;
+}
+
+/** Reserva o ID na sequência do ERP, grava a capa (insert_ger_rota) e devolve o ID. */
 async function criarCapaRotaErp(nova: NovaRota): Promise<string> {
   const cod = nova.codResponsavel?.toString().trim();
   const codNum = cod && /^\d+$/.test(cod) ? Number(cod) : null;
+  let idRota: string;
   let resposta: Record<string, unknown>;
   try {
+    idRota = await proximoIdRotaErp();
     resposta = await executarErp("insert_ger_rota", {
+      id: idRota,
       dt_prev_exp_yyyyMMdd: nova.data.replace(/-/g, ""),
       nome_rota: nova.nome.trim().toUpperCase(),
       nome_motorista: nova.nomeResponsavel?.trim().toUpperCase() || null,
@@ -110,12 +136,11 @@ async function criarCapaRotaErp(nova: NovaRota): Promise<string> {
   } catch (e) {
     throw new Error(`Rota não foi criada no ERP: ${descrever(e)}`);
   }
-  const out = resposta?.["outBinds"] as Record<string, unknown> | undefined;
-  const bruto = out?.["id_rota"] ?? out?.["ID_ROTA"];
-  if (bruto == null || String(bruto).trim() === "") {
-    throw new Error("O ERP não devolveu o número da rota criada. Confira no ERP antes de tentar de novo.");
+  const linhas = Number(resposta?.["rowsAffected"] ?? 0);
+  if (!(linhas >= 1)) {
+    throw new Error(`O ERP não confirmou a gravação da rota ${idRota}. Confira no ERP antes de tentar de novo.`);
   }
-  return String(bruto).trim();
+  return idRota;
 }
 
 export const criarRotaErp = createServerFn({ method: "POST" })
