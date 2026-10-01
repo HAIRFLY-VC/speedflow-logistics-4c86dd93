@@ -108,6 +108,8 @@ export type RotasViewProps = {
   ) => boolean;
   /** Mensagem exibida quando não há rotas após o filtro. */
   mensagemVazia?: string;
+  /** Oculta rotas sem nenhum pedido associado (usado em Autorizar pagamento). */
+  ocultarRotasVazias?: boolean;
   /** Chave de preferências da tabela (filtros/colunas por tela). */
   tableKey: string;
 };
@@ -885,6 +887,7 @@ export function RotasView({
   permitirConfirmacao = false,
   filtro,
   mensagemVazia = "Nenhuma rota criada.",
+  ocultarRotasVazias = false,
   tableKey,
 }: RotasViewProps) {
   const usarTabelaCompacta = permitirConfirmacao || mostrarAcoesDeRota;
@@ -941,7 +944,7 @@ export function RotasView({
 
 
   const { data, isLoading, error: routesError } = useQuery({
-    queryKey: ["routes"],
+    queryKey: ["routes", ocultarRotasVazias ? "com-pedidos" : "todas"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("routes")
@@ -949,11 +952,11 @@ export function RotasView({
           "id,code,erp_route_id,erp_status,route_date,status,total_freight,total_distance_km,driver_name,erp_carrier_code,notes,frete_confirmado_em,bordero_emitido_em,freight_carriers(full_name,vehicle_plate,transportadoras(id,cod_erp)),route_orders(stop_order,orders(customer_id,erp_cod_cliente,order_number,total_amount,weight,erp_status,bordero,delivery_latitude,delivery_longitude))",
         );
       if (error) throw error;
-      // A tela só mostra rotas que têm ao menos um pedido associado:
-      // rotas vazias (mesmo com borderô no ERP) ficam ocultas até a
-      // auditoria importar seus pedidos.
+      // Quando pedido pela tela (ex.: Autorizar pagamento), só mostra rotas
+      // com ao menos um pedido associado. Em Rotas Pendentes, rotas vazias
+      // (recém-criadas) aparecem para receber pedidos.
       const rows = ((data ?? []) as unknown as RouteRow[]).filter(
-        (r) => (r.route_orders ?? []).length > 0,
+        (r) => !ocultarRotasVazias || (r.route_orders ?? []).length > 0,
       );
       rows.sort((a, b) => {
         const d = routeDateSortKey(a.route_date).localeCompare(
