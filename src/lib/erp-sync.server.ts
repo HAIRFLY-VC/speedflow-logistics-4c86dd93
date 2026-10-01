@@ -1343,15 +1343,57 @@ export async function syncErpOrders(opts: {
             longitude: geo?.longitude ?? null,
           };
         })
-        .filter((c) => c.latitude == null || c.longitude == null)
+        .filter((c) => c.latitude == null || c.longitude == null);
+      // Endereço do cliente (bairro/cidade/UF) a partir dos pedidos em aberto no ERP.
+      // Esses clientes têm prioridade: são os que aparecem nas rotas e telas.
+      const erpEnd = new Map<string, string>();
+      try {
+        const base = (process.env.ERP_API_BASE_URL ?? "").replace(/\/+$/, "").replace(/\/v1\/query$/, "");
+        const apiKey = process.env.ERP_API_KEY;
+        const semEnd = pending.filter((c) => !c.address_line).map((c) => c.id).filter((c) => /^\d+$/.test(c));
+        if (base && apiKey && semEnd.length) {
+          for (let i = 0; i < semEnd.length && i < 2000; i += 500) {
+            const sql = `SELECT DISTINCT E.COD_CLIENTE, E.BAIRRO, E.CIDADE, E.UF FROM ERP_PEDIDOS_EXPEDICAO_PENDENTE E WHERE E.COD_CLIENTE IN (${semEnd.slice(i, i + 500).join(",")})`;
+            const ctrl = new AbortController();
+            const t = setTimeout(() => ctrl.abort(), 20_000);
+            try {
+              const res = await fetch(`${base}/v1/query`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+                body: JSON.stringify({ sql, binds: {}, limit: 5000 }),
+                signal: ctrl.signal,
+              });
+              if (!res.ok) break;
+              const rows = ((await res.json()) as { rows?: Record<string, unknown>[] }).rows ?? [];
+              for (const r of rows) {
+                const g = (k: string) => {
+                  const e = Object.entries(r).find(([key]) => key.toUpperCase() === k);
+                  const v = e?.[1];
+                  return v == null ? "" : String(v).trim();
+                };
+                const cod = g("COD_CLIENTE");
+                const end = [g("BAIRRO"), g("CIDADE"), g("UF")].filter(Boolean).join(", ");
+                if (cod && g("CIDADE") && !erpEnd.has(cod)) erpEnd.set(cod, end);
+              }
+            } finally {
+              clearTimeout(t);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[erp-sync] endereço ERP para geocodificação indisponível", err);
+      }
+      const fila = pending
+        .map((c) => ({ ...c, address_line: c.address_line ?? erpEnd.get(c.id) ?? null }))
+        .filter((c) => c.address_line && String(c.address_line).trim())
+        .sort((a, b) => Number(erpEnd.has(b.id)) - Number(erpEnd.has(a.id)))
         // Limite por execução: geocodificar tudo de uma vez estoura o tempo do servidor.
         .slice(0, 30);
-      for (const c of pending) {
+      for (const c of fila) {
 
         const q = [c.address_line, "Brasil"]
           .filter((p) => p && String(p).trim())
           .join(", ");
-        if (!q) continue;
         try {
           const url = `https://connector-gateway.lovable.dev/google_maps/maps/api/geocode/json?address=${encodeURIComponent(q)}&region=br&language=pt-BR`;
           const res = await fetch(url, {
