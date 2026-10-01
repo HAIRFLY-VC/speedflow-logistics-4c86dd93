@@ -1093,7 +1093,14 @@ function PedidosSemRotaPage() {
                         }`}
                       >
                         <div className="flex justify-between gap-2 font-medium">
-                          <span className="truncate">{nome}</span>
+                          <span className="truncate">
+                            {r.erp_route_id ? (
+                              <>
+                                <b>#{r.erp_route_id}</b> ·{" "}
+                              </>
+                            ) : null}
+                            {nome}
+                          </span>
                           <span>{r.route_date.split("-").reverse().join("/")}</span>
                         </div>
                         {!resumo || resumo.entregas === 0 ? (
