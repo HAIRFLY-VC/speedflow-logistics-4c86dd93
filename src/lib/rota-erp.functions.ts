@@ -635,3 +635,79 @@ export const listarPedidosDetalheRota = createServerFn({ method: "POST" })
     }
     return Array.from(out.values());
   });
+
+/**
+ * Exclui uma rota sem nenhum pedido: grava status E no ERP (update_status_rota)
+ * e só então remove a rota do app. Apenas Administrador ou Gestor.
+ */
+export const excluirRotaVazia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { routeId: string }) => {
+    if (!input?.routeId) throw new Error("Rota inválida");
+    return { routeId: String(input.routeId) };
+  })
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as {
+      supabase: { rpc: (fn: string, a: Record<string, unknown>) => Promise<{ data: unknown }> };
+      userId: string;
+    };
+    const [adm, gestor] = await Promise.all([
+      ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "adm" }),
+      ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "gestor" }),
+    ]);
+    if (!adm.data && !gestor.data)
+      throw new Error("Apenas Administrador ou Gestor pode excluir rotas.");
+
+    const { data: rota, error } = await centralDb
+      .from("routes")
+      .select("id, erp_route_id")
+      .eq("id", data.routeId)
+      .maybeSingle();
+    if (error) throw new Error(mensagemErro(error));
+    if (!rota) throw new Error("Rota não encontrada");
+
+    const { count, error: cErr } = await centralDb
+      .from("route_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("route_id", data.routeId);
+    if (cErr) throw new Error(mensagemErro(cErr));
+    if ((count ?? 0) > 0) throw new Error("A rota possui pedidos e não pode ser excluída.");
+
+    const erpId = rota.erp_route_id ? String(rota.erp_route_id).trim() : "";
+    if (erpId) {
+      if (!/^\d+$/.test(erpId)) throw new Error("ID da rota no ERP inválido");
+      const rows = await consultarErp(
+        `select count(*) as N from gks.A_GER_ROTAS_PEDIDOS where ID = ${erpId}`,
+        1,
+      );
+      const n = Number((rows[0] as Record<string, unknown> | undefined)?.["N"] ?? 0);
+      if (n > 0)
+        throw new Error(`A rota possui ${n} pedido(s) no ERP e não pode ser excluída.`);
+
+      const { cleanBase, apiKey } = erpConfig();
+      const res = await fetch(`${cleanBase.replace(/\/v1\/execute$/, "")}/v1/execute/update_status_rota`, {
+        method: "POST",
+        signal: AbortSignal.timeout(25_000),
+        headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+        body: JSON.stringify({ binds: { status: "E", id: erpId } }),
+      });
+      const texto = await res.text();
+      if (!res.ok) {
+        throw new Error(
+          `ERP recusou a exclusão (${res.status})${texto ? `: ${texto.replace(/\s+/g, " ").slice(0, 240)}` : ""}`,
+        );
+      }
+      let afetadas = 0;
+      try {
+        afetadas = Number((JSON.parse(texto) as { rowsAffected?: number }).rowsAffected ?? 0);
+      } catch {
+        afetadas = 0;
+      }
+      if (afetadas < 1) throw new Error("O ERP não encontrou a rota para excluir.");
+    }
+
+    await centralDb.from("delivery_manifests").delete().eq("route_id", data.routeId);
+    const { error: dErr } = await centralDb.from("routes").delete().eq("id", data.routeId);
+    if (dErr) throw new Error(mensagemErro(dErr));
+    return { ok: true as const };
+  });
