@@ -773,9 +773,9 @@ export async function processarTarefaFinanceiraRota(
         status: "ERRO",
         tentativas,
         ultimo_erro: erro,
-        proxima_tentativa_em: new Date(
-          Date.now() + minutosAteProximaTentativa(tentativas) * 60_000,
-        ).toISOString(),
+        // Tarefa do Bitrix: uma tentativa por minuto, até 10.
+        proxima_tentativa_em:
+          tentativas >= 10 ? null : new Date(Date.now() + 60_000).toISOString(),
         processado_em: new Date().toISOString(),
       } as never)
       .eq("id", filaId);

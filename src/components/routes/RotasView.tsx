@@ -256,7 +256,7 @@ function PendenciaBitrixIcone({ p }: { p: PendenciaBitrixRota }) {
         <TooltipTrigger asChild>
           <span
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex cursor-help text-warning animate-pulse"
+            className="inline-flex cursor-help text-amber-500 animate-pulse"
             aria-label="Pendência na rota"
           >
             <AlertTriangle className="h-4 w-4" />
