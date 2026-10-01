@@ -1053,6 +1053,26 @@ export async function syncErpOrders(opts: {
       errors.push({ pedido: 0, message: `Reinserção de rotas pendentes: ${describeError(e)}` });
     }
 
+    // Rota sem nenhum pedido (ex.: recém-criada) nunca volta na leitura de pendentes
+    // do ERP; não pode ser confundida com "borderô emitido".
+    if (rotasComBorderoEmitido.length > 0) {
+      try {
+        const comPedido = new Set<string>();
+        for (let i = 0; i < rotasComBorderoEmitido.length; i += 200) {
+          const { data, error } = await centralDb
+            .from("route_orders")
+            .select("route_id")
+            .in("route_id", rotasComBorderoEmitido.slice(i, i + 200));
+          if (error) throw error;
+          for (const r of data ?? []) comPedido.add(String(r.route_id));
+        }
+        rotasComBorderoEmitido = rotasComBorderoEmitido.filter((id) => comPedido.has(id));
+      } catch (e) {
+        rotasComBorderoEmitido = [];
+        errors.push({ pedido: 0, message: `Verificação de rotas vazias: ${describeError(e)}` });
+      }
+    }
+
     // Rotas que saíram do ERP: marca como borderô emitido e busca o número por pedido.
     try {
       await tratarRotasComBorderoEmitido(rotasComBorderoEmitido);
