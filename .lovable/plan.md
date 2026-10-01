@@ -1,36 +1,31 @@
-# Regularizar rotas cadastradas só no app
+# Excluir as 2 rotas sem ERP e deixar de criar a rota "NÃO PLANEJADO"
 
-## Diagnóstico (confirmado)
+## O que muda para o usuário
 
-Consulta ao banco central mostrou 57 rotas no app; 55 têm vínculo com o ERP (`erp_route_id`, maior = 469). Apenas 2 não existem no ERP:
+- Somem do app as rotas `rota-teste-20261001` (vazia) e `nao-planejado-40000101` ("NÃO PLANEJADO").
+- A sincronização com o ERP deixa de recriar a rota "NÃO PLANEJADO". Pedidos sem rota no ERP continuam aparecendo normalmente em **Pedidos sem rota** e no card pulsante de **Rotas Pendentes**: essas telas usam a data do próprio pedido, não essa rota.
 
-| Rota | Data | Responsável | Pedidos | Criada em |
-|---|---|---|---|---|
-| `rota-teste-20261001` | 01/10/2026 | SANDRO NEVES PEREIRA | 0 | 01/10/2026 08:38 |
-| `nao-planejado-40000101` | 01/01/4000 (sentinela) | — | 2 | 28/09/2026 |
+Classificação: **PATCH** (v1.14.4).
 
-- `rota-teste-20261001` é a rota que você cadastrou antes da correção: o app disse "sucesso" mas nunca chamou o ERP. Está vazia (sem pedidos).
-- `nao-planejado-40000101` é o agrupamento interno "NÃO PLANEJADO" — não é uma rota real e não deve ir ao ERP.
+## Passos
 
-## O que fazer
-
-1. **Rota `rota-teste-20261001`** (escolher uma opção):
-   - **Opção A — Recadastrar no ERP:** chamar `insert_ger_rota` (status "P", responsável Sandro Neves Pereira), gravar o `erp_route_id` retornado na rota local e atualizar o `code` para `erp-<id>`, mantendo a rota existente.
-   - **Opção B — Excluir:** apagar a rota local (está vazia) e você a recria pela tela, agora com a gravação no ERP já corrigida (v1.14.3).
-2. **Rota `nao-planejado-40000101`:** nenhuma ação — é estrutural do app.
-
-## Classificação
-
-PATCH (correção de dados pontual, sem mudança de comportamento).
+1. **Código: sincronização** (`src/lib/erp-sync.server.ts`, por volta da linha 891): quando o pedido não tiver nome nem ID de rota no ERP, ignorá-lo no agrupamento de rotas (`continue`) em vez de montar o grupo "NÃO PLANEJADO". O pedido continua sendo gravado com a data 4000-01-01, então segue listado como "sem rota".
+2. **Dados no banco central**, uma única vez, depois que o código novo estiver ativo:
+   - remover os vínculos de pedidos (`route_orders`) e os manifestos (`delivery_manifests`) dessas 2 rotas;
+   - apagar as 2 rotas de `routes`.
+   Os 2 pedidos que estavam em "NÃO PLANEJADO" ficam sem rota e aparecem em **Pedidos sem rota**. Nenhum pedido é apagado.
+3. Comentário da linha 1032 atualizado (não cita mais o "NÃO PLANEJADO").
+4. Atualizar `version.ts` para 1.14.4 e adicionar a entrada no `CHANGELOG.md` (seção "Removido": rota "NÃO PLANEJADO" deixa de existir).
 
 ## Riscos
 
-- Nenhum para a versão publicada: a correção v1.14.3 já faz novas rotas irem ao ERP.
-- Opção A grava uma rota real no ERP; Opção B remove apenas um registro local vazio.
+- O banco é compartilhado: se a versão publicada sincronizar antes do Publish, ela recria a rota "NÃO PLANEJADO". Por isso a limpeza (passo 2) deve ser repetida logo depois do Publish, ou feita só depois dele.
+- As referências restantes à data 4000-01-01 em telas como Autorizar, detalhe da rota e Rotas Pendentes servem apenas para exibir "Não planejado" e ficam sem efeito. Elas permanecem por segurança.
 
 ## Checklist para publicar
 
-- Testar no preview: criar uma rota nova e conferir o número gerado no ERP.
-- Migrações: nenhuma.
+- No preview, executar a sincronização e conferir que "NÃO PLANEJADO" não volta em **Rotas Pendentes**.
+- Conferir se os 2 pedidos aparecem em **Pedidos sem rota**.
+- Migrações: nenhuma (só exclusão pontual de dados).
 - Flags: nenhuma.
-- Reverter: não se aplica (ajuste de dados); o histórico do Lovable cobre o código.
+- Como reverter: voltar para a versão anterior no histórico do Lovable; a próxima sincronização recria a rota "NÃO PLANEJADO". A rota de teste não precisa ser recuperada.
