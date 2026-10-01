@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.16.2] - 2026-10-01
+### Alterado
+- Rotas Pendentes: card "Pedidos pendentes sem rota" aparece sempre, para todos os perfis; pulsa só quando há pedidos, mostra "Carregando…" e, em caso de erro, "Tentar novamente".
+- Pedidos sem rota: colunas Valor e Peso em cada pedido.
+
 ## [1.16.1] - 2026-10-01
 ### Adicionado
 - Detalhe da rota: valor e peso de cada pedido e totais (valor, peso e quantidade de pedidos) na linha de cada entrega.
