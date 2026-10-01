@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.16.5] - 2026-10-01
+### Alterado
+- Removido o "#" antes do ID da rota na seleção de rota existente.
+
 ## [1.16.4] - 2026-10-01
 ### Alterado
 - Pedidos sem rota: na seleção de rota existente, o ID da rota aparece antes do nome (ex.: #423 · nome).
