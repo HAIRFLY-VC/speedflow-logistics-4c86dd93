@@ -1,4 +1,8 @@
-# Excluir rota sem pedidos — v1.16.0 (MINOR)
+# Excluir rota sem pedidos + Rotas Pendentes só com status P — v1.16.0 (MINOR)
+
+## Rotas Pendentes: somente status P
+A tela Rotas Pendentes passa a listar apenas rotas cujo status no ERP é **P**. Rotas com outros status (E, borderô emitido etc.) deixam de aparecer ali. A tela "Autorizar pagamento de frete" não é afetada.
+- Técnico: em `RotasView.tsx`, nova opção `somenteStatusP` (ligada em `/rotas`, incluída na chave do cache) filtrando `erp_status = 'P'` na consulta. Rotas criadas pelo app já gravam `erp_status = 'P'`. Antes de ativar, conferir a distribuição atual de `erp_status` para verificar se rotas legítimas não têm o status vazio; se tiverem, o Sync ERP passa a preenchê-lo.
 
 ## O que muda
 Na tela de detalhe da rota, quando a rota tiver **0 pedidos**, aparece o botão vermelho **"Excluir rota"** (ao lado de "Iniciar rota" / "Cancelar").
