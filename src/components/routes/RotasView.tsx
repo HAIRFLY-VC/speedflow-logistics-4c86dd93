@@ -1942,7 +1942,7 @@ export function RotasView({
               className="col-span-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 lg:col-span-1"
               aria-label={`Abrir pedidos sem rota: ${resumoSemRota.pedidos} pedido(s)`}
             >
-              <Card className={`h-full overflow-hidden ${semRotaPulsar ? "animate-pending-route-alert border-destructive/35" : ""}`} >
+              <Card className={`h-full overflow-hidden transition-shadow hover:shadow-md ${semRotaPulsar ? "animate-pending-route-alert border-destructive/35" : ""}`} >
                 <CardHeader className="flex flex-row items-start justify-between gap-2 p-3 pb-1 space-y-0">
                   <CardTitle className="text-xs font-semibold leading-tight text-destructive sm:text-sm">
                     Pedidos pendentes sem rota
