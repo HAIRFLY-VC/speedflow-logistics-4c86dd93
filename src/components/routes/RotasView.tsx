@@ -108,6 +108,8 @@ export type RotasViewProps = {
   ) => boolean;
   /** Mensagem exibida quando não há rotas após o filtro. */
   mensagemVazia?: string;
+  /** Oculta rotas sem nenhum pedido associado (usado em Autorizar pagamento). */
+  ocultarRotasVazias?: boolean;
   /** Chave de preferências da tabela (filtros/colunas por tela). */
   tableKey: string;
 };
@@ -885,6 +887,7 @@ export function RotasView({
   permitirConfirmacao = false,
   filtro,
   mensagemVazia = "Nenhuma rota criada.",
+  ocultarRotasVazias = false,
   tableKey,
 }: RotasViewProps) {
   const usarTabelaCompacta = permitirConfirmacao || mostrarAcoesDeRota;
