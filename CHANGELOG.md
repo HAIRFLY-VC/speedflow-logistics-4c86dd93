@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.14.4] - 2026-10-01
+### Removido
+- Rota "NÃO PLANEJADO" deixa de ser criada pela sincronização; pedidos sem rota seguem em "Pedidos sem rota".
+- Excluídas as rotas sem cadastro no ERP (rota-teste-20261001 e nao-planejado-40000101).
+
+
 ## [1.14.3] - 2026-10-01
 ### Corrigido
 - "Nova rota" agora cadastra a rota no ERP (insert_ger_rota) e grava o número oficial; se o ERP recusar, a rota não é criada e o erro aparece.
