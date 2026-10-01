@@ -94,6 +94,65 @@ function slugRota(nome: string): string {
   );
 }
 
+/** Grava a capa da rota no ERP (insert_ger_rota) e devolve o ID oficial. */
+async function criarCapaRotaErp(nova: NovaRota): Promise<string> {
+  const cod = nova.codResponsavel?.toString().trim();
+  const codNum = cod && /^\d+$/.test(cod) ? Number(cod) : null;
+  let resposta: Record<string, unknown>;
+  try {
+    resposta = await executarErp("insert_ger_rota", {
+      dt_prev_exp_yyyyMMdd: nova.data.replace(/-/g, ""),
+      nome_rota: nova.nome.trim().toUpperCase(),
+      nome_motorista: nova.nomeResponsavel?.trim().toUpperCase() || null,
+      cod_frt_trp: codNum,
+      status: "P",
+    });
+  } catch (e) {
+    throw new Error(`Rota não foi criada no ERP: ${descrever(e)}`);
+  }
+  const out = resposta?.["outBinds"] as Record<string, unknown> | undefined;
+  const bruto = out?.["id_rota"] ?? out?.["ID_ROTA"];
+  if (bruto == null || String(bruto).trim() === "") {
+    throw new Error("O ERP não devolveu o número da rota criada. Confira no ERP antes de tentar de novo.");
+  }
+  return String(bruto).trim();
+}
+
+export const criarRotaErp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: NovaRota) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(input?.data ?? ""))) throw new Error("Informe a data planejada");
+    if (!String(input?.nome ?? "").trim()) throw new Error("Informe o nome da rota");
+    return {
+      data: input.data,
+      nome: input.nome.trim(),
+      codResponsavel: input.codResponsavel?.toString().trim() || null,
+      nomeResponsavel: input.nomeResponsavel?.trim() || null,
+    };
+  })
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    const nomeRota = data.nome.toUpperCase();
+    const erpRouteId = await criarCapaRotaErp(data);
+    const code = `${slugRota(nomeRota)}-${data.data.replace(/-/g, "")}-${Date.now().toString(36)}`;
+    const { data: inserida, error } = await centralDb
+      .from("routes")
+      .insert({
+        code,
+        route_date: data.data,
+        driver_name: data.nomeResponsavel?.toUpperCase() || null,
+        erp_carrier_code: data.codResponsavel,
+        total_freight: 0,
+        notes: `Rota ${nomeRota}`,
+        erp_route_id: erpRouteId,
+        erp_status: "P",
+      } as never)
+      .select("id")
+      .single();
+    if (error) throw new Error(`Rota ${erpRouteId} criada no ERP, mas falhou no app: ${error.message}`);
+    return { routeId: (inserida as { id: string }).id, erpRouteId, nomeRota };
+  });
+
 export const atribuirPedidosARota = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: Input) => {
@@ -153,23 +212,13 @@ export const atribuirPedidosARota = createServerFn({ method: "POST" })
       routeDate = nova.data;
       nomeRota = nova.nome.trim().toUpperCase();
 
-      // 1) Cria a capa no ERP para obter o ID oficial da rota.
-      try {
-        const resposta = await executarErp("insert_capa_rota", {
-          dt_prev_exp_yyyyMMdd: routeDate.replace(/-/g, ""),
-          nome_rota: nomeRota,
-          nome_motorista: nova.nomeResponsavel?.trim() || null,
-          cod_frt_trp: nova.codResponsavel?.trim() || null,
-          status: "P",
-        });
-        const bruto =
-          (resposta?.["id"] as unknown) ??
-          (resposta?.["ID"] as unknown) ??
-          ((resposta?.["out"] as Record<string, unknown> | undefined)?.["id"] as unknown);
-        if (bruto != null && String(bruto).trim() !== "") erpRouteId = String(bruto).trim();
-      } catch (e) {
-        avisos.push(`Rota não foi criada no ERP: ${descrever(e)}`);
-      }
+      // 1) Cria a capa no ERP para obter o ID oficial da rota (falha = aborta).
+      erpRouteId = await criarCapaRotaErp({
+        data: routeDate,
+        nome: nomeRota,
+        codResponsavel: nova.codResponsavel,
+        nomeResponsavel: nova.nomeResponsavel,
+      });
 
       const code = `${slugRota(nomeRota)}-${routeDate.replace(/-/g, "")}-${Date.now().toString(36)}`;
       const { data: inserida, error } = await centralDb

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.14.3] - 2026-10-01
+### Corrigido
+- "Nova rota" agora cadastra a rota no ERP (insert_ger_rota) e grava o número oficial; se o ERP recusar, a rota não é criada e o erro aparece.
+- Criação de rota em "Pedidos sem rota" usava comando errado do ERP; passa a usar insert_ger_rota e lê o ID devolvido.
+
 ## [1.14.2] - 2026-10-01
 ### Adicionado
 - Pedidos sem rota → Rota existente: cartão "Pedidos selecionados" mostra valor, peso, entregas e composição por UF/cidade dos pedidos escolhidos, no mesmo formato dos cartões de rota.

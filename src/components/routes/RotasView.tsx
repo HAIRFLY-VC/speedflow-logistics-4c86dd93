@@ -1,3 +1,4 @@
+import { criarRotaErp } from "@/lib/pedidos-sem-rota.functions";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -2038,6 +2039,7 @@ function NewRouteDialog({
   onCreated: () => void;
 }) {
   const getResponsaveis = useServerFn(listarResponsaveisErp);
+  const criarRota = useServerFn(criarRotaErp);
   const [routeDate, setRouteDate] = useState(new Date().toISOString().slice(0, 10));
   const [routeName, setRouteName] = useState("");
   const [responsavel, setResponsavel] = useState<ResponsavelErp | null>(null);
@@ -2054,19 +2056,17 @@ function NewRouteDialog({
   const create = useMutation({
     mutationFn: async () => {
       if (!routeName.trim()) throw new Error("Informe o nome da rota");
-      const code = `${slugify(routeName)}-${routeDate.replace(/-/g, "")}`;
-      const { error } = await supabase.from("routes").insert({
-        code,
-        route_date: routeDate,
-        driver_name: responsavel?.razaoSocial?.trim().toUpperCase() || null,
-        erp_carrier_code: responsavel?.codErp ?? null,
-        total_freight: 0,
-        notes: `Rota ${routeName.trim()}`,
+      return criarRota({
+        data: {
+          data: routeDate,
+          nome: routeName.trim(),
+          codResponsavel: responsavel?.codErp ?? null,
+          nomeResponsavel: responsavel?.razaoSocial?.trim() || null,
+        },
       });
-      if (error) throw error;
     },
-    onSuccess: () => {
-      toast.success("Rota criada");
+    onSuccess: (r) => {
+      toast.success(`Rota ${r.erpRouteId} criada no ERP`);
       onCreated();
       onOpenChange(false);
       setRouteName("");
