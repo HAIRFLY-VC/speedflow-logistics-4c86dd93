@@ -629,6 +629,36 @@ function PedidosSemRotaPage() {
     return m;
   }, [selecionados, pedidosQ.data, ufCliente, cidadeCliente]);
 
+  // Composição dos pedidos selecionados, no mesmo formato dos cartões de rota:
+  // entregas = clientes distintos, agrupados por UF e cidade.
+  const resumoSelecaoUfs = useMemo(() => {
+    const sel = new Set(selecionados);
+    const porCliente = new Map<string, { uf: string; cid: string }>();
+    for (const l of linhas) {
+      if (!sel.has(l.id)) continue;
+      const chave = l.codCliente || l.cliente;
+      if (!chave) continue;
+      if (!porCliente.has(chave)) porCliente.set(chave, { uf: l.uf || "—", cid: l.cidade || "Sem cidade" });
+    }
+    const porUf = new Map<string, Map<string, number>>();
+    for (const { uf, cid } of porCliente.values()) {
+      const m = porUf.get(uf) ?? new Map<string, number>();
+      m.set(cid, (m.get(cid) ?? 0) + 1);
+      porUf.set(uf, m);
+    }
+    return {
+      entregas: porCliente.size,
+      ufs: [...porUf.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([uf, m]) => ({
+          uf,
+          cidades: [...m.entries()]
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+            .map(([nome, qtd]) => ({ nome, qtd })),
+        })),
+    };
+  }, [linhas, selecionados]);
+
   const rotasFiltradas = useMemo(() => {
     const q = buscaRota.trim().toLowerCase();
     return (rotasQ.data ?? [])
