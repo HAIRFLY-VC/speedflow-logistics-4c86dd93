@@ -38,6 +38,7 @@ function AutorizarPagamentoFretePage() {
       titulo="Autorizar pagamento de frete"
       descricao="Rotas com borderô emitido, prontas para confirmação do pagamento do frete."
       permitirConfirmacao
+      ocultarRotasVazias
       filtro={filtro}
       mensagemVazia="Nenhuma rota com borderô emitido no momento."
     />
