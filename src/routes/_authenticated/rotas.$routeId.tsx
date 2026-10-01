@@ -2,9 +2,9 @@ import { PedidoCodigo } from "@/components/orders/PedidoCodigo";
 import { Fragment, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { listarPedidosDetalheRota, type PedidoDetalheRota } from "@/lib/rota-erp.functions";
+import { listarPedidosDetalheRota, excluirRotaVazia, type PedidoDetalheRota } from "@/lib/rota-erp.functions";
 import { localizarLocalidades, chaveLocalidade } from "@/lib/geo-localidades.functions";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
   Loader2,
   Pencil,
   MessageSquareText,
+  Trash2,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { format } from "date-fns";
@@ -136,6 +137,18 @@ function RouteDetailPage() {
   const { user, role } = useAuth();
   const { nomeCliente } = useClientesErp();
   const canOperate = role === "adm" || role === "gestor" || role === "operador";
+  const podeExcluir = role === "adm" || role === "gestor";
+  const navigate = useNavigate();
+  const excluirFn = useServerFn(excluirRotaVazia);
+  const excluir = useMutation({
+    mutationFn: () => excluirFn({ data: { routeId } }),
+    onSuccess: () => {
+      toast.success("Rota excluída");
+      qc.invalidateQueries({ queryKey: ["routes"] });
+      navigate({ to: "/rotas" });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : String(e)),
+  });
   const [editOpen, setEditOpen] = useState(false);
 
   const routeQ = useQuery({
@@ -553,6 +566,25 @@ function RouteDetailPage() {
                   <Button variant="outline" onClick={() => cancel.mutate()}>
                     <XCircle className="h-4 w-4 mr-2" />
                     Cancelar
+                  </Button>
+                )}
+                {podeExcluir && stops.length === 0 && (
+                  <Button
+                    variant="destructive"
+                    disabled={excluir.isPending}
+                    onClick={() => {
+                      const ok = window.confirm(
+                        `Excluir a rota ${route.code}${route.erp_route_id ? ` (ERP ${route.erp_route_id})` : ""}? Esta ação marca a rota como Excluída no ERP.`,
+                      );
+                      if (ok) excluir.mutate();
+                    }}
+                  >
+                    {excluir.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 mr-2" />
+                    )}
+                    Excluir rota
                   </Button>
                 )}
               </>
