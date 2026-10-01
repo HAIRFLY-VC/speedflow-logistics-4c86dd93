@@ -3,6 +3,7 @@ import { Fragment, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { listarPedidosDetalheRota, type PedidoDetalheRota } from "@/lib/rota-erp.functions";
+import { localizarLocalidades, chaveLocalidade } from "@/lib/geo-localidades.functions";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -672,7 +673,7 @@ function RouteMapSection({
   depot: { lat: number; lng: number } | null;
   nomeCliente: (cod: string | null | undefined) => string;
 }) {
-  const mapStops = stops
+  const exatos = stops
     .map((s) => {
       const o = s.orders;
       if (!o) return null;
@@ -694,22 +695,78 @@ function RouteMapSection({
         amount: Number(o.total_amount ?? 0),
         orderId: o.id,
         kind: "new" as const,
-        coordSource: coord.source,
+        coordSource: coord.source as string,
         deliveryAddress: o.delivery_address,
       };
     })
     .filter((x): x is NonNullable<typeof x> => !!x);
 
-  // Entregas sem coordenadas não entram no mapa, mas continuam na lista.
-  const semGeo = stops
+  // Pedidos sem coordenada exata: aproxima pelo bairro/cidade do ERP.
+  const pendentes = stops
     .map((s) => s.orders)
-    .filter((o): o is NonNullable<typeof o> => !!o && !mapStops.some((m) => m.orderId === o.id))
-    .map((o) => ({
-      orderNumber: o.order_number,
-      customerCode: o.erp_cod_cliente ?? null,
-      coordSource: "none",
-      deliveryAddress: o.delivery_address,
-    }));
+    .filter((o): o is NonNullable<typeof o> => !!o && !exatos.some((m) => m.orderId === o.id));
+  const fetchDet = useServerFn(listarPedidosDetalheRota);
+  const localizar = useServerFn(localizarLocalidades);
+  const numsPend = pendentes.map((o) => o.order_number);
+  const detPendQ = useQuery({
+    queryKey: ["rota-pedidos-detalhe", numsPend],
+    queryFn: () => fetchDet({ data: { pedidos: numsPend } }),
+    staleTime: 60_000,
+    enabled: numsPend.length > 0,
+  });
+  const locsPend = (detPendQ.data ?? []).flatMap((d) =>
+    d.uf && d.cidade
+      ? [
+          { uf: d.uf, cidade: d.cidade, bairro: d.bairro ?? "" },
+          { uf: d.uf, cidade: d.cidade, bairro: "" },
+        ]
+      : [],
+  );
+  const geoLocQ = useQuery({
+    queryKey: ["geo-localidades", locsPend.map(chaveLocalidade).sort()],
+    queryFn: () => localizar({ data: { localidades: locsPend } }),
+    staleTime: 10 * 60_000,
+    enabled: locsPend.length > 0,
+  });
+  const geoMap = new Map((geoLocQ.data ?? []).map((g) => [g.chave, g]));
+  const detMap = new Map((detPendQ.data ?? []).map((d) => [d.pedido, d]));
+  const aproximados: typeof exatos = [];
+  const semGeo: { orderNumber: string; customerCode: string | null; coordSource: string; deliveryAddress: string | null }[] = [];
+  for (const o of pendentes) {
+    const d = detMap.get(o.order_number);
+    let hit: { lat: number; lng: number; src: string } | null = null;
+    if (d?.uf && d.cidade) {
+      const b = d.bairro ? geoMap.get(chaveLocalidade({ uf: d.uf, cidade: d.cidade, bairro: d.bairro })) : undefined;
+      const c = geoMap.get(chaveLocalidade({ uf: d.uf, cidade: d.cidade, bairro: "" }));
+      if (b?.lat != null && b.lng != null) hit = { lat: b.lat, lng: b.lng, src: "bairro" };
+      else if (c?.lat != null && c.lng != null) hit = { lat: c.lat, lng: c.lng, src: "cidade" };
+    }
+    if (hit) {
+      aproximados.push({
+        lat: hit.lat,
+        lng: hit.lng,
+        orderNumber: o.order_number,
+        customerCode: o.erp_cod_cliente ?? null,
+        customerName: o.erp_cod_cliente ? nomeCliente(o.erp_cod_cliente) : "—",
+        city: null,
+        state: null,
+        weight: Number(o.weight ?? 0),
+        amount: Number(o.total_amount ?? 0),
+        orderId: o.id,
+        kind: "new" as const,
+        coordSource: hit.src,
+        deliveryAddress: o.delivery_address,
+      });
+    } else {
+      semGeo.push({
+        orderNumber: o.order_number,
+        customerCode: o.erp_cod_cliente ?? null,
+        coordSource: "none",
+        deliveryAddress: o.delivery_address,
+      });
+    }
+  }
+  const mapStops = [...exatos, ...aproximados];
 
   if (mapStops.length === 0 && semGeo.length === 0) return null;
 
