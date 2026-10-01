@@ -993,13 +993,15 @@ function PedidosDaRotaTabela({
                 <td className="px-1.5 py-1 text-right text-xs font-semibold tabular-nums whitespace-nowrap">
                   {weightFmt.format(g.itens.reduce((a, i) => a + i.weight, 0))} kg
                 </td>
+                <td colSpan={3} />
               </tr>
-              {g.itens.map(({ num, d, amount, weight }) => (
+              {g.itens.map(({ num, d, amount, weight, bordero }) => (
                 <tr key={num} className="border-t border-dashed">
                   <td className={`${td} pl-8 whitespace-nowrap`}><PedidoCodigo codigo={num} /></td>
                   <td className={`${td} whitespace-nowrap`}>{d?.status ?? "—"}</td>
                   <td className={td}>{d?.codFilial ?? "—"}</td>
                   <td className={td}>{d?.nf ?? "—"}</td>
+                  <td className={`${td} whitespace-nowrap tabular-nums`}>{bordero ?? "—"}</td>
                   <td className={td}>
                     {d?.vendedor ?? "—"}
                     {d?.codVendedor && <span className="text-muted-foreground"> ({d.codVendedor})</span>}
