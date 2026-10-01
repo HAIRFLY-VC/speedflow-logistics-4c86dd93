@@ -1009,11 +1009,11 @@ function PedidosDaRotaTabela({
                   <td className={td}>{d?.codAgenda ?? "—"}</td>
                   <td className={`${td} whitespace-nowrap`}>{fmtDataErp(d?.dtPedido ?? null)}</td>
                   <td className={`${td} whitespace-nowrap`}>{fmtDataErp(d?.dtAgenda ?? null)}</td>
+                  <td className={`${td} text-right tabular-nums whitespace-nowrap`}>{formatCurrency(amount)}</td>
+                  <td className={`${td} text-right tabular-nums whitespace-nowrap`}>{weightFmt.format(weight)} kg</td>
                   <td className={td}><ObsHover texto={d?.obs ?? null} /></td>
                   <td className={td}><ObsHover texto={d?.obsLogist ?? null} /></td>
                   <td className={td}><ObsHover texto={d?.infCmp ?? null} /></td>
-                  <td className={`${td} text-right tabular-nums whitespace-nowrap`}>{formatCurrency(amount)}</td>
-                  <td className={`${td} text-right tabular-nums whitespace-nowrap`}>{weightFmt.format(weight)} kg</td>
                 </tr>
               ))}
             </Fragment>

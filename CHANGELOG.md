@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.16.6] - 2026-10-01
+### Alterado
+- Detalhe da rota: colunas Valor e Peso movidas para antes de OBS, com os totais por entrega acompanhando a nova posição.
+### Adicionado
+- Detalhe da rota: coluna Borderô por pedido, logo após NF.
+
 ## [1.16.5] - 2026-10-01
 ### Alterado
 - Removido o "#" antes do ID da rota na seleção de rota existente.
