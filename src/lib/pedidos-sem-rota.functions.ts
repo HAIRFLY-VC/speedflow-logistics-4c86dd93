@@ -334,6 +334,7 @@ export const atribuirPedidosARota = createServerFn({ method: "POST" })
       routeDate,
       adicionados: novos.length,
       vinculadosErp,
+      falhasErp,
       avisos: avisos.slice(0, 5),
     };
   });

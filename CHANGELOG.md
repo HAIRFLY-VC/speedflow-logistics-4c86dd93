@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.16.3] - 2026-10-01
+### Corrigido
+- Atribuir rota: pedidos agora são incluídos no ERP pela API insert_pedido_na_rota (nova rota e rota existente); só os aceitos pelo ERP ficam vinculados no app e as falhas aparecem no aviso.
+
 ## [1.16.2] - 2026-10-01
 ### Alterado
 - Rotas Pendentes: card "Pedidos pendentes sem rota" aparece sempre, para todos os perfis; pulsa só quando há pedidos, mostra "Carregando…" e, em caso de erro, "Tentar novamente".
