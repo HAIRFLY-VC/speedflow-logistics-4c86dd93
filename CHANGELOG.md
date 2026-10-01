@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.15.2] - 2026-10-01
+### Alterado
+- Autorizar pagamento de frete: rotas sem nenhum pedido associado ficam ocultas, mesmo com borderô no ERP. Elas voltam a aparecer assim que os pedidos forem importados pela auditoria.
+
 ## [1.15.1] - 2026-10-01
 ### Corrigido
 - Autorizar pagamento: a tarefa do Bitrix volta a ser criada na hora, e o resultado aparece na tela.

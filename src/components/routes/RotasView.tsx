@@ -949,12 +949,11 @@ export function RotasView({
           "id,code,erp_route_id,erp_status,route_date,status,total_freight,total_distance_km,driver_name,erp_carrier_code,notes,frete_confirmado_em,bordero_emitido_em,freight_carriers(full_name,vehicle_plate,transportadoras(id,cod_erp)),route_orders(stop_order,orders(customer_id,erp_cod_cliente,order_number,total_amount,weight,erp_status,bordero,delivery_latitude,delivery_longitude))",
         );
       if (error) throw error;
-      // Rotas vazias ficam ocultas, exceto as com ID do ERP e borderô emitido:
-      // seus pedidos podem existir só no ERP e a auditoria precisa importá-los.
+      // A tela só mostra rotas que têm ao menos um pedido associado:
+      // rotas vazias (mesmo com borderô no ERP) ficam ocultas até a
+      // auditoria importar seus pedidos.
       const rows = ((data ?? []) as unknown as RouteRow[]).filter(
-        (r) =>
-          (r.route_orders ?? []).length > 0 ||
-          (Boolean(r.erp_route_id?.trim()) && Boolean(r.bordero_emitido_em)),
+        (r) => (r.route_orders ?? []).length > 0,
       );
       rows.sort((a, b) => {
         const d = routeDateSortKey(a.route_date).localeCompare(
