@@ -766,7 +766,6 @@ export async function processarTarefaFinanceiraRota(
     return { ok: true, referencia: id };
   } catch (e) {
     const erro = (e as Error).message;
-    const { minutosAteProximaTentativa } = await import("./fila-retry.server");
     await centralDb
       .from("fila_provisionamento_financeiro")
       .update({
