@@ -263,18 +263,53 @@ export const atribuirPedidosARota = createServerFn({ method: "POST" })
       routeId = inserida.id;
     }
 
-    // 2) Paradas no app (ignora pedidos já vinculados a esta rota).
+    // 2) Pedidos já vinculados a esta rota no app são ignorados.
     const { data: jaNaRota } = await centralDb
       .from("route_orders")
       .select("order_id, stop_order")
       .eq("route_id", routeId!);
     const existentes = new Set((jaNaRota ?? []).map((r) => String(r.order_id)));
     let proxima = (jaNaRota ?? []).reduce((m, r) => Math.max(m, r.stop_order ?? 0), 0) + 1;
+    const candidatos = data.orderIds.filter((id) => !existentes.has(id));
 
-    const novos = data.orderIds.filter((id) => !existentes.has(id));
+    // 3) Inclui cada pedido no ERP primeiro (insert_pedido_na_rota); só os aceitos seguem.
+    let vinculadosErp = 0;
+    let falhasErp = 0;
+    let aceitos: string[] = [];
+    if (!erpRouteId) {
+      avisos.push("Rota sem ID do ERP: os pedidos não foram incluídos no ERP.");
+    } else if (candidatos.length) {
+      const { data: pedidos, error: pErr } = await centralDb
+        .from("orders")
+        .select("id, erp_id, order_number")
+        .in("id", candidatos);
+      if (pErr) throw pErr;
+      for (const p of pedidos ?? []) {
+        const numero = p.erp_id ?? p.order_number;
+        if (!numero) {
+          falhasErp++;
+          avisos.push(`Pedido ${p.id} sem código no ERP: não incluído.`);
+          continue;
+        }
+        try {
+          const resp = await executarErp("insert_pedido_na_rota", {
+            idrota: Number(erpRouteId),
+            codpedido: Number(numero),
+          });
+          if (Number(resp?.["rowsAffected"] ?? 0) < 1) throw new Error("ERP não confirmou a gravação");
+          aceitos.push(String(p.id));
+          vinculadosErp++;
+        } catch (e) {
+          falhasErp++;
+          avisos.push(`Pedido ${numero} não incluído no ERP: ${descrever(e)}`);
+        }
+      }
+      if (!aceitos.length) avisos.push("Nenhum pedido foi aceito pelo ERP; a rota foi criada sem pedidos.");
+    }
+
+    // 4) Vincula no app somente os pedidos aceitos pelo ERP.
+    const novos = aceitos;
     if (novos.length) {
-      // Cada pedido só pode estar em uma rota: remove o vínculo anterior
-      // (ex.: agrupamento "NÃO PLANEJADO") antes de vincular à rota escolhida.
       const { error: delErr } = await centralDb
         .from("route_orders")
         .delete()
@@ -285,38 +320,13 @@ export const atribuirPedidosARota = createServerFn({ method: "POST" })
         novos.map((order_id) => ({ route_id: routeId!, order_id, stop_order: proxima++ })),
       );
       if (error) throw error;
-    }
-
-    // 3) Atualiza a data prevista e o nome da rota nos pedidos.
-    const { error: upErr } = await centralDb
-      .from("orders")
-      .update({ dt_prev_exp: `${routeDate}T00:00:00+00:00`, nome_rota: nomeRota })
-      .in("id", data.orderIds);
-    if (upErr) throw upErr;
-
-    // 4) Vincula os pedidos à rota no ERP.
-    let vinculadosErp = 0;
-    if (!erpRouteId) {
-      avisos.push("Rota sem ID do ERP: os pedidos não foram vinculados no ERP.");
-    } else {
-      const { data: pedidos } = await centralDb
+      const { error: upErr } = await centralDb
         .from("orders")
-        .select("id, erp_id, order_number")
-        .in("id", data.orderIds);
-      for (const p of pedidos ?? []) {
-        const numero = p.erp_id ?? p.order_number;
-        if (!numero) continue;
-        try {
-          await executarErp("insert_rota_pedido", {
-            id_rota: Number(erpRouteId),
-            pedido: Number(numero),
-          });
-          vinculadosErp++;
-        } catch (e) {
-          avisos.push(`Pedido ${numero} não vinculado no ERP: ${descrever(e)}`);
-        }
-      }
+        .update({ dt_prev_exp: `${routeDate}T00:00:00+00:00`, nome_rota: nomeRota })
+        .in("id", novos);
+      if (upErr) throw upErr;
     }
+
 
     return {
       routeId: routeId!,
