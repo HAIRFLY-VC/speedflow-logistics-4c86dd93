@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.15.3] - 2026-10-01
+### Corrigido
+- Detalhe da rota: a lista abaixo do mapa mostra todas as entregas. Pedidos sem localização aparecem no fim, com o aviso "Endereço não localizado".
+
 ## [1.15.2] - 2026-10-01
 ### Alterado
 - Autorizar pagamento de frete: rotas sem nenhum pedido associado ficam ocultas, mesmo com borderô no ERP. Elas voltam a aparecer assim que os pedidos forem importados pela auditoria.
