@@ -337,6 +337,7 @@ function agrupar(
     const filial = exp?.cod_filial ?? p.cod_filial ?? "SEM FILIAL";
     const item: PedidoPagamento = {
       cod_pedido: p.cod_pedido,
+      cod_cliente: p.cod_cliente ?? null,
       cliente: (p.cod_cliente ? clientes.get(p.cod_cliente) : null) ?? p.cod_cliente ?? "—",
       bordero,
       nro_nf: nf,
