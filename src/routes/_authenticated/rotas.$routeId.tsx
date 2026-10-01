@@ -876,7 +876,7 @@ function PedidosDaRotaTabela({
   ordered,
   nomeCliente,
 }: {
-  ordered: { orderNumber: string; customerCode?: string | null; coordSource: string; deliveryAddress: string | null; amount?: number; weight?: number }[];
+  ordered: { orderNumber: string; customerCode?: string | null; coordSource: string; deliveryAddress: string | null; amount?: number; weight?: number; bordero?: string | null }[];
   nomeCliente: (cod: string | null | undefined) => string;
 }) {
   const fetchDetalhes = useServerFn(listarPedidosDetalheRota);
@@ -890,7 +890,7 @@ function PedidosDaRotaTabela({
   const det = new Map((detQ.data ?? []).map((d) => [d.pedido, d]));
 
   // Agrupa por cliente mantendo a ordem da primeira parada de cada cliente.
-  type Grupo = { key: string; cod: string | null; nome: string; uf: string | null; cidade: string | null; bairro: string | null; alt: string | null; semGeo: boolean; aprox: string | null; itens: { num: string; d?: PedidoDetalheRota; amount: number; weight: number }[] };
+  type Grupo = { key: string; cod: string | null; nome: string; uf: string | null; cidade: string | null; bairro: string | null; alt: string | null; semGeo: boolean; aprox: string | null; itens: { num: string; d?: PedidoDetalheRota; amount: number; weight: number; bordero: string | null }[] };
   const grupos: Grupo[] = [];
   const idx = new Map<string, Grupo>();
   for (const o of ordered) {
@@ -914,7 +914,7 @@ function PedidosDaRotaTabela({
       idx.set(key, g);
       grupos.push(g);
     }
-    g.itens.push({ num: o.orderNumber, d, amount: Number(o.amount ?? 0), weight: Number(o.weight ?? 0) });
+    g.itens.push({ num: o.orderNumber, d, amount: Number(o.amount ?? 0), weight: Number(o.weight ?? 0), bordero: o.bordero ?? null });
   }
 
   const th = "px-1.5 py-1 text-left font-medium text-muted-foreground whitespace-nowrap";
@@ -933,22 +933,23 @@ function PedidosDaRotaTabela({
             <th className={th}>Status</th>
             <th className={th}>Filial</th>
             <th className={th}>NF</th>
+            <th className={th}>Borderô</th>
             <th className={th}>Vendedor</th>
             <th className={th}>Agenda</th>
             <th className={th}>Dt. pedido</th>
             <th className={th}>Dt. agenda</th>
+            <th className={`${th} text-right`}>Valor</th>
+            <th className={`${th} text-right`}>Peso</th>
             <th className={th}>OBS</th>
             <th className={th}>OBS Logist</th>
             <th className={th}>INF_CMP</th>
-            <th className={`${th} text-right`}>Valor</th>
-            <th className={`${th} text-right`}>Peso</th>
           </tr>
         </thead>
         <tbody>
           {grupos.map((g, gi) => (
             <Fragment key={g.key}>
               <tr className="border-t bg-primary/5">
-                <td colSpan={11} className="px-1.5 py-1 text-xs">
+                <td colSpan={9} className="px-1.5 py-1 text-xs">
                   {/* totais da entrega nas colunas Valor/Peso */}
                   <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
                     {gi + 1}
