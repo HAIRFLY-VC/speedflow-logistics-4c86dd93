@@ -888,10 +888,10 @@ function PedidosSemRotaPage() {
                     </div>
                   </div>
 
-                  <div className="hidden grid-cols-[26px_82px_minmax(92px,.8fr)_44px_70px_minmax(110px,1fr)_48px_68px_68px_34px_42px_42px] gap-x-1 border-b bg-muted/20 px-2 py-1 text-[9px] font-semibold text-muted-foreground lg:grid">
+                  <div className="hidden grid-cols-[26px_82px_minmax(92px,.8fr)_44px_70px_minmax(110px,1fr)_48px_68px_68px_78px_56px_34px_42px_42px] gap-x-1 border-b bg-muted/20 px-2 py-1 text-[9px] font-semibold text-muted-foreground lg:grid">
                     <span />
                     <span>Pedido</span><span>Status</span><span>Filial</span><span>NF</span><span>Vendedor</span>
-                    <span>Agenda</span><span>Dt. pedido</span><span>Dt. agenda</span><span>OBS</span><span>OBS LOG.</span><span>INF_CMP</span>
+                    <span>Agenda</span><span>Dt. pedido</span><span>Dt. agenda</span><span className="text-right">Valor</span><span className="text-right">Peso (kg)</span><span>OBS</span><span>OBS LOG.</span><span>INF_CMP</span>
                   </div>
 
                   <ul className="divide-y divide-dashed">
@@ -900,7 +900,7 @@ function PedidosSemRotaPage() {
                       .map((p) => {
                         const marcado = selecionados.includes(p.id);
                         return (
-                          <li key={p.id} className="px-2 py-2 lg:grid lg:grid-cols-[26px_82px_minmax(92px,.8fr)_44px_70px_minmax(110px,1fr)_48px_68px_68px_34px_42px_42px] lg:items-center lg:gap-x-1 lg:py-1.5 lg:text-[10px]">
+                          <li key={p.id} className="px-2 py-2 lg:grid lg:grid-cols-[26px_82px_minmax(92px,.8fr)_44px_70px_minmax(110px,1fr)_48px_68px_68px_78px_56px_34px_42px_42px] lg:items-center lg:gap-x-1 lg:py-1.5 lg:text-[10px]">
                             <Checkbox
                               checked={marcado}
                               aria-label={`Selecionar pedido ${p.numero}`}
@@ -912,8 +912,7 @@ function PedidosSemRotaPage() {
                             />
                             <div className="ml-8 -mt-5 lg:m-0">
                               <PedidoCodigo codigo={p.numero} />
-                              <p className="text-[9px] text-muted-foreground lg:hidden">{brl(p.valor)} · {p.peso.toFixed(0)} kg</p>
-                            </div>
+                                                          </div>
                             <p className="mt-2 text-xs font-medium lg:m-0 lg:text-[10px]">{p.status ?? "—"}</p>
                             <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] sm:grid-cols-4 lg:contents">
                               <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Filial</dt><dd>{p.filial || "—"}</dd></div>
@@ -922,6 +921,8 @@ function PedidosSemRotaPage() {
                               <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Agenda</dt><dd>{p.agenda || "—"}</dd></div>
                               <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Dt. pedido</dt><dd className="whitespace-nowrap">{dataBr(p.dtPedido)}</dd></div>
                               <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Dt. agenda</dt><dd className="whitespace-nowrap">{dataBr(p.dtAgenda)}</dd></div>
+                              <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Valor</dt><dd className="whitespace-nowrap tabular-nums lg:text-right">{brl(p.valor)}</dd></div>
+                              <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Peso</dt><dd className="whitespace-nowrap tabular-nums lg:text-right">{p.peso.toLocaleString("pt-BR",{maximumFractionDigits:1})} kg</dd></div>
                             </dl>
                             <div className="mt-2 flex items-center gap-2 lg:contents">
                               <Observacao label="OBS" texto={p.obs} />

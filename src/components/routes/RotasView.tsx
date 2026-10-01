@@ -997,7 +997,8 @@ export function RotasView({
   }, [pedidosSemRotaQ.data, nomeCliente]);
 
   // O card de pendências sem rota só existe quando há pedidos aguardando rota.
-  const exibirCardSemRota = mostrarCardSemRota && resumoSemRota.pedidos > 0;
+  const exibirCardSemRota = mostrarCardSemRota;
+  const semRotaPulsar = resumoSemRota.pedidos > 0;
 
 
   // O total_freight da rota guarda apenas o frete original. Adicionais são
@@ -1941,13 +1942,27 @@ export function RotasView({
               className="col-span-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 lg:col-span-1"
               aria-label={`Abrir pedidos sem rota: ${resumoSemRota.pedidos} pedido(s)`}
             >
-              <Card className="h-full animate-pending-route-alert overflow-hidden border-destructive/35 transition-shadow hover:shadow-md">
+              <Card className={`h-full overflow-hidden ${semRotaPulsar ? "animate-pending-route-alert border-destructive/35" : ""}`} >
                 <CardHeader className="flex flex-row items-start justify-between gap-2 p-3 pb-1 space-y-0">
                   <CardTitle className="text-xs font-semibold leading-tight text-destructive sm:text-sm">
                     Pedidos pendentes sem rota
                   </CardTitle>
                   <ArrowRight className="h-4 w-4 shrink-0 text-destructive" aria-hidden="true" />
                 </CardHeader>
+                {pedidosSemRotaQ.isLoading ? (
+                  <CardContent className="p-3 pt-0 text-xs text-muted-foreground">Carregando…</CardContent>
+                ) : pedidosSemRotaQ.isError ? (
+                  <CardContent className="space-y-1 p-3 pt-0 text-xs text-muted-foreground">
+                    <p>Não foi possível carregar os totais.</p>
+                    <button
+                      type="button"
+                      className="font-medium text-destructive underline"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); void pedidosSemRotaQ.refetch(); }}
+                    >
+                      Tentar novamente
+                    </button>
+                  </CardContent>
+                ) : (
                 <CardContent className="grid grid-cols-2 gap-x-3 gap-y-2 p-3 pt-0">
                   <div>
                     <p className="text-[11px] text-muted-foreground">Mercadorias</p>
@@ -1974,6 +1989,7 @@ export function RotasView({
                     </p>
                   </div>
                 </CardContent>
+                )}
               </Card>
             </Link>
           )}
