@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.16.4] - 2026-10-01
+### Alterado
+- Pedidos sem rota: na seleção de rota existente, o ID da rota aparece antes do nome (ex.: #423 · nome).
+
+
 ## [1.16.3] - 2026-10-01
 ### Corrigido
 - Atribuir rota: pedidos agora são incluídos no ERP pela API insert_pedido_na_rota (nova rota e rota existente); só os aceitos pelo ERP ficam vinculados no app e as falhas aparecem no aviso.
