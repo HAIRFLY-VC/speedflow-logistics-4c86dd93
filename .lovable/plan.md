@@ -2,10 +2,10 @@
 
 ## Diagnóstico (confirmado)
 
-No app, a rota 423 ("T- ALAGOAS", Sandro Neves Pereira) aparece assim:
+No ERP, a rota 423 ("T- ALAGOAS", Sandro Neves Pereira) tem pedidos. Na cópia do app, ela aparece assim:
 - criada hoje às 09:15 e com borderô emitido às 09:19;
 - tem número do ERP;
-- tem **0 pedidos vinculados**.
+- tem **0 pedidos vinculados no app**: os pedidos do ERP não foram copiados.
 
 A tela esconde toda rota sem pedidos vinculados no app. Quem traz os pedidos e notas do ERP para a rota é a auditoria automática. Só que ela roda apenas nas rotas que já estão na tela. Isso cria um impasse: a rota não aparece porque não tem pedidos, e não recebe pedidos porque não aparece.
 
