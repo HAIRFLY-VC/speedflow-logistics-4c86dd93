@@ -885,12 +885,10 @@ export async function syncErpOrders(opts: {
           ? "4000-01-01"
           : "3000-01-01";
       let nome = (row.NOME_ROTA ?? "").trim();
-      // Rotas com DT_PREV_EXP sentinela (3000/4000) também devem ser exibidas.
-      // 4000-01-01 representa pedidos ainda sem rota no ERP, portanto normalmente
-      // não possui NOME_ROTA nem ID_ROTA. Agrupa esses pedidos em uma rota visível.
+      // Pedidos sem rota no ERP (sem NOME_ROTA nem ID_ROTA) não geram rota no app:
+      // aparecem apenas em "Pedidos sem rota" pela data do próprio pedido.
       if (!nome) {
         if (erpRouteId) nome = `ROTA ${erpRouteId}`;
-        else if (dateOnly === "4000-01-01") nome = "NÃO PLANEJADO";
         else continue;
       }
       const driver = row.NOME_MOTORISTA?.trim() || null;
@@ -1029,8 +1027,7 @@ export async function syncErpOrders(opts: {
           (snap.erp_route_id != null && erpIdsDoRetorno.has(snap.erp_route_id)) ||
           codesDoRetorno.has(snap.code);
         if (voltouDoErp) pendingIds.push(r.id as string);
-        // Rotas sem ID do ERP (agrupamento "NÃO PLANEJADO" ou criadas manualmente
-        // no app) nunca têm borderô: não entram na lógica de borderô emitido.
+        // Rotas sem ID do ERP nunca têm borderô: não entram na lógica de borderô emitido.
         else if (snap.erp_route_id != null) rotasComBorderoEmitido.push(r.id as string);
       }
 
