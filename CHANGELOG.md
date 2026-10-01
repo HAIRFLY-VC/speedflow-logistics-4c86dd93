@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.14.5] - 2026-10-01
+### Corrigido
+- Autorizar pagamento de frete: rotas com borderô emitido cujos pedidos ainda não estavam no app (ex.: rota 423) agora aparecem e têm os pedidos importados do ERP automaticamente.
+
 ## [1.14.4] - 2026-10-01
 ### Removido
 - Rota "NÃO PLANEJADO" deixa de ser criada pela sincronização; pedidos sem rota seguem em "Pedidos sem rota".

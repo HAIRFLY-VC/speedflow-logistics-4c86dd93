@@ -904,8 +904,12 @@ export function RotasView({
           "id,code,erp_route_id,erp_status,route_date,status,total_freight,total_distance_km,driver_name,erp_carrier_code,notes,frete_confirmado_em,bordero_emitido_em,freight_carriers(full_name,vehicle_plate,transportadoras(id,cod_erp)),route_orders(stop_order,orders(customer_id,erp_cod_cliente,order_number,total_amount,weight,erp_status,bordero,delivery_latitude,delivery_longitude))",
         );
       if (error) throw error;
+      // Rotas vazias ficam ocultas, exceto as com ID do ERP e borderô emitido:
+      // seus pedidos podem existir só no ERP e a auditoria precisa importá-los.
       const rows = ((data ?? []) as unknown as RouteRow[]).filter(
-        (r) => (r.route_orders ?? []).length > 0,
+        (r) =>
+          (r.route_orders ?? []).length > 0 ||
+          (Boolean(r.erp_route_id?.trim()) && Boolean(r.bordero_emitido_em)),
       );
       rows.sort((a, b) => {
         const d = routeDateSortKey(a.route_date).localeCompare(
@@ -1689,14 +1693,21 @@ export function RotasView({
         defaultVisible: false,
         accessor: (r) => (r.bordero_emitido_em ? "Borderô emitido" : ROUTE_STATUS_LABEL[r.status]),
         render: (r) => (
-          <span
-            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${
-              r.bordero_emitido_em
-                ? "bg-amber-500/15 text-amber-600 border-amber-500/30"
-                : ROUTE_STATUS_TONE[r.status]
-            }`}
-          >
-            {r.bordero_emitido_em ? "Borderô emitido" : ROUTE_STATUS_LABEL[r.status]}
+          <span className="inline-flex flex-col items-start gap-1">
+            <span
+              className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${
+                r.bordero_emitido_em
+                  ? "bg-amber-500/15 text-amber-600 border-amber-500/30"
+                  : ROUTE_STATUS_TONE[r.status]
+              }`}
+            >
+              {r.bordero_emitido_em ? "Borderô emitido" : ROUTE_STATUS_LABEL[r.status]}
+            </span>
+            {(r.route_orders ?? []).length === 0 && (
+              <span className="inline-flex items-center rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive">
+                {auditoriaMap?.has(r.id) ? "Sem pedidos no ERP" : "Importando pedidos do ERP"}
+              </span>
+            )}
           </span>
         ),
       },
