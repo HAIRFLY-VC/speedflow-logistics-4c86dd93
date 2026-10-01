@@ -114,6 +114,7 @@ type Stop = {
     status: OrderStatus;
     total_amount: number;
     weight: number | null;
+    bordero: string | null;
     customer_id: string | null;
     erp_cod_cliente: string | null;
     delivery_address: string | null;
@@ -172,7 +173,7 @@ function RouteDetailPage() {
       const { data, error } = await supabase
         .from("route_orders")
         .select(
-          "id,stop_order,orders(id,order_number,status,total_amount,weight,customer_id,erp_cod_cliente,delivery_address,delivery_latitude,delivery_longitude)",
+          "id,stop_order,orders(id,order_number,status,total_amount,weight,bordero,customer_id,erp_cod_cliente,delivery_address,delivery_latitude,delivery_longitude)",
         )
         .eq("route_id", routeId)
         .order("stop_order");
@@ -725,6 +726,7 @@ function RouteMapSection({
          state: null,
         weight: Number(o.weight ?? 0),
         amount: Number(o.total_amount ?? 0),
+        bordero: o.bordero ?? null,
         orderId: o.id,
         kind: "new" as const,
         coordSource: coord.source as string,
@@ -763,7 +765,7 @@ function RouteMapSection({
   const geoMap = new Map((geoLocQ.data ?? []).map((g) => [g.chave, g]));
   const detMap = new Map((detPendQ.data ?? []).map((d) => [d.pedido, d]));
   const aproximados: typeof exatos = [];
-  const semGeo: { orderNumber: string; customerCode: string | null; coordSource: string; deliveryAddress: string | null; amount: number; weight: number }[] = [];
+  const semGeo: { orderNumber: string; customerCode: string | null; coordSource: string; deliveryAddress: string | null; amount: number; weight: number; bordero: string | null }[] = [];
   for (const o of pendentes) {
     const d = detMap.get(o.order_number);
     let hit: { lat: number; lng: number; src: string } | null = null;
@@ -788,6 +790,7 @@ function RouteMapSection({
         kind: "new" as const,
         coordSource: hit.src,
         deliveryAddress: o.delivery_address,
+        bordero: o.bordero ?? null,
       });
     } else {
       semGeo.push({
@@ -797,6 +800,7 @@ function RouteMapSection({
         deliveryAddress: o.delivery_address,
         amount: Number(o.total_amount ?? 0),
         weight: Number(o.weight ?? 0),
+        bordero: o.bordero ?? null,
       });
     }
   }
