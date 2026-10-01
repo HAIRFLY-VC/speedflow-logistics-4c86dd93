@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.16.7] - 2026-10-01
+### Adicionado
+- Confirmar pagamento: o código do cliente no ERP aparece entre parênteses após o nome do cliente na tabela por filial.
+
 ## [1.16.6] - 2026-10-01
 ### Alterado
 - Detalhe da rota: colunas Valor e Peso movidas para antes de OBS, com os totais por entrega acompanhando a nova posição.

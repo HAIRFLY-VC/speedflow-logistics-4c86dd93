@@ -668,7 +668,10 @@ export function PagamentoRotaDialog({
                         <td className="px-3 py-1 tabular-nums">
                           {ped.bordero ?? <span className="text-muted-foreground">—</span>}
                         </td>
-                        <td className="px-3 py-1">{ped.cliente}</td>
+                        <td className="px-3 py-1">
+                          {ped.cliente}
+                          {ped.cod_cliente ? <span className="text-muted-foreground tabular-nums"> ({ped.cod_cliente})</span> : null}
+                        </td>
                         <td className="px-3 py-1 text-right tabular-nums">
                           {brl(ped.valor_mercadoria)}
                         </td>

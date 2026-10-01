@@ -19,6 +19,8 @@ export const MOTIVOS_ADICIONAIS: { valor: MotivoAdicional; rotulo: string }[] = 
 
 export type PedidoPagamento = {
   cod_pedido: string;
+  /** Código do cliente no ERP (para exibir junto ao nome na tela). */
+  cod_cliente: string | null;
   cliente: string;
   bordero: string | null;
   nro_nf: string | null;
