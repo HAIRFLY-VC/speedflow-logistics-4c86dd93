@@ -128,6 +128,10 @@ export async function historicoTentativas(raizId: string): Promise<TentativaHist
 
 /** Tenta agora, a pedido do usuário. */
 export async function tentarAgora(fila: NomeFila, filaId: string) {
+  // Reenvio manual da tarefa do Bitrix reinicia a contagem de 10 tentativas.
+  if (fila === "financeiro") {
+    await centralDb.from(TABELA[fila]).update({ tentativas: 0 } as never).eq("id", filaId);
+  }
   return tentarItem(fila, filaId, "MANUAL");
 }
 

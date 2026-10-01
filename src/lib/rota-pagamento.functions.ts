@@ -5,6 +5,7 @@ import type {
   PagamentoRotaHistorico,
   PreviewPagamentoRota,
   SituacaoPix,
+  PendenciaBitrixRota,
 } from "@/lib/rota-pagamento.types";
 
 const motivoSchema = z.enum([
@@ -160,4 +161,28 @@ export const liberarNovoPix = createServerFn({ method: "POST" })
     if (!(await ehAdmin(ctx))) throw new Error("Apenas administradores podem liberar um novo PIX.");
     const { liberarPix } = await import("./pix-controle.server");
     return liberarPix(data.codErp, ctx.userId);
+  });
+
+/** Pendências de criação da tarefa do Bitrix por rota (para o ícone de alerta). */
+export const pendenciasBitrixRotas = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ routeIds: z.array(z.string().uuid()).max(2000) }).parse(input))
+  .handler(async ({ data }): Promise<PendenciaBitrixRota[]> => {
+    if (data.routeIds.length === 0) return [];
+    const { centralDb } = await import("./central-db");
+    const out = new Map<string, PendenciaBitrixRota>();
+    for (let i = 0; i < data.routeIds.length; i += 200) {
+      const { data: rows, error } = await centralDb
+        .from("fila_provisionamento_financeiro")
+        .select("route_id, status, tentativas, ultimo_erro, proxima_tentativa_em")
+        .in("route_id", data.routeIds.slice(i, i + 200))
+        .is("cte_id", null)
+        .neq("status", "CONCLUIDO")
+        .is("resolvida_manual_em", null);
+      if (error) throw new Error(error.message);
+      for (const r of (rows ?? []) as unknown as PendenciaBitrixRota[]) {
+        if (!out.has(r.route_id)) out.set(r.route_id, { ...r, tentativas: Number(r.tentativas ?? 0) });
+      }
+    }
+    return [...out.values()];
   });

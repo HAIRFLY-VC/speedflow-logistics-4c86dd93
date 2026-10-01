@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator, Pencil, ArrowRight, Check, ChevronsUpDown, X } from "lucide-react";
+import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator, Pencil, ArrowRight, Check, ChevronsUpDown, X, AlertTriangle } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { isFeatureOn } from "@/config/features";
 import { format } from "date-fns";
@@ -26,6 +26,9 @@ import { PagamentoRotaDialog } from "@/components/routes/PagamentoRotaDialog";
 import { ConsultarPixButton } from "@/components/routes/ConsultarPixButton";
 import { liberarNovoPix, situacaoPixResponsaveis } from "@/lib/rota-pagamento.functions";
 import { meuVinculoBitrix } from "@/lib/bitrix-config.functions";
+import { pendenciasBitrixRotas } from "@/lib/rota-pagamento.functions";
+import type { PendenciaBitrixRota } from "@/lib/rota-pagamento.types";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { pedidosSemRotaQueryOptions } from "@/lib/pedidos-sem-rota.query";
 import type { SituacaoPix } from "@/lib/rota-pagamento.types";
 import { useAuth } from "@/hooks/useAuth";
@@ -235,6 +238,48 @@ function routeDateSortKey(value: string | null | undefined): string {
   if (!str || str.startsWith("4000-01-01")) return "z";
   if (str.startsWith("3000-01-01")) return "y";
   return str;
+}
+
+function statusPgtoOf(r: RouteRow, pend: Map<string, PendenciaBitrixRota>) {
+  if (!r.frete_confirmado_em) return "Pendente";
+  return pend.has(r.id) ? "Confirmado c/ pendência" : "Confirmado";
+}
+
+function PendenciaBitrixIcone({ p }: { p: PendenciaBitrixRota }) {
+  const esgotou = p.tentativas >= 10;
+  const prox = p.proxima_tentativa_em
+    ? Math.max(0, Math.round((new Date(p.proxima_tentativa_em).getTime() - Date.now()) / 60_000))
+    : null;
+  return (
+    <TooltipProvider delayDuration={100}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex cursor-help text-warning animate-pulse"
+            aria-label="Pendência na rota"
+          >
+            <AlertTriangle className="h-4 w-4" />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs text-xs leading-snug">
+          <p className="font-semibold">Tarefa do Bitrix não criada</p>
+          {esgotou ? (
+            <p>
+              O app parou de tentar após 10 tentativas. Use “Reenviar” em Envios desta rota ou a tela
+              Pendências de integração.
+            </p>
+          ) : (
+            <p>
+              Tentativa {p.tentativas} de 10.
+              {prox != null ? ` Próxima tentativa em ${prox <= 1 ? "1 min" : `${prox} min`}.` : ""}
+            </p>
+          )}
+          {p.ultimo_erro ? <p className="mt-1">Último erro: {p.ultimo_erro}</p> : null}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 function nomeRotaOf(r: RouteRow) {
@@ -1376,6 +1421,19 @@ export function RotasView({
     queryFn: () => vinculoBitrixFn({ data: undefined }),
   });
   const vinculoBitrixOk = vinculoBitrixQ.data != null;
+  const pendBitrixFn = useServerFn(pendenciasBitrixRotas);
+  const idsRotasPagina = useMemo(() => (data ?? []).map((r) => r.id), [data]);
+  const pendBitrixQ = useQuery({
+    queryKey: ["pendencias-bitrix-rotas", idsRotasPagina],
+    enabled: idsRotasPagina.length > 0,
+    refetchInterval: 60_000,
+    queryFn: () => pendBitrixFn({ data: { routeIds: idsRotasPagina } }),
+  });
+  const pendBitrixMap = useMemo(() => {
+    const m = new Map<string, PendenciaBitrixRota>();
+    for (const p of pendBitrixQ.data ?? []) m.set(p.route_id, p);
+    return m;
+  }, [pendBitrixQ.data]);
   const liberarPix = useMutation({
     mutationFn: (codErp: string) => liberarPixFn({ data: { codErp } }),
     onSuccess: () => {
@@ -1410,7 +1468,10 @@ export function RotasView({
         accessor: (r) => r.erp_route_id ?? "",
         render: (r) =>
           r.erp_route_id ? (
-            <span className="whitespace-nowrap font-semibold tabular-nums">{r.erp_route_id}</span>
+            <span className="inline-flex items-center gap-1 whitespace-nowrap font-semibold tabular-nums">
+              {r.erp_route_id}
+              {pendBitrixMap.get(r.id) ? <PendenciaBitrixIcone p={pendBitrixMap.get(r.id)!} /> : null}
+            </span>
           ) : (
             <span className="text-muted-foreground">—</span>
           ),
@@ -1590,8 +1651,8 @@ export function RotasView({
         align: "right",
         width: usarTabelaCompacta ? "112px" : undefined,
         verticalHeader: usarTabelaCompacta,
-        filterAccessor: (r) => (r.frete_confirmado_em ? "Confirmado" : "Pendente"),
-        filterLabel: (r) => (r.frete_confirmado_em ? "Confirmado" : "Pendente"),
+        filterAccessor: (r) => statusPgtoOf(r, pendBitrixMap),
+        filterLabel: (r) => statusPgtoOf(r, pendBitrixMap),
         accessor: (r) => freteOf(r),
         render: (r) => (
           <span onClick={(e) => e.stopPropagation()}>
@@ -1757,6 +1818,7 @@ export function RotasView({
       responsaveisQ.isFetching,
       responsaveisQ.error,
       responsaveisLocaisQ.data,
+      pendBitrixMap,
     ],
   );
 
