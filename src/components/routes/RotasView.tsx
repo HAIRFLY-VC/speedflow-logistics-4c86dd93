@@ -944,7 +944,7 @@ export function RotasView({
 
 
   const { data, isLoading, error: routesError } = useQuery({
-    queryKey: ["routes"],
+    queryKey: ["routes", ocultarRotasVazias ? "com-pedidos" : "todas"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("routes")
