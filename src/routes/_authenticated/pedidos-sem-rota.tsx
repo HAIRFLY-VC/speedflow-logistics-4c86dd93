@@ -1095,9 +1095,9 @@ function PedidosSemRotaPage() {
                         <div className="flex justify-between gap-2 font-medium">
                           <span className="truncate">
                             {r.erp_route_id ? (
-                              <>
-                                <b>#{r.erp_route_id}</b> ·{" "}
-                              </>
+                            <>
+                                <b>{r.erp_route_id}</b> ·{" "}
+                            </>
                             ) : null}
                             {nome}
                           </span>
