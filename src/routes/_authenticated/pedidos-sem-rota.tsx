@@ -629,6 +629,36 @@ function PedidosSemRotaPage() {
     return m;
   }, [selecionados, pedidosQ.data, ufCliente, cidadeCliente]);
 
+  // Composição dos pedidos selecionados, no mesmo formato dos cartões de rota:
+  // entregas = clientes distintos, agrupados por UF e cidade.
+  const resumoSelecaoUfs = useMemo(() => {
+    const sel = new Set(selecionados);
+    const porCliente = new Map<string, { uf: string; cid: string }>();
+    for (const l of linhas) {
+      if (!sel.has(l.id)) continue;
+      const chave = l.codCliente || l.cliente;
+      if (!chave) continue;
+      if (!porCliente.has(chave)) porCliente.set(chave, { uf: l.uf || "—", cid: l.cidade || "Sem cidade" });
+    }
+    const porUf = new Map<string, Map<string, number>>();
+    for (const { uf, cid } of porCliente.values()) {
+      const m = porUf.get(uf) ?? new Map<string, number>();
+      m.set(cid, (m.get(cid) ?? 0) + 1);
+      porUf.set(uf, m);
+    }
+    return {
+      entregas: porCliente.size,
+      ufs: [...porUf.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([uf, m]) => ({
+          uf,
+          cidades: [...m.entries()]
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+            .map(([nome, qtd]) => ({ nome, qtd })),
+        })),
+    };
+  }, [linhas, selecionados]);
+
   const rotasFiltradas = useMemo(() => {
     const q = buscaRota.trim().toLowerCase();
     return (rotasQ.data ?? [])
@@ -995,6 +1025,32 @@ function PedidosSemRotaPage() {
             </TabsContent>
 
             <TabsContent value="existente" className="space-y-3 pt-3">
+              <div className="rounded-md border bg-muted/40 p-2 text-xs">
+                <div className="mb-0.5 font-medium">Pedidos selecionados</div>
+                <p className="text-muted-foreground">
+                  {brl(resumoSelecao.valor)} ·{" "}
+                  {resumoSelecao.peso.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} kg ·{" "}
+                  {resumoSelecao.entregas} entrega(s)
+                </p>
+                <p className="mt-0.5 leading-snug">
+                  {resumoSelecaoUfs.entregas === 0 ? (
+                    <span className="text-muted-foreground">Sem entregas identificadas</span>
+                  ) : (
+                    resumoSelecaoUfs.ufs.map((u, i) => (
+                      <span key={u.uf}>
+                        {i > 0 && " · "}
+                        <b>{u.uf}:</b>{" "}
+                        {u.cidades.map((c, j) => (
+                          <span key={c.nome}>
+                            {j > 0 && ", "}
+                            {c.nome} ({c.qtd})
+                          </span>
+                        ))}
+                      </span>
+                    ))
+                  )}
+                </p>
+              </div>
               <label className="flex items-center gap-2 text-xs">
                 <Checkbox
                   checked={soMesmasCidades}
