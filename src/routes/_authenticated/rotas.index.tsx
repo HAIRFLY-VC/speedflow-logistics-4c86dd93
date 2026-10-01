@@ -26,6 +26,7 @@ function RotasPage() {
       titulo="Rotas Pendentes"
       descricao="Planeje rotas, atribua pedidos faturados e emita o borderô."
       mostrarAcoesDeRota
+      somenteStatusP
       filtro={filtro}
     />
   );

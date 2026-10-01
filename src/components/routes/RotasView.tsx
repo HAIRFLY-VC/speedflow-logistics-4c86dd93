@@ -110,6 +110,8 @@ export type RotasViewProps = {
   mensagemVazia?: string;
   /** Oculta rotas sem nenhum pedido associado (usado em Autorizar pagamento). */
   ocultarRotasVazias?: boolean;
+  /** Mostra apenas rotas com status P no ERP (Rotas Pendentes). */
+  somenteStatusP?: boolean;
   /** Chave de preferências da tabela (filtros/colunas por tela). */
   tableKey: string;
 };
@@ -888,6 +890,7 @@ export function RotasView({
   filtro,
   mensagemVazia = "Nenhuma rota criada.",
   ocultarRotasVazias = false,
+  somenteStatusP = false,
   tableKey,
 }: RotasViewProps) {
   const usarTabelaCompacta = permitirConfirmacao || mostrarAcoesDeRota;
@@ -944,7 +947,7 @@ export function RotasView({
 
 
   const { data, isLoading, error: routesError } = useQuery({
-    queryKey: ["routes", ocultarRotasVazias ? "com-pedidos" : "todas"],
+    queryKey: ["routes", ocultarRotasVazias ? "com-pedidos" : "todas", somenteStatusP ? "P" : "all"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("routes")
@@ -956,7 +959,9 @@ export function RotasView({
       // com ao menos um pedido associado. Em Rotas Pendentes, rotas vazias
       // (recém-criadas) aparecem para receber pedidos.
       const rows = ((data ?? []) as unknown as RouteRow[]).filter(
-        (r) => !ocultarRotasVazias || (r.route_orders ?? []).length > 0,
+        (r) =>
+          (!ocultarRotasVazias || (r.route_orders ?? []).length > 0) &&
+          (!somenteStatusP || (r.erp_status ?? "").trim().toUpperCase() === "P"),
       );
       rows.sort((a, b) => {
         const d = routeDateSortKey(a.route_date).localeCompare(

@@ -897,6 +897,8 @@ export async function syncErpOrders(opts: {
           ? String(row.COD_FRT_TRP).trim()
           : null;
       const erpStatus = row.ROTA_STATUS?.trim() || "P";
+      // Rota excluída no ERP (status E) não volta para o app.
+      if (erpStatus === "E") continue;
       const key = erpRouteId
         ? `erp:${erpRouteId}`
         : `${nome}|${dateOnly}|${driver ?? ""}|${carrierCode ?? ""}`;

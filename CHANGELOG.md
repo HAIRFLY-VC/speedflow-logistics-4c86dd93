@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.0] - 2026-10-01
+### Adicionado
+- Botão "Excluir rota" no detalhe de rotas sem pedidos (Administrador/Gestor): grava status E no ERP e remove a rota do app.
+### Alterado
+- Rotas Pendentes mostra apenas rotas com status P no ERP.
+- Sync ERP ignora rotas com status E.
+
 ## [1.15.7] - 2026-10-01
 ### Corrigido
 - Sync ERP: rota recém-criada (ainda sem pedidos) não some mais de Rotas Pendentes após a sincronização.
