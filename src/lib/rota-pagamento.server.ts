@@ -688,13 +688,40 @@ export async function confirmarPagamentoRota(params: {
       .eq("id", params.routeId);
   }
 
-  // Bitrix sem prender a tela; se falhar, a fila de pendências reprocessa.
-  if (finId)
-    void processarTarefaFinanceiraRota(finId)
-      .then(() => etapa("bitrix"))
-      .catch((e) => console.error("[confirmarPagamento] bitrix", e));
+  // Tarefa do Bitrix tentada na hora (com limite de tempo). Trabalho deixado
+  // para depois da resposta é interrompido pelo servidor, então aguardamos.
+  // Se falhar ou demorar, a linha fica na fila e o robô tenta a cada minuto.
+  let bitrix: { ok: boolean; referencia?: string; erro?: string } = {
+    ok: false,
+    erro: "Tarefa não criada",
+  };
+  if (finId) {
+    const tentativa = processarTarefaFinanceiraRota(finId).catch((e) => ({
+      ok: false,
+      erro: (e as Error).message,
+    }));
+    const limite = new Promise<{ ok: boolean; erro: string }>((resolve) =>
+      setTimeout(() => resolve({ ok: false, erro: "O Bitrix demorou a responder" }), 10_000),
+    );
+    bitrix = await Promise.race([tentativa, limite]);
+    try {
+      const { registrarTentativa } = await import("./fila-retry.server");
+      await registrarTentativa({
+        fila: "financeiro",
+        filaId: finId,
+        raizId: finId,
+        tentativa: 1,
+        ok: bitrix.ok,
+        mensagem: bitrix.ok ? "Tarefa criada no Bitrix" : (bitrix.erro ?? null),
+        origem: "MANUAL",
+      });
+    } catch {
+      /* histórico é complementar */
+    }
+    etapa("bitrix");
+  }
   etapa("resposta");
-  return { ok: true, ordem_id: ordemId, linhas: linhas.length };
+  return { ok: true, ordem_id: ordemId, linhas: linhas.length, bitrix };
 }
 
 /**
@@ -740,9 +767,19 @@ export async function processarTarefaFinanceiraRota(
   }
   const vinculo = autorId ? await vinculoBitrixDoUsuario(autorId) : null;
   if (!vinculo) {
-    throw new Error(
-      "O usuário que autorizou o pagamento não está vinculado ao Bitrix. Peça ao administrador para fazer o vínculo em Configurações e reenvie.",
-    );
+    const erro =
+      "O usuário que autorizou o pagamento não está vinculado ao Bitrix. Peça ao administrador para fazer o vínculo em Configurações e reenvie.";
+    await centralDb
+      .from("fila_provisionamento_financeiro")
+      .update({
+        status: "ERRO",
+        tentativas,
+        ultimo_erro: erro,
+        proxima_tentativa_em: tentativas >= 10 ? null : new Date(Date.now() + 60_000).toISOString(),
+        processado_em: new Date().toISOString(),
+      } as never)
+      .eq("id", filaId);
+    return { ok: false, erro };
   }
 
   try {

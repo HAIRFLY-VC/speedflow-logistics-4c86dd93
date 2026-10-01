@@ -203,9 +203,14 @@ export function PagamentoRotaDialog({
           pedidos: pedidosEscolhidos,
         },
       }),
-    onSuccess: () => {
+    onSuccess: (r) => {
       toast.success("Pagamento confirmado e enviado para lançamento.");
-      toast.info("Tarefa do Bitrix sendo criada em segundo plano.");
+      const b = (r as { bitrix?: { ok: boolean; referencia?: string; erro?: string } } | null)?.bitrix;
+      if (b?.ok) toast.success(`Tarefa do Bitrix criada${b.referencia ? ` (nº ${b.referencia})` : ""}.`);
+      else
+        toast.warning(
+          `Tarefa do Bitrix na fila; nova tentativa em 1 minuto.${b?.erro ? ` Motivo: ${b.erro}` : ""}`,
+        );
       qc.invalidateQueries({ queryKey: ["routes"], refetchType: "active" });
       qc.invalidateQueries({ queryKey: ["rotas-adicionais-autorizados"] });
       setTimeout(() => void qc.invalidateQueries({ queryKey: ["rota-pagamento", "filas", routeId] }), 8000);

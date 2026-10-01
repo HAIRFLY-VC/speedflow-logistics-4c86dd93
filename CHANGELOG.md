@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.15.1] - 2026-10-01
+### Corrigido
+- Autorizar pagamento: a tarefa do Bitrix volta a ser criada na hora, e o resultado aparece na tela.
+- Se a criação falhar, a nova tentativa ocorre em 1 minuto (antes esperava 30 minutos), até 10 tentativas.
+- Usuário sem vínculo com o Bitrix agora gera pendência visível na fila, em vez de travar o item.
+
 ## [1.15.0] - 2026-10-01
 ### Adicionado
 - Novo status de pagamento "Confirmado c/ pendência" quando a tarefa do Bitrix não é criada de primeira.
