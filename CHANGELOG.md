@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.15.6] - 2026-10-01
+### Corrigido
+- Rotas Pendentes: a rota recém-criada aparece na listagem imediatamente, mesmo ainda sem pedidos. A tela "Autorizar pagamento de frete" continua ocultando rotas vazias.
+
 ## [1.15.5] - 2026-10-01
 ### Alterado
 - Nova rota: o número da rota é reservado primeiro na sequência do ERP e enviado na gravação, garantindo o mesmo número no ERP e no app.
