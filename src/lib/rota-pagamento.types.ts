@@ -22,6 +22,10 @@ export type PedidoPagamento = {
   /** Código do cliente no ERP (para exibir junto ao nome na tela). */
   cod_cliente: string | null;
   cliente: string;
+  /** Endereço do cliente (espelho clientes_erp), para exibição na tabela. */
+  uf: string | null;
+  cidade: string | null;
+  bairro: string | null;
   bordero: string | null;
   nro_nf: string | null;
   valor_mercadoria: number;

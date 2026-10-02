@@ -222,18 +222,37 @@ async function dadosDeExpedicao(codPedidos: string[]): Promise<Map<string, Dados
   return map;
 }
 
-async function nomesDeClientes(cods: string[]): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
+type ClienteErp = {
+  nome: string;
+  uf: string | null;
+  cidade: string | null;
+  bairro: string | null;
+};
+
+async function dadosDeClientes(cods: string[]): Promise<Map<string, ClienteErp>> {
+  const map = new Map<string, ClienteErp>();
   const unicos = Array.from(new Set(cods.filter(Boolean)));
   const TAM = 200;
   for (let i = 0; i < unicos.length; i += TAM) {
     const lote = unicos.slice(i, i + TAM);
     const { data } = await centralDb
       .from("clientes_erp")
-      .select("cod_cliente, razao_social, nome_nf")
+      .select("cod_cliente, razao_social, nome_nf, uf, cidade, bairro")
       .in("cod_cliente", lote);
-    for (const c of (data ?? []) as { cod_cliente: string; razao_social: string | null; nome_nf: string | null }[]) {
-      map.set(c.cod_cliente, c.razao_social ?? c.nome_nf ?? c.cod_cliente);
+    for (const c of (data ?? []) as {
+      cod_cliente: string;
+      razao_social: string | null;
+      nome_nf: string | null;
+      uf: string | null;
+      cidade: string | null;
+      bairro: string | null;
+    }[]) {
+      map.set(c.cod_cliente, {
+        nome: c.razao_social ?? c.nome_nf ?? c.cod_cliente,
+        uf: c.uf?.trim() || null,
+        cidade: c.cidade?.trim() || null,
+        bairro: c.bairro?.trim() || null,
+      });
     }
   }
   return map;
