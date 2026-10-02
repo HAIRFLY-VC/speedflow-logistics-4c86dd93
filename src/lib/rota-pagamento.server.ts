@@ -94,6 +94,8 @@ type PedidoCarregado = {
   cod_cliente: string | null;
   cod_filial: string | null;
   valor_mercadoria: number;
+  /** Peso do pedido em kg. */
+  peso: number;
   /** Borderô gravado no pedido durante a sincronização do ERP. */
   bordero: string | null;
 };
@@ -125,7 +127,7 @@ async function carregarRota(routeId: string): Promise<RotaCarregada> {
 async function carregarPedidos(routeId: string): Promise<PedidoCarregado[]> {
   const { data, error } = await centralDb
     .from("route_orders")
-    .select("stop_order, orders(order_number, total_amount, cod_filial, erp_cod_cliente, bordero)")
+    .select("stop_order, orders(order_number, total_amount, cod_filial, erp_cod_cliente, bordero, weight)")
     .eq("route_id", routeId);
   if (error) throw new Error(error.message);
 
