@@ -76,6 +76,8 @@ export type PreviewPagamentoRota = {
   erp_route_id: string | null;
   valor: number;
   valor_mercadoria: number;
+  /** Peso somado dos pedidos incluídos no pagamento (kg). */
+  peso_total: number;
   total_pedidos: number;
   pedidos_sem_bordero: number;
   /** Pedidos ainda sem nota fiscal emitida (não faturados). */
