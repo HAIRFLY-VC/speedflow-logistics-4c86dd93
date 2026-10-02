@@ -425,6 +425,7 @@ export async function montarPreviewPagamentoRota(params: {
     erp_route_id: rota.erp_route_id,
     valor,
     valor_mercadoria: valorMercadoria,
+    peso_total: pesoTotal,
     total_pedidos: selecionadosAplicados.length,
     pedidos_sem_bordero: semBordero,
     pedidos_sem_faturamento: semFaturamento,
