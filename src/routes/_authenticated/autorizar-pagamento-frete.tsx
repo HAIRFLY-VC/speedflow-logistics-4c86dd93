@@ -27,8 +27,9 @@ function AutorizarPagamentoFretePage() {
     (r: RouteRow, ctx: { bordero: { total: number; comBordero: number } }) =>
       Boolean(r.erp_route_id?.trim()) &&
       !r.route_date?.startsWith("4000-01-01") &&
-      (Boolean(r.bordero_emitido_em) ||
-        (ctx.bordero.total > 0 && ctx.bordero.comBordero === ctx.bordero.total)),
+      // Só entra com borderô informado em todos os pedidos (a marca automática não basta).
+      ctx.bordero.total > 0 &&
+      ctx.bordero.comBordero === ctx.bordero.total,
     [],
   );
 
