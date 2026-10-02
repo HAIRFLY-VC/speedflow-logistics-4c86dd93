@@ -155,6 +155,7 @@ function PedidosSemRotaPage() {
         .from("routes")
         .select("id, code, notes, route_date, driver_name, erp_route_id")
         .eq("status", "planejada")
+        .not("erp_route_id", "is", null)
         .gte("route_date", hoje)
         .lt("route_date", "3000-01-01")
         .order("route_date", { ascending: true })

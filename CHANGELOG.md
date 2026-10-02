@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.16.9] - 2026-10-02
+### Corrigido
+- Pedidos sem rota: rotas sem número no ERP não aparecem mais para atribuição; seleções desatualizadas agora exibem uma mensagem clara em vez de informar zero pedidos atribuídos.
+
 ## [1.16.8] - 2026-10-02
 ### Corrigido
 - Rotas Pendentes: o card de pedidos pendentes sem rota agora fica oculto quando não há pedidos aguardando atribuição.

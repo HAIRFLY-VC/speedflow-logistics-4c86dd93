@@ -9,8 +9,7 @@ import { centralDb } from "@/lib/central-db";
  *  - capa da rota: /v1/execute/insert_capa_rota (nova) ou update_capa_rota
  *  - vínculo pedido↔rota: /v1/execute/insert_rota_pedido
  *
- * Enquanto as procedures não estiverem publicadas na API do ERP, a gravação
- * local é mantida e o erro do ERP é devolvido para a tela avisar o usuário.
+ * A gravação local só ocorre depois que o ERP confirma o vínculo do pedido.
  */
 
 type NovaRota = {
@@ -232,6 +231,11 @@ export const atribuirPedidosARota = createServerFn({ method: "POST" })
       routeDate = rota.route_date;
       nomeRota = (rota.notes?.startsWith("Rota ") ? rota.notes.slice(5) : rota.code).toUpperCase();
       erpRouteId = rota.erp_route_id ?? null;
+      if (!erpRouteId) {
+        throw new Error(
+          "Esta rota ainda não possui número no ERP e não pode receber pedidos. Sincronize o ERP ou escolha outra rota.",
+        );
+      }
     } else {
       const nova = data.nova!;
       routeDate = nova.data;
@@ -276,9 +280,7 @@ export const atribuirPedidosARota = createServerFn({ method: "POST" })
     let vinculadosErp = 0;
     let falhasErp = 0;
     let aceitos: string[] = [];
-    if (!erpRouteId) {
-      avisos.push("Rota sem ID do ERP: os pedidos não foram incluídos no ERP.");
-    } else if (candidatos.length) {
+    if (candidatos.length) {
       const { data: pedidos, error: pErr } = await centralDb
         .from("orders")
         .select("id, erp_id, order_number")
