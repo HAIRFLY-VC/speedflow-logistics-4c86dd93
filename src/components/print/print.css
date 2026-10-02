@@ -1,0 +1,38 @@
+.print-sheet {
+  background: var(--background);
+  color: var(--foreground);
+  margin: 0 auto;
+  box-shadow: 0 2px 12px color-mix(in oklab, var(--foreground) 15%, transparent);
+  padding: 12mm;
+}
+.print-sheet[data-font="sm"] { font-size: 10px; }
+.print-sheet[data-font="md"] { font-size: 12px; }
+.print-sheet[data-font="lg"] { font-size: 14px; }
+.print-sheet table { width: 100%; border-collapse: collapse; }
+.print-sheet th, .print-sheet td {
+  border-bottom: 1px solid var(--border);
+  padding: 2px 4px;
+  text-align: left;
+  vertical-align: top;
+}
+.print-sheet th { background: var(--muted); font-weight: 600; }
+.print-sheet .num { text-align: right; white-space: nowrap; }
+.print-sheet .avoid-break { break-inside: avoid; page-break-inside: avoid; }
+.print-sheet thead { display: table-header-group; }
+.print-sheet tr { break-inside: avoid; page-break-inside: avoid; }
+.print-sheet[data-eco="true"] th,
+.print-sheet[data-eco="true"] .print-band { background: transparent !important; }
+.print-sheet[data-eco="true"] * { color: #000 !important; }
+
+@media print {
+  html, body { background: #fff !important; }
+  .print-hidden { display: none !important; }
+  .print-sheet {
+    box-shadow: none;
+    padding: 0;
+    width: auto !important;
+    min-height: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
