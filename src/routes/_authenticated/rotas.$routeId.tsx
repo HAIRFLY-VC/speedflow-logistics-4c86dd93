@@ -4,8 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { listarPedidosDetalheRota, excluirRotaVazia, type PedidoDetalheRota } from "@/lib/rota-erp.functions";
 import { localizarLocalidades, chaveLocalidade } from "@/lib/geo-localidades.functions";
-import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { openAppRoute } from "@/lib/open-in-tab";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -144,7 +143,6 @@ function RouteDetailPage() {
   const canOperate = role === "adm" || role === "gestor" || role === "operador";
   const podeExcluir = role === "adm" || role === "gestor";
   const navigate = useNavigate();
-  const appRouter = useRouter();
   const excluirFn = useServerFn(excluirRotaVazia);
   const excluir = useMutation({
     mutationFn: () => excluirFn({ data: { routeId } }),
@@ -475,7 +473,7 @@ function RouteDetailPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => openAppRoute(appRouter, `/imprimir-rota/${route.id}`)}>
+            <Button variant="outline" size="sm" onClick={() => navigate({ to: "/imprimir-rota/$routeId", params: { routeId: route.id } })}>
               <Printer className="h-4 w-4 mr-1" />
               Imprimir
             </Button>
