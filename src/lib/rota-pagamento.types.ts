@@ -25,6 +25,8 @@ export type PedidoPagamento = {
   bordero: string | null;
   nro_nf: string | null;
   valor_mercadoria: number;
+  /** Peso do pedido em kg (mesma origem da tabela de entregas). */
+  peso: number;
   frete: number;
 };
 
@@ -32,6 +34,8 @@ export type FilialPagamento = {
   cod_filial: string;
   pedidos: PedidoPagamento[];
   valor_mercadoria: number;
+  /** Peso somado dos pedidos incluídos (kg). */
+  peso: number;
   frete: number;
 };
 
@@ -72,6 +76,8 @@ export type PreviewPagamentoRota = {
   erp_route_id: string | null;
   valor: number;
   valor_mercadoria: number;
+  /** Peso somado dos pedidos incluídos no pagamento (kg). */
+  peso_total: number;
   total_pedidos: number;
   pedidos_sem_bordero: number;
   /** Pedidos ainda sem nota fiscal emitida (não faturados). */

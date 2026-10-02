@@ -43,6 +43,8 @@ import {
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const kg = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
+
 const ROTULO_FILA: Record<string, string> = {
   PENDENTE: "Aguardando envio",
   PROCESSANDO: "Processando",
@@ -497,7 +499,9 @@ export function PagamentoRotaDialog({
                     : "—"}
                 </span>
               </span>
-              <span className="text-muted-foreground">{p.total_pedidos} pedido(s)</span>
+              <span className="text-muted-foreground">
+                {p.total_pedidos} pedido(s) · <span className="tabular-nums">{kg.format(p.peso_total)} kg</span>
+              </span>
             </div>
 
             {aud && (aud.pedidos_fora_do_erp?.length ?? 0) > 0 && (
@@ -618,7 +622,9 @@ export function PagamentoRotaDialog({
               <div key={f.cod_filial} className="rounded-md border">
                 <div className="flex items-center justify-between border-b bg-muted/40 px-3 py-2 text-sm font-semibold">
                   <span>Filial de faturamento {f.cod_filial}</span>
-                  <span className="tabular-nums">{brl(f.frete)}</span>
+                  <span className="tabular-nums">
+                    {kg.format(f.peso)} kg · {brl(f.frete)}
+                  </span>
                 </div>
                 <table className="w-full text-xs">
                   <thead className="text-muted-foreground">
@@ -638,6 +644,7 @@ export function PagamentoRotaDialog({
                       <th className="px-3 py-1 text-left font-medium">Borderô</th>
                       <th className="px-3 py-1 text-left font-medium">Cliente</th>
                       <th className="px-3 py-1 text-right font-medium">Mercadoria</th>
+                      <th className="px-3 py-1 text-right font-medium">Peso</th>
                       <th className="px-3 py-1 text-right font-medium">Frete</th>
                     </tr>
                   </thead>
@@ -674,6 +681,9 @@ export function PagamentoRotaDialog({
                         </td>
                         <td className="px-3 py-1 text-right tabular-nums">
                           {brl(ped.valor_mercadoria)}
+                        </td>
+                        <td className="px-3 py-1 text-right tabular-nums">
+                          {kg.format(ped.peso)} kg
                         </td>
                         <td className="px-3 py-1 text-right tabular-nums">{brl(ped.frete)}</td>
                       </tr>

@@ -94,6 +94,8 @@ type PedidoCarregado = {
   cod_cliente: string | null;
   cod_filial: string | null;
   valor_mercadoria: number;
+  /** Peso do pedido em kg. */
+  peso: number;
   /** Borderô gravado no pedido durante a sincronização do ERP. */
   bordero: string | null;
 };
@@ -125,7 +127,7 @@ async function carregarRota(routeId: string): Promise<RotaCarregada> {
 async function carregarPedidos(routeId: string): Promise<PedidoCarregado[]> {
   const { data, error } = await centralDb
     .from("route_orders")
-    .select("stop_order, orders(order_number, total_amount, cod_filial, erp_cod_cliente, bordero)")
+    .select("stop_order, orders(order_number, total_amount, cod_filial, erp_cod_cliente, bordero, weight)")
     .eq("route_id", routeId);
   if (error) throw new Error(error.message);
 
@@ -138,6 +140,7 @@ async function carregarPedidos(routeId: string): Promise<PedidoCarregado[]> {
           cod_filial: string | null;
           erp_cod_cliente: string | null;
           bordero: string | null;
+          weight: number | null;
         }
       | null;
   }[];
@@ -150,6 +153,7 @@ async function carregarPedidos(routeId: string): Promise<PedidoCarregado[]> {
     const atual = pedidos.get(cod);
     if (atual) {
       atual.valor_mercadoria = cent(atual.valor_mercadoria + Number(o?.total_amount ?? 0));
+      atual.peso = atual.peso + Number(o?.weight ?? 0);
       atual.bordero = atual.bordero ?? ((o?.bordero ?? "").trim() || null);
       continue;
     }
@@ -158,6 +162,7 @@ async function carregarPedidos(routeId: string): Promise<PedidoCarregado[]> {
       cod_cliente: o?.erp_cod_cliente ?? null,
       cod_filial: (o?.cod_filial ?? "").trim() || null,
       valor_mercadoria: Number(o?.total_amount ?? 0),
+      peso: Number(o?.weight ?? 0),
       bordero: (o?.bordero ?? "").trim() || null,
     });
   }
@@ -313,6 +318,7 @@ function agrupar(
   semBordero: number;
   semFaturamento: number;
   valorMercadoria: number;
+  pesoTotal: number;
   selecionadosAplicados: string[];
 } {
   const incluido = (cod: string) => !selecionados || selecionados.has(cod);
@@ -342,11 +348,14 @@ function agrupar(
       bordero,
       nro_nf: nf,
       valor_mercadoria: cent(Number(p.valor_mercadoria ?? 0)),
+      peso: Number(p.peso ?? 0),
       frete: rateado[i] ?? 0,
     };
-    const g = grupos.get(filial) ?? { cod_filial: filial, pedidos: [], valor_mercadoria: 0, frete: 0 };
+    const g =
+      grupos.get(filial) ?? { cod_filial: filial, pedidos: [], valor_mercadoria: 0, peso: 0, frete: 0 };
     g.pedidos.push(item);
     g.valor_mercadoria = cent(g.valor_mercadoria + (incluido(p.cod_pedido) ? item.valor_mercadoria : 0));
+    g.peso = g.peso + (incluido(p.cod_pedido) ? item.peso : 0);
     g.frete = cent(g.frete + item.frete);
     grupos.set(filial, g);
   });
@@ -362,6 +371,7 @@ function agrupar(
     semBordero,
     semFaturamento,
     valorMercadoria: cent(pesos.reduce((s, v) => s + v, 0)),
+    pesoTotal: filiais.reduce((s, f) => s + f.peso, 0),
     selecionadosAplicados: pedidos.map((p) => p.cod_pedido).filter(incluido),
   };
 }
@@ -400,7 +410,8 @@ export async function montarPreviewPagamentoRota(params: {
       ? new Set(escolhidos)
       : null;
 
-  const { filiais, semBordero, semFaturamento, valorMercadoria, selecionadosAplicados } = agrupar(
+  const { filiais, semBordero, semFaturamento, valorMercadoria, pesoTotal, selecionadosAplicados } =
+    agrupar(
     pedidos,
     expedicao,
     clientes,
@@ -414,6 +425,7 @@ export async function montarPreviewPagamentoRota(params: {
     erp_route_id: rota.erp_route_id,
     valor,
     valor_mercadoria: valorMercadoria,
+    peso_total: pesoTotal,
     total_pedidos: selecionadosAplicados.length,
     pedidos_sem_bordero: semBordero,
     pedidos_sem_faturamento: semFaturamento,
