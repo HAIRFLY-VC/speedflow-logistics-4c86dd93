@@ -43,6 +43,8 @@ import {
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const kg = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
+
 const ROTULO_FILA: Record<string, string> = {
   PENDENTE: "Aguardando envio",
   PROCESSANDO: "Processando",
@@ -497,7 +499,9 @@ export function PagamentoRotaDialog({
                     : "—"}
                 </span>
               </span>
-              <span className="text-muted-foreground">{p.total_pedidos} pedido(s)</span>
+              <span className="text-muted-foreground">
+                {p.total_pedidos} pedido(s) · <span className="tabular-nums">{kg.format(p.peso_total)} kg</span>
+              </span>
             </div>
 
             {aud && (aud.pedidos_fora_do_erp?.length ?? 0) > 0 && (
