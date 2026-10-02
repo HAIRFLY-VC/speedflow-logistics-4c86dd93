@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.18.2] - 2026-10-02
+### Adicionado
+- Ao salvar a impressão da rota em PDF, o arquivo é sugerido como RT_<código da rota>_<data>.pdf (ex.: RT_461_20261002.pdf); o contador "Página X de Y" no canto inferior direito já aparece no PDF salvo.
+
 ## [1.18.1] - 2026-10-02
 ### Alterado
 - A impressão abre inicialmente em modo Retrato e organiza cada entrega em uma linha totalizadora, seguida pelo detalhamento dos pedidos.
