@@ -622,7 +622,9 @@ export function PagamentoRotaDialog({
               <div key={f.cod_filial} className="rounded-md border">
                 <div className="flex items-center justify-between border-b bg-muted/40 px-3 py-2 text-sm font-semibold">
                   <span>Filial de faturamento {f.cod_filial}</span>
-                  <span className="tabular-nums">{brl(f.frete)}</span>
+                  <span className="tabular-nums">
+                    {kg.format(f.peso)} kg · {brl(f.frete)}
+                  </span>
                 </div>
                 <table className="w-full text-xs">
                   <thead className="text-muted-foreground">
@@ -642,6 +644,7 @@ export function PagamentoRotaDialog({
                       <th className="px-3 py-1 text-left font-medium">Borderô</th>
                       <th className="px-3 py-1 text-left font-medium">Cliente</th>
                       <th className="px-3 py-1 text-right font-medium">Mercadoria</th>
+                      <th className="px-3 py-1 text-right font-medium">Peso</th>
                       <th className="px-3 py-1 text-right font-medium">Frete</th>
                     </tr>
                   </thead>
