@@ -1949,20 +1949,6 @@ export function RotasView({
                   </CardTitle>
                   <ArrowRight className="h-4 w-4 shrink-0 text-destructive" aria-hidden="true" />
                 </CardHeader>
-                {pedidosSemRotaQ.isLoading ? (
-                  <CardContent className="p-3 pt-0 text-xs text-muted-foreground">Carregando…</CardContent>
-                ) : pedidosSemRotaQ.isError ? (
-                  <CardContent className="space-y-1 p-3 pt-0 text-xs text-muted-foreground">
-                    <p>Não foi possível carregar os totais.</p>
-                    <button
-                      type="button"
-                      className="font-medium text-destructive underline"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); void pedidosSemRotaQ.refetch(); }}
-                    >
-                      Tentar novamente
-                    </button>
-                  </CardContent>
-                ) : (
                 <CardContent className="grid grid-cols-2 gap-x-3 gap-y-2 p-3 pt-0">
                   <div>
                     <p className="text-[11px] text-muted-foreground">Mercadorias</p>
@@ -1989,7 +1975,6 @@ export function RotasView({
                     </p>
                   </div>
                 </CardContent>
-                )}
               </Card>
             </Link>
           )}
