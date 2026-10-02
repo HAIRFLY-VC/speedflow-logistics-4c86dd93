@@ -1,5 +1,5 @@
 import { PedidoCodigo } from "@/components/orders/PedidoCodigo";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { listarPedidosDetalheRota, excluirRotaVazia, type PedidoDetalheRota } from "@/lib/rota-erp.functions";
@@ -96,6 +96,7 @@ type RouteDetail = {
   erp_carrier_code: string | null;
   driver_name: string | null;
   bordero_emitido_em: string | null;
+  total_distance_km: number | null;
   freight_carriers: {
     id: string;
     full_name: string;
@@ -158,7 +159,7 @@ function RouteDetailPage() {
       const { data, error } = await supabase
         .from("routes")
         .select(
-          "id,code,erp_route_id,erp_status,erp_carrier_code,driver_name,route_date,status,total_freight,notes,carrier_id,bordero_emitido_em,freight_carriers(id,full_name,vehicle_plate,phone,transportadoras(cod_erp))",
+          "id,code,erp_route_id,erp_status,erp_carrier_code,driver_name,route_date,status,total_freight,total_distance_km,notes,carrier_id,bordero_emitido_em,freight_carriers(id,full_name,vehicle_plate,phone,transportadoras(cod_erp))",
         )
         .eq("id", routeId)
         .maybeSingle();
@@ -260,6 +261,27 @@ function RouteDetailPage() {
   const nomeResponsavel =
     responsavel?.razaoSocial || route?.driver_name || route?.freight_carriers?.full_name || "";
   const stops = stopsQ.data ?? [];
+  const saveMapDistance = useCallback(
+    async (distanceKm: number) => {
+      const rounded = Math.round(distanceKm * 100) / 100;
+      const current = routeQ.data?.total_distance_km;
+      if (current != null && Math.abs(Number(current) - rounded) < 0.01) return;
+
+      const { error } = await supabase
+        .from("routes")
+        .update({ total_distance_km: rounded })
+        .eq("id", routeId);
+      if (error) {
+        console.warn("[RouteMapSection] não foi possível salvar a distância:", error);
+        return;
+      }
+      qc.setQueryData<RouteDetail | null>(["routes", routeId], (previous) =>
+        previous ? { ...previous, total_distance_km: rounded } : previous,
+      );
+      qc.invalidateQueries({ queryKey: ["routes"], exact: false });
+    },
+    [qc, routeId, routeQ.data?.total_distance_km],
+  );
   const totals = useMemo(() => {
     let amount = 0;
     let weight = 0;
@@ -623,7 +645,12 @@ function RouteDetailPage() {
           </Card>
         ) : null}
 
-        <RouteMapSection stops={stops} depot={depot} nomeCliente={nomeCliente} />
+        <RouteMapSection
+          stops={stops}
+          depot={depot}
+          nomeCliente={nomeCliente}
+          onDistanceCalculated={saveMapDistance}
+        />
 
 
         {editable && canOperate ? (
@@ -701,10 +728,12 @@ function RouteMapSection({
   stops,
   depot,
   nomeCliente,
+  onDistanceCalculated,
 }: {
   stops: Stop[];
   depot: { lat: number; lng: number } | null;
   nomeCliente: (cod: string | null | undefined) => string;
+  onDistanceCalculated: (distanceKm: number) => void;
 }) {
   const exatos = stops
     .map((s) => {
@@ -817,7 +846,13 @@ function RouteMapSection({
         <CardTitle className="text-base">Mapa e sequência da rota</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {mapStops.length > 0 && <SuggestionMap stops={mapStops} depot={depot} />}
+        {mapStops.length > 0 && (
+          <SuggestionMap
+            stops={mapStops}
+            depot={depot}
+            onDistanceCalculated={onDistanceCalculated}
+          />
+        )}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
           <div className="flex items-center gap-1.5">
             <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-600" />

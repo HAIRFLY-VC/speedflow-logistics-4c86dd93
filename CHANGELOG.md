@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.16.14] - 2026-10-02
+### Corrigido
+- Rotas Pendentes: a coluna Distância (km) passa a receber a mesma quilometragem calculada no mapa do detalhe da rota, inclusive com localizações aproximadas por bairro ou cidade.
+
 ## [1.16.13] - 2026-10-02
 ### Corrigido
 - Sync ERP atualiza o status das rotas com o ERP; rotas encerradas/excluídas no ERP (ex.: 433 e 434) saem de Rotas Pendentes.

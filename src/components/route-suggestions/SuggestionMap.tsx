@@ -106,20 +106,26 @@ export function SuggestionMap({
   existingStops = EMPTY_STOPS,
   depot,
   height = 260,
+  onDistanceCalculated,
 }: {
   stops: MapStop[] | { lat: number; lng: number; orderNumber: string; customerName: string }[];
   existingStops?: MapStop[];
   depot: { lat: number; lng: number } | null;
   height?: number;
+  onDistanceCalculated?: (distanceKm: number) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const computeRouteFn = useServerFn(computeRoutePolyline);
   const computeRouteRef = useRef(computeRouteFn);
+  const onDistanceCalculatedRef = useRef(onDistanceCalculated);
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [computing, setComputing] = useState(false);
   useEffect(() => {
     computeRouteRef.current = computeRouteFn;
   }, [computeRouteFn]);
+  useEffect(() => {
+    onDistanceCalculatedRef.current = onDistanceCalculated;
+  }, [onDistanceCalculated]);
   const routeKey = useMemo(
     () =>
       JSON.stringify({
@@ -248,7 +254,11 @@ export function SuggestionMap({
           drawFallback(segment);
         }
       }
-      if (!cancelled) setDistanceKm(totalMeters > 0 ? totalMeters / 1000 : null);
+      if (!cancelled) {
+        const calculatedKm = totalMeters > 0 ? totalMeters / 1000 : null;
+        setDistanceKm(calculatedKm);
+        if (calculatedKm != null) onDistanceCalculatedRef.current?.(calculatedKm);
+      }
     }).catch((err) => {
       console.warn("[SuggestionMap] Falha ao carregar o mapa:", err);
     }).finally(() => {
