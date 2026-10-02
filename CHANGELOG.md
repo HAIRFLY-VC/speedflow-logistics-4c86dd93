@@ -1,6 +1,10 @@
 # Changelog
 
 
+## [1.18.0] - 2026-10-02
+### Adicionado
+- A última configuração de impressão (papel, orientação, fonte, seções e ordenação) fica salva no perfil do usuário e é sugerida na próxima impressão, em qualquer computador.
+
 ## [1.17.2] - 2026-10-02
 ### Alterado
 - A impressão da rota agora abre na mesma aba do app (teste e oficial), sem pedir login; "Voltar" retorna à tela anterior.
