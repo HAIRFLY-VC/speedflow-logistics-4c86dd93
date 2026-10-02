@@ -34,7 +34,7 @@ Ex.: rota 461 impressa em 02/10/2026 → `RT_461_20261002.pdf`
 - O contador `Página X de Y` só é visível no diálogo de impressão e no PDF salvo — não na tela do app (limitação do formato de impressão contínuo). Em testes com Chromium foi confirmado que ele aparece no PDF gerado.
 
 ## Versão e changelog
-- `src/config/version.ts`: 1.18.0 → **1.18.2**.
+- `src/config/version.ts`: 1.18.1 → **1.18.2**.
 - `CHANGELOG.md`: nova entrada no topo, em português:
   - ### Adicionado — Ao salvar a impressão da rota em PDF, o arquivo é sugerido como RT_<código da rota>_<data>.pdf (ex.: RT_461_20261002.pdf).
 
