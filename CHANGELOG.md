@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.17.0] - 2026-10-02
+### Adicionado
+- Impressão do detalhamento da rota (ícone de impressora em Rotas Pendentes, Autorizar pagamento de frete e botão no detalhe): pré-visualização, escolha de seções, papel A4/Carta, retrato/paisagem, tamanho de fonte, modo econômico, ordenação, numeração de páginas, assinaturas e salvar em PDF.
+
 ## [1.16.15] - 2026-10-02
 ### Corrigido
 - Rotas Pendentes e Autorizar pagamento: a coluna Distância (km) passa a ser calculada automaticamente para todas as rotas, localizando as entregas pelo pedido, pelo cliente ou (aproximado, com "≈") pelo bairro/cidade — mesma regra do mapa do detalhe.

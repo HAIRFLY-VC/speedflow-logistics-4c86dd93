@@ -17,6 +17,7 @@ import {
   Pencil,
   MessageSquareText,
   Trash2,
+  Printer,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { format } from "date-fns";
