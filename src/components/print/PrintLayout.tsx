@@ -127,6 +127,9 @@ export function PrintLayout({
             </div>
           </header>
           {children}
+          <footer className="print-preview-page-number" aria-label="Página 1 de 1">
+            Página 1 de 1
+          </footer>
         </div>
       </div>
     </div>
