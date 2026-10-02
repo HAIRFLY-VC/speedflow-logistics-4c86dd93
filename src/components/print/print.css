@@ -17,11 +17,28 @@
 }
 .print-sheet th { background: var(--muted); font-weight: 600; }
 .print-sheet .num { text-align: right; white-space: nowrap; }
+.print-sheet .print-delivery-total td {
+  background: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-block: 4px;
+}
+.print-sheet .print-stop-number {
+  align-items: center;
+  background: var(--foreground);
+  border-radius: 9999px;
+  color: var(--background);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 18px;
+  justify-content: center;
+  width: 18px;
+}
 .print-sheet .avoid-break { break-inside: avoid; page-break-inside: avoid; }
 .print-sheet thead { display: table-header-group; }
 .print-sheet tr { break-inside: avoid; page-break-inside: avoid; }
 .print-sheet[data-eco="true"] th,
-.print-sheet[data-eco="true"] .print-band { background: transparent !important; }
+.print-sheet[data-eco="true"] .print-band,
+.print-sheet[data-eco="true"] .print-delivery-total td { background: transparent !important; }
 .print-sheet[data-eco="true"] * { color: #000 !important; }
 
 @media print {
