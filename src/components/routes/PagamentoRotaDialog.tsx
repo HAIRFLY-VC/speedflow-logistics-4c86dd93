@@ -682,6 +682,9 @@ export function PagamentoRotaDialog({
                         <td className="px-3 py-1 text-right tabular-nums">
                           {brl(ped.valor_mercadoria)}
                         </td>
+                        <td className="px-3 py-1 text-right tabular-nums">
+                          {kg.format(ped.peso)} kg
+                        </td>
                         <td className="px-3 py-1 text-right tabular-nums">{brl(ped.frete)}</td>
                       </tr>
                       );
