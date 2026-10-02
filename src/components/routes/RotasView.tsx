@@ -14,7 +14,8 @@ import { useClientesErp } from "@/hooks/useClientesErp";
 import { supabase } from "@/integrations/central/client";
 import { computeRoutePolyline } from "@/lib/route-directions.functions";
 import { sequenceStops } from "@/components/route-suggestions/SuggestionMap";
-import { getOrderCoord } from "@/lib/order-coords";
+import { coordExata, aproximarPorLocalidade, localidadesParaAproximar, calcularTrajeto } from "@/lib/route-stops";
+import { localizarLocalidades, chaveLocalidade } from "@/lib/geo-localidades.functions";
 import {
   simularRota,
   tabelaVigenteDaTransportadora,
@@ -37,6 +38,7 @@ import {
   listarResponsaveisDeRotasErp,
   sincronizarResponsaveisPorCodigo,
   auditarRotasCompletas,
+  listarPedidosDetalheRota,
   type ResponsavelErp,
 } from "@/lib/rota-erp.functions";
 
@@ -760,12 +762,38 @@ function FreightInput({
 
 
 
+// Limita os cálculos de distância simultâneos (cota do Google Maps).
+const MAX_CALCULOS_DISTANCIA = 3;
+let calculosAtivos = 0;
+const filaCalculos: (() => void)[] = [];
+async function comVagaDeCalculo<T>(fn: () => Promise<T>): Promise<T> {
+  if (calculosAtivos >= MAX_CALCULOS_DISTANCIA) {
+    await new Promise<void>((resolve) => filaCalculos.push(resolve));
+  }
+  calculosAtivos++;
+  try {
+    return await fn();
+  } finally {
+    calculosAtivos--;
+    filaCalculos.shift()?.();
+  }
+}
+
+export type ParadasDistancia = {
+  pontos: { lat: number; lng: number }[];
+  aproximados: number;
+  semLocalizacao: number;
+};
+
 function DistanceCell({
   route,
   depot,
+  paradas,
 }: {
   route: RouteRow;
   depot: { lat: number; lng: number } | null;
+  /** null enquanto as localizações ainda estão sendo carregadas. */
+  paradas: ParadasDistancia | null;
 }) {
   const compute = useServerFn(computeRoutePolyline);
   const qc = useQueryClient();
@@ -778,100 +806,78 @@ function DistanceCell({
   });
   const [computing, setComputing] = useState(false);
 
-  const stops = useMemo(() => {
-    const ros = [...(route.route_orders ?? [])].sort(
-      (a, b) => (a.stop_order ?? 0) - (b.stop_order ?? 0),
-    );
-    const pts: { lat: number; lng: number; orderNumber: string; customerName: string; kind: "new" }[] = [];
-    for (const ro of ros) {
-      const ordersRaw = ro.orders as unknown;
-      const order = (Array.isArray(ordersRaw) ? ordersRaw[0] : ordersRaw) as
-        | {
-            order_number?: string | null;
-            delivery_latitude?: number | string | null;
-            delivery_longitude?: number | string | null;
-          }
-        | null
-        | undefined;
-      if (!order) continue;
-      const coord = getOrderCoord({
-        delivery_latitude: order.delivery_latitude,
-        delivery_longitude: order.delivery_longitude,
-      });
-      if (!coord) continue;
-      pts.push({
-        lat: coord.lat,
-        lng: coord.lng,
-        orderNumber: order.order_number ?? "",
-        customerName: "",
-        kind: "new",
-      });
-    }
-    return pts;
-  }, [route]);
-
   useEffect(() => {
     if (value != null) return;
     if (attempted.current) return;
-    if (stops.length < 1) return;
+    if (!paradas || paradas.pontos.length < 1) return;
 
-    const ordered = sequenceStops(stops, depot);
+    const ordered = sequenceStops(
+      paradas.pontos.map((p, i) => ({ ...p, orderNumber: String(i), customerName: "", kind: "new" as const })),
+      depot,
+    );
     const pathPoints = depot
       ? [depot, ...ordered.map((s) => ({ lat: s.lat, lng: s.lng }))]
       : ordered.map((s) => ({ lat: s.lat, lng: s.lng }));
     if (pathPoints.length < 2) return;
 
     attempted.current = true;
+    let cancelled = false;
     setComputing(true);
-    (async () => {
-      const MAX = 25;
-      let totalMeters = 0;
-      try {
-        for (let i = 0; i < pathPoints.length - 1; i += MAX - 1) {
-          const segment = pathPoints.slice(i, i + MAX);
-          const origin = segment[0];
-          const destination = segment[segment.length - 1];
-          const waypoints = segment.slice(1, -1);
-          const result = await compute({ data: { origin, destination, waypoints } });
-          totalMeters += result.distanceMeters ?? 0;
-        }
-        const km = totalMeters > 0 ? totalMeters / 1000 : 0;
-        const rounded = Math.round(km * 100) / 100;
-        setValue(rounded);
-        await supabase
-          .from("routes")
-          .update({ total_distance_km: rounded })
-          .eq("id", route.id);
-        qc.invalidateQueries({ queryKey: ["routes"] });
-      } catch (err) {
+    comVagaDeCalculo(async () => {
+      const t = await calcularTrajeto(pathPoints, compute, () => cancelled);
+      return t.metros;
+    })
+      .then(async (totalMeters) => {
+        if (totalMeters <= 0) return;
+        const rounded = Math.round((totalMeters / 1000) * 100) / 100;
+        if (!cancelled) setValue(rounded);
+        const { error } = await supabase.from("routes").update({ total_distance_km: rounded }).eq("id", route.id);
+        if (error) console.warn("[DistanceCell] falha ao gravar:", error.message);
+        else qc.invalidateQueries({ queryKey: ["routes"] });
+      })
+      .catch((err) => {
         console.warn("[DistanceCell] falhou:", err);
-        attempted.current = false;
-      } finally {
-        setComputing(false);
-      }
-    })();
-  }, [stops, depot, value, compute, qc, route.id]);
-
-
+      })
+      .finally(() => {
+        if (!cancelled) setComputing(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [paradas, depot, value, compute, qc, route.id]);
 
   const triggerRecalc = () => {
     attempted.current = false;
     setValue(null);
   };
 
+  const carregando = paradas == null && value == null && (route.route_orders ?? []).length > 0;
+  const semPontos = paradas != null && paradas.pontos.length === 0;
+  const dica =
+    value != null && paradas && paradas.aproximados > 0
+      ? `${paradas.aproximados} entrega(s) localizada(s) apenas pelo bairro ou cidade — distância aproximada.`
+      : value == null && semPontos
+        ? (route.route_orders ?? []).length === 0
+          ? "Rota sem entregas."
+          : "Nenhuma entrega desta rota tem localização (pedido, cliente, bairro ou cidade)."
+        : undefined;
+
   return (
-    <div className="inline-flex items-center gap-1 justify-end">
-      {computing ? (
+    <div className="inline-flex items-center gap-1 justify-end" title={dica}>
+      {computing || carregando ? (
         <Loader2 className="h-3 w-3 animate-spin" />
       ) : value != null ? (
-        <span>{value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</span>
+        <span>
+          {paradas && paradas.aproximados > 0 && <span className="text-amber-600 mr-0.5">≈</span>}
+          {value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+        </span>
       ) : (
         <span className="text-muted-foreground">—</span>
       )}
       <button
         type="button"
         onClick={triggerRecalc}
-        disabled={computing}
+        disabled={computing || paradas == null}
         title="Recalcular distância"
         className="text-muted-foreground hover:text-foreground disabled:opacity-40"
       >
@@ -997,6 +1003,115 @@ export function RotasView({
   }, [pedidosSemRotaQ.data, nomeCliente]);
 
   // Só sinaliza pendência depois que a consulta confirma ao menos um pedido sem rota.
+  // Localização das entregas para a coluna "Distância (km)" — mesma regra do
+  // mapa do detalhe da rota (pedido → cliente → bairro → cidade).
+  const fetchDetalhesPedidos = useServerFn(listarPedidosDetalheRota);
+  const localizarLocs = useServerFn(localizarLocalidades);
+  const pedidosDasRotas = useMemo(() => {
+    const out: NonNullable<RouteRow["route_orders"][number]["orders"]>[] = [];
+    for (const r of data ?? []) for (const ro of r.route_orders ?? []) if (ro.orders) out.push(ro.orders);
+    return out;
+  }, [data]);
+  const codsClientes = useMemo(
+    () =>
+      Array.from(
+        new Set(pedidosDasRotas.map((o) => o.erp_cod_cliente).filter((c): c is string => Boolean(c)).map(String)),
+      ).sort(),
+    [pedidosDasRotas],
+  );
+  const customerGeoQ = useQuery({
+    queryKey: ["rotas-distancia", "customer_geo", codsClientes],
+    enabled: !!data,
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const mapa = new Map<string, { latitude: number | null; longitude: number | null }>();
+      for (let i = 0; i < codsClientes.length; i += 300) {
+        const { data: rows, error } = await supabase
+          .from("customer_geo")
+          .select("cod_cliente,latitude,longitude")
+          .in("cod_cliente", codsClientes.slice(i, i + 300));
+        if (error) throw error;
+        for (const row of rows ?? []) {
+          mapa.set(String(row.cod_cliente), { latitude: row.latitude, longitude: row.longitude });
+        }
+      }
+      return mapa;
+    },
+  });
+  const pedidosSemCoord = useMemo(() => {
+    if (!customerGeoQ.data) return [] as string[];
+    const geo = customerGeoQ.data;
+    return Array.from(
+      new Set(
+        pedidosDasRotas
+          .filter(
+            (o) =>
+              o.order_number &&
+              !coordExata({
+                delivery_latitude: o.delivery_latitude,
+                delivery_longitude: o.delivery_longitude,
+                customer_geo: o.erp_cod_cliente ? geo.get(String(o.erp_cod_cliente)) : null,
+              }),
+          )
+          .map((o) => String(o.order_number)),
+      ),
+    ).sort();
+  }, [pedidosDasRotas, customerGeoQ.data]);
+  const localidadesQ = useQuery({
+    queryKey: ["rotas-distancia", "localidades", pedidosSemCoord],
+    enabled: customerGeoQ.isSuccess,
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const detMap = new Map<string, { uf: string | null; cidade: string | null; bairro: string | null }>();
+      const geoMap = new Map<string, { lat: number | null; lng: number | null }>();
+      if (pedidosSemCoord.length === 0) return { detMap, geoMap };
+      try {
+        for (let i = 0; i < pedidosSemCoord.length; i += 1000) {
+          const det = await fetchDetalhesPedidos({ data: { pedidos: pedidosSemCoord.slice(i, i + 1000) } });
+          for (const d of det) detMap.set(d.pedido, { uf: d.uf, cidade: d.cidade, bairro: d.bairro });
+        }
+        const locs = Array.from(detMap.values()).flatMap((d) => localidadesParaAproximar(d));
+        const unicas = Array.from(new Map(locs.map((l) => [chaveLocalidade(l), l])).values());
+        for (let i = 0; i < unicas.length; i += 2000) {
+          const res = await localizarLocs({ data: { localidades: unicas.slice(i, i + 2000) } });
+          for (const g of res) geoMap.set(g.chave, { lat: g.lat, lng: g.lng });
+        }
+      } catch (err) {
+        // Sem aproximação: segue só com as coordenadas exatas.
+        console.warn("[RotasView] aproximação por bairro/cidade indisponível:", err);
+      }
+      return { detMap, geoMap };
+    },
+  });
+  const paradasPorRota = useMemo(() => {
+    if (!customerGeoQ.data || !localidadesQ.data) return null;
+    const geo = customerGeoQ.data;
+    const { detMap, geoMap } = localidadesQ.data;
+    const out = new Map<string, ParadasDistancia>();
+    for (const r of data ?? []) {
+      const ros = [...(r.route_orders ?? [])].sort((a, b) => (a.stop_order ?? 0) - (b.stop_order ?? 0));
+      const res: ParadasDistancia = { pontos: [], aproximados: 0, semLocalizacao: 0 };
+      for (const ro of ros) {
+        const o = ro.orders;
+        if (!o) continue;
+        const c =
+          coordExata({
+            delivery_latitude: o.delivery_latitude,
+            delivery_longitude: o.delivery_longitude,
+            customer_geo: o.erp_cod_cliente ? geo.get(String(o.erp_cod_cliente)) : null,
+          }) ?? aproximarPorLocalidade(o.order_number ? detMap.get(String(o.order_number)) : null, geoMap);
+        if (!c) {
+          res.semLocalizacao++;
+          continue;
+        }
+        if (c.source === "bairro" || c.source === "cidade") res.aproximados++;
+        res.pontos.push({ lat: c.lat, lng: c.lng });
+      }
+      out.set(r.id, res);
+    }
+    return out;
+  }, [data, customerGeoQ.data, localidadesQ.data]);
+
   const exibirCardSemRota = mostrarCardSemRota && pedidosSemRotaQ.isSuccess && resumoSemRota.pedidos > 0;
   const semRotaPulsar = resumoSemRota.pedidos > 0;
 
@@ -1640,7 +1755,7 @@ export function RotasView({
         accessor: (r) => Number(r.total_distance_km ?? 0),
         render: (r) => (
           <span onClick={(e) => e.stopPropagation()}>
-            <DistanceCell route={r} depot={depot} />
+            <DistanceCell route={r} depot={depot} paradas={paradasPorRota?.get(r.id) ?? null} />
           </span>
         ),
         className: "whitespace-nowrap tabular-nums text-xs",
@@ -1809,6 +1924,7 @@ export function RotasView({
     ],
     [
       depot,
+      paradasPorRota,
       estimativas,
       freteOf,
       borderoDaRota,

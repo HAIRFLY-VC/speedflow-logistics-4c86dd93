@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { calcularTrajeto } from "@/lib/route-stops";
 import { useServerFn } from "@tanstack/react-start";
 import { computeRoutePolyline } from "@/lib/route-directions.functions";
 
@@ -207,58 +208,29 @@ export function SuggestionMap({
 
       if (pathPoints.length < 2) return;
 
-      // Routes API permite até 25 pontos por request (1 origin + 1 destination + 23 intermediates)
-      const MAX = 25;
-      const segments: { lat: number; lng: number }[][] = [];
-      for (let i = 0; i < pathPoints.length - 1; i += MAX - 1) {
-        segments.push(pathPoints.slice(i, i + MAX));
-      }
-
-      const drawFallback = (segment: { lat: number; lng: number }[]) => {
+      setComputing(true);
+      const trajeto = await calcularTrajeto(
+        pathPoints,
+        (args) => computeRouteRef.current(args),
+        () => cancelled,
+      );
+      if (cancelled) return;
+      for (const enc of trajeto.polylines) {
+        if (!g.geometry?.encoding) break;
         new g.Polyline({
-          path: segment,
+          path: g.geometry.encoding.decodePath(enc),
           map,
           strokeColor: "#2563eb",
-          strokeOpacity: 0.6,
-          strokeWeight: 3,
+          strokeOpacity: 0.85,
+          strokeWeight: 4,
         });
-      };
-
-      setComputing(true);
-      let totalMeters = 0;
-      for (const segment of segments) {
-        if (cancelled) return;
-        try {
-          const origin = segment[0];
-          const destination = segment[segment.length - 1];
-          const waypoints = segment.slice(1, -1);
-          const result = await computeRouteRef.current({
-            data: { origin, destination, waypoints },
-          });
-          if (cancelled) return;
-          if (result.encodedPolyline && g.geometry?.encoding) {
-            const path = g.geometry.encoding.decodePath(result.encodedPolyline);
-            new g.Polyline({
-              path,
-              map,
-              strokeColor: "#2563eb",
-              strokeOpacity: 0.85,
-              strokeWeight: 4,
-            });
-            totalMeters += result.distanceMeters ?? 0;
-          } else {
-            drawFallback(segment);
-          }
-        } catch (err) {
-          console.warn("[SuggestionMap] Routes API falhou — usando linha reta:", err);
-          drawFallback(segment);
-        }
       }
-      if (!cancelled) {
-        const calculatedKm = totalMeters > 0 ? totalMeters / 1000 : null;
-        setDistanceKm(calculatedKm);
-        if (calculatedKm != null) onDistanceCalculatedRef.current?.(calculatedKm);
+      for (const leg of trajeto.linhasRetas) {
+        new g.Polyline({ path: leg, map, strokeColor: "#2563eb", strokeOpacity: 0.6, strokeWeight: 3 });
       }
+      const calculatedKm = trajeto.metros > 0 ? trajeto.metros / 1000 : null;
+      setDistanceKm(calculatedKm);
+      if (calculatedKm != null) onDistanceCalculatedRef.current?.(calculatedKm);
     }).catch((err) => {
       console.warn("[SuggestionMap] Falha ao carregar o mapa:", err);
     }).finally(() => {
