@@ -1,7 +1,6 @@
 import { criarRotaErp } from "@/lib/pedidos-sem-rota.functions";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { openAppRoute } from "@/lib/open-in-tab";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator, Pencil, ArrowRight, Check, ChevronsUpDown, X, AlertTriangle, Printer } from "lucide-react";
@@ -905,7 +904,6 @@ export function RotasView({
   const { cidadeCliente, nomeCliente } = useClientesErp();
   const { role } = useAuth();
   const navigate = useNavigate();
-  const appRouter = useRouter();
   const [open, setOpen] = useState(false);
   const [filteredData, setFilteredData] = useState<RouteRow[] | undefined>();
   const [editRoute, setEditRoute] = useState<RouteRow | null>(null);
@@ -1915,7 +1913,7 @@ export function RotasView({
               className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
               onClick={(e) => {
                 e.stopPropagation();
-                openAppRoute(appRouter, `/imprimir-rota/${r.id}`);
+                void navigate({ to: "/imprimir-rota/$routeId", params: { routeId: r.id } });
               }}
             >
               <Printer className="h-4 w-4" />

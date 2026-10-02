@@ -1,6 +1,10 @@
 # Changelog
 
 
+## [1.17.2] - 2026-10-02
+### Alterado
+- A impressão da rota agora abre na mesma aba do app (teste e oficial), sem pedir login; "Voltar" retorna à tela anterior.
+
 ## [1.17.1] - 2026-10-02
 ### Corrigido
 - Impressão da rota não pede mais login ao abrir: no editor abre na própria tela; na oficial abre em nova aba mantendo a sessão.
