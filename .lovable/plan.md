@@ -19,6 +19,7 @@ O espelho `clientes_erp` (banco central) já possui as colunas `uf`, `cidade` e 
    - Adicionar `uf`, `cidade` e `bairro` (string | null) ao tipo `PedidoPagamento`.
 3. `src/components/routes/PagamentoRotaDialog.tsx`
    - Na coluna Cliente, exibir abaixo do nome uma linha menor em texto secundário: `UF · Cidade · Bairro` (omite partes vazias; mostra "—" quando não houver nenhuma).
+   - No cabeçalho/totalizador de cada filial, incluir o total de mercadorias: `Mercadoria R$ X · Peso Y kg · Frete R$ Z`.
 4. `src/config/version.ts` → 1.16.11 e entrada no `CHANGELOG.md`.
 
 ## Riscos
