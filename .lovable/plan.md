@@ -40,7 +40,9 @@ Ex.: rota 461 impressa em 02/10/2026 → `RT_461_20261002.pdf`
   - ### Adicionado — Ao salvar a impressão da rota em PDF, o arquivo é sugerido como RT_<código da rota>_<data>.pdf (ex.: RT_461_20261002.pdf).
 
 ## Checklist para publicar
-- **Testar no preview:** abrir Rotas Pendentes → imprimir uma rota (ex.: 461) → no diálogo de impressão "Salvar como PDF", conferir que o nome sugerido é `RT_461_20261002.pdf` (ajustando à rota e data do dia).
+- **Testar no preview:** abrir Rotas Pendentes → imprimir uma rota (ex.: 461) → no diálogo de impressão "Salvar como PDF", conferir:
+  - nome sugerido `RT_461_20261002.pdf` (ajustando à rota e data do dia);
+  - contador `Página X de Y` no canto inferior direito de cada página do PDF salvo.
 - **Migrações:** nenhuma.
 - **Flags:** nenhuma alteração.
 - **Reverter:** restaurar a versão 1.18.1 pelo histórico do Lovable (sem reversão de banco).
