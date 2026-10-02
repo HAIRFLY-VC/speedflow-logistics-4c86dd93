@@ -4,13 +4,19 @@
 PATCH v1.18.2 — mudança de apresentação, sem risco para produção e sem migração de banco.
 
 ## O que muda
-Ao imprimir / salvar PDF uma rota, o navegador deve sugerir o nome do arquivo:
+1. Ao imprimir / salvar PDF uma rota, o navegador deve sugerir o nome do arquivo:
 
 ```text
 RT_<código da rota>_<data de impressão yyyyMMdd>.pdf
 ```
 
 Ex.: rota 461 impressa em 02/10/2026 → `RT_461_20261002.pdf`
+
+2. Contador de páginas no canto inferior direito de cada página impressa, no formato
+   `Página X de Y`. Esse contador **já existe** no módulo de impressão (via `@page @bottom-right` em
+   `PrintLayout.tsx`) e foi verificado funcionando na saída de impressão: ele só não aparece na
+   pré-visualização na tela, porque esse rodapé só existe no papel/PDF. O plano garante que ele
+   permaneça posicionado no canto inferior direito e o valida no PDF final.
 
 ## Como funciona (Detalhes técnicos)
 - Navegadores (Chrome/Edge/Firefox) usam o **título da aba** como nome sugerido no diálogo "Salvar como PDF". Não há API para definir o nome diretamente.
