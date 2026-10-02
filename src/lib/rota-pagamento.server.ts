@@ -363,7 +363,10 @@ function agrupar(
     const item: PedidoPagamento = {
       cod_pedido: p.cod_pedido,
       cod_cliente: p.cod_cliente ?? null,
-      cliente: (p.cod_cliente ? clientes.get(p.cod_cliente) : null) ?? p.cod_cliente ?? "—",
+      cliente: (p.cod_cliente ? clientes.get(p.cod_cliente)?.nome : null) ?? p.cod_cliente ?? "—",
+      uf: (p.cod_cliente ? clientes.get(p.cod_cliente)?.uf : null) ?? null,
+      cidade: (p.cod_cliente ? clientes.get(p.cod_cliente)?.cidade : null) ?? null,
+      bairro: (p.cod_cliente ? clientes.get(p.cod_cliente)?.bairro : null) ?? null,
       bordero,
       nro_nf: nf,
       valor_mercadoria: cent(Number(p.valor_mercadoria ?? 0)),
@@ -410,7 +413,7 @@ export async function montarPreviewPagamentoRota(params: {
   if (pedidos.length === 0) throw new Error("A rota não tem pedidos para ratear o frete.");
 
   const expedicao = await dadosDeExpedicao(pedidos.map((p) => p.cod_pedido));
-  const clientes = await nomesDeClientes(pedidos.map((p) => p.cod_cliente ?? "").filter(Boolean));
+  const clientes = await dadosDeClientes(pedidos.map((p) => p.cod_cliente ?? "").filter(Boolean));
 
   const valor = cent(Number(params.valor ?? 0));
   const dataPagamento = normalizarDataPagamento(params.dataPagamento, rota.route_date);
