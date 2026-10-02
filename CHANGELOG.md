@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.16.15] - 2026-10-02
+### Corrigido
+- Rotas Pendentes e Autorizar pagamento: a coluna Distância (km) passa a ser calculada automaticamente para todas as rotas, localizando as entregas pelo pedido, pelo cliente ou (aproximado, com "≈") pelo bairro/cidade — mesma regra do mapa do detalhe.
+
 ## [1.16.14] - 2026-10-02
 ### Corrigido
 - Rotas Pendentes: a coluna Distância (km) passa a receber a mesma quilometragem calculada no mapa do detalhe da rota, inclusive com localizações aproximadas por bairro ou cidade.

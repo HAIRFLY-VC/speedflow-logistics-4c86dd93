@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { SuggestionMap, sequenceStops } from "@/components/route-suggestions/SuggestionMap";
 import { getOrderCoord } from "@/lib/order-coords";
+import { aproximarPorLocalidade } from "@/lib/route-stops";
 import { formatCurrency, type OrderStatus } from "@/lib/orderStatus";
 import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEditDialog";
 import {
@@ -797,13 +798,8 @@ function RouteMapSection({
   const semGeo: { orderNumber: string; customerCode: string | null; coordSource: string; deliveryAddress: string | null; amount: number; weight: number; bordero: string | null }[] = [];
   for (const o of pendentes) {
     const d = detMap.get(o.order_number);
-    let hit: { lat: number; lng: number; src: string } | null = null;
-    if (d?.uf && d.cidade) {
-      const b = d.bairro ? geoMap.get(chaveLocalidade({ uf: d.uf, cidade: d.cidade, bairro: d.bairro })) : undefined;
-      const c = geoMap.get(chaveLocalidade({ uf: d.uf, cidade: d.cidade, bairro: "" }));
-      if (b?.lat != null && b.lng != null) hit = { lat: b.lat, lng: b.lng, src: "bairro" };
-      else if (c?.lat != null && c.lng != null) hit = { lat: c.lat, lng: c.lng, src: "cidade" };
-    }
+    const aprox = aproximarPorLocalidade(d, geoMap);
+    const hit = aprox ? { lat: aprox.lat, lng: aprox.lng, src: aprox.source as string } : null;
     if (hit) {
       aproximados.push({
         lat: hit.lat,
