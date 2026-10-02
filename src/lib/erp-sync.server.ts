@@ -859,6 +859,44 @@ export async function syncErpOrders(opts: {
       errors.push({ pedido: 0, message: `Marcar expedidos: ${describeError(e)}` });
     }
 
+    // Atualiza o status das rotas locais "P" com o status real do ERP
+    // (rotas encerradas/excluídas no ERP deixam de aparecer em Rotas Pendentes).
+    try {
+      const { data: locais, error: locErr } = await centralDb
+        .from("routes")
+        .select("id, erp_route_id")
+        .eq("erp_status", "P")
+        .not("erp_route_id", "is", null);
+      if (locErr) throw locErr;
+      const ids = Array.from(
+        new Set((locais ?? []).map((r) => String(r.erp_route_id)).filter((v) => /^\d+$/.test(v))),
+      );
+      const statusErp = new Map<string, string>();
+      for (let i = 0; i < ids.length; i += 500) {
+        const lote = ids.slice(i, i + 500);
+        const res = await erpQuery(
+          `select ID, STATUS from GKS.A_GER_ROTAS where ID in (${lote.join(",")})`,
+          lote.length + 10,
+        );
+        for (const r of res) statusErp.set(String(r.ID), String(r.STATUS ?? "").trim() || "P");
+      }
+      const porStatus = new Map<string, string[]>();
+      for (const id of ids) {
+        const st = statusErp.get(id) ?? "E";
+        if (st === "P") continue;
+        porStatus.set(st, [...(porStatus.get(st) ?? []), id]);
+      }
+      for (const [st, lista] of porStatus) {
+        const { error: upErr } = await centralDb
+          .from("routes")
+          .update({ erp_status: st })
+          .in("erp_route_id", lista);
+        if (upErr) throw upErr;
+      }
+    } catch (e) {
+      errors.push({ pedido: 0, message: `Status das rotas: ${describeError(e)}` });
+    }
+
 
 
     // Auto-cadastro de rotas a partir de ID_ROTA (ERP) + NOME_ROTA + DT_PREV_EXP + NOME_MOTORISTA
