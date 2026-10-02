@@ -222,18 +222,37 @@ async function dadosDeExpedicao(codPedidos: string[]): Promise<Map<string, Dados
   return map;
 }
 
-async function nomesDeClientes(cods: string[]): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
+type ClienteErp = {
+  nome: string;
+  uf: string | null;
+  cidade: string | null;
+  bairro: string | null;
+};
+
+async function dadosDeClientes(cods: string[]): Promise<Map<string, ClienteErp>> {
+  const map = new Map<string, ClienteErp>();
   const unicos = Array.from(new Set(cods.filter(Boolean)));
   const TAM = 200;
   for (let i = 0; i < unicos.length; i += TAM) {
     const lote = unicos.slice(i, i + TAM);
     const { data } = await centralDb
       .from("clientes_erp")
-      .select("cod_cliente, razao_social, nome_nf")
+      .select("cod_cliente, razao_social, nome_nf, uf, cidade, bairro")
       .in("cod_cliente", lote);
-    for (const c of (data ?? []) as { cod_cliente: string; razao_social: string | null; nome_nf: string | null }[]) {
-      map.set(c.cod_cliente, c.razao_social ?? c.nome_nf ?? c.cod_cliente);
+    for (const c of (data ?? []) as {
+      cod_cliente: string;
+      razao_social: string | null;
+      nome_nf: string | null;
+      uf: string | null;
+      cidade: string | null;
+      bairro: string | null;
+    }[]) {
+      map.set(c.cod_cliente, {
+        nome: c.razao_social ?? c.nome_nf ?? c.cod_cliente,
+        uf: c.uf?.trim() || null,
+        cidade: c.cidade?.trim() || null,
+        bairro: c.bairro?.trim() || null,
+      });
     }
   }
   return map;
@@ -310,7 +329,7 @@ function montarTextoTarefa(
 function agrupar(
   pedidos: PedidoCarregado[],
   expedicao: Map<string, DadosExpedicao>,
-  clientes: Map<string, string>,
+  clientes: Map<string, ClienteErp>,
   valor: number,
   selecionados: Set<string> | null,
 ): {
@@ -344,7 +363,10 @@ function agrupar(
     const item: PedidoPagamento = {
       cod_pedido: p.cod_pedido,
       cod_cliente: p.cod_cliente ?? null,
-      cliente: (p.cod_cliente ? clientes.get(p.cod_cliente) : null) ?? p.cod_cliente ?? "—",
+      cliente: (p.cod_cliente ? clientes.get(p.cod_cliente)?.nome : null) ?? p.cod_cliente ?? "—",
+      uf: (p.cod_cliente ? clientes.get(p.cod_cliente)?.uf : null) ?? null,
+      cidade: (p.cod_cliente ? clientes.get(p.cod_cliente)?.cidade : null) ?? null,
+      bairro: (p.cod_cliente ? clientes.get(p.cod_cliente)?.bairro : null) ?? null,
       bordero,
       nro_nf: nf,
       valor_mercadoria: cent(Number(p.valor_mercadoria ?? 0)),
@@ -391,7 +413,7 @@ export async function montarPreviewPagamentoRota(params: {
   if (pedidos.length === 0) throw new Error("A rota não tem pedidos para ratear o frete.");
 
   const expedicao = await dadosDeExpedicao(pedidos.map((p) => p.cod_pedido));
-  const clientes = await nomesDeClientes(pedidos.map((p) => p.cod_cliente ?? "").filter(Boolean));
+  const clientes = await dadosDeClientes(pedidos.map((p) => p.cod_cliente ?? "").filter(Boolean));
 
   const valor = cent(Number(params.valor ?? 0));
   const dataPagamento = normalizarDataPagamento(params.dataPagamento, rota.route_date);

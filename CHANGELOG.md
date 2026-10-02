@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.16.11] - 2026-10-02
+### Adicionado
+- Confirmar pagamento: UF, cidade e bairro do cliente abaixo do nome em cada pedido, e total de mercadorias no totalizador de cada filial.
+
 ## [1.16.10] - 2026-10-02
 ### Adicionado
 - Confirmar pagamento: peso de cada pedido na tabela por filial, subtotal de peso no cabeçalho da filial e peso total na linha de totais.
