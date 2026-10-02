@@ -1,4 +1,4 @@
-# Nome do arquivo sugerido ao salvar impressão da rota (RT_461_20261002.pdf)
+# Impressão da rota: nome do arquivo sugerido + contador de páginas
 
 ## Classificação
 PATCH v1.18.2 — mudança de apresentação, sem risco para produção e sem migração de banco.
