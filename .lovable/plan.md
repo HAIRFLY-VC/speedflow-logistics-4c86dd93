@@ -27,7 +27,7 @@ Ex.: rota 461 impressa em 02/10/2026 → `RT_461_20261002.pdf`
   - Num `useEffect` (executa quando a rota é carregada), definir `document.title` como esse valor (sem `.pdf` — o navegador acrescenta a extensão) e restaurar o título original no cleanup (desmontagem / troca de rota).
   - Enquanto o código da rota não estiver carregado, manter o título padrão da página.
 - `PrintLayout.tsx`, `print.css` e demais arquivos de impressão permanecem inalterados quanto ao contador (já implementado e verificado); nada muda no comportamento do botão "Imprimir / Salvar PDF".
-- O selo "TESTE · v..." e o rodapé da folha não são afetados (o título da aba não aparece no papel impresso).
+- O fluxo atual (mesma aba, sem nova aba/login) permanece igual — nada muda no comportamento do botão "Imprimir / Salvar PDF".
 
 ## Limitações
 - O nome do arquivo é a *sugestão* do diálogo de salvamento: funciona em Chrome/Edge/Firefox atuais; o usuário ainda pode editá-lo antes de salvar.
