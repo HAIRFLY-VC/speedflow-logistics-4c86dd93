@@ -17,8 +17,13 @@ export const Route = createFileRoute("/_authenticated/rotas/")({
 });
 
 function RotasPage() {
-  // Rotas com borderô já emitido migram para a tela de autorização de pagamento.
-  const filtro = useCallback((r: RouteRow) => !r.bordero_emitido_em, []);
+  // Rotas com borderô já emitido migram para a tela de autorização de pagamento;
+  // se nenhum pedido tem borderô ainda, a rota continua aqui.
+  const filtro = useCallback(
+    (r: RouteRow, ctx: { bordero: { comBordero: number } }) =>
+      !r.bordero_emitido_em || ctx.bordero.comBordero === 0,
+    [],
+  );
 
   return (
     <RotasView

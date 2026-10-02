@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.16.12] - 2026-10-02
+### Corrigido
+- Autorizar pagamento de frete: só exibe rotas com borderô informado em todos os pedidos; rotas marcadas sem nenhum borderô continuam em Rotas Pendentes (ex.: rota 457).
+
 ## [1.16.11] - 2026-10-02
 ### Adicionado
 - Confirmar pagamento: UF, cidade e bairro do cliente abaixo do nome em cada pedido, e total de mercadorias no totalizador de cada filial.
