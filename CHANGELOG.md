@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.16.13] - 2026-10-02
+### Corrigido
+- Sync ERP atualiza o status das rotas com o ERP; rotas encerradas/excluídas no ERP (ex.: 433 e 434) saem de Rotas Pendentes.
+
 ## [1.16.12] - 2026-10-02
 ### Corrigido
 - Autorizar pagamento de frete: só exibe rotas com borderô informado em todos os pedidos; rotas marcadas sem nenhum borderô continuam em Rotas Pendentes (ex.: rota 457).
