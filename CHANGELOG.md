@@ -1,5 +1,9 @@
 # Changelog
 
+
+## [1.17.1] - 2026-10-02
+### Corrigido
+- Impressão da rota não pede mais login ao abrir: no editor abre na própria tela; na oficial abre em nova aba mantendo a sessão.
 ## [1.17.0] - 2026-10-02
 ### Adicionado
 - Impressão do detalhamento da rota (ícone de impressora em Rotas Pendentes, Autorizar pagamento de frete e botão no detalhe): pré-visualização, escolha de seções, papel A4/Carta, retrato/paisagem, tamanho de fonte, modo econômico, ordenação, numeração de páginas, assinaturas e salvar em PDF.
