@@ -371,6 +371,7 @@ function agrupar(
     semBordero,
     semFaturamento,
     valorMercadoria: cent(pesos.reduce((s, v) => s + v, 0)),
+    pesoTotal: filiais.reduce((s, f) => s + f.peso, 0),
     selecionadosAplicados: pedidos.map((p) => p.cod_pedido).filter(incluido),
   };
 }
@@ -409,7 +410,8 @@ export async function montarPreviewPagamentoRota(params: {
       ? new Set(escolhidos)
       : null;
 
-  const { filiais, semBordero, semFaturamento, valorMercadoria, selecionadosAplicados } = agrupar(
+  const { filiais, semBordero, semFaturamento, valorMercadoria, pesoTotal, selecionadosAplicados } =
+    agrupar(
     pedidos,
     expedicao,
     clientes,
