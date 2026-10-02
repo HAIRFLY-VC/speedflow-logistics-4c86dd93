@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.18.3] - 2026-10-02
+### Corrigido
+- A marcação "Página X de Y" agora fica visível no canto inferior direito da folha mostrada no app e permanece em todas as páginas do PDF impresso.
+
 ## [1.18.2] - 2026-10-02
 ### Adicionado
 - Ao salvar a impressão da rota em PDF, o arquivo é sugerido como RT_<código da rota>_<data>.pdf (ex.: RT_461_20261002.pdf); o contador "Página X de Y" no canto inferior direito já aparece no PDF salvo.

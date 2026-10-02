@@ -23,3 +23,4 @@
 ## Impressão de rotas
 - [x] Organizar cada entrega em uma linha totalizadora seguida do detalhamento dos pedidos e usar Retrato como orientação inicial.
 - [x] Sugerir o nome do arquivo RT_<código da rota>_<data yyyymmdd>.pdf ao salvar a impressão em PDF e manter o contador "Página X de Y" no canto inferior direito do PDF.
+- [x] Exibir a marcação de página também no canto inferior direito da folha mostrada no app.

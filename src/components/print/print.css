@@ -2,8 +2,16 @@
   background: var(--background);
   color: var(--foreground);
   margin: 0 auto;
+  position: relative;
   box-shadow: 0 2px 12px color-mix(in oklab, var(--foreground) 15%, transparent);
-  padding: 12mm;
+  padding: 12mm 12mm 18mm;
+}
+.print-preview-page-number {
+  bottom: 6mm;
+  color: var(--muted-foreground);
+  font-size: 8px;
+  position: absolute;
+  right: 12mm;
 }
 .print-sheet[data-font="sm"] { font-size: 10px; }
 .print-sheet[data-font="md"] { font-size: 12px; }
@@ -44,6 +52,7 @@
 @media print {
   html, body { background: #fff !important; }
   .print-hidden { display: none !important; }
+  .print-preview-page-number { display: none !important; }
   .print-sheet {
     box-shadow: none;
     padding: 0;
