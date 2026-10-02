@@ -32,7 +32,6 @@ Ex.: rota 461 impressa em 02/10/2026 → `RT_461_20261002.pdf`
 ## Limitações
 - O nome do arquivo é a *sugestão* do diálogo de salvamento: funciona em Chrome/Edge/Firefox atuais; o usuário ainda pode editá-lo antes de salvar.
 - O contador `Página X de Y` só é visível no diálogo de impressão e no PDF salvo — não na tela do app (limitação do formato de impressão contínuo). Em testes com Chromium foi confirmado que ele aparece no PDF gerado.
-- Fluxo atual (mesma aba, sem nova aba/login) permanece igual — nada muda no comportamento do botão "Imprimir / Salvar PDF".
 
 ## Versão e changelog
 - `src/config/version.ts`: 1.18.0 → **1.18.2**.
