@@ -14,7 +14,7 @@ import { useClientesErp } from "@/hooks/useClientesErp";
 import { supabase } from "@/integrations/central/client";
 import { computeRoutePolyline } from "@/lib/route-directions.functions";
 import { sequenceStops } from "@/components/route-suggestions/SuggestionMap";
-import { coordExata, aproximarPorLocalidade, localidadesParaAproximar } from "@/lib/route-stops";
+import { coordExata, aproximarPorLocalidade, localidadesParaAproximar, calcularTrajeto } from "@/lib/route-stops";
 import { localizarLocalidades, chaveLocalidade } from "@/lib/geo-localidades.functions";
 import {
   simularRota,
@@ -824,16 +824,8 @@ function DistanceCell({
     let cancelled = false;
     setComputing(true);
     comVagaDeCalculo(async () => {
-      const MAX = 25;
-      let totalMeters = 0;
-      for (let i = 0; i < pathPoints.length - 1; i += MAX - 1) {
-        const segment = pathPoints.slice(i, i + MAX);
-        const result = await compute({
-          data: { origin: segment[0], destination: segment[segment.length - 1], waypoints: segment.slice(1, -1) },
-        });
-        totalMeters += result.distanceMeters ?? 0;
-      }
-      return totalMeters;
+      const t = await calcularTrajeto(pathPoints, compute, () => cancelled);
+      return t.metros;
     })
       .then(async (totalMeters) => {
         if (totalMeters <= 0) return;
