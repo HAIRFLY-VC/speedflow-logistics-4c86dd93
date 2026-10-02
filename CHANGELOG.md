@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.16.8] - 2026-10-02
+### Corrigido
+- Rotas Pendentes: o card de pedidos pendentes sem rota agora fica oculto quando não há pedidos aguardando atribuição.
+
 ## [1.16.7] - 2026-10-01
 ### Adicionado
 - Confirmar pagamento: o código do cliente no ERP aparece entre parênteses após o nome do cliente na tabela por filial.

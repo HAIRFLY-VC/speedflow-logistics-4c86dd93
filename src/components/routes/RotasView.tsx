@@ -996,8 +996,8 @@ export function RotasView({
     };
   }, [pedidosSemRotaQ.data, nomeCliente]);
 
-  // O card de pendências sem rota só existe quando há pedidos aguardando rota.
-  const exibirCardSemRota = mostrarCardSemRota;
+  // Só sinaliza pendência depois que a consulta confirma ao menos um pedido sem rota.
+  const exibirCardSemRota = mostrarCardSemRota && pedidosSemRotaQ.isSuccess && resumoSemRota.pedidos > 0;
   const semRotaPulsar = resumoSemRota.pedidos > 0;
 
 
