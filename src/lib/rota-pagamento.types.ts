@@ -25,6 +25,8 @@ export type PedidoPagamento = {
   bordero: string | null;
   nro_nf: string | null;
   valor_mercadoria: number;
+  /** Peso do pedido em kg (mesma origem da tabela de entregas). */
+  peso: number;
   frete: number;
 };
 
@@ -32,6 +34,8 @@ export type FilialPagamento = {
   cod_filial: string;
   pedidos: PedidoPagamento[];
   valor_mercadoria: number;
+  /** Peso somado dos pedidos incluídos (kg). */
+  peso: number;
   frete: number;
 };
 
