@@ -140,6 +140,7 @@ async function carregarPedidos(routeId: string): Promise<PedidoCarregado[]> {
           cod_filial: string | null;
           erp_cod_cliente: string | null;
           bordero: string | null;
+          weight: number | null;
         }
       | null;
   }[];
@@ -152,6 +153,7 @@ async function carregarPedidos(routeId: string): Promise<PedidoCarregado[]> {
     const atual = pedidos.get(cod);
     if (atual) {
       atual.valor_mercadoria = cent(atual.valor_mercadoria + Number(o?.total_amount ?? 0));
+      atual.peso = atual.peso + Number(o?.weight ?? 0);
       atual.bordero = atual.bordero ?? ((o?.bordero ?? "").trim() || null);
       continue;
     }
@@ -160,6 +162,7 @@ async function carregarPedidos(routeId: string): Promise<PedidoCarregado[]> {
       cod_cliente: o?.erp_cod_cliente ?? null,
       cod_filial: (o?.cod_filial ?? "").trim() || null,
       valor_mercadoria: Number(o?.total_amount ?? 0),
+      peso: Number(o?.weight ?? 0),
       bordero: (o?.bordero ?? "").trim() || null,
     });
   }
