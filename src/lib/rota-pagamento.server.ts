@@ -329,7 +329,7 @@ function montarTextoTarefa(
 function agrupar(
   pedidos: PedidoCarregado[],
   expedicao: Map<string, DadosExpedicao>,
-  clientes: Map<string, string>,
+  clientes: Map<string, ClienteErp>,
   valor: number,
   selecionados: Set<string> | null,
 ): {
