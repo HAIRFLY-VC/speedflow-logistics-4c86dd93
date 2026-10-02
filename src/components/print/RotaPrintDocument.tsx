@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from "react";
+import { Fragment, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
@@ -152,6 +152,20 @@ export function RotaPrintDocument({ routeId }: { routeId: string }) {
   }, [linhas, depotQ.data]);
 
   const route = routeQ.data;
+
+  // Sugere o nome do arquivo ao salvar PDF: RT_<código da rota>_<data yyyymmdd>.pdf
+  // (navegadores usam o título da aba como nome sugerido no diálogo "Salvar como PDF").
+  useEffect(() => {
+    if (!route) return;
+    const original = document.title;
+    const d = new Date();
+    const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+    const codigo = String(route.erp_route_id ?? route.code ?? "").replace(/[^\w-]/g, "");
+    document.title = `RT_${codigo}_${ymd}`;
+    return () => {
+      document.title = original;
+    };
+  }, [route]);
   const totalValor = linhas.reduce((s, l) => s + n(l.o.total_amount), 0);
   const totalPeso = linhas.reduce((s, l) => s + n(l.o.weight), 0);
   const frete = n(route?.total_freight ?? 0);
