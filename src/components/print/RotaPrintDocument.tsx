@@ -157,7 +157,7 @@ export function RotaPrintDocument({ routeId }: { routeId: string }) {
   const frete = n(route?.total_freight ?? 0);
   const cidades = Array.from(new Set(linhas.map((l) => (l.d?.cidade ? `${l.d.cidade}/${l.d.uf ?? ""}` : null)).filter(Boolean)));
   const ready = !routeQ.isLoading && !stopsQ.isLoading && (pedidos.length === 0 || !detQ.isLoading);
-  const nomeRota = route ? nomeRotaDeNotes(route.notes) ?? route.code : "";
+  const nomeRota = route ? nomeRotaDeNotes(route.notes, route.code) : "";
   const opt = (key: keyof Prefs & string, label: string) => ({
     key, label, checked: Boolean(prefs[key]), onChange: (v: boolean) => setPrefs({ [key]: v } as Partial<Prefs>),
   });

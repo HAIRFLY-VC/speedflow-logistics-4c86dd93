@@ -473,6 +473,10 @@ function RouteDetailPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => window.open(`/imprimir-rota/${route.id}`, "_blank", "noopener")}>
+              <Printer className="h-4 w-4 mr-1" />
+              Imprimir
+            </Button>
             {route.erp_route_id && editable && (
               <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
                 <Pencil className="h-4 w-4 mr-1" />
