@@ -1,7 +1,9 @@
 # UF, cidade e bairro dos clientes no modal Confirmar pagamento
 
 ## Objetivo
-Na tabela por filial do modal "Confirmar Pgto" (tela Autorizar pagamento de frete), exibir para cada pedido a UF, a cidade e o bairro do cliente, além do nome/código já exibidos.
+Na tabela por filial do modal "Confirmar Pgto" (tela Autorizar pagamento de frete):
+1. Exibir para cada pedido a UF, a cidade e o bairro do cliente, além do nome/código já exibidos.
+2. Exibir o total de mercadorias no totalizador de cada filial (hoje o cabeçalho da filial mostra apenas peso e frete; o valor de mercadoria já é calculado, falta exibi-lo).
 
 ## Classificação
 PATCH (v1.16.11) — só exibição, sem mudança de comportamento, sem migração, sem feature flag.
