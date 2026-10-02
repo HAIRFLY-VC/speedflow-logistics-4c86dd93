@@ -318,6 +318,7 @@ function agrupar(
   semBordero: number;
   semFaturamento: number;
   valorMercadoria: number;
+  pesoTotal: number;
   selecionadosAplicados: string[];
 } {
   const incluido = (cod: string) => !selecionados || selecionados.has(cod);
@@ -347,11 +348,14 @@ function agrupar(
       bordero,
       nro_nf: nf,
       valor_mercadoria: cent(Number(p.valor_mercadoria ?? 0)),
+      peso: Number(p.peso ?? 0),
       frete: rateado[i] ?? 0,
     };
-    const g = grupos.get(filial) ?? { cod_filial: filial, pedidos: [], valor_mercadoria: 0, frete: 0 };
+    const g =
+      grupos.get(filial) ?? { cod_filial: filial, pedidos: [], valor_mercadoria: 0, peso: 0, frete: 0 };
     g.pedidos.push(item);
     g.valor_mercadoria = cent(g.valor_mercadoria + (incluido(p.cod_pedido) ? item.valor_mercadoria : 0));
+    g.peso = g.peso + (incluido(p.cod_pedido) ? item.peso : 0);
     g.frete = cent(g.frete + item.frete);
     grupos.set(filial, g);
   });
