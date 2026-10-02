@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { Fragment, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
@@ -21,7 +21,7 @@ type Prefs = PrintBasePrefs & {
 };
 const DEFAULTS: Prefs = {
   paper: "A4",
-  orientation: "landscape",
+  orientation: "portrait",
   fontSize: "sm",
   economico: false,
   resumo: true,
@@ -226,47 +226,57 @@ export function RotaPrintDocument({ routeId }: { routeId: string }) {
               <table>
                 <thead>
                   <tr>
-                    <th>#</th><th>Cliente</th><th>UF / Cidade / Bairro</th><th>Pedido</th><th>Filial</th>
-                    <th>NF</th><th>Borderô</th><th>Status</th><th>Agenda</th>
+                    <th>Pedido</th><th>Status</th><th>Filial</th><th>NF</th><th>Borderô</th>
+                    <th>Vendedor</th><th>Agenda</th><th>Dt. pedido</th><th>Dt. agenda</th>
                     <th className="num">Valor</th><th className="num">Peso (kg)</th>
                     {prefs.observacoes && <th>Observações</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {grupos.map((g, gi) =>
-                    g.map((l, i) => (
-                      <tr key={l.o.order_number}>
-                        {i === 0 && (
-                          <>
-                            <td rowSpan={g.length}>{gi + 1}</td>
-                            <td rowSpan={g.length}>
-                              <b>{l.d?.cliente ?? "—"}</b>
-                              {(l.o.erp_cod_cliente ?? l.d?.codCliente) && ` (${l.o.erp_cod_cliente ?? l.d?.codCliente})`}
-                              {g.length > 1 && (
-                                <div className="text-[0.85em] text-muted-foreground">
-                                  {g.length} pedidos · {money.format(g.reduce((s, x) => s + n(x.o.total_amount), 0))} · {kg.format(g.reduce((s, x) => s + n(x.o.weight), 0))} kg
-                                </div>
-                              )}
-                            </td>
-                            <td rowSpan={g.length}>{[l.d?.uf, l.d?.cidade, l.d?.bairro].filter(Boolean).join(" / ") || "—"}</td>
-                          </>
-                        )}
-                        <td>{l.o.order_number}</td>
-                        <td>{l.d?.codFilial ?? "—"}</td>
-                        <td>{l.d?.nf ?? "—"}</td>
-                        <td>{l.o.bordero ?? "—"}</td>
-                        <td>{l.d?.status ?? "—"}</td>
-                        <td>{dt(l.d?.dtAgenda)}</td>
-                        <td className="num">{money.format(n(l.o.total_amount))}</td>
-                        <td className="num">{kg.format(n(l.o.weight))}</td>
-                        {prefs.observacoes && (
-                          <td className="max-w-[60mm] whitespace-pre-wrap">
-                            {[l.d?.obs, l.d?.obsLogist && `Logíst.: ${l.d.obsLogist}`, l.d?.infCmp].filter(Boolean).join(" · ") || ""}
+                  {grupos.map((g, gi) => {
+                    const primeira = g[0];
+                    if (!primeira) return null;
+                    const codigoCliente = primeira.o.erp_cod_cliente ?? primeira.d?.codCliente;
+                    const endereco = [primeira.d?.uf, primeira.d?.cidade, primeira.d?.bairro].filter(Boolean).join(" · ") || "—";
+                    const valorEntrega = g.reduce((s, x) => s + n(x.o.total_amount), 0);
+                    const pesoEntrega = g.reduce((s, x) => s + n(x.o.weight), 0);
+                    return (
+                      <Fragment key={codigoCliente ?? primeira.o.order_number}>
+                        <tr className="print-delivery-total font-semibold">
+                          <td colSpan={prefs.observacoes ? 12 : 11}>
+                            <div className="flex items-center gap-2">
+                              <span className="print-stop-number">{gi + 1}</span>
+                              <span>
+                                {primeira.d?.cliente ?? "—"}{codigoCliente ? ` (${codigoCliente})` : ""}
+                                <span className="font-normal text-muted-foreground"> · {endereco} · {g.length} {g.length === 1 ? "pedido" : "pedidos"}</span>
+                              </span>
+                              <span className="ml-auto whitespace-nowrap">{money.format(valorEntrega)} · {kg.format(pesoEntrega)} kg</span>
+                            </div>
                           </td>
-                        )}
-                      </tr>
-                    )),
-                  )}
+                        </tr>
+                        {g.map((l) => (
+                          <tr key={l.o.order_number}>
+                            <td>{l.o.order_number}</td>
+                            <td>{l.d?.status ?? "—"}</td>
+                            <td>{l.d?.codFilial ?? "—"}</td>
+                            <td>{l.d?.nf ?? "—"}</td>
+                            <td>{l.o.bordero ?? "—"}</td>
+                            <td>{l.d?.vendedor ? `${l.d.vendedor}${l.d.codVendedor ? ` (${l.d.codVendedor})` : ""}` : "—"}</td>
+                            <td>{l.d?.codAgenda ?? "—"}</td>
+                            <td>{dt(l.d?.dtPedido)}</td>
+                            <td>{dt(l.d?.dtAgenda)}</td>
+                            <td className="num">{money.format(n(l.o.total_amount))}</td>
+                            <td className="num">{kg.format(n(l.o.weight))}</td>
+                            {prefs.observacoes && (
+                              <td className="max-w-[42mm] whitespace-pre-wrap">
+                                {[l.d?.obs, l.d?.obsLogist && `Logíst.: ${l.d.obsLogist}`, l.d?.infCmp].filter(Boolean).join(" · ") || ""}
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
                 <tfoot>
                   <tr className="font-semibold">

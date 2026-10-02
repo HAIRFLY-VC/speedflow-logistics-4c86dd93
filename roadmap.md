@@ -19,3 +19,6 @@
 - [x] Exibir detalhes dos pedidos e observações do ERP sem rolagem lateral.
 - [x] Validar seleção, filtros e apresentação em computador e celular.
 - [x] Calcular quilometragem com coordenadas do pedido ou do cliente e identificar endereços não localizados.
+
+## Impressão de rotas
+- [x] Organizar cada entrega em uma linha totalizadora seguida do detalhamento dos pedidos e usar Retrato como orientação inicial.
