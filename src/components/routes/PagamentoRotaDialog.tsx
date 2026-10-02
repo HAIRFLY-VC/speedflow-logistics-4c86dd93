@@ -623,7 +623,7 @@ export function PagamentoRotaDialog({
                 <div className="flex items-center justify-between border-b bg-muted/40 px-3 py-2 text-sm font-semibold">
                   <span>Filial de faturamento {f.cod_filial}</span>
                   <span className="tabular-nums">
-                    {kg.format(f.peso)} kg · {brl(f.frete)}
+                    {brl(f.valor_mercadoria)} · {kg.format(f.peso)} kg · {brl(f.frete)}
                   </span>
                 </div>
                 <table className="w-full text-xs">
@@ -675,10 +675,13 @@ export function PagamentoRotaDialog({
                         <td className="px-3 py-1 tabular-nums">
                           {ped.bordero ?? <span className="text-muted-foreground">—</span>}
                         </td>
-                        <td className="px-3 py-1">
-                          {ped.cliente}
-                          {ped.cod_cliente ? <span className="text-muted-foreground tabular-nums"> ({ped.cod_cliente})</span> : null}
-                        </td>
+                         <td className="px-3 py-1">
+                           {ped.cliente}
+                           {ped.cod_cliente ? <span className="text-muted-foreground tabular-nums"> ({ped.cod_cliente})</span> : null}
+                           <span className="block text-[10px] text-muted-foreground">
+                             {[ped.uf, ped.cidade, ped.bairro].filter(Boolean).join(" · ") || "—"}
+                           </span>
+                         </td>
                         <td className="px-3 py-1 text-right tabular-nums">
                           {brl(ped.valor_mercadoria)}
                         </td>
