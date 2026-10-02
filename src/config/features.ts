@@ -10,6 +10,8 @@ export const FEATURES = {
   reconciliarPedidosRota: { test: true, production: true },
   /** Resumo pulsante dos pedidos sem rota na tela de Rotas Pendentes. */
   cardPedidosSemRota: { test: true, production: true },
+  /** Impressão do detalhamento da rota (Rotas Pendentes, Autorizar e detalhe). */
+  impressaoRota: { test: true, production: true },
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;

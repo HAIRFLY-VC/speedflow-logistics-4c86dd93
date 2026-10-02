@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator, Pencil, ArrowRight, Check, ChevronsUpDown, X, AlertTriangle } from "lucide-react";
+import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator, Pencil, ArrowRight, Check, ChevronsUpDown, X, AlertTriangle, Printer } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { isFeatureOn } from "@/config/features";
 import { format } from "date-fns";
@@ -1900,12 +1900,26 @@ export function RotasView({
         header: "",
         hideOnCard: true,
         sortable: false,
-        width: usarTabelaCompacta ? "36px" : undefined,
+        width: usarTabelaCompacta ? "60px" : undefined,
         align: "center",
         filterable: false,
         accessor: () => "",
-        render: (r) =>
-          r.erp_route_id ? (
+        render: (r) => (
+          <span className="inline-flex items-center gap-0.5">
+          {isFeatureOn("impressaoRota") && (r.route_orders ?? []).length > 0 && (
+            <button
+              type="button"
+              title="Imprimir detalhamento da rota"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(`/imprimir-rota/${r.id}`, "_blank", "noopener");
+              }}
+            >
+              <Printer className="h-4 w-4" />
+            </button>
+          )}
+          {r.erp_route_id ? (
             <button
               type="button"
               title="Editar rota"
@@ -1919,7 +1933,9 @@ export function RotasView({
             >
               <Pencil className="h-4 w-4" />
             </button>
-          ) : null,
+          ) : null}
+          </span>
+        ),
       },
     ],
     [

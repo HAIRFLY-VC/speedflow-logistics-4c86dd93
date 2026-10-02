@@ -36,6 +36,7 @@ import { Route as AuthenticatedTransportadorasRouteImport } from './routes/_auth
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedCtesIndexRouteImport } from './routes/_authenticated/ctes.index'
 import { Route as AuthenticatedCtesCteIdRouteImport } from './routes/_authenticated/ctes.$cteId'
+import { Route as AuthenticatedImprimirRotaRouteIdRouteImport } from './routes/_authenticated/imprimir-rota.$routeId'
 import { Route as AuthenticatedNfesChaveRouteImport } from './routes/_authenticated/nfes.$chave'
 import { Route as AuthenticatedPedidosIndexRouteImport } from './routes/_authenticated/pedidos.index'
 import { Route as AuthenticatedPedidosOrderIdRouteImport } from './routes/_authenticated/pedidos.$orderId'
@@ -197,6 +198,12 @@ const AuthenticatedCtesCteIdRoute = AuthenticatedCtesCteIdRouteImport.update({
   path: '/$cteId',
   getParentRoute: () => AuthenticatedCtesRouteRoute,
 } as any)
+const AuthenticatedImprimirRotaRouteIdRoute =
+  AuthenticatedImprimirRotaRouteIdRouteImport.update({
+    id: '/imprimir-rota/$routeId',
+    path: '/imprimir-rota/$routeId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedNfesChaveRoute = AuthenticatedNfesChaveRouteImport.update({
   id: '/nfes/$chave',
   path: '/nfes/$chave',
@@ -301,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/transportadoras': typeof AuthenticatedTransportadorasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/ctes/$cteId': typeof AuthenticatedCtesCteIdRoute
+  '/imprimir-rota/$routeId': typeof AuthenticatedImprimirRotaRouteIdRoute
   '/nfes/$chave': typeof AuthenticatedNfesChaveRoute
   '/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
@@ -342,6 +350,7 @@ export interface FileRoutesByTo {
   '/transportadoras': typeof AuthenticatedTransportadorasRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/ctes/$cteId': typeof AuthenticatedCtesCteIdRoute
+  '/imprimir-rota/$routeId': typeof AuthenticatedImprimirRotaRouteIdRoute
   '/nfes/$chave': typeof AuthenticatedNfesChaveRoute
   '/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
@@ -386,6 +395,7 @@ export interface FileRoutesById {
   '/_authenticated/transportadoras': typeof AuthenticatedTransportadorasRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/ctes/$cteId': typeof AuthenticatedCtesCteIdRoute
+  '/_authenticated/imprimir-rota/$routeId': typeof AuthenticatedImprimirRotaRouteIdRoute
   '/_authenticated/nfes/$chave': typeof AuthenticatedNfesChaveRoute
   '/_authenticated/pedidos/$orderId': typeof AuthenticatedPedidosOrderIdRoute
   '/_authenticated/rotas/$routeId': typeof AuthenticatedRotasRouteIdRoute
@@ -430,6 +440,7 @@ export interface FileRouteTypes {
     | '/transportadoras'
     | '/usuarios'
     | '/ctes/$cteId'
+    | '/imprimir-rota/$routeId'
     | '/nfes/$chave'
     | '/pedidos/$orderId'
     | '/rotas/$routeId'
@@ -471,6 +482,7 @@ export interface FileRouteTypes {
     | '/transportadoras'
     | '/usuarios'
     | '/ctes/$cteId'
+    | '/imprimir-rota/$routeId'
     | '/nfes/$chave'
     | '/pedidos/$orderId'
     | '/rotas/$routeId'
@@ -514,6 +526,7 @@ export interface FileRouteTypes {
     | '/_authenticated/transportadoras'
     | '/_authenticated/usuarios'
     | '/_authenticated/ctes/$cteId'
+    | '/_authenticated/imprimir-rota/$routeId'
     | '/_authenticated/nfes/$chave'
     | '/_authenticated/pedidos/$orderId'
     | '/_authenticated/rotas/$routeId'
@@ -737,6 +750,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCtesCteIdRouteImport
       parentRoute: typeof AuthenticatedCtesRouteRoute
     }
+    '/_authenticated/imprimir-rota/$routeId': {
+      id: '/_authenticated/imprimir-rota/$routeId'
+      path: '/imprimir-rota/$routeId'
+      fullPath: '/imprimir-rota/$routeId'
+      preLoaderRoute: typeof AuthenticatedImprimirRotaRouteIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/nfes/$chave': {
       id: '/_authenticated/nfes/$chave'
       path: '/nfes/$chave'
@@ -877,6 +897,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedTabelasFreteRoute: typeof AuthenticatedTabelasFreteRoute
   AuthenticatedTransportadorasRoute: typeof AuthenticatedTransportadorasRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
+  AuthenticatedImprimirRotaRouteIdRoute: typeof AuthenticatedImprimirRotaRouteIdRoute
   AuthenticatedNfesChaveRoute: typeof AuthenticatedNfesChaveRoute
   AuthenticatedPedidosOrderIdRoute: typeof AuthenticatedPedidosOrderIdRoute
   AuthenticatedRotasRouteIdRoute: typeof AuthenticatedRotasRouteIdRoute
@@ -909,6 +930,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTabelasFreteRoute: AuthenticatedTabelasFreteRoute,
   AuthenticatedTransportadorasRoute: AuthenticatedTransportadorasRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
+  AuthenticatedImprimirRotaRouteIdRoute: AuthenticatedImprimirRotaRouteIdRoute,
   AuthenticatedNfesChaveRoute: AuthenticatedNfesChaveRoute,
   AuthenticatedPedidosOrderIdRoute: AuthenticatedPedidosOrderIdRoute,
   AuthenticatedRotasRouteIdRoute: AuthenticatedRotasRouteIdRoute,
