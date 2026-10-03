@@ -382,6 +382,19 @@ function DashboardPage() {
                 <SelectItem value="comercial">Calendário comercial</SelectItem>
               </SelectContent>
             </Select>
+            <span className="text-sm text-muted-foreground">Mês:</span>
+            <Select value={mesSelecionado} onValueChange={setMesSelecionado}>
+              <SelectTrigger className="w-[230px]">
+                <SelectValue placeholder="Selecione o mês" />
+              </SelectTrigger>
+              <SelectContent>
+                {opcoesMes.map((m) => (
+                  <SelectItem key={m.key} value={m.key}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -504,7 +517,7 @@ function DashboardPage() {
         </div>
 
         {(() => {
-          const byStatus = orders.reduce<Record<string, number>>((acc, o) => {
+          const byStatus = pedidosDoMes.reduce<Record<string, number>>((acc, o) => {
             acc[o.status] = (acc[o.status] ?? 0) + 1;
             return acc;
           }, {});
@@ -524,7 +537,7 @@ function DashboardPage() {
                   <Skeleton key={i} className="h-9 w-full" />
                 ))}
               </div>
-            ) : orders.length === 0 ? (
+            ) : pedidosDoMes.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Nenhum pedido cadastrado ainda. Os indicadores aparecerão aqui assim que houver dados.
               </p>
