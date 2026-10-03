@@ -70,6 +70,12 @@ type MesComercial = { mes_comerc: string; de: string; ate: string };
 
 type ModoCalendario = "normal" | "comercial";
 
+// Chave do mês civil atual ("YYYY-MM").
+function mesCivilAtual() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 function DashboardPage() {
   // Modo de análise (calendário normal x comercial), lembrado por usuário.
   const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("normal");
