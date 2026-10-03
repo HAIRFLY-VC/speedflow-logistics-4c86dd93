@@ -237,7 +237,7 @@ function DashboardPage() {
       const de = new Date(`${m.de}T00:00:00`).getTime();
       const ate = new Date(`${m.ate}T23:59:59.999`).getTime();
       return orders.filter((o) => {
-        const t = new Date(o.created_at).getTime();
+        const t = new Date(dataBasePedido(o)).getTime();
         return t >= de && t <= ate;
       });
     }
@@ -245,7 +245,7 @@ function DashboardPage() {
     const de = new Date(Number(ano), Number(mes) - 1, 1).getTime();
     const ate = new Date(Number(ano), Number(mes), 0, 23, 59, 59, 999).getTime();
     return orders.filter((o) => {
-      const t = new Date(o.created_at).getTime();
+      const t = new Date(dataBasePedido(o)).getTime();
       return t >= de && t <= ate;
     });
   }, [usandoComercial, calendarioComercial, mesSelecionado, orders]);
