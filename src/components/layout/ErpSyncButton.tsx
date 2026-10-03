@@ -97,8 +97,9 @@ export function ErpSyncButton({
       qc.invalidateQueries({ queryKey: ["erp", "last-sync"] });
       qc.invalidateQueries({ queryKey: ["pagamento-rota"] });
       qc.invalidateQueries({ queryKey: ["erp", "calendario-comercial"] });
-      const erroCal = r.errors.find((e) => e.message.startsWith("Atualizar calendário comercial"));
-      if (erroCal) toast.warning(erroCal.message);
+      const msgs = (r.errors as unknown[]).map((e) => String((e as { message?: unknown })?.message ?? ""));
+      const erroCal = msgs.find((m) => m.startsWith("Atualizar calendário comercial"));
+      if (erroCal) toast.warning(erroCal);
       qc.invalidateQueries({ queryKey: ["situacao-pix"] });
     },
     onError: (e: Error) => {
