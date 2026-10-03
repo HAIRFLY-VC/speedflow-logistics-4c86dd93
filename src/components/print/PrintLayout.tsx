@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, Loader2, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -41,6 +41,26 @@ export function PrintLayout({
   const width = prefs.orientation === "portrait" ? w : h;
   const height = prefs.orientation === "portrait" ? h : w;
   const emitido = new Date().toLocaleString("pt-BR");
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [paginas, setPaginas] = useState(1);
+
+  // Estima a quantidade de páginas da pré-visualização medindo a altura do
+  // conteúdo contra a área útil da folha (a numeração real por página é
+  // gerada pelo navegador apenas na impressão, via @page).
+  useEffect(() => {
+    const el = sheetRef.current;
+    if (!el) return;
+    const MM_PX = 96 / 25.4;
+    const utilPx = (height - 12 - 14) * MM_PX; // margens @page: 12mm topo, 14mm base
+    const medir = () => {
+      const total = el.scrollHeight;
+      setPaginas(Math.max(1, Math.ceil(total / utilPx)));
+    };
+    medir();
+    const obs = new ResizeObserver(medir);
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [height, prefs.fontSize, prefs.economico, children]);
   const rodape = `${title} · Impresso em ${emitido}${printedBy ? ` por ${printedBy}` : ""}`;
   const css = `@page { size: ${prefs.paper} ${prefs.orientation}; margin: 12mm 10mm 14mm;
     @bottom-left { content: ${JSON.stringify(rodape)}; font-size: 8px; color: #555; }
@@ -110,6 +130,7 @@ export function PrintLayout({
       </div>
       <div className="py-6 print:py-0">
         <div
+          ref={sheetRef}
           className="print-sheet"
           data-font={prefs.fontSize}
           data-eco={prefs.economico ? "true" : "false"}
@@ -127,8 +148,11 @@ export function PrintLayout({
             </div>
           </header>
           {children}
-          <footer className="print-preview-page-number" aria-label="Página 1 de 1">
-            Página 1 de 1
+          <footer
+            className="print-preview-page-number"
+            aria-label={`Pré-visualização com aproximadamente ${paginas} página(s)`}
+          >
+            Página 1 de {paginas}
           </footer>
         </div>
       </div>

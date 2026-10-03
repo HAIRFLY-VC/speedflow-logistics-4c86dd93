@@ -7,11 +7,16 @@
   padding: 12mm 12mm 18mm;
 }
 .print-preview-page-number {
-  bottom: 6mm;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  bottom: 12px;
   color: var(--muted-foreground);
-  font-size: 8px;
-  position: absolute;
-  right: 12mm;
+  font-size: 11px;
+  padding: 2px 8px;
+  position: fixed;
+  right: 16px;
+  z-index: 20;
 }
 .print-sheet[data-font="sm"] { font-size: 10px; }
 .print-sheet[data-font="md"] { font-size: 12px; }
