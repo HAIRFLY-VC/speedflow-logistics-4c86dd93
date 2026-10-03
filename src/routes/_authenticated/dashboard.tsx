@@ -142,6 +142,53 @@ function DashboardPage() {
 
   const calendarioComercial = calendarioQ.data ?? [];
   const usandoComercial = modoCalendario === "comercial" && calendarioComercial.length > 0;
+
+  // Mês vigente no modo efetivo: mês comercial que contém a data atual
+  // (ou o mais recente do calendário) ou o mês civil atual.
+  const mesVigente = useMemo(() => {
+    if (usandoComercial) {
+      const now = Date.now();
+      const atual = calendarioComercial.find((m) => {
+        const de = new Date(`${m.de}T00:00:00`).getTime();
+        const ate = new Date(`${m.ate}T23:59:59.999`).getTime();
+        return now >= de && now <= ate;
+      });
+      return (atual ?? calendarioComercial[0]).mes_comerc;
+    }
+    return mesCivilAtual();
+  }, [usandoComercial, calendarioComercial]);
+
+  // Ao trocar o modo de calendário (ou carregar o calendário comercial),
+  // o filtro volta ao mês vigente do novo modo.
+  useEffect(() => {
+    setMesSelecionado(mesVigente);
+  }, [mesVigente]);
+
+  // Opções do seletor de mês, respeitando o modo de calendário.
+  const opcoesMes = useMemo(() => {
+    const fmtDia = (iso: string) =>
+      new Date(`${iso}T00:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    if (usandoComercial) {
+      return calendarioComercial.slice(0, 12).map((m) => {
+        const [ano, mes] = m.mes_comerc.split("-");
+        const label = new Date(Number(ano), Number(mes) - 1, 1)
+          .toLocaleDateString("pt-BR", { month: "short" })
+          .replace(".", "");
+        return { key: m.mes_comerc, label: `${label}/${ano.slice(2)} (${fmtDia(m.de)} a ${fmtDia(m.ate)})` };
+      });
+    }
+    const out: { key: string; label: string }[] = [];
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = `${d
+        .toLocaleDateString("pt-BR", { month: "short" })
+        .replace(".", "")}/${String(d.getFullYear()).slice(2)}`;
+      out.push({ key, label });
+    }
+    return out;
+  }, [usandoComercial, calendarioComercial]);
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard", "orders"],
     queryFn: async () => {
