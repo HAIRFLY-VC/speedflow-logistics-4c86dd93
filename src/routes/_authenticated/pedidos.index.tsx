@@ -163,6 +163,19 @@ function PedidosPage() {
     },
   });
 
+  // Filtro por mês comercial: usa a previsão de expedição (ou criação) do pedido.
+  const ordersFiltrados = useMemo(() => {
+    const rows = ordersQ.data;
+    if (!rows || !mesSelecionado) return rows;
+    const de = new Date(`${mesSelecionado.de}T00:00:00`).getTime();
+    const ate = new Date(`${mesSelecionado.ate}T23:59:59`).getTime();
+    return rows.filter((o) => {
+      const ref = o.dt_prev_exp ?? o.created_at;
+      const t = new Date(ref).getTime();
+      return Number.isFinite(t) && t >= de && t <= ate;
+    });
+  }, [ordersQ.data, mesSelecionado]);
+
   const agendaTotals = useMemo(() => {
     const init = () => ({ valor: 0, peso: 0, qtd: 0 });
     const acc = { a417: init(), a427: init() };
