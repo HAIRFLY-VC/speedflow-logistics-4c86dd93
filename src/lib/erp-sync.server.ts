@@ -318,6 +318,60 @@ const RESPONSAVEIS_SQL = `
  * Como a lista é grande (>10 mil linhas) e muda pouco, só é renovada quando a
  * última atualização tem mais de `maxAgeMs`.
  */
+// Calendário comercial do ERP: cada chave 050FATPED-AAAAMM define o período
+// de datas (DE/ATE) que compõe o mês comercial.
+const CALENDARIO_COMERCIAL_SQL = `
+  SELECT * FROM (
+    SELECT TO_DATE(SUBSTR(T.DBA_TAB_ACESSO,8,6) || '01','yyyyMMdd') MES_COMERC,
+           TO_DATE(SUBSTR(TRIM(DBA_TAB_CAMPO),1,8),'yyyyMMdd') DE,
+           TO_DATE(SUBSTR(TRIM(DBA_TAB_CAMPO),9,8),'yyyyMMdd') ATE
+      FROM gks.a_cadctabe t
+     WHERE t.dba_keycadtab_sq LIKE '050FATPED-%'
+     ORDER BY t.dba_keycadtab_sq DESC)
+   WHERE MES_COMERC >= TO_DATE('20260101','yyyyMMdd')
+`;
+
+/** Atualiza o espelho local do calendário comercial do ERP. */
+async function sincronizarCalendarioComercial() {
+  const baseUrl = process.env.ERP_API_BASE_URL;
+  const apiKey = process.env.ERP_API_KEY;
+  if (!baseUrl || !apiKey) throw new Error("ERP_API_BASE_URL ou ERP_API_KEY não configurados");
+
+  const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
+  const res = await fetch(`${cleanBase}/v1/query`, {
+    method: "POST",
+    signal: AbortSignal.timeout(60_000),
+    headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+    body: JSON.stringify({ sql: CALENDARIO_COMERCIAL_SQL, binds: {}, limit: 500 }),
+  });
+  if (!res.ok) throw new Error(friendlyErpError(res.status, await res.text()));
+  const json = (await res.json()) as ErpQueryResponse;
+
+  const toDate = (v: unknown): string | null => {
+    if (v == null) return null;
+    const d = new Date(String(v));
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString().slice(0, 10);
+  };
+
+  const byMes = new Map<string, { mes_comerc: string; de: string; ate: string }>();
+  for (const row of json.rows ?? []) {
+    const mes = toDate(row.MES_COMERC ?? row.mes_comerc);
+    const de = toDate(row.DE ?? row.de);
+    const ate = toDate(row.ATE ?? row.ate);
+    if (!mes || !de || !ate || byMes.has(mes)) continue;
+    byMes.set(mes, { mes_comerc: mes, de, ate });
+  }
+  const payload = Array.from(byMes.values());
+  if (payload.length === 0) return 0;
+  const { error } = await centralDb.from("erp_calendario_comercial").upsert(
+    payload.map((item) => ({ ...item, atualizado_em: new Date().toISOString() })),
+    { onConflict: "mes_comerc" },
+  );
+  if (error) throw error;
+  return payload.length;
+}
+
 async function sincronizarEspelhoResponsaveis(opts: { maxAgeMs: number }) {
   const baseUrl = process.env.ERP_API_BASE_URL;
   const apiKey = process.env.ERP_API_KEY;
