@@ -103,7 +103,10 @@ function DashboardPage() {
       /* sem storage */
     }
     savePrefs({
-      data: { tableKey: "dashboard:calendario", preferences: { modo } },
+      data: {
+        tableKey: "dashboard:calendario",
+        preferences: { modo } as unknown as TablePreferences,
+      },
     }).catch(() => {});
   };
 
