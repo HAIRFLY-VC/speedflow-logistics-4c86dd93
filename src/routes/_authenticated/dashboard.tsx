@@ -336,11 +336,30 @@ function DashboardPage() {
                   <YAxis allowDecimals={false} tickLine={false} axisLine={false} fontSize={12} />
                   <Tooltip
                     cursor={{ fill: "hsl(var(--muted))" }}
-                    contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: 8,
-                      fontSize: 12,
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0].payload as {
+                        label: string;
+                        pedidos: number;
+                        periodo?: string;
+                      };
+                      return (
+                        <div
+                          style={{
+                            background: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: 8,
+                            fontSize: 12,
+                            padding: "6px 10px",
+                          }}
+                        >
+                          <div className="font-medium">{d.label}</div>
+                          {d.periodo && (
+                            <div className="text-muted-foreground">{d.periodo}</div>
+                          )}
+                          <div>{d.pedidos} pedido(s)</div>
+                        </div>
+                      );
                     }}
                   />
                   <Bar dataKey="pedidos" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
