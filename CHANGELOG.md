@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.20.1] - 2026-10-03
+### Corrigido
+- Dashboard: o calendário comercial agora é recarregado logo após o Sync ERP; o aviso mostra o motivo real e tem botão "Tentar novamente".
+
 ## [1.20.0] - 2026-10-03
 ### Adicionado
 - O Dashboard ganhou o seletor "Analisar por: Calendário normal / Calendário comercial". No modo comercial, o gráfico "Pedidos por mês" agrupa os pedidos pelos meses comerciais do ERP (períodos de/até), com o período exato no tooltip. A escolha fica salva no perfil do usuário. Se o calendário comercial ainda não estiver carregado, o app avisa e mantém a visão normal.

@@ -126,8 +126,9 @@ function DashboardPage() {
       if (error) throw error;
       return (data ?? []) as MesComercial[];
     },
-    staleTime: 5 * 60_000,
-    retry: false,
+    staleTime: 60_000,
+    retry: 1,
+    refetchOnWindowFocus: true,
   });
 
   const calendarioComercial = calendarioQ.data ?? [];
@@ -328,10 +329,14 @@ function DashboardPage() {
               <CardTitle className="text-base">
                 Pedidos por mês{usandoComercial ? " (calendário comercial)" : ""}
               </CardTitle>
-              {modoCalendario === "comercial" && !usandoComercial && (
+              {modoCalendario === "comercial" && !usandoComercial && !calendarioQ.isFetching && (
                 <p className="text-xs text-amber-600">
-                  Calendário comercial ainda não carregado — exibindo calendário normal. Rode o
-                  Sync ERP para atualizá-lo.
+                  {calendarioQ.error
+                    ? `Não foi possível ler o calendário comercial (${(calendarioQ.error as Error).message}) — exibindo calendário normal.`
+                    : "Calendário comercial ainda não carregado — exibindo calendário normal. Rode o Sync ERP para atualizá-lo."}{" "}
+                  <button type="button" className="underline" onClick={() => calendarioQ.refetch()}>
+                    Tentar novamente
+                  </button>
                 </p>
               )}
             </CardHeader>
