@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/layout/AppShell";
 import {
@@ -73,6 +73,9 @@ type ModoCalendario = "normal" | "comercial";
 function DashboardPage() {
   // Modo de análise (calendário normal x comercial), lembrado por usuário.
   const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("normal");
+  // Filtro de mês (civil "YYYY-MM" ou comercial "mes_comerc"). Sempre volta ao
+  // mês vigente ao abrir ou ao trocar o modo de calendário.
+  const [mesSelecionado, setMesSelecionado] = useState<string>(mesCivilAtual());
   const fetchPrefs = useServerFn(getTablePrefs);
   const savePrefs = useServerFn(saveTablePrefs);
   const prefTouched = useRef(false);
