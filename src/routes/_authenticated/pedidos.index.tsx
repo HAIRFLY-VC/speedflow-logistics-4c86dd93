@@ -502,23 +502,45 @@ function PedidosPage() {
         <DataTable
           tableKey="pedidos"
           columns={columns}
-          data={ordersQ.data}
+          data={ordersFiltrados}
           isLoading={ordersQ.isLoading}
           rowKey={(o) => o.id}
           emptyMessage="Nenhum pedido encontrado."
           onFilteredChange={setVisibleRows}
 
-          
+
           toolbarRight={
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportCsv}
-              disabled={!ordersQ.data?.length}
-            >
-              <Download className="h-4 w-4 mr-1" />
-              Exportar CSV
-            </Button>
+            <div className="flex items-center gap-2">
+              {(calendarioQ.data?.length ?? 0) > 0 && (
+                <Select value={mesComercial} onValueChange={setMesComercial}>
+                  <SelectTrigger size="sm" className="w-[220px]">
+                    <SelectValue placeholder="Mês comercial" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os meses</SelectItem>
+                    {calendarioQ.data!.map((m) => {
+                      const [ano, mes] = m.mes_comerc.split("-");
+                      const fmt = (d: string) =>
+                        d.split("-").reverse().slice(0, 2).join("/");
+                      return (
+                        <SelectItem key={m.mes_comerc} value={m.mes_comerc}>
+                          {`${mes}/${ano} · ${fmt(m.de)} a ${fmt(m.ate)}`}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportCsv}
+                disabled={!ordersFiltrados?.length}
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Exportar CSV
+              </Button>
+            </div>
           }
         />
       </div>
