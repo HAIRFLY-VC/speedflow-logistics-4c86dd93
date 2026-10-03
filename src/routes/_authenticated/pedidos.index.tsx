@@ -104,13 +104,35 @@ function formatTempoDias(v: number | string | null | undefined) {
   return Number.isFinite(n) ? Math.trunc(n) : "—";
 }
 
+type MesComercial = { mes_comerc: string; de: string; ate: string };
+
 function PedidosPage() {
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [visibleRows, setVisibleRows] = useState<OrderRow[]>([]);
+  const [mesComercial, setMesComercial] = useState<string>("todos");
   // Nome do cliente vem do espelho local do ERP; sem ele, mostra só o código.
   const { nomeCliente } = useClientesErp();
   const customerName = useMemo(() => (o: OrderRow) => nomeCliente(codigoCliente(o)), [nomeCliente]);
+
+  // Calendário comercial do ERP (atualizado pelo Sync ERP).
+  const calendarioQ = useQuery({
+    queryKey: ["erp", "calendario-comercial"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("erp_calendario_comercial")
+        .select("mes_comerc,de,ate")
+        .order("mes_comerc", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as MesComercial[];
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const mesSelecionado = useMemo(
+    () => calendarioQ.data?.find((m) => m.mes_comerc === mesComercial) ?? null,
+    [calendarioQ.data, mesComercial],
+  );
 
 
   const ordersQ = useQuery({
