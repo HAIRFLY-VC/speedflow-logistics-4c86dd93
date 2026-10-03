@@ -63,8 +63,16 @@ type OrderRow = {
   total_amount: number;
   status_since: string;
   created_at: string;
+  erp_id: string | null;
+  dt_agendamento: string | null;
   sla_deliver_by: string | null;
 };
+
+// Data base do pedido para filtros de mês: a data da agenda (faturamento) ou,
+// na falta dela, a data de criação do pedido.
+function dataBasePedido(o: OrderRow): string {
+  return o.dt_agendamento ?? o.created_at;
+}
 
 type MesComercial = { mes_comerc: string; de: string; ate: string };
 
@@ -194,11 +202,34 @@ function DashboardPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id,status,total_amount,status_since,created_at,sla_deliver_by")
+        .select("id,status,total_amount,status_since,created_at,erp_id,sla_deliver_by")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
-      return (data ?? []) as OrderRow[];
+      const rows = (data ?? []) as OrderRow[];
+      // Data da agenda (faturamento) vem do espelho de entregas abertas,
+      // consultado em lotes pelos códigos ERP dos pedidos.
+      const ids = Array.from(new Set(rows.map((o) => o.erp_id).filter(Boolean))) as string[];
+      const agendaPorPedido = new Map<string, string>();
+      for (let i = 0; i < ids.length; i += 300) {
+        const lote = ids.slice(i, i + 300);
+        const { data: ent, error: entErr } = await supabase
+          .from("entregas_abertas")
+          .select("cod_pedido,dt_agendamento")
+          .in("cod_pedido", lote);
+        if (entErr) break; // sem agenda disponível: cai para a data do pedido
+        for (const e of ent ?? []) {
+          const cod = String(e.cod_pedido ?? "").trim();
+          const dt = e.dt_agendamento ?? null;
+          if (!cod || !dt) continue;
+          const prev = agendaPorPedido.get(cod);
+          if (!prev || dt < prev) agendaPorPedido.set(cod, dt);
+        }
+      }
+      return rows.map((o) => ({
+        ...o,
+        dt_agendamento: agendaPorPedido.get(o.erp_id ?? "") ?? null,
+      }));
     },
   });
 
@@ -230,7 +261,7 @@ function DashboardPage() {
       const de = new Date(`${m.de}T00:00:00`).getTime();
       const ate = new Date(`${m.ate}T23:59:59.999`).getTime();
       return orders.filter((o) => {
-        const t = new Date(o.created_at).getTime();
+        const t = new Date(dataBasePedido(o)).getTime();
         return t >= de && t <= ate;
       });
     }
@@ -238,7 +269,7 @@ function DashboardPage() {
     const de = new Date(Number(ano), Number(mes) - 1, 1).getTime();
     const ate = new Date(Number(ano), Number(mes), 0, 23, 59, 59, 999).getTime();
     return orders.filter((o) => {
-      const t = new Date(o.created_at).getTime();
+      const t = new Date(dataBasePedido(o)).getTime();
       return t >= de && t <= ate;
     });
   }, [usandoComercial, calendarioComercial, mesSelecionado, orders]);
@@ -289,7 +320,7 @@ function DashboardPage() {
         ate: new Date(`${m.ate}T23:59:59.999`).getTime(),
       }));
       for (const o of orders) {
-        const t = new Date(o.created_at).getTime();
+        const t = new Date(dataBasePedido(o)).getTime();
         for (let i = 0; i < faixas.length; i++) {
           if (t >= faixas[i].de && t <= faixas[i].ate) {
             out[i].pedidos += 1;
@@ -312,7 +343,7 @@ function DashboardPage() {
     }
     const idx = new Map(out.map((m, i) => [m.key, i]));
     for (const o of orders) {
-      const d = new Date(o.created_at);
+      const d = new Date(dataBasePedido(o));
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const i = idx.get(key);
       if (i != null) out[i].pedidos += 1;
