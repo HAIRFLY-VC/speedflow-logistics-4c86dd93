@@ -221,22 +221,44 @@ function DashboardPage() {
   const now = Date.now();
   const sla = slaQ.data ?? null;
 
+  // Pedidos do mês selecionado: base dos cartões (KPIs) e da lista de status.
+  // O gráfico "Pedidos por mês" continua usando a lista completa (tendência).
+  const pedidosDoMes = useMemo(() => {
+    if (usandoComercial) {
+      const m = calendarioComercial.find((x) => x.mes_comerc === mesSelecionado);
+      if (!m) return orders;
+      const de = new Date(`${m.de}T00:00:00`).getTime();
+      const ate = new Date(`${m.ate}T23:59:59.999`).getTime();
+      return orders.filter((o) => {
+        const t = new Date(o.created_at).getTime();
+        return t >= de && t <= ate;
+      });
+    }
+    const [ano, mes] = mesSelecionado.split("-");
+    const de = new Date(Number(ano), Number(mes) - 1, 1).getTime();
+    const ate = new Date(Number(ano), Number(mes), 0, 23, 59, 59, 999).getTime();
+    return orders.filter((o) => {
+      const t = new Date(o.created_at).getTime();
+      return t >= de && t <= ate;
+    });
+  }, [usandoComercial, calendarioComercial, mesSelecionado, orders]);
+
   const totals = {
-    total: orders.length,
-    pendingApproval: orders.filter((o) =>
+    total: pedidosDoMes.length,
+    pendingApproval: pedidosDoMes.filter((o) =>
       ["aguardando_aprovacao_comercial", "aguardando_aprovacao_credito"].includes(o.status),
     ).length,
-    inTransport: orders.filter((o) => o.status === "em_transporte").length,
-    delivered: orders.filter((o) => o.status === "entregue").length,
-    atRisk: orders.filter(
+    inTransport: pedidosDoMes.filter((o) => o.status === "em_transporte").length,
+    delivered: pedidosDoMes.filter((o) => o.status === "entregue").length,
+    atRisk: pedidosDoMes.filter(
       (o) =>
         o.sla_deliver_by &&
         o.status !== "entregue" &&
         o.status !== "cancelado" &&
         new Date(o.sla_deliver_by).getTime() < now,
     ).length,
-    stageLate: orders.filter((o) => isStageLate(o.status, o.status_since, sla)).length,
-    revenue: orders.reduce((s, o) => s + Number(o.total_amount ?? 0), 0),
+    stageLate: pedidosDoMes.filter((o) => isStageLate(o.status, o.status_since, sla)).length,
+    revenue: pedidosDoMes.reduce((s, o) => s + Number(o.total_amount ?? 0), 0),
   };
 
 
