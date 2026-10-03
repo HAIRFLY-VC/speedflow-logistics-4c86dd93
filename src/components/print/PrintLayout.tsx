@@ -130,6 +130,7 @@ export function PrintLayout({
       </div>
       <div className="py-6 print:py-0">
         <div
+          ref={sheetRef}
           className="print-sheet"
           data-font={prefs.fontSize}
           data-eco={prefs.economico ? "true" : "false"}
@@ -147,8 +148,11 @@ export function PrintLayout({
             </div>
           </header>
           {children}
-          <footer className="print-preview-page-number" aria-label="Página 1 de 1">
-            Página 1 de 1
+          <footer
+            className="print-preview-page-number"
+            aria-label={`Pré-visualização com aproximadamente ${paginas} página(s)`}
+          >
+            Página 1 de {paginas}
           </footer>
         </div>
       </div>
