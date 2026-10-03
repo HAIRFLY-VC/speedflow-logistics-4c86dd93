@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.19.1] - 2026-10-03
+### Corrigido
+- A pré-visualização da impressão agora estima a quantidade de páginas (ex.: "Página 1 de 3") em um selo fixo no canto inferior direito da tela, em vez do texto fixo "Página 1 de 1" escondido no fim do conteúdo.
+- Rotas com borderô emitido em apenas parte dos pedidos voltam a aparecer em "Rotas Pendentes" — antes elas sumiam das duas telas e o frete ficava impossível de autorizar.
+
 ## [1.19.0] - 2026-10-03
 ### Adicionado
 - O botão "Sync ERP" agora também atualiza o calendário comercial do ERP (período de datas de cada mês comercial).
