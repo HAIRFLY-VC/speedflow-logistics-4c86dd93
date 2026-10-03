@@ -851,6 +851,7 @@ export async function syncErpOrders(opts: {
       errors.push({ pedido: 0, message: `Atualizar clientes do ERP: ${describeError(e)}` });
     }
     await responsaveisPromise;
+    await calendarioPromise;
 
     // 1) Estado atual dos pedidos já gravados (uma consulta por bloco de 300).
     const erpIds = rows.map((r) => String(r.PEDIDO));
