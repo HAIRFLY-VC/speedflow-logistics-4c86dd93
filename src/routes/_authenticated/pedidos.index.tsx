@@ -513,7 +513,7 @@ function PedidosPage() {
             <div className="flex items-center gap-2">
               {(calendarioQ.data?.length ?? 0) > 0 && (
                 <Select value={mesComercial} onValueChange={setMesComercial}>
-                  <SelectTrigger size="sm" className="w-[220px]">
+                  <SelectTrigger className="h-8 w-[220px] text-sm">
                     <SelectValue placeholder="Mês comercial" />
                   </SelectTrigger>
                   <SelectContent>
