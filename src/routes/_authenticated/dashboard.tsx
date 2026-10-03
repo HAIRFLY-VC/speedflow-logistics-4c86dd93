@@ -10,7 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getTablePrefs, saveTablePrefs } from "@/lib/table-prefs.functions";
+import {
+  getTablePrefs,
+  saveTablePrefs,
+  type TablePreferences,
+} from "@/lib/table-prefs.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/central/client";
 import {
