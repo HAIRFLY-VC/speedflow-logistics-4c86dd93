@@ -15,7 +15,7 @@ Hoje o filtro "Mês:" do Dashboard (calendário normal ou comercial) usa a data 
 - Sem migração de banco, sem feature flag.
 
 ## Riscos
-- Baixo: pedidos antigos sem `dt_agendamento` deixam de aparecer nos totais mensais; o gráfico mensal pode mudar levemente de forma.
+- Baixo: totais mensais mudam de base de data (agenda em vez de criação); o gráfico mensal pode mudar levemente de forma.
 
 ## Checklist para publicar
 - Testar no preview: trocar mês/calendário e conferir que os totais batem com as datas de agenda dos pedidos.
