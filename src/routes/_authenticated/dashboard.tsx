@@ -296,7 +296,7 @@ function DashboardPage() {
         ate: new Date(`${m.ate}T23:59:59.999`).getTime(),
       }));
       for (const o of orders) {
-        const t = new Date(o.created_at).getTime();
+        const t = new Date(dataBasePedido(o)).getTime();
         for (let i = 0; i < faixas.length; i++) {
           if (t >= faixas[i].de && t <= faixas[i].ate) {
             out[i].pedidos += 1;
@@ -319,7 +319,7 @@ function DashboardPage() {
     }
     const idx = new Map(out.map((m, i) => [m.key, i]));
     for (const o of orders) {
-      const d = new Date(o.created_at);
+      const d = new Date(dataBasePedido(o));
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const i = idx.get(key);
       if (i != null) out[i].pedidos += 1;
