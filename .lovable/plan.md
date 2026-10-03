@@ -4,7 +4,7 @@
 PATCH (v1.21.1) — ajuste de comportamento do filtro de mês já existente, sem mudança de estrutura.
 
 ## O que muda
-Hoje o filtro "Mês:" do Dashboard (calendário normal ou comercial) usa a data de criação do pedido (`created_at`). Passa a usar a **data da agenda** (`dt_agendamento`), que é a data de agendamento vinda do ERP.
+Hoje o filtro "Mês:" do Dashboard (calendário normal ou comercial) usa a data de criação do pedido (`created_at`). Passa a usar a **data da agenda** (`dt_agendamento`, vinda do ERP), que representa a data em que o pedido foi faturado.
 
 ## Detalhes
 - `src/routes/_authenticated/dashboard.tsx`:
