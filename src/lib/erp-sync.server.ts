@@ -838,6 +838,11 @@ export async function syncErpOrders(opts: {
         return 0;
       },
     );
+    // Calendário comercial: etapa opcional, falhas não abortam o sync.
+    const calendarioPromise = sincronizarCalendarioComercial().catch((e) => {
+      errors.push({ pedido: 0, message: `Atualizar calendário comercial: ${describeError(e)}` });
+      return 0;
+    });
     const rows = await fetchPendingOrdersFromErp();
     fetched = rows.length;
     try {
