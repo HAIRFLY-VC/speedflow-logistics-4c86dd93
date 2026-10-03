@@ -1,6 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/layout/AppShell";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  getTablePrefs,
+  saveTablePrefs,
+  type TablePreferences,
+} from "@/lib/table-prefs.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/central/client";
 import {
@@ -52,7 +66,72 @@ type OrderRow = {
   sla_deliver_by: string | null;
 };
 
+type MesComercial = { mes_comerc: string; de: string; ate: string };
+
+type ModoCalendario = "normal" | "comercial";
+
 function DashboardPage() {
+  // Modo de análise (calendário normal x comercial), lembrado por usuário.
+  const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("normal");
+  const fetchPrefs = useServerFn(getTablePrefs);
+  const savePrefs = useServerFn(saveTablePrefs);
+  const prefTouched = useRef(false);
+
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem("dashboard:calendario") === "comercial") {
+        setModoCalendario("comercial");
+      }
+    } catch {
+      /* sem storage */
+    }
+    fetchPrefs({ data: { tableKey: "dashboard:calendario" } })
+      .then((remote) => {
+        if (prefTouched.current) return;
+        const v = (remote as { modo?: string } | null)?.modo;
+        if (v === "comercial") setModoCalendario("comercial");
+      })
+      .catch(() => {
+        /* mantém cópia local */
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const trocarCalendario = (v: string) => {
+    prefTouched.current = true;
+    const modo: ModoCalendario = v === "comercial" ? "comercial" : "normal";
+    setModoCalendario(modo);
+    try {
+      window.localStorage.setItem("dashboard:calendario", modo);
+    } catch {
+      /* sem storage */
+    }
+    savePrefs({
+      data: {
+        tableKey: "dashboard:calendario",
+        preferences: { modo } as unknown as TablePreferences,
+      },
+    }).catch(() => {});
+  };
+
+  // Calendário comercial do ERP (atualizado pelo Sync ERP). Se a tabela
+  // ainda não existir/estiver vazia, o dashboard cai no calendário normal.
+  const calendarioQ = useQuery({
+    queryKey: ["erp", "calendario-comercial"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("erp_calendario_comercial")
+        .select("mes_comerc,de,ate")
+        .order("mes_comerc", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as MesComercial[];
+    },
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+
+  const calendarioComercial = calendarioQ.data ?? [];
+  const usandoComercial = modoCalendario === "comercial" && calendarioComercial.length > 0;
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard", "orders"],
     queryFn: async () => {
@@ -104,9 +183,44 @@ function DashboardPage() {
   };
 
 
-  // Pedidos por mês (últimos 6 meses)
+  // Pedidos por mês (últimos 6 meses) — calendário normal ou comercial
   const monthly = (() => {
-    const out: { label: string; key: string; pedidos: number }[] = [];
+    if (usandoComercial) {
+      // calendarioComercial vem ordenado desc; pega os 6 mais recentes
+      const meses = calendarioComercial.slice(0, 6).reverse();
+      const out = meses.map((m) => {
+        const [ano, mes] = m.mes_comerc.split("-");
+        const label = new Date(Number(ano), Number(mes) - 1, 1)
+          .toLocaleDateString("pt-BR", { month: "short" })
+          .replace(".", "");
+        const fmtDia = (iso: string) =>
+          new Date(`${iso}T00:00:00`).toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+          });
+        return {
+          key: m.mes_comerc,
+          label,
+          periodo: `${fmtDia(m.de)} a ${fmtDia(m.ate)}`,
+          pedidos: 0,
+        };
+      });
+      const faixas = meses.map((m) => ({
+        de: new Date(`${m.de}T00:00:00`).getTime(),
+        ate: new Date(`${m.ate}T23:59:59.999`).getTime(),
+      }));
+      for (const o of orders) {
+        const t = new Date(o.created_at).getTime();
+        for (let i = 0; i < faixas.length; i++) {
+          if (t >= faixas[i].de && t <= faixas[i].ate) {
+            out[i].pedidos += 1;
+            break;
+          }
+        }
+      }
+      return out;
+    }
+    const out: { label: string; key: string; pedidos: number; periodo?: string }[] = [];
     const now = new Date();
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -173,9 +287,23 @@ function DashboardPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Visão geral dos pedidos e da operação logística.</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground">Visão geral dos pedidos e da operação logística.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Analisar por:</span>
+            <Select value={modoCalendario} onValueChange={trocarCalendario}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">Calendário normal</SelectItem>
+                <SelectItem value="comercial">Calendário comercial</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
@@ -197,7 +325,15 @@ function DashboardPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Pedidos por mês</CardTitle>
+              <CardTitle className="text-base">
+                Pedidos por mês{usandoComercial ? " (calendário comercial)" : ""}
+              </CardTitle>
+              {modoCalendario === "comercial" && !usandoComercial && (
+                <p className="text-xs text-amber-600">
+                  Calendário comercial ainda não carregado — exibindo calendário normal. Rode o
+                  Sync ERP para atualizá-lo.
+                </p>
+              )}
             </CardHeader>
             <CardContent className="h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -207,11 +343,30 @@ function DashboardPage() {
                   <YAxis allowDecimals={false} tickLine={false} axisLine={false} fontSize={12} />
                   <Tooltip
                     cursor={{ fill: "hsl(var(--muted))" }}
-                    contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: 8,
-                      fontSize: 12,
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0].payload as {
+                        label: string;
+                        pedidos: number;
+                        periodo?: string;
+                      };
+                      return (
+                        <div
+                          style={{
+                            background: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: 8,
+                            fontSize: 12,
+                            padding: "6px 10px",
+                          }}
+                        >
+                          <div className="font-medium">{d.label}</div>
+                          {d.periodo && (
+                            <div className="text-muted-foreground">{d.periodo}</div>
+                          )}
+                          <div>{d.pedidos} pedido(s)</div>
+                        </div>
+                      );
                     }}
                   />
                   <Bar dataKey="pedidos" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />

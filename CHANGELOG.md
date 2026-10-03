@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.20.0] - 2026-10-03
+### Adicionado
+- O Dashboard ganhou o seletor "Analisar por: Calendário normal / Calendário comercial". No modo comercial, o gráfico "Pedidos por mês" agrupa os pedidos pelos meses comerciais do ERP (períodos de/até), com o período exato no tooltip. A escolha fica salva no perfil do usuário. Se o calendário comercial ainda não estiver carregado, o app avisa e mantém a visão normal.
+
 ## [1.19.1] - 2026-10-03
 ### Corrigido
 - A pré-visualização da impressão agora estima a quantidade de páginas (ex.: "Página 1 de 3") em um selo fixo no canto inferior direito da tela, em vez do texto fixo "Página 1 de 1" escondido no fim do conteúdo.
