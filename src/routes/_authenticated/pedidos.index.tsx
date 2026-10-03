@@ -104,13 +104,35 @@ function formatTempoDias(v: number | string | null | undefined) {
   return Number.isFinite(n) ? Math.trunc(n) : "—";
 }
 
+type MesComercial = { mes_comerc: string; de: string; ate: string };
+
 function PedidosPage() {
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [visibleRows, setVisibleRows] = useState<OrderRow[]>([]);
+  const [mesComercial, setMesComercial] = useState<string>("todos");
   // Nome do cliente vem do espelho local do ERP; sem ele, mostra só o código.
   const { nomeCliente } = useClientesErp();
   const customerName = useMemo(() => (o: OrderRow) => nomeCliente(codigoCliente(o)), [nomeCliente]);
+
+  // Calendário comercial do ERP (atualizado pelo Sync ERP).
+  const calendarioQ = useQuery({
+    queryKey: ["erp", "calendario-comercial"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("erp_calendario_comercial")
+        .select("mes_comerc,de,ate")
+        .order("mes_comerc", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as MesComercial[];
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const mesSelecionado = useMemo(
+    () => calendarioQ.data?.find((m) => m.mes_comerc === mesComercial) ?? null,
+    [calendarioQ.data, mesComercial],
+  );
 
 
   const ordersQ = useQuery({
@@ -140,6 +162,19 @@ function PedidosPage() {
       return rows;
     },
   });
+
+  // Filtro por mês comercial: usa a previsão de expedição (ou criação) do pedido.
+  const ordersFiltrados = useMemo(() => {
+    const rows = ordersQ.data;
+    if (!rows || !mesSelecionado) return rows;
+    const de = new Date(`${mesSelecionado.de}T00:00:00`).getTime();
+    const ate = new Date(`${mesSelecionado.ate}T23:59:59`).getTime();
+    return rows.filter((o) => {
+      const ref = o.dt_prev_exp ?? o.created_at;
+      const t = new Date(ref).getTime();
+      return Number.isFinite(t) && t >= de && t <= ate;
+    });
+  }, [ordersQ.data, mesSelecionado]);
 
   const agendaTotals = useMemo(() => {
     const init = () => ({ valor: 0, peso: 0, qtd: 0 });
@@ -467,23 +502,45 @@ function PedidosPage() {
         <DataTable
           tableKey="pedidos"
           columns={columns}
-          data={ordersQ.data}
+          data={ordersFiltrados}
           isLoading={ordersQ.isLoading}
           rowKey={(o) => o.id}
           emptyMessage="Nenhum pedido encontrado."
           onFilteredChange={setVisibleRows}
 
-          
+
           toolbarRight={
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportCsv}
-              disabled={!ordersQ.data?.length}
-            >
-              <Download className="h-4 w-4 mr-1" />
-              Exportar CSV
-            </Button>
+            <div className="flex items-center gap-2">
+              {(calendarioQ.data?.length ?? 0) > 0 && (
+                <Select value={mesComercial} onValueChange={setMesComercial}>
+                  <SelectTrigger className="h-8 w-[220px] text-sm">
+                    <SelectValue placeholder="Mês comercial" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os meses</SelectItem>
+                    {calendarioQ.data!.map((m) => {
+                      const [ano, mes] = m.mes_comerc.split("-");
+                      const fmt = (d: string) =>
+                        d.split("-").reverse().slice(0, 2).join("/");
+                      return (
+                        <SelectItem key={m.mes_comerc} value={m.mes_comerc}>
+                          {`${mes}/${ano} · ${fmt(m.de)} a ${fmt(m.ate)}`}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportCsv}
+                disabled={!ordersFiltrados?.length}
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Exportar CSV
+              </Button>
+            </div>
           }
         />
       </div>

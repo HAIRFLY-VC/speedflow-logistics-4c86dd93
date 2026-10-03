@@ -253,6 +253,13 @@ type ErpResponsavelRow = {
   atualizado_em: string;
 };
 
+type ErpCalendarioComercialRow = {
+  mes_comerc: string;
+  de: string;
+  ate: string;
+  atualizado_em: string;
+};
+
 type SimpleTable<Row> = {
   Row: Row;
   Insert: Partial<Row>;
@@ -310,6 +317,7 @@ export type CentralDatabase = Omit<Database, "public"> & {
         Relationships: [];
       };
       erp_responsaveis: SimpleTable<ErpResponsavelRow>;
+      erp_calendario_comercial: SimpleTable<ErpCalendarioComercialRow>;
       entregas_abertas: SimpleTable<EntregaAbertaRow>;
       entregas_acoes: SimpleTable<EntregaAcaoRow>;
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.19.0] - 2026-10-03
+### Adicionado
+- O botão "Sync ERP" agora também atualiza o calendário comercial do ERP (período de datas de cada mês comercial).
+- A tela Pedidos ganhou o filtro "Mês comercial", que mostra apenas os pedidos cuja data cai dentro do período do mês selecionado.
+
 ## [1.18.3] - 2026-10-02
 ### Corrigido
 - A marcação "Página X de Y" agora fica visível no canto inferior direito da folha mostrada no app e permanece em todas as páginas do PDF impresso.
