@@ -63,6 +63,7 @@ type OrderRow = {
   total_amount: number;
   status_since: string;
   created_at: string;
+  erp_id: string | null;
   dt_agendamento: string | null;
   sla_deliver_by: string | null;
 };
@@ -201,11 +202,34 @@ function DashboardPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id,status,total_amount,status_since,created_at,dt_agendamento,sla_deliver_by")
+        .select("id,status,total_amount,status_since,created_at,erp_id,sla_deliver_by")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
-      return (data ?? []) as OrderRow[];
+      const rows = (data ?? []) as OrderRow[];
+      // Data da agenda (faturamento) vem do espelho de entregas abertas,
+      // consultado em lotes pelos códigos ERP dos pedidos.
+      const ids = Array.from(new Set(rows.map((o) => o.erp_id).filter(Boolean))) as string[];
+      const agendaPorPedido = new Map<string, string>();
+      for (let i = 0; i < ids.length; i += 300) {
+        const lote = ids.slice(i, i + 300);
+        const { data: ent, error: entErr } = await supabase
+          .from("entregas_abertas")
+          .select("cod_pedido,dt_agendamento")
+          .in("cod_pedido", lote);
+        if (entErr) break; // sem agenda disponível: cai para a data do pedido
+        for (const e of ent ?? []) {
+          const cod = String(e.cod_pedido ?? "").trim();
+          const dt = e.dt_agendamento ?? null;
+          if (!cod || !dt) continue;
+          const prev = agendaPorPedido.get(cod);
+          if (!prev || dt < prev) agendaPorPedido.set(cod, dt);
+        }
+      }
+      return rows.map((o) => ({
+        ...o,
+        dt_agendamento: agendaPorPedido.get(o.erp_id ?? "") ?? null,
+      }));
     },
   });
 
