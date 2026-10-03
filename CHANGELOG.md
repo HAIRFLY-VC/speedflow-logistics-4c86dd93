@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.21.0] - 2026-10-03
+### Adicionado
+- O Dashboard ganhou o filtro "Mês", que respeita o modo de calendário escolhido: meses civis no modo normal e meses comerciais do ERP (com o período entre parênteses, ex.: "set/26 (26/08 a 25/09)") no modo comercial. Ao abrir ou trocar o modo, o filtro posiciona no mês vigente. O filtro vale para os cartões de indicadores e para a lista "Pedidos por status"; o gráfico "Pedidos por mês" segue mostrando a tendência dos últimos 6 meses.
+
 ## [1.20.1] - 2026-10-03
 ### Corrigido
 - Dashboard: o calendário comercial agora é recarregado logo após o Sync ERP; o aviso mostra o motivo real e tem botão "Tentar novamente".

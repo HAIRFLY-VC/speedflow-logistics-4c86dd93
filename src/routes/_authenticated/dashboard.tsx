@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/layout/AppShell";
 import {
@@ -70,9 +70,18 @@ type MesComercial = { mes_comerc: string; de: string; ate: string };
 
 type ModoCalendario = "normal" | "comercial";
 
+// Chave do mês civil atual ("YYYY-MM").
+function mesCivilAtual() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 function DashboardPage() {
   // Modo de análise (calendário normal x comercial), lembrado por usuário.
   const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("normal");
+  // Filtro de mês (civil "YYYY-MM" ou comercial "mes_comerc"). Sempre volta ao
+  // mês vigente ao abrir ou ao trocar o modo de calendário.
+  const [mesSelecionado, setMesSelecionado] = useState<string>(mesCivilAtual());
   const fetchPrefs = useServerFn(getTablePrefs);
   const savePrefs = useServerFn(saveTablePrefs);
   const prefTouched = useRef(false);
@@ -133,6 +142,53 @@ function DashboardPage() {
 
   const calendarioComercial = calendarioQ.data ?? [];
   const usandoComercial = modoCalendario === "comercial" && calendarioComercial.length > 0;
+
+  // Mês vigente no modo efetivo: mês comercial que contém a data atual
+  // (ou o mais recente do calendário) ou o mês civil atual.
+  const mesVigente = useMemo(() => {
+    if (usandoComercial) {
+      const now = Date.now();
+      const atual = calendarioComercial.find((m) => {
+        const de = new Date(`${m.de}T00:00:00`).getTime();
+        const ate = new Date(`${m.ate}T23:59:59.999`).getTime();
+        return now >= de && now <= ate;
+      });
+      return (atual ?? calendarioComercial[0]).mes_comerc;
+    }
+    return mesCivilAtual();
+  }, [usandoComercial, calendarioComercial]);
+
+  // Ao trocar o modo de calendário (ou carregar o calendário comercial),
+  // o filtro volta ao mês vigente do novo modo.
+  useEffect(() => {
+    setMesSelecionado(mesVigente);
+  }, [mesVigente]);
+
+  // Opções do seletor de mês, respeitando o modo de calendário.
+  const opcoesMes = useMemo(() => {
+    const fmtDia = (iso: string) =>
+      new Date(`${iso}T00:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    if (usandoComercial) {
+      return calendarioComercial.slice(0, 12).map((m) => {
+        const [ano, mes] = m.mes_comerc.split("-");
+        const label = new Date(Number(ano), Number(mes) - 1, 1)
+          .toLocaleDateString("pt-BR", { month: "short" })
+          .replace(".", "");
+        return { key: m.mes_comerc, label: `${label}/${ano.slice(2)} (${fmtDia(m.de)} a ${fmtDia(m.ate)})` };
+      });
+    }
+    const out: { key: string; label: string }[] = [];
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = `${d
+        .toLocaleDateString("pt-BR", { month: "short" })
+        .replace(".", "")}/${String(d.getFullYear()).slice(2)}`;
+      out.push({ key, label });
+    }
+    return out;
+  }, [usandoComercial, calendarioComercial]);
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard", "orders"],
     queryFn: async () => {
@@ -165,22 +221,44 @@ function DashboardPage() {
   const now = Date.now();
   const sla = slaQ.data ?? null;
 
+  // Pedidos do mês selecionado: base dos cartões (KPIs) e da lista de status.
+  // O gráfico "Pedidos por mês" continua usando a lista completa (tendência).
+  const pedidosDoMes = useMemo(() => {
+    if (usandoComercial) {
+      const m = calendarioComercial.find((x) => x.mes_comerc === mesSelecionado);
+      if (!m) return orders;
+      const de = new Date(`${m.de}T00:00:00`).getTime();
+      const ate = new Date(`${m.ate}T23:59:59.999`).getTime();
+      return orders.filter((o) => {
+        const t = new Date(o.created_at).getTime();
+        return t >= de && t <= ate;
+      });
+    }
+    const [ano, mes] = mesSelecionado.split("-");
+    const de = new Date(Number(ano), Number(mes) - 1, 1).getTime();
+    const ate = new Date(Number(ano), Number(mes), 0, 23, 59, 59, 999).getTime();
+    return orders.filter((o) => {
+      const t = new Date(o.created_at).getTime();
+      return t >= de && t <= ate;
+    });
+  }, [usandoComercial, calendarioComercial, mesSelecionado, orders]);
+
   const totals = {
-    total: orders.length,
-    pendingApproval: orders.filter((o) =>
+    total: pedidosDoMes.length,
+    pendingApproval: pedidosDoMes.filter((o) =>
       ["aguardando_aprovacao_comercial", "aguardando_aprovacao_credito"].includes(o.status),
     ).length,
-    inTransport: orders.filter((o) => o.status === "em_transporte").length,
-    delivered: orders.filter((o) => o.status === "entregue").length,
-    atRisk: orders.filter(
+    inTransport: pedidosDoMes.filter((o) => o.status === "em_transporte").length,
+    delivered: pedidosDoMes.filter((o) => o.status === "entregue").length,
+    atRisk: pedidosDoMes.filter(
       (o) =>
         o.sla_deliver_by &&
         o.status !== "entregue" &&
         o.status !== "cancelado" &&
         new Date(o.sla_deliver_by).getTime() < now,
     ).length,
-    stageLate: orders.filter((o) => isStageLate(o.status, o.status_since, sla)).length,
-    revenue: orders.reduce((s, o) => s + Number(o.total_amount ?? 0), 0),
+    stageLate: pedidosDoMes.filter((o) => isStageLate(o.status, o.status_since, sla)).length,
+    revenue: pedidosDoMes.reduce((s, o) => s + Number(o.total_amount ?? 0), 0),
   };
 
 
@@ -302,6 +380,19 @@ function DashboardPage() {
               <SelectContent>
                 <SelectItem value="normal">Calendário normal</SelectItem>
                 <SelectItem value="comercial">Calendário comercial</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-muted-foreground">Mês:</span>
+            <Select value={mesSelecionado} onValueChange={setMesSelecionado}>
+              <SelectTrigger className="w-[230px]">
+                <SelectValue placeholder="Selecione o mês" />
+              </SelectTrigger>
+              <SelectContent>
+                {opcoesMes.map((m) => (
+                  <SelectItem key={m.key} value={m.key}>
+                    {m.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -426,7 +517,7 @@ function DashboardPage() {
         </div>
 
         {(() => {
-          const byStatus = orders.reduce<Record<string, number>>((acc, o) => {
+          const byStatus = pedidosDoMes.reduce<Record<string, number>>((acc, o) => {
             acc[o.status] = (acc[o.status] ?? 0) + 1;
             return acc;
           }, {});
@@ -446,7 +537,7 @@ function DashboardPage() {
                   <Skeleton key={i} className="h-9 w-full" />
                 ))}
               </div>
-            ) : orders.length === 0 ? (
+            ) : pedidosDoMes.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Nenhum pedido cadastrado ainda. Os indicadores aparecerão aqui assim que houver dados.
               </p>
