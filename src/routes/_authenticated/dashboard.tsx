@@ -63,8 +63,15 @@ type OrderRow = {
   total_amount: number;
   status_since: string;
   created_at: string;
+  dt_agendamento: string | null;
   sla_deliver_by: string | null;
 };
+
+// Data base do pedido para filtros de mês: a data da agenda (faturamento) ou,
+// na falta dela, a data de criação do pedido.
+function dataBasePedido(o: OrderRow): string {
+  return o.dt_agendamento ?? o.created_at;
+}
 
 type MesComercial = { mes_comerc: string; de: string; ate: string };
 
@@ -194,7 +201,7 @@ function DashboardPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id,status,total_amount,status_since,created_at,sla_deliver_by")
+        .select("id,status,total_amount,status_since,created_at,dt_agendamento,sla_deliver_by")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
