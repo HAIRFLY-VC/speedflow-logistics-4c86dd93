@@ -62,7 +62,69 @@ type OrderRow = {
   sla_deliver_by: string | null;
 };
 
+type MesComercial = { mes_comerc: string; de: string; ate: string };
+
+type ModoCalendario = "normal" | "comercial";
+
 function DashboardPage() {
+  // Modo de análise (calendário normal x comercial), lembrado por usuário.
+  const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("normal");
+  const fetchPrefs = useServerFn(getTablePrefs);
+  const savePrefs = useServerFn(saveTablePrefs);
+  const prefTouched = useRef(false);
+
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem("dashboard:calendario") === "comercial") {
+        setModoCalendario("comercial");
+      }
+    } catch {
+      /* sem storage */
+    }
+    fetchPrefs({ data: { tableKey: "dashboard:calendario" } })
+      .then((remote) => {
+        if (prefTouched.current) return;
+        const v = (remote as { modo?: string } | null)?.modo;
+        if (v === "comercial") setModoCalendario("comercial");
+      })
+      .catch(() => {
+        /* mantém cópia local */
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const trocarCalendario = (v: string) => {
+    prefTouched.current = true;
+    const modo: ModoCalendario = v === "comercial" ? "comercial" : "normal";
+    setModoCalendario(modo);
+    try {
+      window.localStorage.setItem("dashboard:calendario", modo);
+    } catch {
+      /* sem storage */
+    }
+    savePrefs({
+      data: { tableKey: "dashboard:calendario", preferences: { modo } },
+    }).catch(() => {});
+  };
+
+  // Calendário comercial do ERP (atualizado pelo Sync ERP). Se a tabela
+  // ainda não existir/estiver vazia, o dashboard cai no calendário normal.
+  const calendarioQ = useQuery({
+    queryKey: ["erp", "calendario-comercial"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("erp_calendario_comercial")
+        .select("mes_comerc,de,ate")
+        .order("mes_comerc", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as MesComercial[];
+    },
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+
+  const calendarioComercial = calendarioQ.data ?? [];
+  const usandoComercial = modoCalendario === "comercial" && calendarioComercial.length > 0;
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard", "orders"],
     queryFn: async () => {
