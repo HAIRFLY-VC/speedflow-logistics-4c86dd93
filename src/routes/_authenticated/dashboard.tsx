@@ -280,9 +280,23 @@ function DashboardPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Visão geral dos pedidos e da operação logística.</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground">Visão geral dos pedidos e da operação logística.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Analisar por:</span>
+            <Select value={modoCalendario} onValueChange={trocarCalendario}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">Calendário normal</SelectItem>
+                <SelectItem value="comercial">Calendário comercial</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
@@ -304,7 +318,15 @@ function DashboardPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Pedidos por mês</CardTitle>
+              <CardTitle className="text-base">
+                Pedidos por mês{usandoComercial ? " (calendário comercial)" : ""}
+              </CardTitle>
+              {modoCalendario === "comercial" && !usandoComercial && (
+                <p className="text-xs text-amber-600">
+                  Calendário comercial ainda não carregado — exibindo calendário normal. Rode o
+                  Sync ERP para atualizá-lo.
+                </p>
+              )}
             </CardHeader>
             <CardContent className="h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
