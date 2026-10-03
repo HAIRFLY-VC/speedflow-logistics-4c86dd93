@@ -176,9 +176,44 @@ function DashboardPage() {
   };
 
 
-  // Pedidos por mês (últimos 6 meses)
+  // Pedidos por mês (últimos 6 meses) — calendário normal ou comercial
   const monthly = (() => {
-    const out: { label: string; key: string; pedidos: number }[] = [];
+    if (usandoComercial) {
+      // calendarioComercial vem ordenado desc; pega os 6 mais recentes
+      const meses = calendarioComercial.slice(0, 6).reverse();
+      const out = meses.map((m) => {
+        const [ano, mes] = m.mes_comerc.split("-");
+        const label = new Date(Number(ano), Number(mes) - 1, 1)
+          .toLocaleDateString("pt-BR", { month: "short" })
+          .replace(".", "");
+        const fmtDia = (iso: string) =>
+          new Date(`${iso}T00:00:00`).toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+          });
+        return {
+          key: m.mes_comerc,
+          label,
+          periodo: `${fmtDia(m.de)} a ${fmtDia(m.ate)}`,
+          pedidos: 0,
+        };
+      });
+      const faixas = meses.map((m) => ({
+        de: new Date(`${m.de}T00:00:00`).getTime(),
+        ate: new Date(`${m.ate}T23:59:59.999`).getTime(),
+      }));
+      for (const o of orders) {
+        const t = new Date(o.created_at).getTime();
+        for (let i = 0; i < faixas.length; i++) {
+          if (t >= faixas[i].de && t <= faixas[i].ate) {
+            out[i].pedidos += 1;
+            break;
+          }
+        }
+      }
+      return out;
+    }
+    const out: { label: string; key: string; pedidos: number; periodo?: string }[] = [];
     const now = new Date();
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
