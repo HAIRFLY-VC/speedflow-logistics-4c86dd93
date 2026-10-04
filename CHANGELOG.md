@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.21.2] - 2026-10-04
+### Corrigido
+- O contador de páginas da pré-visualização de impressão não mostra mais uma página a mais: a estimativa agora mede o conteúdo real da folha, e não a altura mínima da página.
+- O filtro "Mês" do Dashboard não fica mais limitado aos 500 pedidos mais recentes: a consulta passa a carregar todos os pedidos dos últimos 13 meses, em lotes, para que meses anteriores mostrem os totais completos.
+
 ## [1.21.1] - 2026-10-03
 ### Alterado
 - O filtro de mês do Dashboard (e o gráfico "Pedidos por mês") passam a considerar a data da agenda do pedido — a data de faturamento — em vez da data de criação. Pedidos sem data de agenda continuam contados usando a data do pedido.

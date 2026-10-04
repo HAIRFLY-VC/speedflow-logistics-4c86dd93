@@ -200,13 +200,23 @@ function DashboardPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard", "orders"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("id,status,total_amount,status_since,created_at,erp_id,sla_deliver_by")
-        .order("created_at", { ascending: false })
-        .limit(500);
-      if (error) throw error;
-      const rows = (data ?? []) as OrderRow[];
+      // Busca todos os pedidos dos últimos 13 meses (em lotes de 1000) para
+      // que o filtro de mês e o gráfico não fiquem limitados aos mais recentes.
+      const inicio = new Date();
+      inicio.setMonth(inicio.getMonth() - 13, 1);
+      inicio.setHours(0, 0, 0, 0);
+      const rows: OrderRow[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase
+          .from("orders")
+          .select("id,status,total_amount,status_since,created_at,erp_id,sla_deliver_by")
+          .gte("created_at", inicio.toISOString())
+          .order("created_at", { ascending: false })
+          .range(from, from + 999);
+        if (error) throw error;
+        rows.push(...((data ?? []) as OrderRow[]));
+        if (!data || data.length < 1000) break;
+      }
       // Data da agenda (faturamento) vem do espelho de entregas abertas,
       // consultado em lotes pelos códigos ERP dos pedidos.
       const ids = Array.from(new Set(rows.map((o) => o.erp_id).filter(Boolean))) as string[];

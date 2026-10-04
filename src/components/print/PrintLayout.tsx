@@ -42,17 +42,20 @@ export function PrintLayout({
   const height = prefs.orientation === "portrait" ? h : w;
   const emitido = new Date().toLocaleString("pt-BR");
   const sheetRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [paginas, setPaginas] = useState(1);
 
   // Estima a quantidade de páginas da pré-visualização medindo a altura do
   // conteúdo contra a área útil da folha (a numeração real por página é
   // gerada pelo navegador apenas na impressão, via @page).
   useEffect(() => {
-    const el = sheetRef.current;
+    const el = contentRef.current;
     if (!el) return;
     const MM_PX = 96 / 25.4;
     const utilPx = (height - 12 - 14) * MM_PX; // margens @page: 12mm topo, 14mm base
     const medir = () => {
+      // Mede o conteúdo real (sem o minHeight da folha), que na impressão
+      // ocupa a área útil após as margens do @page.
       const total = el.scrollHeight;
       setPaginas(Math.max(1, Math.ceil(total / utilPx)));
     };
@@ -136,6 +139,7 @@ export function PrintLayout({
           data-eco={prefs.economico ? "true" : "false"}
           style={{ width: `${width}mm`, minHeight: `${height}mm` }}
         >
+          <div ref={contentRef}>
           <header className="print-band mb-3 flex items-end justify-between border-b-2 border-foreground pb-2">
             <div>
               <div className="text-[0.85em] font-semibold uppercase tracking-wide text-muted-foreground">SpeedFlow Logistics</div>
@@ -154,6 +158,7 @@ export function PrintLayout({
           >
             Página 1 de {paginas}
           </footer>
+          </div>
         </div>
       </div>
     </div>
