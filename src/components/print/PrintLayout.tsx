@@ -139,6 +139,7 @@ export function PrintLayout({
           data-eco={prefs.economico ? "true" : "false"}
           style={{ width: `${width}mm`, minHeight: `${height}mm` }}
         >
+          <div ref={contentRef}>
           <header className="print-band mb-3 flex items-end justify-between border-b-2 border-foreground pb-2">
             <div>
               <div className="text-[0.85em] font-semibold uppercase tracking-wide text-muted-foreground">SpeedFlow Logistics</div>
@@ -157,6 +158,7 @@ export function PrintLayout({
           >
             Página 1 de {paginas}
           </footer>
+          </div>
         </div>
       </div>
     </div>
