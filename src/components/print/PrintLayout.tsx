@@ -42,17 +42,20 @@ export function PrintLayout({
   const height = prefs.orientation === "portrait" ? h : w;
   const emitido = new Date().toLocaleString("pt-BR");
   const sheetRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [paginas, setPaginas] = useState(1);
 
   // Estima a quantidade de páginas da pré-visualização medindo a altura do
   // conteúdo contra a área útil da folha (a numeração real por página é
   // gerada pelo navegador apenas na impressão, via @page).
   useEffect(() => {
-    const el = sheetRef.current;
+    const el = contentRef.current;
     if (!el) return;
     const MM_PX = 96 / 25.4;
     const utilPx = (height - 12 - 14) * MM_PX; // margens @page: 12mm topo, 14mm base
     const medir = () => {
+      // Mede o conteúdo real (sem o minHeight da folha), que na impressão
+      // ocupa a área útil após as margens do @page.
       const total = el.scrollHeight;
       setPaginas(Math.max(1, Math.ceil(total / utilPx)));
     };
