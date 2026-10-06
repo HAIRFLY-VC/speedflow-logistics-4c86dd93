@@ -1,4 +1,4 @@
-import { useTrackNavigation } from "@/components/layout/BackButton";
+import { BackButton, isDetailPath, useTrackNavigation } from "@/components/layout/BackButton";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -128,7 +128,7 @@ export function AppShell({
               </div>
             </div>
           </header>
-          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"><MenuGuard>{children}</MenuGuard></main>
+          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto"><GlobalBack /><MenuGuard>{children}</MenuGuard></main>
         </div>
       </div>
     </SidebarProvider>
@@ -265,4 +265,10 @@ function MenuGuard({ children }: { children: ReactNode }) {
       <Button asChild variant="outline"><Link to="/configuracoes">Ir para o início</Link></Button>
     </div>
   );
+}
+
+function GlobalBack() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (isDetailPath(pathname)) return null;
+  return <BackButton className="-ml-2 mb-2" />;
 }
