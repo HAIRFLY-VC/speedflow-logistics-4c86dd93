@@ -1,32 +1,39 @@
-# Autorizar pagamento: só rotas com todos os pedidos expedidos
+# Autorizar pagamento: aviso para rotas com pedidos não expedidos
 
 ## Diagnóstico (rota 484)
-A rota 484 tem um único pedido, o 4135756. Ele está faturado e tem borderô 32434, então atende à regra atual da tela (borderô em todos os pedidos). Porém:
-- a rota não tem data de saída real (está com 01/01/3000);
-- o pedido ainda aparece na consulta de pendentes do Sync ERP, que só traz pedidos com `DT_SAIDA_BORDERO` vazio. Ou seja, o pedido ainda não saiu.
+A rota 484 tem um único pedido, o 4135756. Ele está faturado e tem borderô 32434, então atende à regra atual da tela. Porém, o pedido ainda aparece na consulta de pendentes do Sync ERP, que só traz pedidos com `DT_SAIDA_BORDERO` vazio. Ou seja, ele ainda não saiu. A data da rota também é provisória (01/01/3000).
 
 ## Nova regra
-Uma rota só entra em "Autorizar pagamento de frete" quando todos os pedidos dela já tiverem saído. Quando pelo menos um pedido ainda aparecer como pendente de saída no ERP, a rota continua em "Rotas Pendentes".
+- **Nenhum pedido expedido:** a rota não aparece em "Autorizar pagamento de frete" e continua em "Rotas Pendentes". É o caso da rota 484.
+- **Pelo menos um pedido expedido, mas não todos:** a rota aparece na tela de autorização com um aviso de "Expedição incompleta". O botão de confirmar o pagamento fica bloqueado até que:
+  - os pedidos não expedidos sejam excluídos da rota; ou
+  - todos os pedidos sejam expedidos.
+- **Todos os pedidos expedidos:** a rota segue o fluxo normal.
 
-## Como funciona
-- A cada Sync ERP, o app marca os pedidos que vieram na consulta de pendentes como "sem saída".
-- Quando um pedido não aparece mais nessa consulta, a marca é removida.
-- A tela de autorização exclui rotas que tenham algum pedido marcado como "sem saída".
-- Rotas Pendentes mantém essas rotas visíveis, mesmo com borderô completo.
+## O que o usuário vê
+- Na lista: um ícone de alerta na rota, com uma mensagem ao passar o mouse, por exemplo: "2 de 6 pedidos ainda não saíram".
+- No modal de pagamento, aberto pelo lápis ou por "Confirmar Pgto":
+  - um aviso de expedição incompleta;
+  - a lista dos pedidos sem saída, com código do cliente, cliente, agenda, filial e valor;
+  - as mesmas ações de exclusão já usadas em "Rota incompleta": excluir um pedido ou "Excluir todos".
+- O botão de confirmar fica desativado enquanto houver pedido sem saída.
 
 ## Detalhes técnicos
-- Banco central: criar a coluna `orders.erp_sem_saida boolean` (pode ficar vazia, sem valor padrão). A mudança é compatível com a versão publicada. Vou entregar o script SQL para download, com o comando para desfazer (`drop column`).
-- `src/lib/erp-sync.server.ts`: depois de buscar os pendentes, gravar `true` nos pedidos retornados e `false` nos pedidos que estão em rotas mas não vieram na consulta. Só faz isso quando a consulta terminar com sucesso, para não limpar as marcas por engano.
-- `src/components/routes/RotasView.tsx`: incluir `erp_sem_saida` nos dados lidos e contar os pedidos sem saída no contexto do filtro.
-- `autorizar-pagamento-frete.tsx`: exigir zero pedidos sem saída. `rotas.index.tsx`: manter a rota quando houver pedido sem saída.
+- Banco central: criar a coluna `orders.erp_sem_saida boolean` (pode ficar vazia). A mudança é compatível com a versão publicada. Vou entregar o script para download, com o comando para desfazer.
+- `erp-sync.server.ts`: depois que a consulta de pendentes terminar com sucesso, gravar `true` nos pedidos retornados e `false` nos pedidos que estão em rotas mas não vieram na consulta.
+- `RotasView.tsx`: ler `erp_sem_saida` e acrescentar `semSaida` ao contexto do borderô. Na autorização, exigir `semSaida < total`. Rotas Pendentes também mantém a rota quando `semSaida === total`. Adicionar o ícone de alerta.
+- `rota-pagamento.server.ts` e `PagamentoRotaDialog.tsx`: retornar os pedidos sem saída, mostrar a crítica e bloquear a confirmação. O servidor também recusa a confirmação, não só a tela.
 - Versão 1.22.0 (MINOR) e entrada no CHANGELOG.
 
 ## Riscos
-- Até rodar o primeiro Sync ERP depois da mudança, a marca estará vazia e a tela segue a regra atual.
-- Rotas já confirmadas não mudam de status.
+- Até o primeiro Sync ERP depois da mudança, a marca estará vazia e as rotas seguirão a regra atual.
+- Rotas já confirmadas não mudam.
 
 ## Checklist para publicar
-- Rodar o script SQL no banco central e depois um Sync ERP.
-- No preview: confirmar que a rota 484 saiu da tela de autorização e aparece em Rotas Pendentes.
+- Rodar o script no banco central e depois um Sync ERP.
+- No preview:
+  - a rota 484 sai da tela de autorização;
+  - uma rota com expedição parcial mostra o aviso e fica com o botão bloqueado;
+  - depois de excluir os pedidos sem saída, o botão é liberado.
 - Flags: nenhuma.
-- Para reverter: voltar à versão anterior no histórico e remover a coluna, se quiser.
+- Para reverter: voltar à versão anterior no histórico do Lovable. A coluna nova pode ficar no banco sem causar problema.
