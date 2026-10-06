@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.22.0] - 2026-10-06
+### Alterado
+- Autorizar pagamento de frete: rotas em que nenhum pedido saiu (borderô sem data de saída) não aparecem mais na tela e continuam em Rotas Pendentes.
+- Rotas com expedição parcial aparecem com a crítica "Expedição incompleta", e a confirmação fica bloqueada até excluir os pedidos não expedidos ou até a expedição terminar.
+- A auditoria do pagamento lista os pedidos "Não expedidos" com a opção de excluir da rota, e o servidor recusa a confirmação enquanto eles existirem.
+
 ## [1.21.2] - 2026-10-04
 ### Corrigido
 - O contador de páginas da pré-visualização de impressão não mostra mais uma página a mais: a estimativa agora mede o conteúdo real da folha, e não a altura mínima da página.
