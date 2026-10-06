@@ -1470,7 +1470,7 @@ export async function syncErpOrders(opts: {
       try {
         const base = (process.env.ERP_API_BASE_URL ?? "").replace(/\/+$/, "").replace(/\/v1\/query$/, "");
         const apiKey = process.env.ERP_API_KEY;
-        const semEnd = pending.filter((c) => !c.address_line).map((c) => c.id).filter((c) => /^\d+$/.test(c));
+        const semEnd = pending.filter((c) => !c.address_line || String(c.address_line).split(",").filter((p) => p.trim()).length < 2).map((c) => c.id).filter((c) => /^\d+$/.test(c));
         if (base && apiKey && semEnd.length) {
           for (let i = 0; i < semEnd.length && i < 2000; i += 500) {
             const sql = `SELECT DISTINCT E.COD_CLIENTE, E.BAIRRO, E.CIDADE, E.UF FROM ERP_PEDIDOS_EXPEDICAO_PENDENTE E WHERE E.COD_CLIENTE IN (${semEnd.slice(i, i + 500).join(",")})`;
@@ -1503,9 +1503,16 @@ export async function syncErpOrders(opts: {
       } catch (err) {
         console.warn("[erp-sync] endereço ERP para geocodificação indisponível", err);
       }
+      // Só localiza com pelo menos "cidade, UF": pesquisar só "Brasil" ou só o
+      // bairro devolve o centro do país ou outra cidade (ex.: cliente 216720).
+      const enderecoValido = (a: string | null | undefined) =>
+        !!a && String(a).split(",").filter((p) => p.trim()).length >= 2;
       const fila = pending
-        .map((c) => ({ ...c, address_line: c.address_line ?? erpEnd.get(c.id) ?? null }))
-        .filter((c) => c.address_line && String(c.address_line).trim())
+        .map((c) => ({
+          ...c,
+          address_line: enderecoValido(c.address_line) ? c.address_line : erpEnd.get(c.id) ?? null,
+        }))
+        .filter((c) => enderecoValido(c.address_line))
         .sort((a, b) => Number(erpEnd.has(b.id)) - Number(erpEnd.has(a.id)))
         // Limite por execução: geocodificar tudo de uma vez estoura o tempo do servidor.
         .slice(0, 30);
@@ -1522,9 +1529,12 @@ export async function syncErpOrders(opts: {
           if (!res.ok) continue;
           const json = (await res.json()) as {
             status: string;
-            results?: { geometry?: { location?: { lat: number; lng: number } } }[];
+            results?: { types?: string[]; geometry?: { location?: { lat: number; lng: number } } }[];
           };
           if (json.status !== "OK" || !json.results?.length) continue;
+          // Resposta genérica (só país/estado) não é a localização do cliente.
+          const tipos = json.results[0].types ?? [];
+          if (tipos.some((t) => t === "country" || t === "administrative_area_level_1")) continue;
           const loc = json.results[0].geometry?.location;
           if (!loc) continue;
           // As coordenadas ficam no cache do banco central (customer_geo);
@@ -1579,9 +1589,12 @@ export async function syncErpOrders(opts: {
           if (!res.ok) continue;
           const json = (await res.json()) as {
             status: string;
-            results?: { geometry?: { location?: { lat: number; lng: number } } }[];
+            results?: { types?: string[]; geometry?: { location?: { lat: number; lng: number } } }[];
           };
           if (json.status !== "OK" || !json.results?.length) continue;
+          // Resposta genérica (só país/estado) não é a localização do cliente.
+          const tipos = json.results[0].types ?? [];
+          if (tipos.some((t) => t === "country" || t === "administrative_area_level_1")) continue;
           const loc = json.results[0].geometry?.location;
           if (!loc) continue;
           const { error: upErr } = await centralDb
