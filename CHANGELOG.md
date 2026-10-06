@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.23.1] - 2026-10-06
+### Corrigido
+- Telas do menu abertas a partir de outra tela (ex.: Pedidos sem rota pelo card de Rotas Pendentes) agora mostram "Voltar para <tela anterior>".
+
 ## [1.23.0] - 2026-10-06
 ### Alterado
 - Telas de detalhe (pedido, rota, CT-e, NF-e) ganharam botão "Voltar" que retorna à tela que as abriu, mantendo filtros; links diretos voltam à tela padrão.
