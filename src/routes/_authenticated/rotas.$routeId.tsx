@@ -491,61 +491,25 @@ function RouteDetailPage() {
           </Card>
         </div>
 
-        {canOperate ? (
+        {canOperate && route.status === "planejada" && podeExcluir && stops.length === 0 ? (
           <div className="flex flex-wrap gap-2">
-            {route.status === "planejada" && (
-              <>
-                <Button onClick={() => start.mutate()} disabled={start.isPending}>
-                  {start.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Play className="h-4 w-4 mr-2" />
-                  )}
-                  Iniciar rota
-                </Button>
-                {editable && (
-                  <Button variant="outline" onClick={() => cancel.mutate()}>
-                    <XCircle className="h-4 w-4 mr-2" />
-                    Cancelar
-                  </Button>
-                )}
-                {podeExcluir && stops.length === 0 && (
-                  <Button
-                    variant="destructive"
-                    disabled={excluir.isPending}
-                    onClick={() => {
-                      const ok = window.confirm(
-                        `Excluir a rota ${route.code}${route.erp_route_id ? ` (ERP ${route.erp_route_id})` : ""}? Esta ação marca a rota como Excluída no ERP.`,
-                      );
-                      if (ok) excluir.mutate();
-                    }}
-                  >
-                    {excluir.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4 mr-2" />
-                    )}
-                    Excluir rota
-                  </Button>
-                )}
-              </>
-            )}
-            {route.status === "em_andamento" && (
-              <Button onClick={() => finish.mutate()} disabled={finish.isPending}>
-                {finish.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                )}
-                Concluir rota
-              </Button>
-            )}
-            {!manifestQ.data && stops.length > 0 && route.status !== "cancelada" && (
-              <Button variant="outline" onClick={() => issueManifest.mutate()}>
-                <FileText className="h-4 w-4 mr-2" />
-                Emitir borderô
-              </Button>
-            )}
+            <Button
+              variant="destructive"
+              disabled={excluir.isPending}
+              onClick={() => {
+                const ok = window.confirm(
+                  `Excluir a rota ${route.code}${route.erp_route_id ? ` (ERP ${route.erp_route_id})` : ""}? Esta ação marca a rota como Excluída no ERP.`,
+                );
+                if (ok) excluir.mutate();
+              }}
+            >
+              {excluir.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Excluir rota
+            </Button>
           </div>
         ) : null}
 
