@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.22.1] - 2026-10-06
+### Corrigido
+- Distância de clientes localizados só como "Brasil" ou só pelo bairro (ex.: 216720 com 1.986 km): localizações ruins foram descartadas e passam a usar bairro/cidade até nova localização.
+- Sync ERP só localiza clientes com cidade e UF e ignora respostas genéricas do Google (país/estado).
+
 ## [1.22.0] - 2026-10-06
 ### Alterado
 - Autorizar pagamento de frete: rotas em que nenhum pedido saiu (borderô sem data de saída) não aparecem mais na tela e continuam em Rotas Pendentes.
