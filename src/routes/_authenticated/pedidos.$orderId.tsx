@@ -1,3 +1,4 @@
+import { BackButton } from "@/components/layout/BackButton";
 import { PedidoCodigo } from "@/components/orders/PedidoCodigo";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -115,12 +116,7 @@ function OrderDetailPage() {
     <AppShell>
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/pedidos">
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Pedidos
-            </Link>
-          </Button>
+          <BackButton fallbackTo="/pedidos" fallbackLabel="Pedidos" />
         </div>
 
         {orderQ.isLoading ? (
