@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.23.2] - 2026-10-06
+### Removido
+- Botões "Iniciar rota", "Concluir rota", "Cancelar" e "Emitir borderô" removidos da tela de detalhe da rota: eles alteravam status apenas no app, sem refletir no ERP. A gestão de status/borderô continua sendo feita pelo ERP e pelo Sync ERP. O botão "Excluir rota" (rotas vazias) permanece.
+
 ## [1.23.1] - 2026-10-06
 ### Corrigido
 - Telas do menu abertas a partir de outra tela (ex.: Pedidos sem rota pelo card de Rotas Pendentes) agora mostram "Voltar para <tela anterior>".
