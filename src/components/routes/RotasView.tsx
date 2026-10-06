@@ -106,7 +106,7 @@ export type RotasViewProps = {
   /** Filtro adicional aplicado às rotas carregadas. */
   filtro?: (
     r: RouteRow,
-    ctx: { bordero: { total: number; comBordero: number; faturados: number } },
+    ctx: { bordero: { total: number; comBordero: number; faturados: number; semSaida?: number } },
   ) => boolean;
   /** Mensagem exibida quando não há rotas após o filtro. */
   mensagemVazia?: string;
@@ -485,7 +485,7 @@ function FreightInput({
   route: RouteRow;
   estimate: SimulacaoRota | null;
   tipo: TipoFrete | null;
-  bordero: { total: number; comBordero: number; faturados: number };
+  bordero: { total: number; comBordero: number; faturados: number; semSaida?: number };
   isAdmin: boolean;
   /** Gestor pode lançar valores adicionais (mas não reabrir o frete). */
   isGestor?: boolean;
@@ -516,7 +516,9 @@ function FreightInput({
   const pendentes = Math.max(0, bordero.total - bordero.comBordero);
   // Gestor pode abrir o diálogo em rota confirmada para lançar adicional.
   const podeAdicional = isAdmin || isGestor;
+  const semSaida = bordero.semSaida ?? 0;
   const podeConfirmar =
+    (!mostrarConfirmar || confirmado || semSaida === 0) &&
     valorNum > 0 &&
     bordero.total > 0 &&
     pendentes === 0 &&
@@ -526,7 +528,9 @@ function FreightInput({
     (!mostrarConfirmar || vinculoBitrixOk);
   const motivoBloqueio = podeConfirmar
     ? null
-    : valorNum <= 0
+    : mostrarConfirmar && !confirmado && semSaida > 0
+      ? `Expedição incompleta: ${semSaida} de ${bordero.total} pedido${bordero.total === 1 ? "" : "s"} ainda não saíram. Exclua-os da rota ou aguarde a expedição.`
+      : valorNum <= 0
       ? "Informe o valor do frete para salvar."
       : bordero.total === 0 || pendentes > 0
         ? `Aguardando borderô de ${pendentes} pedido${pendentes === 1 ? "" : "s"} de ${bordero.total}.`
@@ -545,7 +549,9 @@ function FreightInput({
     onEstado?.(route.id, { valor: valorNum, bloqueio: motivoBloqueio });
   }, [onEstado, route.id, valorNum, motivoBloqueio]);
   const mensagemPix =
-    mostrarConfirmar && !vinculoBitrixOk
+    mostrarConfirmar && !confirmado && semSaida > 0
+      ? `⚠ Expedição incompleta: ${semSaida} de ${bordero.total} pedido${bordero.total === 1 ? "" : "s"} ainda não saíram. Exclua-os da rota (lápis) ou aguarde a expedição completa.`
+      : mostrarConfirmar && !vinculoBitrixOk
       ? "Seu usuário não está vinculado ao Bitrix. Peça ao administrador para fazer o vínculo em Configurações."
       : mostrarConfirmar && pix?.bloqueio === "SEM_PIX"
         ? `Fretista sem PIX cadastrado no ERP (código ${pix.cod_erp}). Cadastre o contato PIX no ERP e clique em "Consultar PIX no ERP".`
@@ -1477,7 +1483,17 @@ export function RotasView({
         const faturadoPeloStatus = statusList.some((s) => s.includes("FATURADO"));
         return !!nf || faturadoPeloStatus || !!borderoPorPedido.get(p);
       }).length;
-      return { total: unicos.length, comBordero, faturados };
+      // Pedido sem saída: status do ERP anterior a "11-EXPEDIDO" (o Sync ERP
+      // marca como expedido o que deixa a consulta de pendentes de saída).
+      const naoSaiu = (st: string) => {
+        const n = Number(/^(\d+)/.exec(st)?.[1]);
+        return Number.isFinite(n) && n > 0 && n < 11;
+      };
+      const semSaida = unicos.filter((p) => {
+        const sts = (statusPorPedido.get(p) ?? []).filter(Boolean);
+        return sts.length > 0 && sts.every(naoSaiu);
+      }).length;
+      return { total: unicos.length, comBordero, faturados, semSaida };
     };
   }, [borderosQ.data]);
 

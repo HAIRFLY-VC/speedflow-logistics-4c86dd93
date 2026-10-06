@@ -20,8 +20,11 @@ function RotasPage() {
   // Rotas com borderô emitido em TODOS os pedidos migram para a tela de
   // autorização de pagamento; borderô parcial (ou nenhum) mantém a rota aqui.
   const filtro = useCallback(
-    (r: RouteRow, ctx: { bordero: { total: number; comBordero: number } }) =>
-      !r.bordero_emitido_em || ctx.bordero.comBordero < ctx.bordero.total,
+    (r: RouteRow, ctx: { bordero: { total: number; comBordero: number; semSaida?: number } }) =>
+      !r.bordero_emitido_em ||
+      ctx.bordero.comBordero < ctx.bordero.total ||
+      // Nenhum pedido expedido ainda: a rota continua pendente.
+      (ctx.bordero.total > 0 && (ctx.bordero.semSaida ?? 0) === ctx.bordero.total),
     [],
   );
 
