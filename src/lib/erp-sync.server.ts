@@ -1503,9 +1503,16 @@ export async function syncErpOrders(opts: {
       } catch (err) {
         console.warn("[erp-sync] endereço ERP para geocodificação indisponível", err);
       }
+      // Só localiza com pelo menos "cidade, UF": pesquisar só "Brasil" ou só o
+      // bairro devolve o centro do país ou outra cidade (ex.: cliente 216720).
+      const enderecoValido = (a: string | null | undefined) =>
+        !!a && String(a).split(",").filter((p) => p.trim()).length >= 2;
       const fila = pending
-        .map((c) => ({ ...c, address_line: c.address_line ?? erpEnd.get(c.id) ?? null }))
-        .filter((c) => c.address_line && String(c.address_line).trim())
+        .map((c) => ({
+          ...c,
+          address_line: enderecoValido(c.address_line) ? c.address_line : erpEnd.get(c.id) ?? null,
+        }))
+        .filter((c) => enderecoValido(c.address_line))
         .sort((a, b) => Number(erpEnd.has(b.id)) - Number(erpEnd.has(a.id)))
         // Limite por execução: geocodificar tudo de uma vez estoura o tempo do servidor.
         .slice(0, 30);
