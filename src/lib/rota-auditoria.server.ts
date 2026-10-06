@@ -84,6 +84,7 @@ function motivoDe(g: Row | undefined): string {
   if (!txt(g, "NRO_NF")) return "Sem nota fiscal emitida";
   if (!txt(g, "BORDERO")) return "Sem borderô";
   if (txt(g, "STATUS") === "O") return "Borderô em ocorrência — aguardando novo borderô";
+  if (!txt(g, "DT_SAIDA")) return "Não expedido — aguardando saída do borderô";
   return "Não encontrado";
 }
 
@@ -160,22 +161,24 @@ export async function auditarEImportarRotas(
     }
 
     // Motivo dos pedidos sem nota válida
+    // Pedido só conta como completo quando já saiu (borderô com data de saída).
+    const expedido = (v: Row) => !!txt(v, "DT_SAIDA");
     const semValido: string[] = [];
     for (const [id, peds] of esperados) {
-      const ok = new Set((validosPorRota.get(id) ?? []).map((v) => txt(v, "COD_PEDIDO")));
+      const ok = new Set((validosPorRota.get(id) ?? []).filter(expedido).map((v) => txt(v, "COD_PEDIDO")));
       for (const p of peds) if (!ok.has(p)) semValido.push(p);
     }
     const detalhe = new Map<string, Row>();
     if (semValido.length > 0) {
       const rows = await erp(
-        `SELECT G.COD_PEDIDO, G.NRO_NF, G.BORDERO, G.STATUS,
+        `SELECT G.COD_PEDIDO, G.NRO_NF, G.BORDERO, G.STATUS, G.DT_SAIDA,
                 G.COD_CLIENTE, G.COD_FILIAL, G.COD_AGENDA, G.VALOR
            FROM GKS.A_GERENTREGAS G WHERE G.COD_PEDIDO IN (${lista(semValido)})`,
       );
       for (const r of rows) {
         const c = txt(r, "COD_PEDIDO");
         const d = c ? detalhe.get(c) : undefined;
-        if (c && (!d || (txt(r, "NRO_NF") && !txt(d, "NRO_NF")) || (txt(d, "STATUS") === "O" && txt(r, "STATUS") !== "O")))
+        if (c && (!d || (txt(r, "NRO_NF") && !txt(d, "NRO_NF")) || (txt(d, "STATUS") === "O" && txt(r, "STATUS") !== "O") || (txt(r, "DT_SAIDA") && !txt(d, "DT_SAIDA"))))
           detalhe.set(c, r);
       }
     }
@@ -398,7 +401,7 @@ export async function auditarEImportarRotas(
       const res = resultado.get(appId)!;
       const peds = esperados.get(erpId) ?? new Set<string>();
       const ok = new Set(
-        (validosPorRota.get(erpId) ?? []).map((v) => txt(v, "COD_PEDIDO")).filter(Boolean) as string[],
+        (validosPorRota.get(erpId) ?? []).filter(expedido).map((v) => txt(v, "COD_PEDIDO")).filter(Boolean) as string[],
       );
       res.total = peds.size;
       res.completos = Array.from(peds).filter((p) => ok.has(p)).length;
