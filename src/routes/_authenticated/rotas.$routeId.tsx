@@ -135,7 +135,7 @@ function RouteDetailPage() {
   const { routeId } = Route.useParams();
   const { from: origem } = Route.useSearch();
   const qc = useQueryClient();
-  const { user, role } = useAuth();
+  const { role } = useAuth();
   const { nomeCliente } = useClientesErp();
   const canOperate = role === "adm" || role === "gestor" || role === "operador";
   const podeExcluir = role === "adm" || role === "gestor";
