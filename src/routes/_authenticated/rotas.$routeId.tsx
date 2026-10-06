@@ -10,10 +10,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Plus,
-  Play,
-  CheckCircle2,
-  XCircle,
-  FileText,
   Loader2,
   Pencil,
   MessageSquareText,
@@ -139,7 +135,7 @@ function RouteDetailPage() {
   const { routeId } = Route.useParams();
   const { from: origem } = Route.useSearch();
   const qc = useQueryClient();
-  const { user, role } = useAuth();
+  const { role } = useAuth();
   const { nomeCliente } = useClientesErp();
   const canOperate = role === "adm" || role === "gestor" || role === "operador";
   const podeExcluir = role === "adm" || role === "gestor";
@@ -342,83 +338,6 @@ function RouteDetailPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const start = useMutation({
-    mutationFn: async () => {
-      if (!route) return;
-      if (!route.carrier_id) throw new Error("Atribua um fretista antes de iniciar");
-      if (stops.length === 0) throw new Error("Adicione pelo menos um pedido");
-      for (const s of stops) {
-        if (!s.orders) continue;
-        const { error } = await supabase
-          .from("orders")
-          .update({ status: "em_transporte" as OrderStatus })
-          .eq("id", s.orders.id);
-        if (error) throw error;
-      }
-      const { error: rErr } = await supabase
-        .from("routes")
-        .update({ status: "em_andamento" })
-        .eq("id", routeId);
-      if (rErr) throw rErr;
-    },
-    onSuccess: () => {
-      toast.success("Rota iniciada — pedidos em transporte");
-      invalidateAll();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const finish = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from("routes")
-        .update({ status: "concluida" })
-        .eq("id", routeId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Rota concluída");
-      invalidateAll();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const cancel = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from("routes")
-        .update({ status: "cancelada" })
-        .eq("id", routeId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Rota cancelada");
-      invalidateAll();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const issueManifest = useMutation({
-    mutationFn: async () => {
-      if (stops.length === 0) throw new Error("Rota sem pedidos");
-      const datePart = (route?.route_date ?? "00000000").replace(/-/g, "");
-      const code = `BOR-${datePart}-${Math.floor(Math.random() * 1000)
-        .toString()
-        .padStart(3, "0")}`;
-      const { error } = await supabase.from("delivery_manifests").insert({
-        route_id: routeId,
-        code,
-        issued_by: user?.id ?? null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Borderô emitido");
-      invalidateAll();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   if (routeQ.isLoading) {
     return (
       <AppShell>
@@ -572,61 +491,25 @@ function RouteDetailPage() {
           </Card>
         </div>
 
-        {canOperate ? (
+        {canOperate && route.status === "planejada" && podeExcluir && stops.length === 0 ? (
           <div className="flex flex-wrap gap-2">
-            {route.status === "planejada" && (
-              <>
-                <Button onClick={() => start.mutate()} disabled={start.isPending}>
-                  {start.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Play className="h-4 w-4 mr-2" />
-                  )}
-                  Iniciar rota
-                </Button>
-                {editable && (
-                  <Button variant="outline" onClick={() => cancel.mutate()}>
-                    <XCircle className="h-4 w-4 mr-2" />
-                    Cancelar
-                  </Button>
-                )}
-                {podeExcluir && stops.length === 0 && (
-                  <Button
-                    variant="destructive"
-                    disabled={excluir.isPending}
-                    onClick={() => {
-                      const ok = window.confirm(
-                        `Excluir a rota ${route.code}${route.erp_route_id ? ` (ERP ${route.erp_route_id})` : ""}? Esta ação marca a rota como Excluída no ERP.`,
-                      );
-                      if (ok) excluir.mutate();
-                    }}
-                  >
-                    {excluir.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4 mr-2" />
-                    )}
-                    Excluir rota
-                  </Button>
-                )}
-              </>
-            )}
-            {route.status === "em_andamento" && (
-              <Button onClick={() => finish.mutate()} disabled={finish.isPending}>
-                {finish.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                )}
-                Concluir rota
-              </Button>
-            )}
-            {!manifestQ.data && stops.length > 0 && route.status !== "cancelada" && (
-              <Button variant="outline" onClick={() => issueManifest.mutate()}>
-                <FileText className="h-4 w-4 mr-2" />
-                Emitir borderô
-              </Button>
-            )}
+            <Button
+              variant="destructive"
+              disabled={excluir.isPending}
+              onClick={() => {
+                const ok = window.confirm(
+                  `Excluir a rota ${route.code}${route.erp_route_id ? ` (ERP ${route.erp_route_id})` : ""}? Esta ação marca a rota como Excluída no ERP.`,
+                );
+                if (ok) excluir.mutate();
+              }}
+            >
+              {excluir.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Excluir rota
+            </Button>
           </div>
         ) : null}
 
