@@ -1,3 +1,4 @@
+import { BackButton } from "@/components/layout/BackButton";
 import { PedidoCodigo } from "@/components/orders/PedidoCodigo";
 import { Fragment, useCallback, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -444,19 +445,11 @@ function RouteDetailPage() {
     <AppShell>
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm">
-            {origem === "autorizar" ? (
-              <Link to="/autorizar-pagamento-frete">
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Autorizar pagamento de frete
-              </Link>
-            ) : (
-              <Link to="/rotas">
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Rotas Pendentes
-              </Link>
-            )}
-          </Button>
+          {origem === "autorizar" ? (
+            <BackButton fallbackTo="/autorizar-pagamento-frete" fallbackLabel="Autorizar pagamento de frete" />
+          ) : (
+            <BackButton fallbackTo="/rotas" fallbackLabel="Rotas Pendentes" />
+          )}
         </div>
 
         <div className="flex flex-wrap items-start justify-between gap-4">

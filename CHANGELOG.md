@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.23.0] - 2026-10-06
+### Alterado
+- Telas de detalhe (pedido, rota, CT-e, NF-e) ganharam botão "Voltar" que retorna à tela que as abriu, mantendo filtros; links diretos voltam à tela padrão.
+
 ## [1.22.1] - 2026-10-06
 ### Corrigido
 - Distância de clientes localizados só como "Brasil" ou só pelo bairro (ex.: 216720 com 1.986 km): localizações ruins foram descartadas e passam a usar bairro/cidade até nova localização.

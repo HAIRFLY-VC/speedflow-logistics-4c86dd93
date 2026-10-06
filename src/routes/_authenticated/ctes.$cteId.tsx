@@ -1,3 +1,4 @@
+import { BackButton } from "@/components/layout/BackButton";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { openAppRoute } from "@/lib/open-in-tab";
 
@@ -175,11 +176,7 @@ export default function CteDetailPage() {
       <div className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
-            <Button asChild variant="ghost" size="sm" className="-ml-2">
-              <Link to="/ctes">
-                <ArrowLeft className="mr-1 h-4 w-4" /> Voltar para CT-e
-              </Link>
-            </Button>
+            <BackButton fallbackTo="/ctes" fallbackLabel="CT-e" className="-ml-2" />
             <h1 className="text-2xl font-semibold">
               CT-e {cte?.numero ?? "—"}
               {cte?.serie ? <span className="text-muted-foreground">/{cte.serie}</span> : null}

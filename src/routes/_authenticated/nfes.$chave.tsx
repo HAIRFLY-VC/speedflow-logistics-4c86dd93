@@ -1,3 +1,4 @@
+import { BackButton } from "@/components/layout/BackButton";
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -193,11 +194,7 @@ function NfeDetailPage() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
-            <Button asChild variant="ghost" size="sm" className="-ml-2">
-              <Link to="/ctes">
-                <ArrowLeft className="mr-1 h-4 w-4" /> Voltar para CT-e
-              </Link>
-            </Button>
+            <BackButton fallbackTo="/ctes" fallbackLabel="CT-e" className="-ml-2" />
             <h1 className="text-2xl font-semibold">
               NF-e {nfe?.numero ?? "—"}
               {nfe?.serie ? (
