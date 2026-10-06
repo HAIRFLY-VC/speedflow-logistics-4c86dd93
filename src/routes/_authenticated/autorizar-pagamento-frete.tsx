@@ -24,12 +24,14 @@ export const Route = createFileRoute("/_authenticated/autorizar-pagamento-frete"
 
 function AutorizarPagamentoFretePage() {
   const filtro = useCallback(
-    (r: RouteRow, ctx: { bordero: { total: number; comBordero: number } }) =>
+    (r: RouteRow, ctx: { bordero: { total: number; comBordero: number; semSaida?: number } }) =>
       Boolean(r.erp_route_id?.trim()) &&
       !r.route_date?.startsWith("4000-01-01") &&
       // Só entra com borderô informado em todos os pedidos (a marca automática não basta).
       ctx.bordero.total > 0 &&
-      ctx.bordero.comBordero === ctx.bordero.total,
+      ctx.bordero.comBordero === ctx.bordero.total &&
+      // Ao menos um pedido expedido; expedição parcial entra com crítica.
+      (ctx.bordero.semSaida ?? 0) < ctx.bordero.total,
     [],
   );
 

@@ -549,7 +549,9 @@ function FreightInput({
     onEstado?.(route.id, { valor: valorNum, bloqueio: motivoBloqueio });
   }, [onEstado, route.id, valorNum, motivoBloqueio]);
   const mensagemPix =
-    mostrarConfirmar && !vinculoBitrixOk
+    mostrarConfirmar && !confirmado && semSaida > 0
+      ? `⚠ Expedição incompleta: ${semSaida} de ${bordero.total} pedido${bordero.total === 1 ? "" : "s"} ainda não saíram. Exclua-os da rota (lápis) ou aguarde a expedição completa.`
+      : mostrarConfirmar && !vinculoBitrixOk
       ? "Seu usuário não está vinculado ao Bitrix. Peça ao administrador para fazer o vínculo em Configurações."
       : mostrarConfirmar && pix?.bloqueio === "SEM_PIX"
         ? `Fretista sem PIX cadastrado no ERP (código ${pix.cod_erp}). Cadastre o contato PIX no ERP e clique em "Consultar PIX no ERP".`
