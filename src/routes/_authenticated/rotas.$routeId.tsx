@@ -10,10 +10,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Plus,
-  Play,
-  CheckCircle2,
-  XCircle,
-  FileText,
   Loader2,
   Pencil,
   MessageSquareText,
