@@ -2213,6 +2213,7 @@ export function RotasView({
                     </p>
                   </div>
                   <div className="text-right">
+                    <p className="text-[11px] text-muted-foreground">Pedidos</p>
                     <p className="whitespace-nowrap text-sm font-bold tabular-nums">
                       {resumoSemRota.pedidos.toLocaleString("pt-BR")}
                     </p>
