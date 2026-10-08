@@ -12,7 +12,8 @@ Classificação: MINOR (v1.25.0). Muda o valor provisionado: o frete passa a ser
   - Taxa de despacho, GRIS (% e mínimo), Ad valorem, TAS
   - Subtotal, ICMS (% e valor "por dentro"), total da entrega
 - Nas notas, o frete mostrado é o rateio do total da entrega proporcional ao peso (diferença de centavos ajustada na última nota).
-- Rodapé: total provisionado e, opcionalmente, resumo somado por componente (frete peso, GRIS, ICMS etc.).
+- Nova coluna "% Frete" (frete / mercadoria) em cada nota e em cada entrega.
+- Rodapé: total de mercadorias, total provisionado e % do frete da rota, além de resumo somado por componente (frete peso, GRIS, ICMS etc.).
 
 ## Gravação no ERP
 - Continua uma linha por nota em A_GER_PROVISAO_FRETE, com o valor rateado.
