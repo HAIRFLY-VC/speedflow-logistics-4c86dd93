@@ -166,6 +166,19 @@ export async function gravarProvisao(
     binds: { status: "S", id_rota: idRota },
   });
 
+  // O ID de cada linha vem da sequência do ERP (sem trigger na tabela).
+  const proximoId = async (): Promise<number> => {
+    const r = await chamarErp("/v1/query", {
+      sql: "select gks.SEQ_PROVISAO_FRETE.nextval id from dual",
+      limit: 1,
+    });
+    const row = ((r["rows"] as Record<string, unknown>[] | undefined) ?? [])[0] ?? {};
+    const id = Number(row["ID"] ?? row["id"] ?? 0);
+    if (!Number.isFinite(id) || id <= 0)
+      throw new Error("ERP não retornou o próximo ID da sequência de provisionamento.");
+    return id;
+  };
+
   for (const n of c.notas) {
     const memoria = {
       versao: 1,
