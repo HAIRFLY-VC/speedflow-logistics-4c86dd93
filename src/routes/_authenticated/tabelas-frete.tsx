@@ -1002,7 +1002,7 @@ function TabelaDialog({
               <SelectContent>
                 {transportadoras.map((t) => (
                   <SelectItem key={t.id} value={t.id}>
-                    {t.razao_social}
+                    {rotuloTransportadora(t)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1044,7 +1044,7 @@ function TabelaDialog({
                           )
                         }
                       />
-                      <span className="flex-1 truncate">{t.razao_social}</span>
+                      <span className="flex-1 truncate">{rotuloTransportadora(t)}</span>
                       {principal && (
                         <Badge variant="outline" className="text-[10px]">
                           Principal
