@@ -1287,6 +1287,7 @@ function TabelaDialog({
                   ).map((key) => (
                     <Input
                       key={key}
+                      className="h-8 min-w-0 px-2 text-xs"
                       inputMode="decimal"
                       placeholder={key === "peso_ate" ? "sem limite" : ""}
                       value={f[key]}
