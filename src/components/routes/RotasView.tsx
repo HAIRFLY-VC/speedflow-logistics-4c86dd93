@@ -2212,8 +2212,7 @@ export function RotasView({
                       {currencyFmt.format(resumoSemRota.valor)}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-[11px] text-muted-foreground">Pedidos</p>
+                  <div className="text-right">
                     <p className="whitespace-nowrap text-sm font-bold tabular-nums">
                       {resumoSemRota.pedidos.toLocaleString("pt-BR")}
                     </p>
