@@ -908,7 +908,7 @@ function TabelaDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 [&>*]:min-w-0">
           <div className="md:col-span-3 space-y-1.5">
             <Label className="text-xs">Arquivo da tabela (PDF, Excel, imagem)</Label>
             <div className="rounded-md border border-dashed p-3 space-y-2">
@@ -1220,6 +1220,7 @@ function TabelaDialog({
                   ).map((key) => (
                     <Input
                       key={key}
+                      className="h-8 min-w-0 px-2 text-xs"
                       inputMode={key === "origem" || key === "destino" ? "text" : "decimal"}
                       value={r[key]}
                       onChange={(e) =>
