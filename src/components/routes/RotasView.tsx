@@ -25,7 +25,6 @@ import {
 import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEditDialog";
 import { PagamentoRotaDialog } from "@/components/routes/PagamentoRotaDialog";
 import { ProvisaoFreteDialog } from "@/components/routes/ProvisaoFreteDialog";
-import { isFeatureOn } from "@/config/features";
 import { ConsultarPixButton } from "@/components/routes/ConsultarPixButton";
 import { liberarNovoPix, situacaoPixResponsaveis } from "@/lib/rota-pagamento.functions";
 import { meuVinculoBitrix } from "@/lib/bitrix-config.functions";

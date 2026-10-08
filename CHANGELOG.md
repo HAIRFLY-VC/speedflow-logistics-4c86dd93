@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.24.0] - 2026-10-08
+### Adicionado
+- Autorizar pagamento de frete: rotas de transportadora abrem o "Provisionar frete", que calcula o custo por nota fiscal pela tabela de frete vigente e grava no ERP (GKS.A_GER_PROVISAO_FRETE) com a memória de cálculo; ao gravar, a rota fica "Confirmado".
+- Script Oracle de criação da tabela e dos comandos da API do ERP (db/erp/2026-10-08_a_ger_provisao_frete.sql).
+
 ## [1.23.2] - 2026-10-06
 ### Removido
 - Botões "Iniciar rota", "Concluir rota", "Cancelar" e "Emitir borderô" removidos da tela de detalhe da rota: eles alteravam status apenas no app, sem refletir no ERP. A gestão de status/borderô continua sendo feita pelo ERP e pelo Sync ERP. O botão "Excluir rota" (rotas vazias) permanece.

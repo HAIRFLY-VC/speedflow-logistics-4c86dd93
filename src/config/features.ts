@@ -12,6 +12,8 @@ export const FEATURES = {
   cardPedidosSemRota: { test: true, production: true },
   /** Impressão do detalhamento da rota (Rotas Pendentes, Autorizar e detalhe). */
   impressaoRota: { test: true, production: true },
+  /** Autorizar: provisionamento do frete pela tabela da transportadora (rotas tipo T). */
+  provisaoFreteTransportadora: { test: true, production: true },
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;
