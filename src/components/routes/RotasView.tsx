@@ -24,6 +24,7 @@ import {
 } from "@/lib/frete-simulacao";
 import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEditDialog";
 import { PagamentoRotaDialog } from "@/components/routes/PagamentoRotaDialog";
+import { ProvisaoFreteDialog } from "@/components/routes/ProvisaoFreteDialog";
 import { ConsultarPixButton } from "@/components/routes/ConsultarPixButton";
 import { liberarNovoPix, situacaoPixResponsaveis } from "@/lib/rota-pagamento.functions";
 import { meuVinculoBitrix } from "@/lib/bitrix-config.functions";
@@ -926,7 +927,12 @@ export function RotasView({
       estadoConfirmar.current.set(id, e);
     },
   ).current;
+  const [provisao, setProvisao] = useState<RouteRow | null>(null);
   const abrirEdicao = (r: RouteRow) => {
+    if (permitirConfirmacao && isFeatureOn("provisaoFreteTransportadora") && tipoFreteOf(r) === "T") {
+      setProvisao(r);
+      return;
+    }
     if (permitirConfirmacao) {
       const e = estadoConfirmar.current.get(r.id);
       setPagamento({
@@ -2228,6 +2234,14 @@ export function RotasView({
         onSuccess={() => {
           qc.invalidateQueries({ queryKey: ["routes"] });
           setEditRoute(null);
+        }}
+      />
+      <ProvisaoFreteDialog
+        routeId={provisao?.id ?? null}
+        rotulo={provisao ? `${provisao.erp_route_id ? `${provisao.erp_route_id} · ` : ""}${nomeRotaOf(provisao)}` : ""}
+        open={!!provisao}
+        onOpenChange={(o) => {
+          if (!o) setProvisao(null);
         }}
       />
       <PagamentoRotaDialog
