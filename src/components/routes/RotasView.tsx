@@ -1578,6 +1578,29 @@ export function RotasView({
     };
   }, [borderosQ.data]);
 
+  /**
+   * Total da simulação que pode ser mostrado na tela.
+   * Na autorização de pagamento, rota com crítica pendente não exibe
+   * provisionamento: o valor calculado está incompleto e não é confiável.
+   */
+  const estimadoExibivel = useMemo(() => {
+    const criticasProntas =
+      !transportadorasQ.isFetching && !tabelasQ.isFetching && !vinculosQ.isFetching;
+    return (r: RouteRow): number => {
+      const sim = estimativas.get(r.id);
+      if (!sim) return 0;
+      if (permitirConfirmacao && (!criticasProntas || criticasProvisionamento.has(r.id))) return 0;
+      return sim.total;
+    };
+  }, [
+    estimativas,
+    criticasProvisionamento,
+    permitirConfirmacao,
+    transportadorasQ.isFetching,
+    tabelasQ.isFetching,
+    vinculosQ.isFetching,
+  ]);
+
   /** Frete informado; na ausência, a estimativa da tabela da transportadora. */
   const freteOf = useMemo(
     () => (r: RouteRow) => {
@@ -1586,11 +1609,9 @@ export function RotasView({
       }
       const editado = freteEditado[r.id];
       if (editado != null) return editado;
-      return Number(r.total_freight ?? 0) > 0
-        ? Number(r.total_freight)
-        : (estimativas.get(r.id)?.total ?? 0);
+      return Number(r.total_freight ?? 0) > 0 ? Number(r.total_freight) : estimadoExibivel(r);
     },
-    [estimativas, freteEditado, permitirConfirmacao, adicionaisQ.data],
+    [estimadoExibivel, freteEditado, permitirConfirmacao, adicionaisQ.data],
   );
 
   const auditarFn = useServerFn(auditarRotasCompletas);
@@ -1877,9 +1898,9 @@ export function RotasView({
         render: (r) => (
           <span onClick={(e) => e.stopPropagation()}>
             <FreightInput
-              key={`${r.id}-${r.total_freight ?? 0}-${estimativas.get(r.id)?.total ?? 0}-${tipoFreteOf(r) ?? ""}`}
+              key={`${r.id}-${r.total_freight ?? 0}-${estimadoExibivel(r)}-${tipoFreteOf(r) ?? ""}`}
               route={r}
-              estimate={estimativas.get(r.id) ?? null}
+              estimate={estimadoExibivel(r) > 0 ? (estimativas.get(r.id) ?? null) : null}
               tipo={tipoFreteOf(r)}
               bordero={borderoDaRota(r)}
               isAdmin={role === "adm"}
@@ -2044,6 +2065,7 @@ export function RotasView({
       depot,
       paradasPorRota,
       estimativas,
+      estimadoExibivel,
       freteOf,
       borderoDaRota,
       role,
