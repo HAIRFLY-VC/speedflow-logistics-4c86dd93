@@ -37,7 +37,7 @@ Nenhum. O script roda no Oracle do ERP, fora do app, e só adiciona permissões.
 ## Como reverter
 ```sql
 REVOKE SELECT ON GKS.SEQ_PROVISAO_FRETE FROM <USUARIO_API>;
-REVOKE SELECT, INSERT, UPDATE ON GKS.A_GER_PROVISAO_FRETE FROM <USUARIO_API>;
+REVOKE SELECT, INSERT, UPDATE, DELETE ON GKS.A_GER_PROVISAO_FRETE FROM <USUARIO_API>;
 ```
 
 ## Checklist para publicar
