@@ -2205,7 +2205,7 @@ export function RotasView({
                   </CardTitle>
                   <ArrowRight className="h-4 w-4 shrink-0 text-destructive" aria-hidden="true" />
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-x-3 gap-y-2 p-3 pt-0">
+                <CardContent className="grid grid-cols-2 gap-x-8 gap-y-2 p-3 pt-0">
                   <div>
                     <p className="text-[11px] text-muted-foreground">Mercadorias</p>
                     <p className="whitespace-nowrap text-sm font-bold tabular-nums">
