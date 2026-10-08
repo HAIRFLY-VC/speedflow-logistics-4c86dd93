@@ -5,6 +5,7 @@ import { Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BackButton } from "@/components/layout/BackButton";
 import { exportarXlsx } from "@/components/data-table/export-xlsx";
 import {
   calendarioComercialQueryOptions,
@@ -201,7 +202,7 @@ function CustoFretePage() {
       {calQ.isSuccess && ciclos.length === 0 && (
         <p className="text-sm text-muted-foreground">Calendário comercial vazio. Rode o Sync ERP.</p>
       )}
-      {q.isError && <p className="text-sm text-destructive">Não foi possível carregar os dados de frete.</p>}
+      {q.isError && <p className="text-sm text-destructive">Não foi possível carregar os dados de frete: {(q.error as Error)?.message}</p>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {kpis.map(([t, v]) => (
