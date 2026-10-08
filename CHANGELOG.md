@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.24.4] - 2026-10-08
+### Adicionado
+- Provisionamento de frete: quando a transportadora da rota não tem tabela de frete vigente, o modal agora permite vincular uma tabela existente à transportadora sem sair da tela, recalculando o provisionamento automaticamente.
+
 ## [1.24.3] - 2026-10-08
 ### Corrigido
 - Botão "Voltar" agora retorna sempre à tela anterior (antes podia não responder na tela da rota).
