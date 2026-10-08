@@ -76,6 +76,7 @@ async function calcular(routeId: string): Promise<Calculo> {
     });
     const row = ((r["rows"] as Record<string, unknown>[] | undefined) ?? [])[0] ?? {};
     const cnpj = String(row["CNPJ"] ?? row["cnpj"] ?? "").replace(/\D/g, "");
+    console.log("[provisao] resp", cod, "cnpj:", cnpj || "(vazio)", "row:", JSON.stringify(row));
     if (cnpj) {
       const { data } = await centralDb
         .from("transportadoras")
