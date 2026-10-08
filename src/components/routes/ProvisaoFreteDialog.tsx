@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { definirPracaMunicipio } from "@/lib/frete-area.functions";
 import { gravarProvisaoFrete, previewProvisaoFrete } from "@/lib/provisao-frete.functions";
 import type { DetalheFrete } from "@/lib/frete-simulacao";
 import type { ProvisaoEntrega } from "@/lib/provisao-frete.types";
@@ -169,6 +170,38 @@ export function ProvisaoFreteDialog(props: {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const definirPraca = useServerFn(definirPracaMunicipio);
+  const praca = useMutation({
+    mutationFn: (v: { rotaId: string; municipio: string }) => definirPraca({ data: v }),
+    onSuccess: (_r, v) => {
+      toast.success(`Praça definida para ${v.municipio}. Recalculando…`);
+      qc.invalidateQueries({ queryKey: ["provisao-frete"] });
+      qc.invalidateQueries({ queryKey: ["tabelas-frete"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const seletorPraca = (cidade: string | null, atual: string | null) =>
+    cidade && d && d.pracas.length > 0 ? (
+      <div onClick={(ev) => ev.stopPropagation()} className="inline-block">
+        <Select
+          value={atual ?? ""}
+          disabled={praca.isPending}
+          onValueChange={(v) => praca.mutate({ rotaId: v, municipio: cidade })}
+        >
+          <SelectTrigger className="h-7 w-52 text-[11px]">
+            <SelectValue placeholder="Selecionar praça…" />
+          </SelectTrigger>
+          <SelectContent>
+            {d.pracas.map((p) => (
+              <SelectItem key={p.id} value={p.id} className="text-xs">
+                {p.destino}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    ) : null;
+
   const m = useMutation({
     mutationFn: () => gravar({ data: { routeId: props.routeId! } }),
     onSuccess: (r) => {
@@ -295,7 +328,10 @@ export function ProvisaoFreteDialog(props: {
                           <td className="p-1 text-right tabular-nums">{brl(e.valor_mercadoria)}</td>
                           <td className="p-1 text-right tabular-nums">
                             {e.vlr_frete == null ? (
-                              <span className="text-destructive">praça não encontrada</span>
+                              <div className="flex items-center justify-end gap-1">
+                                <span className="text-destructive">praça não encontrada</span>
+                                {seletorPraca(e.cidade, null)}
+                              </div>
                             ) : (
                               brl(e.vlr_frete)
                             )}
@@ -306,6 +342,15 @@ export function ProvisaoFreteDialog(props: {
                           <tr className="border-b">
                             <td></td>
                             <td colSpan={7} className="p-2">
+                              {e.detalhe.metodo === "praca" && (
+                                <div className="mb-2 flex items-center gap-2 text-[11px]">
+                                  <span className="text-muted-foreground">
+                                    Praça de {e.cidade}
+                                    {e.detalhe.praca_origem === "aprendido" ? " (escolhida pelo usuário)" : " (automática)"}:
+                                  </span>
+                                  {seletorPraca(e.cidade, e.detalhe.praca_id)}
+                                </div>
+                              )}
                               <Composicao det={e.detalhe} mercadoria={e.valor_mercadoria} />
                             </td>
                           </tr>
