@@ -63,7 +63,7 @@ const SQL_TRANSPORTADORAS_ERP = `select TRIM(t.dba_tip_codigo_1) COD, TRIM(t.dba
 
 /**
  * Cria no cadastro do app as transportadoras (natureza ET) do ERP que ainda
- * não existem (por código ERP) e atualiza a razão social das existentes.
+ * não existem (por código ERP) e completa o código ERP das existentes (a razão social do ERP é truncada).
  * Não sobrescreve CNPJ, dados bancários ou tabela de frete.
  */
 export const importarTransportadorasErp = createServerFn({ method: "POST" })
@@ -115,7 +115,6 @@ export const importarTransportadorasErp = createServerFn({ method: "POST" })
       const atual = porCod.get(cod) ?? (cnpj ? porCnpj.get(cnpj) : undefined);
       if (atual) {
         const patch: Record<string, unknown> = {};
-        if (atual.razao_social !== razao) patch["razao_social"] = razao;
         if (!atual.cod_erp) patch["cod_erp"] = cod;
         if (Object.keys(patch).length > 0) {
           await centralDb.from("transportadoras").update(patch as never).eq("id", atual.id);
