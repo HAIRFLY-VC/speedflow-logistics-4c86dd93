@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.27.3] - 2026-10-08
+### Alterado
+- Autorizar pagamento de frete: as críticas de provisionamento não ocupam mais linhas de texto na coluna Frete — aparece apenas uma exclamação vermelha, e o detalhe continua no popup ao posicionar o mouse.
+
 ## [1.27.2] - 2026-10-08
 ### Corrigido
 - Autorizar pagamento de frete: a listagem agora informa por rota as críticas que impediram ou tornaram parcial o provisionamento, incluindo transportadora não identificada, tabela ausente, entrega sem município e praça não encontrada.
