@@ -42,6 +42,45 @@ export function ProvisaoFreteDialog(props: {
     retry: false,
   });
 
+  const [tabelaSel, setTabelaSel] = useState<string>("");
+
+  const d = q.data;
+  // Oferece o vínculo quando a transportadora foi identificada mas não tem
+  // tabela de frete vigente.
+  const semTabela = !!d?.transportadora && !d?.tabela;
+
+  const tabelasQ = useQuery({
+    queryKey: ["provisao-frete", "tabelas-ativas"],
+    enabled: props.open && semTabela,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete")
+        .select("id, nome, data_inicio, data_fim")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return data as { id: string; nome: string; data_inicio: string; data_fim: string | null }[];
+    },
+  });
+
+  const vincular = useMutation({
+    mutationFn: async () => {
+      if (!tabelaSel) throw new Error("Selecione a tabela de frete");
+      const { error } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .insert({ tabela_id: tabelaSel, transportadora_id: d!.transportadora!.id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Tabela vinculada à transportadora. Recalculando…");
+      setTabelaSel("");
+      qc.invalidateQueries({ queryKey: ["provisao-frete"] });
+      qc.invalidateQueries({ queryKey: ["tabelas-frete-vinculos"] });
+      qc.invalidateQueries({ queryKey: ["tabelas-frete"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const m = useMutation({
     mutationFn: () => gravar({ data: { routeId: props.routeId! } }),
     onSuccess: (r) => {
