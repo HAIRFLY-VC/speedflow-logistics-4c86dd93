@@ -12,6 +12,8 @@ export type ProvisaoEntrega = {
   vlr_frete: number | null;
   detalhe: DetalheFrete | null;
   notas: ProvisaoNota[];
+  entregas: ProvisaoEntrega[];
+  total_mercadoria: number;
 };
 
 export type ProvisaoNota = {
@@ -35,6 +37,8 @@ export type PreviewProvisao = {
   transportadora: { id: string; razao_social: string; cod_erp: string | null } | null;
   tabela: { id: string; nome: string } | null;
   notas: ProvisaoNota[];
+  entregas: ProvisaoEntrega[];
+  total_mercadoria: number;
   total: number;
   /** Motivos que impedem a gravação. */
   bloqueios: string[];
