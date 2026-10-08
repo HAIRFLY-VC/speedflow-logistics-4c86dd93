@@ -20,6 +20,7 @@ import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedConfiguracoesFretesRouteImport } from './routes/_authenticated/configuracoes-fretes'
 import { Route as AuthenticatedCtesRouteRouteImport } from './routes/_authenticated/ctes.route'
+import { Route as AuthenticatedCustoFreteRouteImport } from './routes/_authenticated/custo-frete'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticated/empresas'
 import { Route as AuthenticatedEntregasAbertasRouteImport } from './routes/_authenticated/entregas-abertas'
@@ -108,6 +109,11 @@ const AuthenticatedConfiguracoesFretesRoute =
 const AuthenticatedCtesRouteRoute = AuthenticatedCtesRouteRouteImport.update({
   id: '/ctes',
   path: '/ctes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCustoFreteRoute = AuthenticatedCustoFreteRouteImport.update({
+  id: '/custo-frete',
+  path: '/custo-frete',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -293,6 +299,7 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-fretes': typeof AuthenticatedConfiguracoesFretesRoute
+  '/custo-frete': typeof AuthenticatedCustoFreteRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
   '/entregas-abertas': typeof AuthenticatedEntregasAbertasRoute
@@ -335,6 +342,7 @@ export interface FileRoutesByTo {
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-fretes': typeof AuthenticatedConfiguracoesFretesRoute
+  '/custo-frete': typeof AuthenticatedCustoFreteRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
   '/entregas-abertas': typeof AuthenticatedEntregasAbertasRoute
@@ -380,6 +388,7 @@ export interface FileRoutesById {
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/configuracoes-fretes': typeof AuthenticatedConfiguracoesFretesRoute
+  '/_authenticated/custo-frete': typeof AuthenticatedCustoFreteRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/empresas': typeof AuthenticatedEmpresasRoute
   '/_authenticated/entregas-abertas': typeof AuthenticatedEntregasAbertasRoute
@@ -425,6 +434,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/configuracoes'
     | '/configuracoes-fretes'
+    | '/custo-frete'
     | '/dashboard'
     | '/empresas'
     | '/entregas-abertas'
@@ -467,6 +477,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/configuracoes'
     | '/configuracoes-fretes'
+    | '/custo-frete'
     | '/dashboard'
     | '/empresas'
     | '/entregas-abertas'
@@ -511,6 +522,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes'
     | '/_authenticated/configuracoes'
     | '/_authenticated/configuracoes-fretes'
+    | '/_authenticated/custo-frete'
     | '/_authenticated/dashboard'
     | '/_authenticated/empresas'
     | '/_authenticated/entregas-abertas'
@@ -636,6 +648,13 @@ declare module '@tanstack/react-router' {
       path: '/ctes'
       fullPath: '/ctes'
       preLoaderRoute: typeof AuthenticatedCtesRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/custo-frete': {
+      id: '/_authenticated/custo-frete'
+      path: '/custo-frete'
+      fullPath: '/custo-frete'
+      preLoaderRoute: typeof AuthenticatedCustoFreteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -883,6 +902,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConfiguracoesFretesRoute: typeof AuthenticatedConfiguracoesFretesRoute
+  AuthenticatedCustoFreteRoute: typeof AuthenticatedCustoFreteRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEmpresasRoute: typeof AuthenticatedEmpresasRoute
   AuthenticatedEntregasAbertasRoute: typeof AuthenticatedEntregasAbertasRoute
@@ -915,6 +935,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConfiguracoesFretesRoute: AuthenticatedConfiguracoesFretesRoute,
+  AuthenticatedCustoFreteRoute: AuthenticatedCustoFreteRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEmpresasRoute: AuthenticatedEmpresasRoute,
   AuthenticatedEntregasAbertasRoute: AuthenticatedEntregasAbertasRoute,

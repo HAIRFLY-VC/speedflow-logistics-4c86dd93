@@ -1152,6 +1152,8 @@ export function RotasView({
   }, [data, customerGeoQ.data, localidadesQ.data]);
 
   const exibirCardSemRota = mostrarCardSemRota && pedidosSemRotaQ.isSuccess && resumoSemRota.pedidos > 0;
+  const mostrarCardFrete = mostrarAcoesDeRota && isFeatureOn("painelCustoFrete");
+  const colunasCards = 4 + (exibirCardSemRota ? 1 : 0) + (mostrarCardFrete ? 1 : 0);
   const semRotaPulsar = resumoSemRota.pedidos > 0;
 
 
@@ -2145,7 +2147,7 @@ export function RotasView({
         {!permitirConfirmacao && (
           <div
             className={`grid grid-cols-2 gap-2 sm:gap-3 ${
-              exibirCardSemRota ? "lg:grid-cols-5" : "lg:grid-cols-4"
+              colunasCards === 6 ? "lg:grid-cols-6" : colunasCards === 5 ? "lg:grid-cols-5" : "lg:grid-cols-4"
             }`}
           >
           <Card>
@@ -2234,6 +2236,7 @@ export function RotasView({
               </Card>
             </Link>
           )}
+          {mostrarCardFrete && <CardPercentualFrete />}
           </div>
         )}
 
