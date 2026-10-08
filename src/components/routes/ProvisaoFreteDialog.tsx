@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, Loader2, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Link2, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { supabase } from "@/integrations/central/client";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +12,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { gravarProvisaoFrete, previewProvisaoFrete } from "@/lib/provisao-frete.functions";
 
