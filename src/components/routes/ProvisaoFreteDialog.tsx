@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, Loader2, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Link2, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { supabase } from "@/integrations/central/client";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +12,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { gravarProvisaoFrete, previewProvisaoFrete } from "@/lib/provisao-frete.functions";
 
@@ -33,6 +42,45 @@ export function ProvisaoFreteDialog(props: {
     retry: false,
   });
 
+  const [tabelaSel, setTabelaSel] = useState<string>("");
+
+  const d = q.data;
+  // Oferece o vínculo quando a transportadora foi identificada mas não tem
+  // tabela de frete vigente.
+  const semTabela = !!d?.transportadora && !d?.tabela;
+
+  const tabelasQ = useQuery({
+    queryKey: ["provisao-frete", "tabelas-ativas"],
+    enabled: props.open && semTabela,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete")
+        .select("id, nome, data_inicio, data_fim")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return data as { id: string; nome: string; data_inicio: string; data_fim: string | null }[];
+    },
+  });
+
+  const vincular = useMutation({
+    mutationFn: async () => {
+      if (!tabelaSel) throw new Error("Selecione a tabela de frete");
+      const { error } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .insert({ tabela_id: tabelaSel, transportadora_id: d!.transportadora!.id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Tabela vinculada à transportadora. Recalculando…");
+      setTabelaSel("");
+      qc.invalidateQueries({ queryKey: ["provisao-frete"] });
+      qc.invalidateQueries({ queryKey: ["tabelas-frete-vinculos"] });
+      qc.invalidateQueries({ queryKey: ["tabelas-frete"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const m = useMutation({
     mutationFn: () => gravar({ data: { routeId: props.routeId! } }),
     onSuccess: (r) => {
@@ -44,7 +92,6 @@ export function ProvisaoFreteDialog(props: {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const d = q.data;
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-w-4xl">
@@ -78,6 +125,50 @@ export function ProvisaoFreteDialog(props: {
                     <AlertTriangle className="h-3 w-3" /> {b}
                   </div>
                 ))}
+              </div>
+            )}
+            {semTabela && (
+              <div className="space-y-2 rounded-md border border-border bg-muted/40 p-3">
+                <p className="text-xs text-muted-foreground">
+                  A transportadora <strong>{d.transportadora!.razao_social}</strong> não tem tabela
+                  de frete vigente. Selecione uma tabela existente para vinculá-la e calcular o
+                  provisionamento.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Select value={tabelaSel} onValueChange={setTabelaSel}>
+                    <SelectTrigger className="h-8 flex-1 text-xs">
+                      <SelectValue
+                        placeholder={
+                          tabelasQ.isLoading ? "Carregando tabelas…" : "Selecione a tabela de frete"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(tabelasQ.data ?? []).map((t) => (
+                        <SelectItem key={t.id} value={t.id} className="text-xs">
+                          {t.nome} · desde{" "}
+                          {new Date(`${t.data_inicio}T00:00:00`).toLocaleDateString("pt-BR")}
+                          {t.data_fim
+                            ? ` até ${new Date(`${t.data_fim}T00:00:00`).toLocaleDateString("pt-BR")}`
+                            : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!tabelaSel || vincular.isPending}
+                    onClick={() => vincular.mutate()}
+                  >
+                    {vincular.isPending ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Link2 className="mr-1 h-4 w-4" />
+                    )}
+                    Vincular tabela
+                  </Button>
+                </div>
               </div>
             )}
             <div className="max-h-[50vh] overflow-auto">
