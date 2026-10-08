@@ -900,7 +900,7 @@ function TabelaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[96vw] max-w-[1400px] max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editing ? "Editar tabela" : "Nova tabela de preço"}</DialogTitle>
           <DialogDescription>
@@ -1185,24 +1185,24 @@ function TabelaDialog({
               Nenhuma rota cadastrada. Os valores gerais acima serão usados para todos os destinos.
             </p>
           ) : (
-            <div className="space-y-2 overflow-x-auto">
-              <div className="grid min-w-[900px] grid-cols-[1.2fr_1.6fr_0.9fr_0.8fr_0.9fr_0.9fr_0.8fr_0.8fr_0.7fr_0.7fr_auto] gap-2 text-xs text-muted-foreground">
-                <span>Origem</span>
-                <span>Destino</span>
-                <span>Tarifa/kg</span>
-                <span>% Valor</span>
-                <span>Despacho</span>
-                <span>Frete mín.</span>
-                <span>Peso mín. (kg)</span>
-                <span>% Reentrega</span>
-                <span>Prazo de</span>
-                <span>Prazo até</span>
+            <div className="space-y-2">
+              <div className="grid grid-cols-[1.2fr_1.6fr_0.9fr_0.8fr_0.9fr_0.9fr_0.8fr_0.8fr_0.7fr_0.7fr_auto] gap-2 text-[11px] leading-tight text-muted-foreground">
+                <span className="min-w-0">Origem</span>
+                <span className="min-w-0">Destino</span>
+                <span className="min-w-0">Tarifa/kg</span>
+                <span className="min-w-0">% Valor</span>
+                <span className="min-w-0">Despacho</span>
+                <span className="min-w-0">Frete mín.</span>
+                <span className="min-w-0">Peso mín. (kg)</span>
+                <span className="min-w-0">% Reentrega</span>
+                <span className="min-w-0">Prazo de</span>
+                <span className="min-w-0">Prazo até</span>
                 <span />
               </div>
               {rotas.map((r, i) => (
                 <div
                   key={i}
-                  className="grid min-w-[900px] grid-cols-[1.2fr_1.6fr_0.9fr_0.8fr_0.9fr_0.9fr_0.8fr_0.8fr_0.7fr_0.7fr_auto] gap-2 items-center"
+                  className="grid grid-cols-[1.2fr_1.6fr_0.9fr_0.8fr_0.9fr_0.9fr_0.8fr_0.8fr_0.7fr_0.7fr_auto] gap-2 items-center"
                 >
                   {(
                     [
