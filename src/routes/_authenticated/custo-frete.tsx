@@ -184,6 +184,7 @@ function CustoFretePage() {
     <div className="space-y-4 p-4 sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
+          <BackButton fallbackTo="/rotas" fallbackLabel="Rotas Pendentes" className="-ml-2 mb-1" />
           <h1 className="text-2xl font-bold">Custo de Frete</h1>
           <p className="text-sm text-muted-foreground">
             Frete confirmado sobre os pedidos faturados no ciclo comercial.
