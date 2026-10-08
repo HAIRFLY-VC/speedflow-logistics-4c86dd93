@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.25.0] - 2026-10-08
+### Alterado
+- Provisionamento de frete: notas agrupadas por entrega (cliente + cidade); o frete é calculado uma vez por entrega e rateado entre as notas pelo peso (mínimo, despacho e TAS não se repetem por nota).
+### Adicionado
+- Provisionamento de frete: composição detalhada do cálculo por entrega (praça, peso cobrado, frete peso/valor, mínimo, despacho, GRIS, ad valorem, TAS, ICMS), total de mercadorias e % do frete por nota, entrega e rota.
+
 ## [1.24.5] - 2026-10-08
 ### Adicionado
 - Autorizar pagamento de frete: crítica visível na listagem quando a transportadora da rota não tem tabela de frete vigente vinculada, orientando o usuário a vincular uma tabela pelo lápis.

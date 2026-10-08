@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, Link2, Loader2, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, Link2, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { supabase } from "@/integrations/central/client";
 import {
@@ -21,9 +21,89 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { gravarProvisaoFrete, previewProvisaoFrete } from "@/lib/provisao-frete.functions";
+import type { DetalheFrete } from "@/lib/frete-simulacao";
+import type { ProvisaoEntrega } from "@/lib/provisao-frete.types";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const kg = (v: number) => v.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+const num = (v: number) => v.toLocaleString("pt-BR", { maximumFractionDigits: 4 });
+const pct = (f: number | null, m: number) =>
+  f == null || m <= 0
+    ? "—"
+    : `${((f / m) * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+
+function Composicao({ det, mercadoria }: { det: DetalheFrete; mercadoria: number }) {
+  const linhas: [string, string, number | null][] = [];
+  if (det.metodo === "praca") {
+    linhas.push(["Praça da tabela", det.praca ?? "—", null]);
+    linhas.push([
+      "Frete peso",
+      `${kg(det.peso_cobrado)} kg cobrados${det.peso_cobrado > det.peso_real ? ` (mínimo ${kg(det.peso_minimo)} kg; real ${kg(det.peso_real)} kg)` : ""} × ${brl(det.tarifa_kg)}/kg`,
+      det.frete_peso,
+    ]);
+    linhas.push(["Frete valor", `${num(det.frete_valor_perc)}% × ${brl(mercadoria)}`, det.frete_valor]);
+  } else if (det.metodo === "faixa_peso") {
+    linhas.push(["Faixa de peso", det.faixa ?? "—", null]);
+    linhas.push(["Valor fixo da faixa", "", det.valor_fixo_faixa]);
+    linhas.push(["Frete peso", `${kg(det.peso_real)} kg × ${brl(det.tarifa_kg)}/kg`, det.frete_peso]);
+  } else {
+    linhas.push(["Frete valor", `${num(det.frete_valor_perc)}% × ${brl(mercadoria)}`, det.frete_valor]);
+  }
+  linhas.push(["= Frete calculado", "", det.base_calculada]);
+  if (det.frete_minimo > 0)
+    linhas.push([
+      "Frete mínimo",
+      det.minimo_aplicado ? `aplicado (${brl(det.frete_minimo)})` : `não aplicado (${brl(det.frete_minimo)})`,
+      det.minimo_aplicado ? det.frete_minimo : null,
+    ]);
+  if (det.taxa_despacho > 0) linhas.push(["Taxa de despacho", "", det.taxa_despacho]);
+  linhas.push(["= Frete base", "", det.frete_base]);
+  linhas.push([
+    "GRIS",
+    `${num(det.gris_perc)}% × ${brl(mercadoria)}${det.gris_minimo_aplicado ? ` (mínimo ${brl(det.gris_minimo)} aplicado)` : ""}`,
+    det.gris,
+  ]);
+  linhas.push(["Ad valorem", `${num(det.ad_valorem_perc)}% × ${brl(mercadoria)}`, det.ad_valorem]);
+  linhas.push(["TAS", "", det.tas]);
+  linhas.push(["= Subtotal", "", det.subtotal]);
+  linhas.push(["ICMS (por dentro)", `subtotal ÷ (1 − ${num(det.icms_perc)}%)`, det.icms]);
+  linhas.push(["= Total da entrega", `${pct(det.total, mercadoria)} da mercadoria`, det.total]);
+  return (
+    <table className="w-full max-w-2xl text-[11px]">
+      <tbody>
+        {linhas.map(([l, f, v], i) => (
+          <tr key={i} className={l.startsWith("=") ? "border-t font-semibold" : ""}>
+            <td className="py-0.5 pr-2">{l.replace(/^= /, "")}</td>
+            <td className="py-0.5 pr-2 text-muted-foreground">{f}</td>
+            <td className="py-0.5 text-right tabular-nums">{v == null ? "" : brl(v)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function ResumoComponentes({ entregas }: { entregas: ProvisaoEntrega[] }) {
+  const ds = entregas.map((e) => e.detalhe).filter((x): x is DetalheFrete => !!x);
+  if (ds.length === 0) return null;
+  const s = (k: keyof DetalheFrete) => ds.reduce((a, d) => a + Number(d[k] || 0), 0);
+  const itens: [string, number][] = [
+    ["Frete base", s("frete_base")],
+    ["GRIS", s("gris")],
+    ["Ad valorem", s("ad_valorem")],
+    ["TAS", s("tas")],
+    ["ICMS", s("icms")],
+  ];
+  return (
+    <div className="flex flex-wrap gap-2 text-[11px]">
+      {itens.map(([l, v]) => (
+        <span key={l} className="rounded border border-border px-2 py-0.5">
+          {l}: <strong className="tabular-nums">{brl(v)}</strong>
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export function ProvisaoFreteDialog(props: {
   routeId: string | null;
@@ -43,6 +123,14 @@ export function ProvisaoFreteDialog(props: {
   });
 
   const [tabelaSel, setTabelaSel] = useState<string>("");
+  const [abertas, setAbertas] = useState<Set<string>>(new Set());
+  const toggle = (k: string) =>
+    setAbertas((s) => {
+      const n = new Set(s);
+      if (n.has(k)) n.delete(k);
+      else n.add(k);
+      return n;
+    });
 
   const d = q.data;
   // Oferece o vínculo quando a transportadora foi identificada mas não tem
@@ -171,48 +259,93 @@ export function ProvisaoFreteDialog(props: {
                 </div>
               </div>
             )}
-            <div className="max-h-[50vh] overflow-auto">
+            <div className="max-h-[55vh] overflow-auto">
               <table className="w-full text-xs">
-                <thead className="text-muted-foreground">
+                <thead className="sticky top-0 bg-background text-muted-foreground">
                   <tr className="border-b text-left">
+                    <th className="p-1 w-6"></th>
                     <th className="p-1">Filial</th>
                     <th className="p-1">NF</th>
                     <th className="p-1">Borderô</th>
-                    <th className="p-1">Cliente</th>
-                    <th className="p-1">Cidade/UF</th>
                     <th className="p-1 text-right">Peso (kg)</th>
                     <th className="p-1 text-right">Mercadoria</th>
                     <th className="p-1 text-right">Frete</th>
+                    <th className="p-1 text-right">% Frete</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {d.notas.map((n) => (
-                    <tr key={`${n.cod_filial}-${n.nro_nf}-${n.bordero}`} className="border-b">
-                      <td className="p-1">{n.cod_filial}</td>
-                      <td className="p-1">{n.nro_nf ?? "—"}</td>
-                      <td className="p-1">{n.bordero ?? "—"}</td>
-                      <td className="p-1">{n.clientes.join(", ")}</td>
-                      <td className="p-1">{[n.cidade, n.uf].filter(Boolean).join("/") || "—"}</td>
-                      <td className="p-1 text-right tabular-nums">{kg(n.peso)}</td>
-                      <td className="p-1 text-right tabular-nums">{brl(n.valor_mercadoria)}</td>
-                      <td className="p-1 text-right tabular-nums">
-                        {n.vlr_frete == null ? (
-                          <span className="text-destructive">praça não encontrada</span>
-                        ) : (
-                          brl(n.vlr_frete)
+                  {d.entregas.map((e) => {
+                    const open = abertas.has(e.chave);
+                    return (
+                      <Fragment key={e.chave}>
+                        <tr
+                          className="cursor-pointer border-b bg-muted/60 font-semibold hover:bg-muted"
+                          onClick={() => toggle(e.chave)}
+                        >
+                          <td className="p-1">
+                            {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                          </td>
+                          <td className="p-1" colSpan={3}>
+                            {e.cliente} · {[e.cidade, e.uf].filter(Boolean).join("/") || "—"}
+                            <span className="ml-1 font-normal text-muted-foreground">
+                              ({e.notas.length} nota{e.notas.length > 1 ? "s" : ""})
+                            </span>
+                          </td>
+                          <td className="p-1 text-right tabular-nums">{kg(e.peso)}</td>
+                          <td className="p-1 text-right tabular-nums">{brl(e.valor_mercadoria)}</td>
+                          <td className="p-1 text-right tabular-nums">
+                            {e.vlr_frete == null ? (
+                              <span className="text-destructive">praça não encontrada</span>
+                            ) : (
+                              brl(e.vlr_frete)
+                            )}
+                          </td>
+                          <td className="p-1 text-right tabular-nums">{pct(e.vlr_frete, e.valor_mercadoria)}</td>
+                        </tr>
+                        {open && e.detalhe && (
+                          <tr className="border-b">
+                            <td></td>
+                            <td colSpan={7} className="p-2">
+                              <Composicao det={e.detalhe} mercadoria={e.valor_mercadoria} />
+                            </td>
+                          </tr>
                         )}
-                      </td>
-                    </tr>
-                  ))}
+                        {e.notas.map((n) => (
+                          <tr key={`${n.cod_filial}-${n.nro_nf}-${n.bordero}`} className="border-b">
+                            <td></td>
+                            <td className="p-1">{n.cod_filial}</td>
+                            <td className="p-1">{n.nro_nf ?? "—"}</td>
+                            <td className="p-1">{n.bordero ?? "—"}</td>
+                            <td className="p-1 text-right tabular-nums">{kg(n.peso)}</td>
+                            <td className="p-1 text-right tabular-nums">{brl(n.valor_mercadoria)}</td>
+                            <td className="p-1 text-right tabular-nums">
+                              {n.vlr_frete == null ? "—" : brl(n.vlr_frete)}
+                            </td>
+                            <td className="p-1 text-right tabular-nums">{pct(n.vlr_frete, n.valor_mercadoria)}</td>
+                          </tr>
+                        ))}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
                 <tfoot>
-                  <tr className="font-semibold">
-                    <td className="p-1" colSpan={7}>Total provisionado</td>
+                  <tr className="border-t-2 font-semibold">
+                    <td className="p-1" colSpan={4}>Total provisionado</td>
+                    <td className="p-1 text-right tabular-nums">
+                      {kg(d.entregas.reduce((s, e) => s + e.peso, 0))}
+                    </td>
+                    <td className="p-1 text-right tabular-nums">{brl(d.total_mercadoria)}</td>
                     <td className="p-1 text-right tabular-nums">{brl(d.total)}</td>
+                    <td className="p-1 text-right tabular-nums">{pct(d.total, d.total_mercadoria)}</td>
                   </tr>
                 </tfoot>
               </table>
             </div>
+            <ResumoComponentes entregas={d.entregas} />
+            <p className="text-[11px] text-muted-foreground">
+              O frete é calculado uma vez por entrega (cliente + cidade) e rateado entre as notas
+              proporcionalmente ao peso. Clique na entrega para ver a composição.
+            </p>
           </div>
         )}
 
