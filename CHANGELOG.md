@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.24.3] - 2026-10-08
+### Corrigido
+- Botão "Voltar" agora retorna sempre à tela anterior (antes podia não responder na tela da rota).
+
 ## [1.24.2] - 2026-10-08
 ### Alterado
 - Tabelas de frete: a listagem agora mostra todas as transportadoras vinculadas a cada tabela (não só a principal), e o cadastro exibe o código do ERP entre parênteses após o nome de cada transportadora, facilitando identificar e vincular a mesma tabela a várias transportadoras.
