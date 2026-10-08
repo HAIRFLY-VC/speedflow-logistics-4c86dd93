@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.29.2] - 2026-10-08
+### Corrigido
+- Rotas montadas e expedidas entre dois Sync ERP (ex.: rota 459) passam a receber os pedidos, o borderô e o fretista do ERP e voltam a aparecer em "Autorizar pagamento de frete".
+
 ## [1.29.1] - 2026-10-08
 ### Corrigido
 - Painel Custo de Frete e card "% Frete do ciclo" voltam a exibir os dados.
