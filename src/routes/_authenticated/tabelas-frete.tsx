@@ -178,6 +178,10 @@ function emptyForm(): TabelaForm {
   };
 }
 
+/** Nome da transportadora com o código do ERP entre parênteses, quando houver. */
+const rotuloTransportadora = (t: Transportadora) =>
+  t.cod_erp ? `${t.razao_social} (${t.cod_erp})` : t.razao_social;
+
 function TabelasFretePage() {
   const qc = useQueryClient();
   const { tabela: tabelaParam } = useSearch({ from: "/_authenticated/tabelas-frete" });
@@ -387,7 +391,7 @@ function TabelasFretePage() {
         ),
       },
     ],
-    [toggle.mutate],
+    [toggle.mutate, transportadorasPorTabela],
   );
 
   return (
