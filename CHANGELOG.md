@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.28.0] - 2026-10-08
+### Adicionado
+- Provisionamento de frete: ao abrir, mostra o que já está gravado no ERP e compara com o cálculo atual.
+- Aviso de divergência e botão "Substituir pelos novos valores"; botão "Recalcular".
+### Corrigido
+- Primeira gravação do provisionamento não chama mais a marcação de substituídos (evita erro de bind no ERP).
+
 ## [1.27.4] - 2026-10-08
 ### Alterado
 - Autorizar pagamento de frete: rotas com crítica pendente deixam de mostrar o valor estimado do provisionamento — permanece só a exclamação vermelha com os motivos no popup. Valores já confirmados ou já gravados continuam aparecendo.

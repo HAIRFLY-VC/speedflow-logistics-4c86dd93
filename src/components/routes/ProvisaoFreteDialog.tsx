@@ -1,7 +1,7 @@
 import { Fragment, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, ChevronDown, ChevronRight, Link2, Loader2, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, Link2, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { supabase } from "@/integrations/central/client";
 import {
@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { definirPracaMunicipio } from "@/lib/frete-area.functions";
 import { gravarProvisaoFrete, previewProvisaoFrete } from "@/lib/provisao-frete.functions";
 import type { DetalheFrete } from "@/lib/frete-simulacao";
-import type { ProvisaoEntrega } from "@/lib/provisao-frete.types";
+import { chaveNota, type ProvisaoEntrega } from "@/lib/provisao-frete.types";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const kg = (v: number) => v.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
@@ -203,7 +203,7 @@ export function ProvisaoFreteDialog(props: {
     ) : null;
 
   const m = useMutation({
-    mutationFn: () => gravar({ data: { routeId: props.routeId! } }),
+    mutationFn: (substituir: boolean) => gravar({ data: { routeId: props.routeId!, substituir } }),
     onSuccess: (r) => {
       toast.success(`Provisionamento gravado no ERP: ${brl(r.total)} em ${r.linhas} nota(s).`);
       qc.invalidateQueries({ queryKey: ["routes"] });
@@ -212,6 +212,20 @@ export function ProvisaoFreteDialog(props: {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const g = d?.gravado ?? null;
+  const vGravado = (n: Parameters<typeof chaveNota>[0]) => g?.por_nota[chaveNota(n)];
+  const vGravadoEntrega = (e: ProvisaoEntrega) =>
+    g ? e.notas.reduce((s, n) => s + (vGravado(n) ?? 0), 0) : undefined;
+  const cGrav = (v: number | undefined, atual: number | null) => (
+    <td
+      className={`p-1 text-right tabular-nums ${
+        v != null && atual != null && Math.abs(v - atual) > 0.009 ? "font-semibold text-destructive" : ""
+      }`}
+    >
+      {v == null ? "—" : brl(v)}
+    </td>
+  );
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
@@ -234,10 +248,19 @@ export function ProvisaoFreteDialog(props: {
 
         {d && (
           <div className="space-y-3">
-            {d.ja_confirmado && (
+            {g && (
               <p className="rounded-md border border-border bg-muted p-2 text-xs">
-                Esta rota já foi confirmada. Gravar de novo substitui o provisionamento anterior no ERP.
+                Provisionamento gravado no ERP: <strong>{brl(g.total)}</strong>
+                {g.dt_provisao ? ` em ${new Date(g.dt_provisao).toLocaleString("pt-BR")}` : ""}
+                {g.usuario ? ` por ${g.usuario}` : ""}. A coluna "Calculado" mostra o cálculo pela
+                tabela de frete atual.
               </p>
+            )}
+            {g && d.divergente && (
+              <div className="flex items-center gap-1 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
+                <AlertTriangle className="h-3 w-3" /> Provisionamento gravado diverge do cálculo atual
+                (gravado {brl(g.total)} × atual {brl(d.total)}).
+              </div>
             )}
             {d.bloqueios.length > 0 && (
               <div className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
@@ -302,7 +325,8 @@ export function ProvisaoFreteDialog(props: {
                     <th className="p-1">Borderô</th>
                     <th className="p-1 text-right">Peso (kg)</th>
                     <th className="p-1 text-right">Mercadoria</th>
-                    <th className="p-1 text-right">Frete</th>
+                    {g && <th className="p-1 text-right">Gravado</th>}
+                    <th className="p-1 text-right">{g ? "Calculado" : "Frete"}</th>
                     <th className="p-1 text-right">% Frete</th>
                   </tr>
                 </thead>
@@ -326,6 +350,7 @@ export function ProvisaoFreteDialog(props: {
                           </td>
                           <td className="p-1 text-right tabular-nums">{kg(e.peso)}</td>
                           <td className="p-1 text-right tabular-nums">{brl(e.valor_mercadoria)}</td>
+                          {g && cGrav(vGravadoEntrega(e), e.vlr_frete)}
                           <td className="p-1 text-right tabular-nums">
                             {e.vlr_frete == null ? (
                               <div className="flex items-center justify-end gap-1">
@@ -341,7 +366,7 @@ export function ProvisaoFreteDialog(props: {
                         {open && e.detalhe && (
                           <tr className="border-b">
                             <td></td>
-                            <td colSpan={7} className="p-2">
+                            <td colSpan={g ? 8 : 7} className="p-2">
                               {e.detalhe.metodo === "praca" && (
                                 <div className="mb-2 flex items-center gap-2 text-[11px]">
                                   <span className="text-muted-foreground">
@@ -363,6 +388,7 @@ export function ProvisaoFreteDialog(props: {
                             <td className="p-1">{n.bordero ?? "—"}</td>
                             <td className="p-1 text-right tabular-nums">{kg(n.peso)}</td>
                             <td className="p-1 text-right tabular-nums">{brl(n.valor_mercadoria)}</td>
+                            {g && cGrav(vGravado(n), n.vlr_frete)}
                             <td className="p-1 text-right tabular-nums">
                               {n.vlr_frete == null ? "—" : brl(n.vlr_frete)}
                             </td>
@@ -380,6 +406,7 @@ export function ProvisaoFreteDialog(props: {
                       {kg(d.entregas.reduce((s, e) => s + e.peso, 0))}
                     </td>
                     <td className="p-1 text-right tabular-nums">{brl(d.total_mercadoria)}</td>
+                    {g && cGrav(g.total, d.total)}
                     <td className="p-1 text-right tabular-nums">{brl(d.total)}</td>
                     <td className="p-1 text-right tabular-nums">{pct(d.total, d.total_mercadoria)}</td>
                   </tr>
@@ -398,13 +425,35 @@ export function ProvisaoFreteDialog(props: {
           <Button variant="outline" onClick={() => props.onOpenChange(false)}>
             Fechar
           </Button>
-          <Button
-            disabled={!d || d.bloqueios.length > 0 || m.isPending}
-            onClick={() => m.mutate()}
-          >
-            {m.isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-1 h-4 w-4" />}
-            Gravar provisionamento no ERP
-          </Button>
+          {d && (
+            <Button variant="secondary" disabled={q.isFetching} onClick={() => q.refetch()}>
+              <RefreshCw className={`mr-1 h-4 w-4 ${q.isFetching ? "animate-spin" : ""}`} />
+              Recalcular
+            </Button>
+          )}
+          {d && !g && (
+            <Button disabled={d.bloqueios.length > 0 || m.isPending} onClick={() => m.mutate(false)}>
+              {m.isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-1 h-4 w-4" />}
+              Gravar provisionamento no ERP
+            </Button>
+          )}
+          {d && g && d.divergente && (
+            <Button
+              variant="destructive"
+              disabled={d.bloqueios.length > 0 || m.isPending}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    `Substituir o provisionamento gravado (${brl(g.total)}) pelos novos valores (${brl(d.total)})?`,
+                  )
+                )
+                  m.mutate(true);
+              }}
+            >
+              {m.isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-1 h-4 w-4" />}
+              Substituir pelos novos valores
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
