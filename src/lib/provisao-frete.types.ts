@@ -12,8 +12,6 @@ export type ProvisaoEntrega = {
   vlr_frete: number | null;
   detalhe: DetalheFrete | null;
   notas: ProvisaoNota[];
-  entregas: ProvisaoEntrega[];
-  total_mercadoria: number;
 };
 
 export type ProvisaoNota = {

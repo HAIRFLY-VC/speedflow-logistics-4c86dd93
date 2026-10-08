@@ -146,7 +146,7 @@ async function calcular(routeId: string): Promise<Calculo> {
   for (const n of notas) {
     const cli = n.clientes[0] ?? "—";
     const k = `${cli}|${n.cidade ?? ""}|${n.uf ?? ""}`;
-    const e = porEntrega.get(k) ?? {
+    const e: ProvisaoEntrega = porEntrega.get(k) ?? {
       chave: k, cliente: cli, cidade: n.cidade, uf: n.uf, peso: 0, valor_mercadoria: 0,
       vlr_frete: null, detalhe: null, notas: [],
     };
