@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.24.1] - 2026-10-08
+### Alterado
+- Provisionamento de frete: o ID de cada linha gravada no ERP agora é obtido pelo app via `SEQ_PROVISAO_FRETE.NEXTVAL` antes do insert — a tabela não precisa mais de trigger. Novo script Oracle v3 (db/erp/2026-10-08_a_ger_provisao_frete_v3.sql) e o comando `insert_provisao_frete` passa a receber o bind `id`.
+
 ## [1.24.0] - 2026-10-08
 ### Adicionado
 - Autorizar pagamento de frete: rotas de transportadora abrem o "Provisionar frete", que calcula o custo por nota fiscal pela tabela de frete vigente e grava no ERP (GKS.A_GER_PROVISAO_FRETE) com a memória de cálculo; ao gravar, a rota fica "Confirmado".
