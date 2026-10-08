@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.26.0] - 2026-10-08
+### Adicionado
+- Provisionamento de frete: escolha da praça da tabela para cidades não encontradas (e troca na composição da entrega); a escolha é gravada na tabela e passa a valer para próximas rotas e auditorias de CT-e.
+
 ## [1.25.0] - 2026-10-08
 ### Alterado
 - Provisionamento de frete: notas agrupadas por entrega (cliente + cidade); o frete é calculado uma vez por entrega e rateado entre as notas pelo peso (mínimo, despacho e TAS não se repetem por nota).

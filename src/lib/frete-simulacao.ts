@@ -5,6 +5,7 @@
 import { acharRotaPorMunicipio } from "@/lib/frete-area";
 
 export type TabelaRotaSim = {
+  id?: string;
   destino: string | null;
   origem?: string | null;
   observacao?: string | null;
@@ -56,6 +57,8 @@ const round2 = (v: number) => Math.round(v * 100) / 100;
 export type DetalheFrete = {
   metodo: "praca" | "faixa_peso" | "percentual_valor";
   praca: string | null;
+  praca_id: string | null;
+  praca_origem: string | null;
   peso_real: number;
   peso_minimo: number;
   peso_cobrado: number;
@@ -87,7 +90,7 @@ export type DetalheFrete = {
 export function detalharEntrega(tabela: TabelaSim, entrega: EntregaSim): DetalheFrete | null {
   const rotas = tabela.tabelas_preco_frete_rotas ?? [];
   const d: DetalheFrete = {
-    metodo: "percentual_valor", praca: null, peso_real: entrega.peso, peso_minimo: 0,
+    metodo: "percentual_valor", praca: null, praca_id: null, praca_origem: null, peso_real: entrega.peso, peso_minimo: 0,
     peso_cobrado: entrega.peso, tarifa_kg: 0, frete_peso: 0, frete_valor_perc: 0, frete_valor: 0,
     faixa: null, valor_fixo_faixa: 0, base_calculada: 0, frete_minimo: 0, minimo_aplicado: false,
     taxa_despacho: 0, frete_base: 0, gris_perc: 0, gris_minimo: 0, gris: 0,
@@ -96,9 +99,11 @@ export function detalharEntrega(tabela: TabelaSim, entrega: EntregaSim): Detalhe
   };
 
   if (rotas.length > 0) {
-    const { index } = acharRotaPorMunicipio(rotas, entrega.municipio);
+    const { index, origem } = acharRotaPorMunicipio(rotas, entrega.municipio);
     if (index < 0) return null;
     const r = rotas[index]!;
+    d.praca_id = r.id ?? null;
+    d.praca_origem = origem;
     d.metodo = "praca";
     d.praca = [r.origem, r.destino].filter(Boolean).join(" → ") || null;
     d.peso_minimo = n(r.peso_minimo_kg);
