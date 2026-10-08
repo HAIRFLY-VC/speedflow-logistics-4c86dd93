@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.28.1] - 2026-10-08
+### Alterado
+- Card "Pedidos pendentes sem rota" (Rotas Pendentes): os rótulos e valores de Pedidos e Entregas agora ficam alinhados à direita, com mais espaço entre as colunas, para melhorar a leitura.
+
 ## [1.28.0] - 2026-10-08
 ### Adicionado
 - Provisionamento de frete: ao abrir, mostra o que já está gravado no ERP e compara com o cálculo atual.

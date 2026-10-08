@@ -2224,7 +2224,7 @@ export function RotasView({
                       {weightFmt.format(resumoSemRota.peso)} kg
                     </p>
                   </div>
-                  <div>
+                  <div className="text-right">
                     <p className="text-[11px] text-muted-foreground">Entregas</p>
                     <p className="whitespace-nowrap text-sm font-bold tabular-nums">
                       {resumoSemRota.entregas.toLocaleString("pt-BR")}
