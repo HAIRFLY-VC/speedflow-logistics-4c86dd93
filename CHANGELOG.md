@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.27.1] - 2026-10-08
+### Corrigido
+- Tabelas de frete: diálogo "Nova tabela de preço" maximizado (quase tela cheia) e grade de preços por origem/destino ajustada para caber sem rolagem lateral.
+
 ## [1.27.0] - 2026-10-08
 ### Adicionado
 - Transportadoras: "Atualizar cadastro do ERP" passa a importar todas as transportadoras (natureza ET) do ERP que ainda não estão no cadastro, sem sobrescrever dados bancários ou tabela de frete.
