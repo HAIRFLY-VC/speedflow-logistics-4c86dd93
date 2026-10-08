@@ -127,6 +127,50 @@ export function ProvisaoFreteDialog(props: {
                 ))}
               </div>
             )}
+            {semTabela && (
+              <div className="space-y-2 rounded-md border border-border bg-muted/40 p-3">
+                <p className="text-xs text-muted-foreground">
+                  A transportadora <strong>{d.transportadora!.razao_social}</strong> não tem tabela
+                  de frete vigente. Selecione uma tabela existente para vinculá-la e calcular o
+                  provisionamento.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Select value={tabelaSel} onValueChange={setTabelaSel}>
+                    <SelectTrigger className="h-8 flex-1 text-xs">
+                      <SelectValue
+                        placeholder={
+                          tabelasQ.isLoading ? "Carregando tabelas…" : "Selecione a tabela de frete"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(tabelasQ.data ?? []).map((t) => (
+                        <SelectItem key={t.id} value={t.id} className="text-xs">
+                          {t.nome} · desde{" "}
+                          {new Date(`${t.data_inicio}T00:00:00`).toLocaleDateString("pt-BR")}
+                          {t.data_fim
+                            ? ` até ${new Date(`${t.data_fim}T00:00:00`).toLocaleDateString("pt-BR")}`
+                            : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!tabelaSel || vincular.isPending}
+                    onClick={() => vincular.mutate()}
+                  >
+                    {vincular.isPending ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Link2 className="mr-1 h-4 w-4" />
+                    )}
+                    Vincular tabela
+                  </Button>
+                </div>
+              </div>
+            )}
             <div className="max-h-[50vh] overflow-auto">
               <table className="w-full text-xs">
                 <thead className="text-muted-foreground">
