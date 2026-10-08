@@ -2065,6 +2065,7 @@ export function RotasView({
       depot,
       paradasPorRota,
       estimativas,
+      estimadoExibivel,
       freteOf,
       borderoDaRota,
       role,

@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.27.4] - 2026-10-08
+### Alterado
+- Autorizar pagamento de frete: rotas com crítica pendente deixam de mostrar o valor estimado do provisionamento — permanece só a exclamação vermelha com os motivos no popup. Valores já confirmados ou já gravados continuam aparecendo.
+
 ## [1.27.3] - 2026-10-08
 ### Alterado
 - Autorizar pagamento de frete: as críticas de provisionamento não ocupam mais linhas de texto na coluna Frete — aparece apenas uma exclamação vermelha, e o detalhe continua no popup ao posicionar o mouse.
