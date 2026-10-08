@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.29.1] - 2026-10-08
+### Corrigido
+- Painel Custo de Frete e card "% Frete do ciclo" voltam a exibir os dados.
+- Painel Custo de Frete passa a ter sempre o botão "Voltar".
+
 ## [1.29.0] - 2026-10-08
 ### Adicionado
 - Rotas Pendentes: card "% Frete do ciclo" com o frete confirmado sobre os pedidos faturados no ciclo comercial atual.

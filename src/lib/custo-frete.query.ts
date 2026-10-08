@@ -42,7 +42,7 @@ export type LinhaCustoFrete = {
 };
 
 const PAGINA = 1000;
-const LOTE = 200;
+const LOTE = 150;
 
 async function emLotes<T, R>(itens: T[], fn: (lote: T[]) => Promise<R[]>): Promise<R[]> {
   const out: R[] = [];
@@ -74,7 +74,8 @@ export async function carregarCustoFrete(ciclo: CicloComercial): Promise<LinhaCu
   const codPedidos = Array.from(new Set(entregas.map((e) => e.cod_pedido)));
 
   // Pedido -> rotas
-  type Ord = { order_number: string; route_orders: { route_id: string }[] | null };
+  type Ord = { order_number: string; route_orders: { route_id: string }[] | { route_id: string } | null };
+  const rosDe = (o: Ord) => (Array.isArray(o.route_orders) ? o.route_orders : o.route_orders ? [o.route_orders] : []);
   const ords = await emLotes(codPedidos, async (lote) => {
     const { data, error } = await supabase
       .from("orders")
@@ -83,7 +84,7 @@ export async function carregarCustoFrete(ciclo: CicloComercial): Promise<LinhaCu
     if (error) throw error;
     return (data ?? []) as unknown as Ord[];
   });
-  const rotaIds = Array.from(new Set(ords.flatMap((o) => (o.route_orders ?? []).map((r) => r.route_id))));
+  const rotaIds = Array.from(new Set(ords.flatMap((o) => rosDe(o).map((r) => r.route_id))));
 
   type Rota = { id: string; code: string; erp_route_id: string | null; total_freight: number | null; frete_confirmado_em: string | null; erp_carrier_code: string | null; driver_name: string | null };
   const rotas = await emLotes(rotaIds, async (lote) => {
@@ -119,7 +120,7 @@ export async function carregarCustoFrete(ciclo: CicloComercial): Promise<LinhaCu
   // Frete por pedido e rota do pedido
   const fretePedido = new Map<string, { frete: number; rota: Rota }>();
   for (const o of ords) {
-    for (const ro of o.route_orders ?? []) {
+    for (const ro of rosDe(o)) {
       const rota = rotaPorId.get(ro.route_id);
       if (!rota) continue;
       const tot = totalRota.get(rota.id) ?? 0;

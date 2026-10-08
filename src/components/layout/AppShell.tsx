@@ -269,6 +269,6 @@ function MenuGuard({ children }: { children: ReactNode }) {
 
 function GlobalBack() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  if (isDetailPath(pathname)) return null;
+  if (isDetailPath(pathname) || pathname === "/custo-frete") return null;
   return <BackButton className="-ml-2 mb-2" />;
 }
