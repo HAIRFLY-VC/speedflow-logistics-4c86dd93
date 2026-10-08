@@ -272,6 +272,34 @@ function TabelasFretePage() {
       },
       { id: "nome", header: "Tabela", accessor: (t) => t.nome },
       {
+        id: "transportadoras",
+        header: "Transportadoras",
+        accessor: (t) =>
+          (transportadorasPorTabela.get(t.id) ?? []).map((x) => x.razao_social).join(", "),
+        render: (t) => {
+          const lista = transportadorasPorTabela.get(t.id) ?? [];
+          if (lista.length === 0)
+            return <span className="text-xs text-muted-foreground">—</span>;
+          const [primeira, ...resto] = lista;
+          return (
+            <div className="flex flex-wrap items-center gap-1">
+              <Badge variant="secondary" className="text-[10px] font-normal">
+                {rotuloTransportadora(primeira)}
+              </Badge>
+              {resto.length > 0 && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-normal"
+                  title={resto.map((x) => rotuloTransportadora(x)).join(", ")}
+                >
+                  +{resto.length}
+                </Badge>
+              )}
+            </div>
+          );
+        },
+      },
+      {
         id: "vigencia",
         header: "Vigência",
         accessor: (t) => t.data_inicio,
