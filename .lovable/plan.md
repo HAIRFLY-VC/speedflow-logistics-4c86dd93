@@ -1,26 +1,32 @@
-# Transportadoras: importar também pelo Sync ERP
+# Tela "Nova tabela de preço" maximizada e sem rolagem lateral
 
-## Diagnóstico
-- O cadastro continua com só 1 transportadora porque a importação da v1.27.0 só roda pelo botão "Atualizar cadastro do ERP" desta tela, e ele não foi chamado. O que rodou foi o "Sync ERP" do topo, que não importa transportadoras.
-- O ERP tem 28 transportadoras (natureza ET), todas com CNPJ preenchido, então todas podem ser importadas.
+Classificação: **PATCH** (v1.27.1) — ajuste visual, sem mudança de comportamento, banco ou integrações.
 
-Classificação: PATCH (v1.27.1).
+## Problema
+O diálogo "Nova tabela de preço" (`src/routes/_authenticated/tabelas-frete.tsx`) usa largura fixa `max-w-3xl` e a grade "Preços por origem e destino" força `min-w-[900px]`, causando rolagem horizontal dentro do modal.
 
-## O que muda
-- O "Sync ERP" do topo passa a importar as transportadoras, igual ao botão "Atualizar cadastro do ERP". A tela Transportadoras é atualizada ao terminar.
-- Depois da aprovação, rodo a importação uma vez para a lista já mostrar as 28, sem precisar clicar em nada.
-- Continua sem sobrescrever nome, CNPJ, banco ou tabela de frete das que já existem.
+## Mudanças (somente `src/routes/_authenticated/tabelas-frete.tsx`)
+
+1. **Diálogo maximizado**
+   - `DialogContent`: de `max-w-3xl` para `w-[96vw] max-w-[1400px] max-h-[92vh] overflow-y-auto`, aproveitando quase toda a tela em monitores desktop.
+
+2. **Grade "Preços por origem e destino" sem rolagem lateral**
+   - Remover `min-w-[900px]` e `overflow-x-auto` do cabeçalho e das linhas.
+   - Redistribuir as 11 colunas com frações menores e `min-w-0`, inputs com `h-8 px-2 text-xs` para caberem na largura disponível.
+   - Cabeçalhos com `text-[11px]` e quebra em duas linhas quando necessário.
+
+3. **Demais seções**
+   - Manter o grid de 3 colunas dos campos gerais (já se adapta); garantir `min-w-0` nos containers para evitar estouro.
+   - Grade "Faixas de peso" já cabe; apenas garantir consistência de tamanho dos inputs.
+
+4. **Versionamento**
+   - `src/config/version.ts` → 1.27.1 e entrada no `CHANGELOG.md` (### Corrigido: diálogo de tabela de preço maximizado e sem rolagem lateral).
 
 ## Riscos
-- Insere cerca de 27 transportadoras reais do ERP no cadastro compartilhado (teste e oficial). A SOLUTION aparece com 5 CNPJs de filiais diferentes e vai virar 5 cadastros; os nomes vêm cortados em 30 letras, editáveis pelo lápis.
-
-## Detalhes técnicos
-- Extrair a lógica de `importarTransportadorasErp` para um helper server-only (`transportadoras-erp.server.ts`) usado pela server function e por `syncErpOrders` em `erp-sync.server.ts` (falha na importação não derruba o sync; vai para os erros do sync).
-- `ErpSyncButton` invalida `["transportadoras"]` ao concluir.
-- Execução única da importação via script com a chave do banco central.
-- Atualizar `version.ts` e `CHANGELOG.md`.
+- Nenhum risco a banco, ERP ou versão publicada: apenas classes de layout em um componente.
 
 ## Checklist para publicar
-- Abrir Transportadoras e conferir as 28; clicar em Sync ERP e confirmar que não duplica.
-- Sem migração nem flags.
-- Reverter: versão 1.27.0; transportadoras importadas podem ser desativadas na tela.
+- Testar no preview: abrir "Nova tabela" e "Editar tabela", conferir que não há rolagem horizontal e que todos os campos aparecem.
+- Migrações: nenhuma.
+- Flags: nenhuma.
+- Reversão: voltar à versão anterior no histórico do Lovable.
