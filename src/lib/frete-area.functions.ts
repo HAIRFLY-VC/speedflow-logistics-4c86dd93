@@ -110,7 +110,7 @@ export const definirPracaMunicipio = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z
       .object({
-        cteId: z.string().uuid(),
+        cteId: z.string().uuid().optional(),
         rotaId: z.string().uuid(),
         municipio: z.string().min(2).max(120),
       })
@@ -151,6 +151,6 @@ export const definirPracaMunicipio = createServerFn({ method: "POST" })
       .eq("id", rota.id);
     if (upErr) throw new Error(upErr.message);
 
-    const outcome = await auditCte(centralDb, data.cteId);
+    const outcome = data.cteId ? await auditCte(centralDb, data.cteId) : null;
     return { ok: true, outcome };
   });

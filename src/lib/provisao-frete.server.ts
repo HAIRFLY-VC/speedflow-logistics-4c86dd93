@@ -192,6 +192,10 @@ async function calcular(routeId: string): Promise<Calculo> {
     rota: pv.rota,
     transportadora,
     tabela: tabela ? { id: tabela.id, nome: tabela.nome } : null,
+    pracas: (tabela?.tabelas_preco_frete_rotas ?? [])
+      .filter((r) => r.id && r.destino)
+      .map((r) => ({ id: r.id!, destino: r.destino! }))
+      .sort((a, b) => a.destino.localeCompare(b.destino)),
     notas,
     entregas,
     total_mercadoria: round2(notas.reduce((s, n) => s + n.valor_mercadoria, 0)),

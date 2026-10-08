@@ -34,6 +34,8 @@ export type PreviewProvisao = {
   rota: string;
   transportadora: { id: string; razao_social: string; cod_erp: string | null } | null;
   tabela: { id: string; nome: string } | null;
+  /** Praças da tabela (quando ela é por praça). */
+  pracas: { id: string; destino: string }[];
   notas: ProvisaoNota[];
   entregas: ProvisaoEntrega[];
   total_mercadoria: number;
