@@ -66,6 +66,31 @@ async function calcular(routeId: string): Promise<Calculo> {
     const t = data?.[0];
     if (t) transportadora = { id: t.id, razao_social: t.razao_social, cod_erp: t.cod_erp ?? null };
   }
+  // O código do responsável da rota (a_cadctipo) pode ser diferente do código
+  // do cadastro da transportadora. Nesse caso, localiza pelo CNPJ do responsável.
+  if (!transportadora && cod) {
+    const r = await chamarErp("/v1/query", {
+      sql: "select t.dba_tip_cgc_cpf as cnpj from gks.a_cadctipo t where t.dba_tip_codigo_1 = :cod",
+      binds: { cod: Number(cod) },
+      limit: 1,
+    });
+    const row = ((r["rows"] as Record<string, unknown>[] | undefined) ?? [])[0] ?? {};
+    const cnpj = String(row["CNPJ"] ?? row["cnpj"] ?? "").replace(/\D/g, "");
+    if (cnpj) {
+      const { data } = await centralDb
+        .from("transportadoras")
+        .select("id, razao_social, cod_erp, cnpj")
+        .not("cnpj", "is", null);
+      // O responsável da rota pode ser uma filial: compara CNPJ completo e,
+      // em seguida, a raiz (8 primeiros dígitos).
+      const t = (data ?? []).find(
+        (x) => String(x.cnpj ?? "").replace(/\D/g, "") === cnpj,
+      ) ?? (data ?? []).find(
+        (x) => String(x.cnpj ?? "").replace(/\D/g, "").slice(0, 8) === cnpj.slice(0, 8),
+      );
+      if (t) transportadora = { id: t.id, razao_social: t.razao_social, cod_erp: t.cod_erp ?? null };
+    }
+  }
   if (!transportadora) bloqueios.push("Transportadora da rota não encontrada no cadastro.");
 
   let tabela: TabelaSim | null = null;
