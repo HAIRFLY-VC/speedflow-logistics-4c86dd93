@@ -1418,6 +1418,22 @@ export function RotasView({
     cidadeCliente,
   ]);
 
+  /** Rotas tipo T cuja transportadora não tem tabela de frete vigente vinculada. */
+  const rotasSemTabela = useMemo(() => {
+    const set = new Set<string>();
+    const tabelas = tabelasQ.data ?? [];
+    const vinculos = vinculosQ.data ?? [];
+    if (!tabelas.length) return set;
+    for (const r of data ?? []) {
+      if (tipoFreteOf(r) !== "T") continue;
+      const transportadoraId = transpPorRota.get(r.id)?.id;
+      if (!transportadoraId) continue;
+      if (!tabelaVigenteDaTransportadora(tabelas, vinculos, transportadoraId)) set.add(r.id);
+    }
+    return set;
+    // `tipoFreteOf` depende das consultas ao ERP (naturezas/responsáveis).
+  }, [data, tabelasQ.data, vinculosQ.data, transpPorRota, responsavelPorRota]);
+
   /** Borderô por pedido, vindo do espelho de entregas do ERP. */
   const pedidosDaTela = useMemo(() => {
     const set = new Set<string>();
