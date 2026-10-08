@@ -4,23 +4,31 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NAV } from "@/lib/menu-items";
 
-/** Histórico em memória dos caminhos visitados nesta sessão do app. */
+/** Histórico em memória das telas visitadas nesta sessão (endereço completo). */
 let stack: string[] = [];
 let installed = false;
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
+const pathOf = (href: string) => href.split(/[?#]/)[0];
+
 function install(router: ReturnType<typeof useRouter>) {
   if (installed) return;
   installed = true;
-  stack = [router.state.location.pathname];
+  const loc = router.state.location;
+  stack = [loc.pathname + (loc.searchStr ?? "")];
   router.subscribe("onResolved", (e) => {
+    const href = e.toLocation.pathname + (e.toLocation.searchStr ?? "");
     const p = e.toLocation.pathname;
     const top = stack[stack.length - 1];
-    if (p === top) return;
-    // Voltar do navegador/botão: retira a entrada atual da pilha.
-    if (stack.length > 1 && stack[stack.length - 2] === p) stack = stack.slice(0, -1);
-    else stack = [...stack, p];
+    if (top && pathOf(top) === p) {
+      // Mesma tela (só mudou filtro/parâmetro): atualiza o topo.
+      if (top !== href) stack = [...stack.slice(0, -1), href];
+      return;
+    }
+    if (stack.length > 1 && pathOf(stack[stack.length - 2]) === p) {
+      stack = [...stack.slice(0, -2), href];
+    } else stack = [...stack, href];
     emit();
   });
 }
@@ -38,9 +46,9 @@ export function useTrackNavigation() {
   useEffect(() => install(router), [router]);
 }
 
-function labelFor(path: string | null): string | null {
-  if (!path) return null;
-  const clean = path.replace(/\/+$/, "") || "/";
+function labelFor(href: string | null): string | null {
+  if (!href) return null;
+  const clean = pathOf(href).replace(/\/+$/, "") || "/";
   const item = NAV.find((i) => i.url === clean);
   if (item) return item.title;
   if (clean.startsWith("/pedidos/")) return "Pedido";
@@ -69,7 +77,12 @@ export function BackButton({ fallbackTo, fallbackLabel, className }: Props) {
   if (prev) {
     const label = labelFor(prev);
     return (
-      <Button variant="ghost" size="sm" className={className} onClick={() => router.history.back()}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={className}
+        onClick={() => void router.navigate({ href: prev })}
+      >
         <ArrowLeft className="mr-1 h-4 w-4" />
         {label ? `Voltar para ${label}` : "Voltar"}
       </Button>
