@@ -29,10 +29,12 @@ export const previewProvisaoFrete = createServerFn({ method: "POST" })
 
 export const gravarProvisaoFrete = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(input)
+  .inputValidator((i: unknown) =>
+    z.object({ routeId: z.string().uuid(), substituir: z.boolean().optional() }).parse(i),
+  )
   .handler(async ({ data, context }) => {
     const ctx = context as unknown as Ctx;
     await podeAutorizar(ctx);
     const { gravarProvisao } = await import("./provisao-frete.server");
-    return gravarProvisao(data.routeId, ctx.claims?.email ?? ctx.userId);
+    return gravarProvisao(data.routeId, ctx.claims?.email ?? ctx.userId, !!data.substituir);
   });

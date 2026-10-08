@@ -9,7 +9,13 @@ import {
   tabelaVigenteDaTransportadora,
   type TabelaSim,
 } from "./frete-simulacao";
-import type { PreviewProvisao, ProvisaoEntrega, ProvisaoNota } from "./provisao-frete.types";
+import {
+  chaveNota,
+  type PreviewProvisao,
+  type ProvisaoEntrega,
+  type ProvisaoGravada,
+  type ProvisaoNota,
+} from "./provisao-frete.types";
 
 const round2 = (v: number) => Math.round(v * 100) / 100;
 
@@ -44,6 +50,40 @@ async function chamarErp(path: string, body: unknown): Promise<Record<string, un
   } finally {
     clearTimeout(t);
   }
+}
+
+/** Provisionamento ativo (status 'A') já gravado no ERP para a rota. */
+async function consultarProvisaoGravada(idRota: number): Promise<ProvisaoGravada | null> {
+  const r = await chamarErp("/v1/query", {
+    sql: `select cod_filial, nro_nf, bordero, vlr_frete, to_char(dt_provisao,'yyyy-mm-dd"T"hh24:mi:ss') dt_provisao, usuario
+            from gks.a_ger_provisao_frete where id_rota = :id and status = 'A'`,
+    binds: { id: idRota },
+    limit: 5000,
+  });
+  const rows = (r["rows"] as Record<string, unknown>[] | undefined) ?? [];
+  if (rows.length === 0) return null;
+  const g = (o: Record<string, unknown>, k: string) => o[k.toUpperCase()] ?? o[k];
+  const por_nota: Record<string, number> = {};
+  let dt: string | null = null;
+  let usuario: string | null = null;
+  for (const o of rows) {
+    const k = chaveNota({
+      cod_filial: Number(g(o, "cod_filial")),
+      nro_nf: Number(g(o, "nro_nf")),
+      bordero: Number(g(o, "bordero")),
+    });
+    por_nota[k] = round2((por_nota[k] ?? 0) + Number(g(o, "vlr_frete") ?? 0));
+    const d = g(o, "dt_provisao");
+    if (d && (!dt || String(d) > dt)) dt = String(d);
+    const u = g(o, "usuario");
+    if (u) usuario = String(u);
+  }
+  return {
+    total: round2(Object.values(por_nota).reduce((a, v) => a + v, 0)),
+    dt_provisao: dt,
+    usuario,
+    por_nota,
+  };
 }
 
 type Calculo = PreviewProvisao & { _tabela: TabelaSim | null };
@@ -186,6 +226,21 @@ async function calcular(routeId: string): Promise<Calculo> {
       bloqueios.push("Há notas sem número de NF ou borderô.");
   }
 
+  let gravado: ProvisaoGravada | null = null;
+  if (pv.erp_route_id) {
+    try {
+      gravado = await consultarProvisaoGravada(Number(pv.erp_route_id));
+    } catch (e) {
+      bloqueios.push(`Não foi possível consultar o provisionamento gravado: ${(e as Error).message}`);
+    }
+  }
+  const total = round2(notas.reduce((s, n) => s + (n.vlr_frete ?? 0), 0));
+  const divergente =
+    !!gravado &&
+    (Math.abs(gravado.total - total) > 0.009 ||
+      notas.length !== Object.keys(gravado.por_nota).length ||
+      notas.some((n) => Math.abs((gravado!.por_nota[chaveNota(n)] ?? -1) - (n.vlr_frete ?? 0)) > 0.009));
+
   return {
     route_id: pv.route_id,
     erp_route_id: pv.erp_route_id,
@@ -199,9 +254,11 @@ async function calcular(routeId: string): Promise<Calculo> {
     notas,
     entregas,
     total_mercadoria: round2(notas.reduce((s, n) => s + n.valor_mercadoria, 0)),
-    total: round2(notas.reduce((s, n) => s + (n.vlr_frete ?? 0), 0)),
+    total,
     bloqueios,
     ja_confirmado: pv.ja_confirmado,
+    gravado,
+    divergente,
     _tabela: tabela,
   };
 }
@@ -215,6 +272,7 @@ export async function previewProvisao(routeId: string): Promise<PreviewProvisao>
 export async function gravarProvisao(
   routeId: string,
   usuario: string,
+  substituir = false,
 ): Promise<{ total: number; linhas: number }> {
   const c = await calcular(routeId);
   if (c.bloqueios.length > 0) throw new Error(c.bloqueios.join(" "));
@@ -222,10 +280,21 @@ export async function gravarProvisao(
   const idRota = Number(c.erp_route_id);
   const t = c._tabela!;
 
-  // Reprovisionamento: marca as linhas anteriores como substituídas.
-  await chamarErp("/v1/execute/update_status_provisao", {
-    binds: { status: "S", id_rota: idRota },
-  });
+  if (c.gravado && !substituir)
+    throw new Error("Esta rota já tem provisionamento gravado. Use \"Substituir pelos novos valores\".");
+  // Substituição: marca as linhas anteriores como substituídas. Na primeira
+  // gravação não há o que substituir, então o passo é pulado.
+  if (c.gravado) {
+    try {
+      await chamarErp("/v1/execute/update_status_provisao", {
+        binds: { status: "S", id_rota: idRota },
+      });
+    } catch (e) {
+      throw new Error(
+        `Não foi possível substituir o provisionamento anterior (update_status_provisao deve aceitar os binds status e id_rota). ${(e as Error).message}`,
+      );
+    }
+  }
 
   // O ID de cada linha vem da sequência do ERP (sem trigger na tabela).
   const proximoId = async (): Promise<number> => {

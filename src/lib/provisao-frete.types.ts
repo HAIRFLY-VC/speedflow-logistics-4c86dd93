@@ -43,4 +43,19 @@ export type PreviewProvisao = {
   /** Motivos que impedem a gravação. */
   bloqueios: string[];
   ja_confirmado: boolean;
+  /** Provisionamento ativo já gravado no ERP (null quando não existe). */
+  gravado: ProvisaoGravada | null;
+  /** Gravado difere do cálculo atual (total ou alguma nota). */
+  divergente: boolean;
 };
+
+export type ProvisaoGravada = {
+  total: number;
+  dt_provisao: string | null;
+  usuario: string | null;
+  /** Frete gravado por nota, chave `filial|nf|borderô`. */
+  por_nota: Record<string, number>;
+};
+
+export const chaveNota = (n: { cod_filial: string | number; nro_nf: string | number | null; bordero: string | number | null }) =>
+  `${Number(n.cod_filial)}|${Number(n.nro_nf ?? 0)}|${Number(n.bordero ?? 0)}`;
