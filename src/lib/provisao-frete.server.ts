@@ -76,14 +76,17 @@ async function calcular(routeId: string): Promise<Calculo> {
     });
     const row = ((r["rows"] as Record<string, unknown>[] | undefined) ?? [])[0] ?? {};
     const cnpj = String(row["CNPJ"] ?? row["cnpj"] ?? "").replace(/\D/g, "");
-    console.log("[provisao] resp", cod, "cnpj:", cnpj || "(vazio)", "row:", JSON.stringify(row));
     if (cnpj) {
       const { data } = await centralDb
         .from("transportadoras")
         .select("id, razao_social, cod_erp, cnpj")
         .not("cnpj", "is", null);
+      // O responsável da rota pode ser uma filial: compara CNPJ completo e,
+      // em seguida, a raiz (8 primeiros dígitos).
       const t = (data ?? []).find(
         (x) => String(x.cnpj ?? "").replace(/\D/g, "") === cnpj,
+      ) ?? (data ?? []).find(
+        (x) => String(x.cnpj ?? "").replace(/\D/g, "").slice(0, 8) === cnpj.slice(0, 8),
       );
       if (t) transportadora = { id: t.id, razao_social: t.razao_social, cod_erp: t.cod_erp ?? null };
     }
