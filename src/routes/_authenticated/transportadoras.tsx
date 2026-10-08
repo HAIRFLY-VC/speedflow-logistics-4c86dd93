@@ -205,13 +205,20 @@ function TransportadorasPage() {
 
   const buscarCodErp = useServerFn(buscarCodErpTransportadora);
   const sincronizarCadastro = useServerFn(sincronizarResponsaveisErp);
+  const importarTransportadoras = useServerFn(importarTransportadorasErp);
   const [buscandoId, setBuscandoId] = useState<string | null>(null);
 
   const atualizarCadastro = useMutation({
-    mutationFn: () => sincronizarCadastro(),
+    mutationFn: async () => {
+      const [, imp] = await Promise.all([sincronizarCadastro(), importarTransportadoras()]);
+      return imp;
+    },
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ["erp-responsaveis"] });
-      toast.success(`${r.atualizados} responsáveis atualizados a partir do ERP`);
+      qc.invalidateQueries({ queryKey: ["transportadoras"] });
+      toast.success(`${r.criadas} transportadora(s) criada(s), ${r.atualizadas} atualizada(s) a partir do ERP`);
+      if (r.ignoradas.length > 0)
+        toast.warning(`Não importadas (sem CNPJ no ERP): ${r.ignoradas.slice(0, 5).join(", ")}${r.ignoradas.length > 5 ? "…" : ""}`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
