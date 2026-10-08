@@ -208,6 +208,36 @@ function TabelasFretePage() {
     },
   });
 
+  // Vínculos N:N: quais transportadoras usam cada tabela (além da principal).
+  const { data: vinculos } = useQuery({
+    queryKey: ["tabelas-frete", "vinculos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .select("tabela_id, transportadora_id");
+      if (error) throw error;
+      return data as { tabela_id: string; transportadora_id: string }[];
+    },
+  });
+
+  const transportadorasPorTabela = useMemo(() => {
+    const porId = new Map((transportadoras ?? []).map((t) => [t.id, t]));
+    const mapa = new Map<string, Transportadora[]>();
+    for (const t of data ?? []) {
+      const ids = new Set<string>([t.transportadora_id]);
+      (vinculos ?? [])
+        .filter((v) => v.tabela_id === t.id)
+        .forEach((v) => ids.add(v.transportadora_id));
+      mapa.set(
+        t.id,
+        Array.from(ids)
+          .map((id) => porId.get(id))
+          .filter((t): t is Transportadora => !!t),
+      );
+    }
+    return mapa;
+  }, [data, vinculos, transportadoras]);
+
   // Abre direto a tabela indicada na URL (ex.: link vindo da auditoria do CT-e).
   useEffect(() => {
     if (!tabelaParam || !data) return;
