@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.27.2] - 2026-10-08
+### Corrigido
+- Autorizar pagamento de frete: a listagem agora informa por rota as críticas que impediram ou tornaram parcial o provisionamento, incluindo transportadora não identificada, tabela ausente, entrega sem município e praça não encontrada.
+
 ## [1.27.1] - 2026-10-08
 ### Corrigido
 - Tabelas de frete: diálogo "Nova tabela de preço" maximizado (quase tela cheia) e grade de preços por origem/destino ajustada para caber sem rolagem lateral.
