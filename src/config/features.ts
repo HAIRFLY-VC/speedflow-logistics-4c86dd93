@@ -14,6 +14,8 @@ export const FEATURES = {
   impressaoRota: { test: true, production: true },
   /** Autorizar: provisionamento do frete pela tabela da transportadora (rotas tipo T). */
   provisaoFreteTransportadora: { test: true, production: true },
+  /** Card de % do frete do ciclo comercial e painel Custo de Frete. */
+  painelCustoFrete: { test: true, production: true },
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;

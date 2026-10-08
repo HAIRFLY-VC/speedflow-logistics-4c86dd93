@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.29.0] - 2026-10-08
+### Adicionado
+- Rotas Pendentes: card "% Frete do ciclo" com o frete confirmado sobre os pedidos faturados no ciclo comercial atual.
+- Novo painel "Custo de frete": totais, evolução de 6 ciclos e detalhamento por fretista/transportadora, UF, cidade, cliente, vendedor e rota, com exportação.
+
 ## [1.28.1] - 2026-10-08
 ### Alterado
 - Card "Pedidos pendentes sem rota" (Rotas Pendentes): os rótulos e valores de Pedidos e Entregas agora ficam alinhados à direita, com mais espaço entre as colunas, para melhorar a leitura.
