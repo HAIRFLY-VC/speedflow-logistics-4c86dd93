@@ -20,8 +20,8 @@ Script Oracle `db/erp/2026-10-08_grant_provisao_frete.sql` (com cópia em /mnt/d
 -- Permite ler o próximo número do provisionamento (NEXTVAL/CURRVAL)
 GRANT SELECT ON GKS.SEQ_PROVISAO_FRETE TO <USUARIO_API>;
 
--- Permite gravar e substituir provisionamentos
-GRANT SELECT, INSERT, UPDATE ON GKS.A_GER_PROVISAO_FRETE TO <USUARIO_API>;
+-- Permite consultar, gravar, alterar e excluir provisionamentos
+GRANT SELECT, INSERT, UPDATE, DELETE ON GKS.A_GER_PROVISAO_FRETE TO <USUARIO_API>;
 ```
 
 - No Oracle, SELECT em sequence é o privilégio que libera NEXTVAL — não existe "EXECUTE" para sequence.
