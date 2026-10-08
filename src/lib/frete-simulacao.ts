@@ -183,6 +183,8 @@ export type SimulacaoRota = {
   tabelaNome: string;
   entregasCalculadas: number;
   entregasTotal: number;
+  entregasSemMunicipio: number;
+  entregasSemPraca: number;
   parcial: boolean;
 };
 
@@ -190,22 +192,29 @@ export type SimulacaoRota = {
 export function simularRota(
   tabela: TabelaSim,
   entregas: EntregaSim[],
-): SimulacaoRota | null {
-  if (entregas.length === 0) return null;
+): SimulacaoRota {
   let total = 0;
   let calculadas = 0;
+  let semMunicipio = 0;
+  let semPraca = 0;
+  const exigePraca = (tabela.tabelas_preco_frete_rotas ?? []).length > 0;
   for (const e of entregas) {
     const v = simularEntrega(tabela, e);
-    if (v == null) continue;
+    if (v == null) {
+      if (exigePraca && !e.municipio?.trim()) semMunicipio += 1;
+      else semPraca += 1;
+      continue;
+    }
     total += v;
     calculadas += 1;
   }
-  if (calculadas === 0) return null;
   return {
     total: round2(total),
     tabelaNome: tabela.nome,
     entregasCalculadas: calculadas,
     entregasTotal: entregas.length,
+    entregasSemMunicipio: semMunicipio,
+    entregasSemPraca: semPraca,
     parcial: calculadas < entregas.length,
   };
 }

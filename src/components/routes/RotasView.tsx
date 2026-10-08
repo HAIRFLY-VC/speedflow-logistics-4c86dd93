@@ -471,12 +471,12 @@ function FreightInput({
   vinculoBitrixOk = true,
   onEstado,
   avisoTipo,
-  avisoTabela,
+  avisoProvisionamento,
 }: {
   /** Aviso quando a natureza do responsável no ERP não é EF/ET/EM. */
   avisoTipo?: { mensagem: string; codErp: string | null } | null;
-  /** Crítica quando a transportadora não tem tabela de frete vigente. */
-  avisoTabela?: { mensagem: string } | null;
+  /** Motivos que impedem ou tornam parcial o provisionamento da transportadora. */
+  avisoProvisionamento?: { mensagens: string[] } | null;
   onEstado?: (routeId: string, e: { valor: number; bloqueio: string | null }) => void;
   pix?: SituacaoPix | null;
   onLiberarPix?: (codErp: string) => void;
@@ -568,13 +568,27 @@ function FreightInput({
       {avisoTipo.codErp && <ConsultarPixButton codErp={avisoTipo.codErp} />}
     </div>
   ) : null;
-  const avisoTabelaEl = avisoTabela ? (
-    <div className="flex max-w-[220px] flex-col items-end gap-1">
-      <span className="inline-flex items-start gap-1 text-right text-[10px] leading-tight text-amber-600">
-        <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-        {avisoTabela.mensagem}
-      </span>
-    </div>
+  const avisoProvisionamentoEl = avisoProvisionamento ? (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex max-w-[220px] cursor-help flex-col items-end gap-1">
+            {avisoProvisionamento.mensagens.map((mensagem) => (
+              <span key={mensagem} className="inline-flex items-start gap-1 text-right text-[10px] leading-tight text-amber-600">
+                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                {mensagem}
+              </span>
+            ))}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="left" className="max-w-sm">
+          <p className="mb-1 font-semibold">Críticas do provisionamento</p>
+          {avisoProvisionamento.mensagens.map((mensagem) => (
+            <p key={mensagem}>• {mensagem}</p>
+          ))}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   ) : null;
   const avisoPix = mensagemPix ? (
     <div className="flex max-w-[220px] flex-col items-end gap-1">
@@ -623,12 +637,12 @@ function FreightInput({
 
   if (!editable) {
     if (!value && !confirmado) {
-      if (!avisoTipoEl) return <span className="text-muted-foreground">—</span>;
+      if (!avisoTipoEl && !avisoProvisionamentoEl) return <span className="text-muted-foreground">—</span>;
       return (
         <div className="flex flex-col items-end gap-1">
           <span className="text-muted-foreground">—</span>
           {avisoTipoEl}
-          {avisoTabelaEl}
+          {avisoProvisionamentoEl}
         </div>
       );
     }
@@ -675,7 +689,7 @@ function FreightInput({
         )}
         {confirmado && avisoPix}
         {avisoTipoEl}
-        {avisoTabelaEl}
+        {avisoProvisionamentoEl}
       </div>
     );
   }
@@ -761,7 +775,7 @@ function FreightInput({
           </Button>
           {avisoPix}
           {avisoTipoEl}
-          {avisoTabelaEl}
+          {avisoProvisionamentoEl}
           {!confirmado && (
             <AuditoriaBadge
               info={auditoria}
@@ -1432,21 +1446,42 @@ export function RotasView({
     cidadeCliente,
   ]);
 
-  /** Rotas tipo T cuja transportadora não tem tabela de frete vigente vinculada. */
-  const rotasSemTabela = useMemo(() => {
-    const set = new Set<string>();
+  /** Críticas resumidas do cálculo mostradas diretamente na listagem. */
+  const criticasProvisionamento = useMemo(() => {
+    const map = new Map<string, string[]>();
     const tabelas = tabelasQ.data ?? [];
     const vinculos = vinculosQ.data ?? [];
-    if (!tabelas.length) return set;
     for (const r of data ?? []) {
       if (tipoFreteOf(r) !== "T") continue;
       const transportadoraId = transpPorRota.get(r.id)?.id;
-      if (!transportadoraId) continue;
-      if (!tabelaVigenteDaTransportadora(tabelas, vinculos, transportadoraId)) set.add(r.id);
+      if (!transportadoraId) {
+        map.set(r.id, ["Transportadora responsável não encontrada no cadastro. Use o lápis para conferir o vínculo."]);
+        continue;
+      }
+      const tabela = tabelaVigenteDaTransportadora(tabelas, vinculos, transportadoraId);
+      if (!tabela) {
+        map.set(r.id, ["Transportadora sem tabela de frete vigente. Use o lápis para vincular uma tabela."]);
+        continue;
+      }
+      const sim = estimativas.get(r.id);
+      if (!sim) continue;
+      const mensagens: string[] = [];
+      if (sim.entregasTotal === 0) {
+        mensagens.push("Nenhuma entrega válida foi encontrada para calcular o provisionamento.");
+      }
+      if (sim.entregasSemMunicipio > 0) {
+        mensagens.push(`${sim.entregasSemMunicipio} entrega(s) sem cidade/município no cadastro do cliente.`);
+      }
+      if (sim.entregasSemPraca > 0) {
+        mensagens.push(`${sim.entregasSemPraca} entrega(s) sem praça correspondente na tabela de frete. Use o lápis para selecionar.`);
+      }
+      if (sim.parcial && sim.entregasCalculadas > 0) {
+        mensagens.push(`Provisionamento parcial: ${sim.entregasCalculadas} de ${sim.entregasTotal} entrega(s) calculada(s).`);
+      }
+      if (mensagens.length > 0) map.set(r.id, mensagens);
     }
-    return set;
-    // `tipoFreteOf` depende das consultas ao ERP (naturezas/responsáveis).
-  }, [data, tabelasQ.data, vinculosQ.data, transpPorRota, responsavelPorRota]);
+    return map;
+  }, [data, tabelasQ.data, vinculosQ.data, transpPorRota, responsavelPorRota, estimativas]);
 
   /** Borderô por pedido, vindo do espelho de entregas do ERP. */
   const pedidosDaTela = useMemo(() => {
@@ -1847,12 +1882,9 @@ export function RotasView({
                liberandoPix={liberarPix.isPending}
                vinculoBitrixOk={vinculoBitrixOk}
               avisoTipo={avisoTipoDaRota(r)}
-              avisoTabela={
-                permitirConfirmacao && rotasSemTabela.has(r.id)
-                  ? {
-                      mensagem:
-                        "Transportadora sem tabela de frete vigente vinculada. Use o lápis para vincular uma tabela e calcular o provisionamento.",
-                    }
+              avisoProvisionamento={
+                permitirConfirmacao && criticasProvisionamento.has(r.id)
+                  ? { mensagens: criticasProvisionamento.get(r.id) ?? [] }
                   : null
               }
               auditoriaCarregando={auditoriaQ.isFetching}
