@@ -500,9 +500,9 @@ function FreightInput({
 }) {
   const qc = useQueryClient();
   const initial = Number(route.total_freight ?? 0);
-  const isEstimate = tipo === "T" && initial <= 0 && estimate != null;
+  const isEstimate = tipo === "T" && initial <= 0 && (estimate?.total ?? 0) > 0;
   const [value, setValue] = useState<string>(
-    initial > 0 ? String(initial) : estimate ? String(estimate.total) : "",
+    initial > 0 ? String(initial) : (estimate?.total ?? 0) > 0 ? String(estimate?.total) : "",
   );
   const [estimated, setEstimated] = useState(isEstimate);
   const [salvando, setSalvando] = useState(false);
@@ -1449,6 +1449,7 @@ export function RotasView({
   /** Críticas resumidas do cálculo mostradas diretamente na listagem. */
   const criticasProvisionamento = useMemo(() => {
     const map = new Map<string, string[]>();
+    if (transportadorasQ.isFetching || tabelasQ.isFetching || vinculosQ.isFetching) return map;
     const tabelas = tabelasQ.data ?? [];
     const vinculos = vinculosQ.data ?? [];
     for (const r of data ?? []) {
@@ -1481,7 +1482,17 @@ export function RotasView({
       if (mensagens.length > 0) map.set(r.id, mensagens);
     }
     return map;
-  }, [data, tabelasQ.data, vinculosQ.data, transpPorRota, responsavelPorRota, estimativas]);
+  }, [
+    data,
+    tabelasQ.data,
+    tabelasQ.isFetching,
+    vinculosQ.data,
+    vinculosQ.isFetching,
+    transportadorasQ.isFetching,
+    transpPorRota,
+    responsavelPorRota,
+    estimativas,
+  ]);
 
   /** Borderô por pedido, vindo do espelho de entregas do ERP. */
   const pedidosDaTela = useMemo(() => {
