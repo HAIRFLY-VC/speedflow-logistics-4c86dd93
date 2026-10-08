@@ -178,6 +178,10 @@ function emptyForm(): TabelaForm {
   };
 }
 
+/** Nome da transportadora com o código do ERP entre parênteses, quando houver. */
+const rotuloTransportadora = (t: Transportadora) =>
+  t.cod_erp ? `${t.razao_social} (${t.cod_erp})` : t.razao_social;
+
 function TabelasFretePage() {
   const qc = useQueryClient();
   const { tabela: tabelaParam } = useSearch({ from: "/_authenticated/tabelas-frete" });
@@ -207,6 +211,36 @@ function TabelasFretePage() {
       return data as Tabela[];
     },
   });
+
+  // Vínculos N:N: quais transportadoras usam cada tabela (além da principal).
+  const { data: vinculos } = useQuery({
+    queryKey: ["tabelas-frete", "vinculos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete_transportadoras")
+        .select("tabela_id, transportadora_id");
+      if (error) throw error;
+      return data as { tabela_id: string; transportadora_id: string }[];
+    },
+  });
+
+  const transportadorasPorTabela = useMemo(() => {
+    const porId = new Map((transportadoras ?? []).map((t) => [t.id, t]));
+    const mapa = new Map<string, Transportadora[]>();
+    for (const t of data ?? []) {
+      const ids = new Set<string>([t.transportadora_id]);
+      (vinculos ?? [])
+        .filter((v) => v.tabela_id === t.id)
+        .forEach((v) => ids.add(v.transportadora_id));
+      mapa.set(
+        t.id,
+        Array.from(ids)
+          .map((id) => porId.get(id))
+          .filter((t): t is Transportadora => !!t),
+      );
+    }
+    return mapa;
+  }, [data, vinculos, transportadoras]);
 
   // Abre direto a tabela indicada na URL (ex.: link vindo da auditoria do CT-e).
   useEffect(() => {
@@ -241,6 +275,34 @@ function TabelasFretePage() {
         className: "font-medium",
       },
       { id: "nome", header: "Tabela", accessor: (t) => t.nome },
+      {
+        id: "transportadoras",
+        header: "Transportadoras",
+        accessor: (t) =>
+          (transportadorasPorTabela.get(t.id) ?? []).map((x) => x.razao_social).join(", "),
+        render: (t) => {
+          const lista = transportadorasPorTabela.get(t.id) ?? [];
+          if (lista.length === 0)
+            return <span className="text-xs text-muted-foreground">—</span>;
+          const [primeira, ...resto] = lista;
+          return (
+            <div className="flex flex-wrap items-center gap-1">
+              <Badge variant="secondary" className="text-[10px] font-normal">
+                {rotuloTransportadora(primeira)}
+              </Badge>
+              {resto.length > 0 && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-normal"
+                  title={resto.map((x) => rotuloTransportadora(x)).join(", ")}
+                >
+                  +{resto.length}
+                </Badge>
+              )}
+            </div>
+          );
+        },
+      },
       {
         id: "vigencia",
         header: "Vigência",
@@ -329,7 +391,7 @@ function TabelasFretePage() {
         ),
       },
     ],
-    [toggle.mutate],
+    [toggle.mutate, transportadorasPorTabela],
   );
 
   return (
@@ -940,7 +1002,7 @@ function TabelaDialog({
               <SelectContent>
                 {transportadoras.map((t) => (
                   <SelectItem key={t.id} value={t.id}>
-                    {t.razao_social}
+                    {rotuloTransportadora(t)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -982,7 +1044,7 @@ function TabelaDialog({
                           )
                         }
                       />
-                      <span className="flex-1 truncate">{t.razao_social}</span>
+                      <span className="flex-1 truncate">{rotuloTransportadora(t)}</span>
                       {principal && (
                         <Badge variant="outline" className="text-[10px]">
                           Principal

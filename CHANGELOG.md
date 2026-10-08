@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.24.2] - 2026-10-08
+### Alterado
+- Tabelas de frete: a listagem agora mostra todas as transportadoras vinculadas a cada tabela (não só a principal), e o cadastro exibe o código do ERP entre parênteses após o nome de cada transportadora, facilitando identificar e vincular a mesma tabela a várias transportadoras.
+
 ## [1.24.1] - 2026-10-08
 ### Alterado
 - Provisionamento de frete: o ID de cada linha gravada no ERP agora é obtido pelo app via `SEQ_PROVISAO_FRETE.NEXTVAL` antes do insert — a tabela não precisa mais de trigger. Novo script Oracle v3 (db/erp/2026-10-08_a_ger_provisao_frete_v3.sql) e o comando `insert_provisao_frete` passa a receber o bind `id`.
