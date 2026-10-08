@@ -203,6 +203,7 @@ export async function gravarProvisao(
     };
     await chamarErp("/v1/execute/insert_provisao_frete", {
       binds: {
+        id: await proximoId(),
         id_rota: idRota,
         cod_filial: Number(n.cod_filial),
         nro_nf: Number(n.nro_nf),
