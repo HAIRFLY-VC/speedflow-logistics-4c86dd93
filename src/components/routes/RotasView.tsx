@@ -471,9 +471,12 @@ function FreightInput({
   vinculoBitrixOk = true,
   onEstado,
   avisoTipo,
+  avisoTabela,
 }: {
   /** Aviso quando a natureza do responsável no ERP não é EF/ET/EM. */
   avisoTipo?: { mensagem: string; codErp: string | null } | null;
+  /** Crítica quando a transportadora não tem tabela de frete vigente. */
+  avisoTabela?: { mensagem: string } | null;
   onEstado?: (routeId: string, e: { valor: number; bloqueio: string | null }) => void;
   pix?: SituacaoPix | null;
   onLiberarPix?: (codErp: string) => void;
@@ -565,6 +568,14 @@ function FreightInput({
       {avisoTipo.codErp && <ConsultarPixButton codErp={avisoTipo.codErp} />}
     </div>
   ) : null;
+  const avisoTabelaEl = avisoTabela ? (
+    <div className="flex max-w-[220px] flex-col items-end gap-1">
+      <span className="inline-flex items-start gap-1 text-right text-[10px] leading-tight text-amber-600">
+        <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+        {avisoTabela.mensagem}
+      </span>
+    </div>
+  ) : null;
   const avisoPix = mensagemPix ? (
     <div className="flex max-w-[220px] flex-col items-end gap-1">
       <span className="text-right text-[10px] leading-tight text-destructive">{mensagemPix}</span>
@@ -617,6 +628,7 @@ function FreightInput({
         <div className="flex flex-col items-end gap-1">
           <span className="text-muted-foreground">—</span>
           {avisoTipoEl}
+          {avisoTabelaEl}
         </div>
       );
     }
@@ -663,6 +675,7 @@ function FreightInput({
         )}
         {confirmado && avisoPix}
         {avisoTipoEl}
+        {avisoTabelaEl}
       </div>
     );
   }
@@ -748,6 +761,7 @@ function FreightInput({
           </Button>
           {avisoPix}
           {avisoTipoEl}
+          {avisoTabelaEl}
           {!confirmado && (
             <AuditoriaBadge
               info={auditoria}
@@ -1418,6 +1432,22 @@ export function RotasView({
     cidadeCliente,
   ]);
 
+  /** Rotas tipo T cuja transportadora não tem tabela de frete vigente vinculada. */
+  const rotasSemTabela = useMemo(() => {
+    const set = new Set<string>();
+    const tabelas = tabelasQ.data ?? [];
+    const vinculos = vinculosQ.data ?? [];
+    if (!tabelas.length) return set;
+    for (const r of data ?? []) {
+      if (tipoFreteOf(r) !== "T") continue;
+      const transportadoraId = transpPorRota.get(r.id)?.id;
+      if (!transportadoraId) continue;
+      if (!tabelaVigenteDaTransportadora(tabelas, vinculos, transportadoraId)) set.add(r.id);
+    }
+    return set;
+    // `tipoFreteOf` depende das consultas ao ERP (naturezas/responsáveis).
+  }, [data, tabelasQ.data, vinculosQ.data, transpPorRota, responsavelPorRota]);
+
   /** Borderô por pedido, vindo do espelho de entregas do ERP. */
   const pedidosDaTela = useMemo(() => {
     const set = new Set<string>();
@@ -1817,6 +1847,14 @@ export function RotasView({
                liberandoPix={liberarPix.isPending}
                vinculoBitrixOk={vinculoBitrixOk}
               avisoTipo={avisoTipoDaRota(r)}
+              avisoTabela={
+                permitirConfirmacao && rotasSemTabela.has(r.id)
+                  ? {
+                      mensagem:
+                        "Transportadora sem tabela de frete vigente vinculada. Use o lápis para vincular uma tabela e calcular o provisionamento.",
+                    }
+                  : null
+              }
               auditoriaCarregando={auditoriaQ.isFetching}
               onReauditar={() => void reauditar()}
               onValorChange={(id, v) =>

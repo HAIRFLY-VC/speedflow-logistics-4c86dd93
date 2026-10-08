@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.24.5] - 2026-10-08
+### Adicionado
+- Autorizar pagamento de frete: crítica visível na listagem quando a transportadora da rota não tem tabela de frete vigente vinculada, orientando o usuário a vincular uma tabela pelo lápis.
+
 ## [1.24.4] - 2026-10-08
 ### Adicionado
 - Provisionamento de frete: quando a transportadora da rota não tem tabela de frete vigente, o modal agora permite vincular uma tabela existente à transportadora sem sair da tela, recalculando o provisionamento automaticamente.
