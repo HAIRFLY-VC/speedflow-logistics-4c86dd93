@@ -92,7 +92,6 @@ export function ProvisaoFreteDialog(props: {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const d = q.data;
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-w-4xl">
