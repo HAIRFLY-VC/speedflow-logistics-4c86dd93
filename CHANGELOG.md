@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.27.0] - 2026-10-08
+### Adicionado
+- Transportadoras: "Atualizar cadastro do ERP" passa a importar todas as transportadoras (natureza ET) do ERP que ainda não estão no cadastro, sem sobrescrever dados bancários ou tabela de frete.
+
 ## [1.26.0] - 2026-10-08
 ### Adicionado
 - Provisionamento de frete: escolha da praça da tabela para cidades não encontradas (e troca na composição da entrega); a escolha é gravada na tabela e passa a valer para próximas rotas e auditorias de CT-e.

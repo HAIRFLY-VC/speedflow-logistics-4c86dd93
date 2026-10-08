@@ -11,7 +11,7 @@ import { toast } from "@/lib/toast";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/central/client";
-import { buscarCodErpTransportadora } from "@/lib/transportadora-erp.functions";
+import { buscarCodErpTransportadora, importarTransportadorasErp } from "@/lib/transportadora-erp.functions";
 import { sincronizarResponsaveisErp } from "@/lib/rota-erp.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
