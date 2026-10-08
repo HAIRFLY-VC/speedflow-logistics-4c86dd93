@@ -115,6 +115,56 @@ async function erpQuery(sql: string, limit: number): Promise<Record<string, unkn
   return json.rows ?? [];
 }
 
+/**
+ * Rotas com ID do ERP sem nenhum pedido vinculado no app: importa os pedidos
+ * da rota (inclusive os já expedidos) pela auditoria de rota e completa o
+ * responsável (COD_FRT_TRP / motorista) quando estiver faltando.
+ */
+export async function completarRotasSemPedidos(limite = 50): Promise<number> {
+  const { data: rotas, error } = await centralDb
+    .from("routes")
+    .select("id, erp_route_id, erp_carrier_code, driver_name, route_orders(id)")
+    .not("erp_route_id", "is", null)
+    .neq("status", "cancelada")
+    .neq("erp_status", "E")
+    .gte("route_date", new Date(Date.now() - 60 * 24 * 3600 * 1000).toISOString().slice(0, 10))
+    .lt("route_date", "3000-01-01")
+    .limit(2000);
+  if (error) throw error;
+  const vazias = (rotas ?? [])
+    .filter((r) => /^\d+$/.test(String(r.erp_route_id).trim()))
+    .filter((r) => !((r.route_orders as unknown[] | null)?.length))
+    .slice(0, limite);
+  if (vazias.length === 0) return 0;
+
+  // Responsável da rota no ERP
+  const semResp = vazias.filter((r) => !r.erp_carrier_code || !r.driver_name);
+  if (semResp.length > 0) {
+    const ids = semResp.map((r) => String(r.erp_route_id).trim());
+    const res = await erpQuery(
+      `select ID, COD_FRT_TRP, NOME_MOTORISTA from GKS.A_GER_ROTAS where ID in (${ids.join(",")})`,
+      ids.length + 10,
+    );
+    for (const row of res) {
+      const rota = semResp.find((r) => String(r.erp_route_id).trim() === String(row.ID));
+      if (!rota) continue;
+      const patch: Record<string, string> = {};
+      const cod = row.COD_FRT_TRP != null ? String(row.COD_FRT_TRP).trim() : "";
+      const mot = row.NOME_MOTORISTA != null ? String(row.NOME_MOTORISTA).trim() : "";
+      if (!rota.erp_carrier_code && cod) patch["erp_carrier_code"] = cod;
+      if (!rota.driver_name && mot) patch["driver_name"] = mot;
+      if (Object.keys(patch).length > 0)
+        await centralDb.from("routes").update(patch as never).eq("id", rota.id as string);
+    }
+  }
+
+  const { auditarEImportarRotas } = await import("@/lib/rota-auditoria.server");
+  const aud = await auditarEImportarRotas(vazias.map((r) => r.id as string));
+  const importados = aud.reduce((s, a) => s + a.importados, 0);
+  console.log(`[erp-sync] ${vazias.length} rotas sem pedidos conferidas; ${importados} pedidos importados`);
+  return importados;
+}
+
 /** Carência antes de excluir um pedido que o ERP ainda não devolveu borderô. */
 const BORDERO_CARENCIA_MS = 5 * 24 * 60 * 60 * 1000;
 
@@ -1347,6 +1397,14 @@ export async function syncErpOrders(opts: {
       }
     }
 
+    // Rotas com ID do ERP e nenhum pedido no app (ex.: montadas e expedidas
+    // entre dois syncs — os pedidos nunca vieram na leitura de pendentes).
+    // Completa pedidos, borderô e responsável direto da rota no ERP.
+    try {
+      await completarRotasSemPedidos();
+    } catch (e) {
+      errors.push({ pedido: 0, message: `Completar rotas sem pedidos: ${describeError(e)}` });
+    }
 
 
 
