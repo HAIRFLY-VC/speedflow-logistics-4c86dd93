@@ -5,11 +5,11 @@
 import { centralDb } from "./central-db";
 import { montarPreviewPagamentoRota } from "./rota-pagamento.server";
 import {
-  simularEntrega,
+  detalharEntrega,
   tabelaVigenteDaTransportadora,
   type TabelaSim,
 } from "./frete-simulacao";
-import type { PreviewProvisao, ProvisaoNota } from "./provisao-frete.types";
+import type { PreviewProvisao, ProvisaoEntrega, ProvisaoNota } from "./provisao-frete.types";
 
 const round2 = (v: number) => Math.round(v * 100) / 100;
 
@@ -137,18 +137,48 @@ async function calcular(routeId: string): Promise<Calculo> {
     }
   }
   const notas = Array.from(porNota.values());
-  let semPraca = 0;
   for (const n of notas) {
     n.peso = round2(n.peso);
     n.valor_mercadoria = round2(n.valor_mercadoria);
-    if (tabela) {
-      n.vlr_frete = simularEntrega(tabela, {
-        peso: n.peso,
-        valorMercadoria: n.valor_mercadoria,
-        municipio: n.cidade,
-      });
-      if (n.vlr_frete == null) semPraca++;
+  }
+  // Agrupa por entrega (cliente + cidade/UF): calcula uma vez e rateia por peso.
+  const porEntrega = new Map<string, ProvisaoEntrega>();
+  for (const n of notas) {
+    const cli = n.clientes[0] ?? "—";
+    const k = `${cli}|${n.cidade ?? ""}|${n.uf ?? ""}`;
+    const e = porEntrega.get(k) ?? {
+      chave: k, cliente: cli, cidade: n.cidade, uf: n.uf, peso: 0, valor_mercadoria: 0,
+      vlr_frete: null, detalhe: null, notas: [],
+    };
+    e.notas.push(n);
+    e.peso += n.peso;
+    e.valor_mercadoria += n.valor_mercadoria;
+    porEntrega.set(k, e);
+  }
+  const entregas = Array.from(porEntrega.values());
+  let semPraca = 0;
+  for (const e of entregas) {
+    e.peso = round2(e.peso);
+    e.valor_mercadoria = round2(e.valor_mercadoria);
+    if (!tabela) continue;
+    e.detalhe = detalharEntrega(tabela, {
+      peso: e.peso,
+      valorMercadoria: e.valor_mercadoria,
+      municipio: e.cidade,
+    });
+    if (!e.detalhe) {
+      semPraca += e.notas.length;
+      continue;
     }
+    e.vlr_frete = e.detalhe.total;
+    let restante = e.vlr_frete;
+    e.notas.forEach((n, i) => {
+      const ultimo = i === e.notas.length - 1;
+      const base = e.peso > 0 ? n.peso / e.peso : 1 / e.notas.length;
+      const v = ultimo ? round2(restante) : round2(e.vlr_frete! * base);
+      n.vlr_frete = v;
+      restante -= v;
+    });
   }
   if (semPraca > 0) bloqueios.push(`${semPraca} nota(s) sem praça encontrada na tabela de frete.`);
   if (notas.some((n) => !n.nro_nf || !n.bordero)) {
@@ -163,6 +193,8 @@ async function calcular(routeId: string): Promise<Calculo> {
     transportadora,
     tabela: tabela ? { id: tabela.id, nome: tabela.nome } : null,
     notas,
+    entregas,
+    total_mercadoria: round2(notas.reduce((s, n) => s + n.valor_mercadoria, 0)),
     total: round2(notas.reduce((s, n) => s + (n.vlr_frete ?? 0), 0)),
     bloqueios,
     ja_confirmado: pv.ja_confirmado,
@@ -206,7 +238,7 @@ export async function gravarProvisao(
 
   for (const n of c.notas) {
     const memoria = {
-      versao: 1,
+      versao: 2,
       calculado_em: new Date().toISOString(),
       rota: { id_erp: idRota, nome: c.rota },
       transportadora: c.transportadora,
@@ -225,6 +257,15 @@ export async function gravarProvisao(
         icms_percentual: t.icms_percentual,
       },
       nota: n,
+      entrega: (() => {
+        const e = c.entregas.find((x) => x.notas.includes(n));
+        return e
+          ? { cliente: e.cliente, cidade: e.cidade, uf: e.uf, peso: e.peso,
+              valor_mercadoria: e.valor_mercadoria, vlr_frete: e.vlr_frete, detalhe: e.detalhe,
+              notas: e.notas.map((x) => ({ nro_nf: x.nro_nf, peso: x.peso, vlr_frete: x.vlr_frete })) }
+          : null;
+      })(),
+      rateio: "proporcional ao peso da nota na entrega",
     };
     await chamarErp("/v1/execute/insert_provisao_frete", {
       binds: {

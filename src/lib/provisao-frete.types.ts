@@ -1,4 +1,18 @@
 /** Tipos compartilhados do provisionamento de frete de rotas de transportadora. */
+import type { DetalheFrete } from "./frete-simulacao";
+
+/** Entrega = notas do mesmo cliente na mesma cidade/UF; frete calculado uma vez e rateado por peso. */
+export type ProvisaoEntrega = {
+  chave: string;
+  cliente: string;
+  cidade: string | null;
+  uf: string | null;
+  peso: number;
+  valor_mercadoria: number;
+  vlr_frete: number | null;
+  detalhe: DetalheFrete | null;
+  notas: ProvisaoNota[];
+};
 
 export type ProvisaoNota = {
   cod_filial: string;
