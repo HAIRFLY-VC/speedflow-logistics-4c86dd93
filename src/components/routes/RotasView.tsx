@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator, Pencil, ArrowRight, Check, ChevronsUpDown, X, AlertTriangle, Printer } from "lucide-react";
+import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator, Pencil, ArrowRight, Check, ChevronsUpDown, X, AlertTriangle, CircleAlert, Printer } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { isFeatureOn } from "@/config/features";
 import { format } from "date-fns";
@@ -572,14 +572,13 @@ function FreightInput({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex max-w-[220px] cursor-help flex-col items-end gap-1">
-            {avisoProvisionamento.mensagens.map((mensagem) => (
-              <span key={mensagem} className="inline-flex items-start gap-1 text-right text-[10px] leading-tight text-amber-600">
-                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-                {mensagem}
-              </span>
-            ))}
-          </div>
+          <span
+            tabIndex={0}
+            aria-label={`Críticas do provisionamento: ${avisoProvisionamento.mensagens.join(" ")}`}
+            className="inline-flex cursor-help items-center text-destructive outline-none focus-visible:ring-2 focus-visible:ring-destructive/50"
+          >
+            <CircleAlert className="h-4 w-4" />
+          </span>
         </TooltipTrigger>
         <TooltipContent side="left" className="max-w-sm">
           <p className="mb-1 font-semibold">Críticas do provisionamento</p>
