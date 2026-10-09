@@ -170,6 +170,20 @@ function Evolucao({ ciclos }: { ciclos: CicloComercial[] }) {
 
 function CustoFretePage() {
   const calQ = useQuery(calendarioComercialQueryOptions());
+  const listarVendedores = useServerFn(listVendedoresExternos);
+  const vendQ = useQuery({
+    queryKey: ["vendedores-erp-nomes"],
+    queryFn: async () => {
+      try {
+        const { rows } = await listarVendedores();
+        return new Map(rows.filter((v) => v.cod_rca).map((v) => [v.cod_rca, v.nome ?? ""]));
+      } catch (e) {
+        console.warn("Nomes de vendedores indisponíveis", e);
+        return new Map<string, string>();
+      }
+    },
+    staleTime: 60 * 60_000,
+  });
   const ciclos = calQ.data ?? [];
   const [sel, setSel] = useState<string | null>(null);
   const ciclo = ciclos.find((c) => c.mes_comerc === sel) ?? cicloAtual(ciclos);
@@ -235,7 +249,7 @@ function CustoFretePage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {DIMENSOES.map((d) => (
-          <TabelaDimensao key={d.id} dim={d} linhas={linhas} ciclo={ciclo?.mes_comerc ?? ""} />
+          <TabelaDimensao key={d.id} dim={d} linhas={linhas} ciclo={ciclo?.mes_comerc ?? ""} vendMap={vendQ.data} />
         ))}
       </div>
     </div>
