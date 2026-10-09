@@ -72,6 +72,7 @@ export async function carregarCustoFrete(ciclo: CicloComercial): Promise<LinhaCu
     const { data, error } = await supabase
       .from(fonte as "entregas_abertas")
       .select("nro_nf,cod_pedido,cod_cliente,cod_vendedor,valor,peso")
+      .in("cod_agenda", ["417", "427"])
       .gte("dt_fatur", ciclo.de)
       .lte("dt_fatur", ciclo.ate)
       .order("nro_nf")
@@ -242,6 +243,7 @@ export async function carregarMercadorias(ciclo: CicloComercial): Promise<LinhaM
     const { data, error } = await supabase
       .from(fonte as "entregas_abertas")
       .select("*")
+      .in("cod_agenda", ["417", "427"])
       .gte("dt_fatur", ciclo.de)
       .lte("dt_fatur", ciclo.ate)
       .order("nro_nf")

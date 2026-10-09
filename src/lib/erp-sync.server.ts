@@ -791,6 +791,7 @@ async function sincronizarNotasFaturadas(): Promise<number> {
     const { error: delErr } = await centralDb
       .from("notas_faturadas" as never)
       .delete()
+      .in("cod_agenda", ["417", "427"])
       .gte("dt_fatur", c.de.slice(0, 10))
       .lte("dt_fatur", c.ate.slice(0, 10))
       .lt("atualizado_em", agora);
