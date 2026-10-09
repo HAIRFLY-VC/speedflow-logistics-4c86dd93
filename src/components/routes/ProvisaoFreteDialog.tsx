@@ -455,7 +455,7 @@ export function ProvisaoFreteDialog(props: {
           {d && !g && (
             <Button disabled={d.bloqueios.length > 0 || m.isPending} onClick={() => m.mutate(false)}>
               {m.isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-1 h-4 w-4" />}
-              Gravar provisionamento no ERP
+              {m.isPending ? `Gravando ${d.notas.length} nota(s)…` : "Gravar provisionamento no ERP"}
             </Button>
           )}
           {d && g && d.divergente && (

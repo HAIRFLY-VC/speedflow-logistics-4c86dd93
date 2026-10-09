@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.30.4] - 2026-10-09
+### Alterado
+- Gravação do provisionamento de frete no ERP mais rápida: números da sequência obtidos de uma vez e notas gravadas em lotes paralelos de 5.
+
 ## [1.30.3] - 2026-10-09
 ### Alterado
 - Praças da tabela TABELA-FRACIONADA (Solution) refeitas conforme a planilha da transportadora: 196 cidades em 8 praças, reconhecidas automaticamente no provisionamento e na auditoria de CT-e.
