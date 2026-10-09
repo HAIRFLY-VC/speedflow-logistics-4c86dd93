@@ -2195,6 +2195,7 @@ export function RotasView({
               </div>
             </CardContent>
           </Card>
+          {mostrarCardFrete && <CardPercentualFrete />}
           {exibirCardSemRota && (
             <Link
               to="/pedidos-sem-rota"
