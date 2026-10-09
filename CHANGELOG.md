@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.37.0] - 2026-10-09
+### Alterado
+- Custo de Frete: o frete passa a usar o mesmo critério de Mercadorias faturadas (frete real do ERP por nota ou, sem ele, o valor provisionado), igualando os totais das duas telas.
+
 ## [1.36.1] - 2026-10-09
 ### Adicionado
 - Mercadorias faturadas: o card "Vlr. Frete" passa a exibir o % do frete sobre as mercadorias no canto superior direito, no mesmo estilo do valor.

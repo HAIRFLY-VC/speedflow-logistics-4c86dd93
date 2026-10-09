@@ -171,13 +171,13 @@ function CustoFretePage() {
 
   const kpis: [string, string][] = [
     ["% Frete", pctFmt(r.pct)],
-    ["Frete confirmado", brl.format(r.frete)],
+    ["Frete (real + provisionado)", brl.format(r.frete)],
     ["Mercadorias faturadas", brl.format(r.valor)],
     ["Pedidos", r.pedidos.toLocaleString("pt-BR")],
     ["Entregas", r.entregas.toLocaleString("pt-BR")],
     ["Peso", `${kg.format(r.peso)} kg`],
     ["Frete por kg", r.peso > 0 ? brl.format(r.frete / r.peso) : "—"],
-    ["Pedidos sem frete confirmado", r.semFrete.toLocaleString("pt-BR")],
+    ["Pedidos sem frete (real ou provisionado)", r.semFrete.toLocaleString("pt-BR")],
   ];
 
   return (
@@ -187,7 +187,7 @@ function CustoFretePage() {
           <BackButton fallbackTo="/rotas" fallbackLabel="Rotas Pendentes" className="-ml-2 mb-1" />
           <h1 className="text-2xl font-bold">Custo de Frete</h1>
           <p className="text-sm text-muted-foreground">
-            Frete confirmado sobre os pedidos faturados no ciclo comercial.
+            Frete real do ERP ou provisionado sobre as notas faturadas no ciclo comercial (mesmo critério de Mercadorias faturadas).
           </p>
         </div>
         <Select value={ciclo?.mes_comerc ?? ""} onValueChange={setSel}>

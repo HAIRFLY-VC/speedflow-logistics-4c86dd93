@@ -1,3 +1,4 @@
+import { listarProvisoesNotas } from "@/lib/provisao-frete.functions";
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/central/client";
 
@@ -165,10 +166,31 @@ export async function carregarCustoFrete(ciclo: CicloComercial): Promise<LinhaCu
   const valorPedidoNfs = new Map<string, number>();
   for (const e of entregas) valorPedidoNfs.set(e.cod_pedido, (valorPedidoNfs.get(e.cod_pedido) ?? 0) + Number(e.valor ?? 0));
 
+  // Mesmo critério de Mercadorias faturadas: frete real do ERP (vlr_frete) ou provisionado.
+  const merc = await carregarMercadorias(ciclo);
+  const semReal = merc.filter((l) => l.origem_frete !== "R").map((l) => l.nro_nf);
+  let mercFinal = merc;
+  if (semReal.length) {
+    try {
+      mercFinal = aplicarProvisoes(merc, await listarProvisoesNotas({ data: { nfs: semReal } }));
+    } catch (err) {
+      console.warn("Provisões indisponíveis", err);
+    }
+  }
+  const fretePorNf = new Map<string, number>();
+  for (const m of mercFinal) {
+    const k = `${m.nro_nf}|${m.cod_pedido}`;
+    fretePorNf.set(k, (fretePorNf.get(k) ?? 0) + Number(m.vlr_frete ?? 0));
+  }
+  const usado = new Set<string>();
+
   return entregas.map((e) => {
     const fp = fretePedido.get(e.cod_pedido);
     const totPed = valorPedidoNfs.get(e.cod_pedido) ?? 0;
-    const frete = fp ? (totPed > 0 ? (fp.frete * Number(e.valor ?? 0)) / totPed : 0) : 0;
+    void totPed;
+    const kNf = `${e.nro_nf}|${e.cod_pedido}`;
+    const frete = usado.has(kNf) ? 0 : fretePorNf.get(kNf) ?? 0;
+    usado.add(kNf);
     const cli = e.cod_cliente ? cliPor.get(e.cod_cliente) : undefined;
     const resp = fp?.rota.erp_carrier_code ? respPor.get(fp.rota.erp_carrier_code) : undefined;
     const nomeCli = cli?.razao_social || cli?.nome_nf || "Cliente";
@@ -219,7 +241,7 @@ export function resumir(linhas: LinhaCustoFrete[]): ResumoCustoFrete {
     frete += l.frete; valor += l.valor; peso += l.peso;
     pedidos.add(l.cod_pedido);
     entregas.add(l.cod_cliente ?? l.cod_pedido);
-    if (!l.rota) semFrete.add(l.cod_pedido);
+    if (!(l.frete > 0)) semFrete.add(l.cod_pedido);
   }
   return { frete, valor, peso, pct: valor > 0 ? (frete / valor) * 100 : null, pedidos: pedidos.size, entregas: entregas.size, semFrete: semFrete.size };
 }
