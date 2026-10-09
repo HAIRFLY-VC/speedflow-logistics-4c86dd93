@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.37.1] - 2026-10-09
+### Alterado
+- A coluna "Dt. agenda" passa a se chamar "Dt. fatur." no detalhe da rota, em Pedidos sem rota e no PDF de impressão. As datas exibidas permanecem as mesmas.
+
 ## [1.37.0] - 2026-10-09
 ### Alterado
 - Custo de Frete: o frete passa a usar o mesmo critério de Mercadorias faturadas (frete real do ERP por nota ou, sem ele, o valor provisionado), igualando os totais das duas telas.
