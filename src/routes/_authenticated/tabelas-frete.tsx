@@ -86,7 +86,11 @@ type RotaDraft = {
   percentual_reentrega: string;
   prazo_entrega_min_dias: string;
   prazo_entrega_max_dias: string;
+  observacao?: string | null;
+  municipios?: string[];
 };
+
+type RotaCampo = Exclude<keyof RotaDraft, "observacao" | "municipios">;
 
 const ROTA_VAZIA: RotaDraft = {
   origem: "",
@@ -547,6 +551,8 @@ function TabelaDialog({
             r.prazo_entrega_min_dias == null ? "" : String(r.prazo_entrega_min_dias),
           prazo_entrega_max_dias:
             r.prazo_entrega_max_dias == null ? "" : String(r.prazo_entrega_max_dias),
+          observacao: r.observacao ?? null,
+          municipios: municipiosAprendidos(r.observacao),
         })),
       );
       return data;
@@ -866,6 +872,7 @@ function TabelaDialog({
             r.prazo_entrega_min_dias === "" ? null : Math.round(num(r.prazo_entrega_min_dias)),
           prazo_entrega_max_dias:
             r.prazo_entrega_max_dias === "" ? null : Math.round(num(r.prazo_entrega_max_dias)),
+          observacao: observacaoComMunicipios(r.observacao, r.municipios ?? []) || null,
         }));
       if (rotaRows.length) {
         const { error } = await supabase
