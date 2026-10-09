@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.32.1] - 2026-10-09
+### Alterado
+- Rotas Pendentes: o card "% Frete do ciclo" agora aparece antes do card "Pedidos pendentes sem rota".
+
 ## [1.32.0] - 2026-10-09
 ### Adicionado
 - Tabelas de frete: consulta e manutenção dos municípios de cada praça (buscar, adicionar, remover e mover entre praças).
