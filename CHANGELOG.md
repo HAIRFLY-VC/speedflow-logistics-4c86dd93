@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.34.0] - 2026-10-09
+### Alterado
+- Custo de Frete, card "% Frete do ciclo" e detalhamento de Mercadorias faturadas passam a considerar todas as notas faturadas do ciclo, inclusive as já entregues (antes só as entregas em aberto). Requer o script `db/central/2026-10-09_notas_faturadas.sql` e um Sync ERP.
+
 ## [1.33.1] - 2026-10-09
 ### Corrigido
 - Detalhamento de Mercadorias faturadas não listava as notas (erro ao ler o vínculo pedido → rota).
