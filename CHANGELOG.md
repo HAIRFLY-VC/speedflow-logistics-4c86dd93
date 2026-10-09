@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.37.4] - 2026-10-09
+### Alterado
+- O card "Vendedor" no Custo de Frete passa a exibir o nome do vendedor seguido do código entre parênteses (ex.: `NOME (5245)`); o Excel do card segue o mesmo rótulo. Códigos sem nome no cadastro permanecem sozinhos.
+
 ## [1.37.3] - 2026-10-09
 ### Corrigido
 - Pedido reentregue (mais de um borderô no ciclo) passa a aparecer em uma única linha, com dados do maior borderô e os valores de frete somados, em todos os cálculos de % frete.
