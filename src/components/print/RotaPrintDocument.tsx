@@ -8,6 +8,7 @@ import { listarPedidosDetalheRota, type PedidoDetalheRota } from "@/lib/rota-erp
 import { getOrderCoord } from "@/lib/order-coords";
 import { SuggestionMap, sequenceStops, type MapStop } from "@/components/route-suggestions/SuggestionMap";
 import { nomeRotaDeNotes } from "@/lib/rota-responsavel";
+import { isStatusCriticoErp } from "@/lib/erp-status";
 import { PrintLayout } from "./PrintLayout";
 import { usePrintPrefs, type PrintBasePrefs } from "./usePrintPrefs";
 
@@ -271,7 +272,7 @@ export function RotaPrintDocument({ routeId }: { routeId: string }) {
                         {g.map((l) => (
                           <tr key={l.o.order_number}>
                             <td>{l.o.order_number}</td>
-                            <td>{l.d?.status ?? "—"}</td>
+                            <td className={isStatusCriticoErp(l.d?.status) ? "text-destructive" : undefined}>{l.d?.status ?? "—"}</td>
                             <td>{l.d?.codFilial ?? "—"}</td>
                             <td>{l.d?.nf ?? "—"}</td>
                             <td>{l.o.bordero ?? "—"}</td>
