@@ -253,13 +253,40 @@ export function CteDetailView({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tabelas_preco_frete")
-        .select("id, nome, data_inicio, data_fim, uf_destino, tipo_calculo")
+        .select(
+          "id, nome, data_inicio, data_fim, uf_destino, tipo_calculo, arquivo_path, arquivo_nome, arquivo_tipo",
+        )
         .eq("id", ultimaAuditoria!.tabela_preco_id!)
         .maybeSingle();
       if (error) throw error;
       return data;
     },
   });
+
+  // Sem auditoria: oferece o arquivo da tabela vigente na emissão do CT-e.
+  const { data: tabelaVigenteEmissao } = useQuery({
+    queryKey: ["cte-tabela-vigente", cte.id, cte.transportadora_id, cte.data_emissao],
+    enabled: !ultimaAuditoria && !!cte.transportadora_id && !!cte.data_emissao,
+    queryFn: async () => {
+      const emissao = cte.data_emissao!.slice(0, 10);
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete")
+        .select(
+          "id, nome, data_inicio, data_fim, uf_destino, tipo_calculo, arquivo_path, arquivo_nome, arquivo_tipo",
+        )
+        .eq("transportadora_id", cte.transportadora_id!)
+        .eq("ativo", true)
+        .lte("data_inicio", emissao)
+        .or(`data_fim.is.null,data_fim.gte.${emissao}`)
+        .order("data_inicio", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const tabelaArquivo = tabelaUsada ?? tabelaVigenteEmissao ?? null;
 
 
   const componentes = (Array.isArray(cte.componentes) ? cte.componentes : []) as {
