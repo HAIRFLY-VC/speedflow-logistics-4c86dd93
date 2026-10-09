@@ -240,14 +240,23 @@ export async function carregarMercadorias(ciclo: CicloComercial): Promise<LinhaM
   }
   const peds = Array.from(new Set(linhas.map((l) => String(l.cod_pedido))));
   type Ord = { order_number: string; route_orders: { routes: { code: string; erp_route_id: string | null } | null }[] | null };
-  const ords = await emLotes(peds, async (lote) => {
-    const { data, error } = await supabase.from("orders").select("order_number, route_orders(routes(code,erp_route_id))").in("order_number", lote);
-    if (error) throw error;
-    return (data ?? []) as unknown as Ord[];
-  });
+  const lista = <T,>(x: T | T[] | null | undefined): T[] => (Array.isArray(x) ? x : x ? [x] : []);
+  let ords: Ord[] = [];
+  try {
+    ords = await emLotes(peds, async (lote) => {
+      const { data, error } = await supabase.from("orders").select("order_number, route_orders(routes(code,erp_route_id))").in("order_number", lote);
+      if (error) throw error;
+      return (data ?? []) as unknown as Ord[];
+    });
+  } catch (e) {
+    console.warn("Rotas dos pedidos indisponíveis", e);
+  }
   const rotaPor = new Map<string, string>();
   for (const o of ords) {
-    const ids = (o.route_orders ?? []).map((r) => r.routes?.erp_route_id ?? r.routes?.code).filter(Boolean) as string[];
+    const ids = lista(o.route_orders as unknown)
+      .flatMap((r) => lista((r as { routes?: unknown }).routes as { code: string; erp_route_id: string | null } | null))
+      .map((rt) => rt.erp_route_id ?? rt.code)
+      .filter(Boolean) as string[];
     if (ids.length) rotaPor.set(o.order_number, Array.from(new Set(ids)).join(", "));
   }
   const s = (v: unknown) => (v == null ? null : String(v));
