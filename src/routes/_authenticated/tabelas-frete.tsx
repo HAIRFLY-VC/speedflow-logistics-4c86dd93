@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Loader2, Trash2, FileText, Upload, Download, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { TABELA_FRETE_BUCKET, abrirArquivoTabelaFrete } from "@/lib/tabela-frete-arquivo";
+import { municipiosAprendidos, observacaoComMunicipios } from "@/lib/frete-area";
+import { MunicipiosPracaDialog } from "@/components/tabelas-frete/MunicipiosPracaDialog";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/central/client";
@@ -86,7 +88,11 @@ type RotaDraft = {
   percentual_reentrega: string;
   prazo_entrega_min_dias: string;
   prazo_entrega_max_dias: string;
+  observacao?: string | null;
+  municipios?: string[];
 };
+
+type RotaCampo = Exclude<keyof RotaDraft, "observacao" | "municipios">;
 
 const ROTA_VAZIA: RotaDraft = {
   origem: "",
@@ -547,6 +553,8 @@ function TabelaDialog({
             r.prazo_entrega_min_dias == null ? "" : String(r.prazo_entrega_min_dias),
           prazo_entrega_max_dias:
             r.prazo_entrega_max_dias == null ? "" : String(r.prazo_entrega_max_dias),
+          observacao: r.observacao ?? null,
+          municipios: municipiosAprendidos(r.observacao),
         })),
       );
       return data;
@@ -866,6 +874,7 @@ function TabelaDialog({
             r.prazo_entrega_min_dias === "" ? null : Math.round(num(r.prazo_entrega_min_dias)),
           prazo_entrega_max_dias:
             r.prazo_entrega_max_dias === "" ? null : Math.round(num(r.prazo_entrega_max_dias)),
+          observacao: observacaoComMunicipios(r.observacao, r.municipios ?? []) || null,
         }));
       if (rotaRows.length) {
         const { error } = await supabase
@@ -1172,7 +1181,7 @@ function TabelaDialog({
             </p>
           ) : (
             <div className="space-y-2">
-              <div className="grid grid-cols-[1.2fr_1.6fr_0.9fr_0.8fr_0.9fr_0.9fr_0.8fr_0.8fr_0.7fr_0.7fr_auto] gap-2 text-[11px] leading-tight text-muted-foreground">
+              <div className="grid grid-cols-[1.2fr_1.6fr_0.9fr_0.8fr_0.9fr_0.9fr_0.8fr_0.8fr_0.7fr_0.7fr_auto_auto] gap-2 text-[11px] leading-tight text-muted-foreground">
                 <span className="min-w-0">Origem</span>
                 <span className="min-w-0">Destino</span>
                 <span className="min-w-0">Tarifa/kg</span>
@@ -1183,12 +1192,13 @@ function TabelaDialog({
                 <span className="min-w-0">% Reentrega</span>
                 <span className="min-w-0">Prazo de</span>
                 <span className="min-w-0">Prazo até</span>
+                <span>Municípios</span>
                 <span />
               </div>
               {rotas.map((r, i) => (
                 <div
                   key={i}
-                  className="grid grid-cols-[1.2fr_1.6fr_0.9fr_0.8fr_0.9fr_0.9fr_0.8fr_0.8fr_0.7fr_0.7fr_auto] gap-2 items-center"
+                  className="grid grid-cols-[1.2fr_1.6fr_0.9fr_0.8fr_0.9fr_0.9fr_0.8fr_0.8fr_0.7fr_0.7fr_auto_auto] gap-2 items-center"
                 >
                   {(
                     [
@@ -1202,7 +1212,7 @@ function TabelaDialog({
                       "percentual_reentrega",
                       "prazo_entrega_min_dias",
                       "prazo_entrega_max_dias",
-                    ] as (keyof RotaDraft)[]
+                    ] as RotaCampo[]
                   ).map((key) => (
                     <Input
                       key={key}
@@ -1218,6 +1228,24 @@ function TabelaDialog({
                       }
                     />
                   ))}
+                  <MunicipiosPracaDialog
+                    praca={r.destino}
+                    municipios={r.municipios ?? []}
+                    outras={rotas
+                      .map((o, idx) => ({ idx, destino: o.destino, municipios: o.municipios ?? [] }))
+                      .filter((o) => o.idx !== i)}
+                    onChange={(lista, moverDe) =>
+                      setRotas((prev) =>
+                        prev.map((row, idx) => {
+                          if (idx === i) return { ...row, municipios: lista };
+                          const remover = moverDe[idx];
+                          return remover
+                            ? { ...row, municipios: (row.municipios ?? []).filter((m) => !remover.includes(m)) }
+                            : row;
+                        }),
+                      )
+                    }
+                  />
                   <Button
                     type="button"
                     size="icon"
