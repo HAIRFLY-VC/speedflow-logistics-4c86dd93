@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.36.1] - 2026-10-09
+### Adicionado
+- Mercadorias faturadas: o card "Vlr. Frete" passa a exibir o % do frete sobre as mercadorias no canto superior direito, no mesmo estilo do valor.
+
 ## [1.36.0] - 2026-10-09
 ### Adicionado
 - Mercadorias faturadas: notas sem frete real exibem os valores provisionados (frete, perna, diária, pernoite, reentrega, descarrego).

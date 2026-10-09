@@ -97,6 +97,7 @@ function MercadoriasPage() {
 
   const tot = (k: K) => linhas.reduce((s, l) => s + Number(l[k] ?? 0), 0);
   const totOrig = (o: "R" | "P") => linhas.reduce((s, l) => s + (l.origem_frete === o ? Number(l.vlr_frete ?? 0) : 0), 0);
+  const pctFrete = tot("valor") > 0 ? (tot("vlr_frete") / tot("valor")) * 100 : null;
 
   const exportar = () =>
     exportarXlsx({
@@ -135,7 +136,12 @@ function MercadoriasPage() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {([["Notas", linhas.length.toLocaleString("pt-BR")], ["Valor", `R$ ${num2.format(tot("valor"))}`], ["Peso", `${num2.format(tot("peso"))} kg`], ["Vlr. Frete", `R$ ${num2.format(tot("vlr_frete"))}`]] as const).map(([t, v]) => (
-          <Card key={t}><CardContent className="p-3"><p className="text-xs text-muted-foreground">{t}</p><p className="text-lg font-bold tabular-nums">{q.isLoading ? "…" : v}</p>
+          <Card key={t}><CardContent className="p-3">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-xs text-muted-foreground">{t}</p>
+              {t === "Vlr. Frete" && <p className="text-lg font-bold leading-none tabular-nums">{q.isLoading ? "…" : pctFrete == null ? "—" : `${pctFrete.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`}</p>}
+            </div>
+            <p className="text-lg font-bold tabular-nums">{q.isLoading ? "…" : v}</p>
             {t === "Vlr. Frete" && !q.isLoading && <p className="text-[11px] text-muted-foreground tabular-nums">Real R$ {num2.format(totOrig("R"))} / Provisionado R$ {num2.format(totOrig("P"))}</p>}
           </CardContent></Card>
         ))}
