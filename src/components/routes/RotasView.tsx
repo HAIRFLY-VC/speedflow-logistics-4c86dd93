@@ -2237,7 +2237,6 @@ export function RotasView({
               </Card>
             </Link>
           )}
-          {mostrarCardFrete && <CardPercentualFrete />}
           </div>
         )}
 
