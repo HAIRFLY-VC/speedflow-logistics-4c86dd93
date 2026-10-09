@@ -718,6 +718,86 @@ async function sincronizarEntregasAbertas(): Promise<{ total: number; clientes: 
   return { total: payload.length, clientes };
 }
 
+
+/**
+ * Espelho de TODAS as notas faturadas (qualquer status) dos ciclos comerciais
+ * recentes — base do painel Custo de Frete. Uma consulta por ciclo.
+ */
+async function sincronizarNotasFaturadas(): Promise<number> {
+  const baseUrl = process.env.ERP_API_BASE_URL;
+  const apiKey = process.env.ERP_API_KEY;
+  if (!baseUrl || !apiKey) return 0;
+  const { data: ciclos, error: cErr } = await centralDb
+    .from("erp_calendario_comercial")
+    .select("mes_comerc,de,ate")
+    .order("mes_comerc", { ascending: false })
+    .limit(7);
+  if (cErr) throw cErr;
+  const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
+  const txt = (v: unknown) => (v == null || String(v).trim() === "" ? null : String(v).trim());
+  const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  const ymd = (d: string) => d.slice(0, 10).replace(/-/g, "");
+  let total = 0;
+  for (const c of (ciclos ?? []) as { de: string; ate: string }[]) {
+    const sql = `SELECT G.NRO_NF, G.COD_PEDIDO, G.COD_CLIENTE, G.COD_VENDEDOR, G.COD_FILIAL,
+         G.COD_AGENDA, G.BORDERO, G.DT_PEDIDO, G.DT_FATUR, G.DT_SAIDA,
+         G.DT_ENTREGA_CLI, G.DT_AGENDAMENTO, G.ENTREGA_AGEND,
+         G.COD_TRANSP_ENT, G.TIPO_TRANSP_ENT, G.PLACA_VEICULO_ENT,
+         G.VALOR, G.PESO, G.TIPOS_OCORRENCIA, G.STATUS, ${SQL_EXTRAS_ENTREGA}
+    FROM GKS.A_GERENTREGAS G
+   WHERE G.NRO_NF IS NOT NULL
+     AND G.DT_FATUR >= TO_DATE('${ymd(c.de)}','yyyyMMdd')
+     AND G.DT_FATUR < TO_DATE('${ymd(c.ate)}','yyyyMMdd') + 1`;
+    const res = await fetch(`${cleanBase}/v1/query`, {
+      method: "POST",
+      signal: AbortSignal.timeout(60_000),
+      headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+      body: JSON.stringify({ sql, binds: {}, limit: 50000 }),
+    });
+    if (!res.ok) throw new Error(friendlyErpError(res.status, await res.text()));
+    const json = (await res.json()) as ErpQueryResponse;
+    const agora = new Date().toISOString();
+    const byKey = new Map<string, Record<string, unknown>>();
+    const ordem = (r: Record<string, unknown>) => `${r.dt_saida ?? ""}|${String(r.bordero ?? "").padStart(12, "0")}`;
+    for (const row of json.rows ?? []) {
+      const nf = txt(row.NRO_NF), pedido = txt(row.COD_PEDIDO);
+      if (!nf || !pedido) continue;
+      const nova: Record<string, unknown> = {
+        nro_nf: nf, cod_pedido: pedido,
+        cod_cliente: txt(row.COD_CLIENTE), cod_vendedor: txt(row.COD_VENDEDOR), cod_filial: txt(row.COD_FILIAL),
+        cod_agenda: txt(row.COD_AGENDA), bordero: txt(row.BORDERO),
+        dt_pedido: soData(row.DT_PEDIDO), dt_fatur: soData(row.DT_FATUR), dt_saida: soData(row.DT_SAIDA),
+        dt_entrega_cli: soData(row.DT_ENTREGA_CLI), dt_agendamento: soData(row.DT_AGENDAMENTO),
+        entrega_agend: txt(row.ENTREGA_AGEND), cod_transp_ent: txt(row.COD_TRANSP_ENT),
+        tipo_transp_ent: txt(row.TIPO_TRANSP_ENT), placa_veiculo_ent: txt(row.PLACA_VEICULO_ENT),
+        valor: num(row.VALOR), peso: num(row.PESO), tipos_ocorrencia: txt(row.TIPOS_OCORRENCIA),
+        status: txt(row.STATUS), ...extrasEntrega((k) => row[k], soData), atualizado_em: agora,
+      };
+      const k = `${nf}|${pedido}`;
+      const prev = byKey.get(k);
+      if (prev) {
+        const oc = new Set([prev.tipos_ocorrencia, nova.tipos_ocorrencia].flatMap((t) => String(t ?? "").split(",")).map((t) => t.trim()).filter(Boolean));
+        const fica = ordem(nova) >= ordem(prev) ? nova : prev;
+        byKey.set(k, { ...fica, tipos_ocorrencia: oc.size ? Array.from(oc).join(", ") : null });
+      } else byKey.set(k, nova);
+    }
+    const payload = Array.from(byKey.values());
+    for (let i = 0; i < payload.length; i += 200) {
+      const { error } = await centralDb.from("notas_faturadas" as never).upsert(payload.slice(i, i + 200) as never, { onConflict: "nro_nf,cod_pedido" });
+      if (error) throw error;
+    }
+    const { error: delErr } = await centralDb
+      .from("notas_faturadas" as never)
+      .delete()
+      .gte("dt_fatur", c.de.slice(0, 10))
+      .lte("dt_fatur", c.ate.slice(0, 10))
+      .lt("atualizado_em", agora);
+    if (delErr) throw delErr;
+    total += payload.length;
+  }
+  return total;
+}
+
 type SyncResult = {
   runId: string;
   fetched: number;
@@ -1460,6 +1540,14 @@ export async function syncErpOrders(opts: {
   // A atualização manual precisa responder antes do limite da requisição.
   // Pedidos e rotas já estão persistidos neste ponto; as tarefas complementares
   // abaixo permanecem reservadas à execução agendada.
+  // Notas faturadas dos ciclos recentes (painel Custo de Frete), também no manual.
+  try {
+    const n = await sincronizarNotasFaturadas();
+    console.log(`[erp-sync] ${n} notas faturadas espelhadas`);
+  } catch (err) {
+    console.warn("[erp-sync] sincronizar notas faturadas falhou:", err);
+  }
+
   if (opts.trigger === "manual") {
     console.log(`[erp-sync] rotas: ${routes_created} criadas, ${routes_linked} pedidos vinculados`);
     return { runId: run.id, fetched, created, updated, skipped, customers_created, errors, status };

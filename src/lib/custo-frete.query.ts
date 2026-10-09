@@ -41,6 +41,16 @@ export type LinhaCustoFrete = {
   tipo: string | null;
 };
 
+
+/** Fonte das notas faturadas: espelho completo (v1.34.0) ou, se ainda não existir, o de entregas em aberto. */
+let fonteNotas: "notas_faturadas" | "entregas_abertas" | null = null;
+async function tabelaNotas(): Promise<"notas_faturadas" | "entregas_abertas"> {
+  if (fonteNotas) return fonteNotas;
+  const { error } = await supabase.from("notas_faturadas" as never).select("nro_nf").limit(1);
+  fonteNotas = error ? "entregas_abertas" : "notas_faturadas";
+  return fonteNotas;
+}
+
 const PAGINA = 1000;
 const LOTE = 150;
 
@@ -57,9 +67,10 @@ async function emLotes<T, R>(itens: T[], fn: (lote: T[]) => Promise<R[]>): Promi
 export async function carregarCustoFrete(ciclo: CicloComercial): Promise<LinhaCustoFrete[]> {
   type Ent = { nro_nf: string; cod_pedido: string; cod_cliente: string | null; cod_vendedor: string | null; valor: number; peso: number };
   const entregas: Ent[] = [];
+  const fonte = await tabelaNotas();
   for (let de = 0; de < 100_000; de += PAGINA) {
     const { data, error } = await supabase
-      .from("entregas_abertas")
+      .from(fonte as "entregas_abertas")
       .select("nro_nf,cod_pedido,cod_cliente,cod_vendedor,valor,peso")
       .gte("dt_fatur", ciclo.de)
       .lte("dt_fatur", ciclo.ate)
@@ -226,9 +237,10 @@ export type LinhaMercadoria = {
 
 export async function carregarMercadorias(ciclo: CicloComercial): Promise<LinhaMercadoria[]> {
   const linhas: Record<string, unknown>[] = [];
+  const fonte = await tabelaNotas();
   for (let de = 0; de < 100_000; de += PAGINA) {
     const { data, error } = await supabase
-      .from("entregas_abertas")
+      .from(fonte as "entregas_abertas")
       .select("*")
       .gte("dt_fatur", ciclo.de)
       .lte("dt_fatur", ciclo.ate)
