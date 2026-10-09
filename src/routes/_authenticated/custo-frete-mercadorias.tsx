@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Download } from "lucide-react";
+import { Download, RotateCcw } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ import {
   calendarioComercialQueryOptions,
   carregarMercadorias,
   aplicarProvisoes,
+  consolidarReentregas,
   cicloAtual,
   type CicloComercial,
   type LinhaMercadoria,
@@ -69,13 +71,13 @@ function MercadoriasPage() {
     queryFn: async () => {
       const base = await carregarMercadorias(ciclo!);
       const semFrete = base.filter((l) => l.origem_frete !== "R").map((l) => l.nro_nf);
-      if (!semFrete.length) return { linhas: base, avisoProv: null as string | null };
+      if (!semFrete.length) return { linhas: consolidarReentregas(base), avisoProv: null as string | null };
       try {
         const provs = await listarProvisoes({ data: { nfs: semFrete } });
-        return { linhas: aplicarProvisoes(base, provs), avisoProv: null as string | null };
+        return { linhas: consolidarReentregas(aplicarProvisoes(base, provs)), avisoProv: null as string | null };
       } catch (e) {
         console.warn("Provisões indisponíveis", e);
-        return { linhas: base, avisoProv: "Valores provisionados indisponíveis no momento; exibindo apenas frete real." };
+        return { linhas: consolidarReentregas(base), avisoProv: "Valores provisionados indisponíveis no momento; exibindo apenas frete real." };
       }
     },
     enabled: !!ciclo,
@@ -102,14 +104,14 @@ function MercadoriasPage() {
   const exportar = () =>
     exportarXlsx({
       fileName: `mercadorias-faturadas-${ciclo?.mes_comerc ?? ""}.xlsx`,
-      headers: COLS.map((c) => c.t),
+      headers: [...COLS.map((c) => c.t), "REENTREGA"],
       rows: linhas.map((l) => COLS.map((c) => {
         const v = l[c.k];
         if (v == null) return null;
         if (c.tipo === "data") return dataBr(String(v));
         if (c.tipo) return Number(v);
         return String(v);
-      })),
+      }).concat(l.reentrega ? `S (borderôs ${l.reentrega.borderos.join(", ")})` : "N")),
     });
 
   return (
@@ -150,6 +152,7 @@ function MercadoriasPage() {
       {q.data?.avisoProv && <p className="text-xs text-muted-foreground">{q.data.avisoProv}</p>}
       {q.isError && <p className="text-sm text-destructive">Não foi possível carregar: {(q.error as Error)?.message}</p>}
 
+      <TooltipProvider delayDuration={150}>
       <Card>
         <CardContent className="max-h-[70vh] overflow-auto p-0">
           <table className="w-full text-[11px]">
@@ -166,9 +169,22 @@ function MercadoriasPage() {
             <tbody>
               {q.isLoading && <tr><td colSpan={COLS.length} className="p-4 text-muted-foreground">Carregando…</td></tr>}
               {linhas.map((l) => (
-                <tr key={`${l.nro_nf}|${l.cod_pedido}`} className="border-t hover:bg-muted/50">
+                <tr key={l.cod_pedido} className={`border-t ${l.reentrega ? "bg-warning/15 hover:bg-warning/25" : "hover:bg-muted/50"}`}>
                   {COLS.map((c) => (
-                    <td key={c.k} className={`whitespace-nowrap px-2 py-1 ${c.tipo === "num" || c.tipo === "kg" ? "text-right tabular-nums" : ""}`}>{fmt(c, l[c.k])}</td>
+                    <td key={c.k} className={`whitespace-nowrap px-2 py-1 ${c.tipo === "num" || c.tipo === "kg" ? "text-right tabular-nums" : ""}`}>
+                      {c.k === "cod_pedido" && l.reentrega ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex cursor-help items-center gap-1 font-semibold text-warning-foreground">
+                              <RotateCcw className="h-3 w-3" />{fmt(c, l[c.k])}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs text-xs">
+                            Pedido reentregue: {l.reentrega.qtd} entregas (borderôs {l.reentrega.borderos.join(", ")}; NFs {l.reentrega.nfs.join(", ")}). Dados do borderô {l.bordero}; valores de frete somados.
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : fmt(c, l[c.k])}
+                    </td>
                   ))}
                 </tr>
               ))}
@@ -187,6 +203,7 @@ function MercadoriasPage() {
           </table>
         </CardContent>
       </Card>
+      </TooltipProvider>
     </div>
   );
 }
