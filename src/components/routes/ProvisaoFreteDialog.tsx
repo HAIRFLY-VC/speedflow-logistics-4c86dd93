@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { PracaBusca } from "./PracaBusca";
 import { definirPracaMunicipio } from "@/lib/frete-area.functions";
 import { gravarProvisaoFrete, previewProvisaoFrete } from "@/lib/provisao-frete.functions";
 import type { DetalheFrete } from "@/lib/frete-simulacao";
@@ -185,22 +186,13 @@ export function ProvisaoFreteDialog(props: {
   const seletorPraca = (cidade: string | null, atual: string | null) =>
     cidade && d && d.pracas.length > 0 ? (
       <div onClick={(ev) => ev.stopPropagation()} className="inline-block">
-        <Select
-          value={atual ?? ""}
+        <PracaBusca
+          cidade={cidade}
+          atual={d.pracas.find((p) => p.id === atual)?.destino ?? null}
+          pracas={d.pracas}
           disabled={praca.isPending}
-          onValueChange={(v) => praca.mutate({ rotaId: v, municipio: cidade })}
-        >
-          <SelectTrigger className="h-7 w-52 text-[11px]">
-            <SelectValue placeholder="Selecionar praça…" />
-          </SelectTrigger>
-          <SelectContent>
-            {d.pracas.map((p) => (
-              <SelectItem key={p.id} value={p.id} className="text-xs">
-                {p.destino}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onSelect={(id) => praca.mutate({ rotaId: id, municipio: cidade })}
+        />
       </div>
     ) : null;
 

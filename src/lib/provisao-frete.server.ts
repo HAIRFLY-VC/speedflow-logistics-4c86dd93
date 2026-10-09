@@ -3,6 +3,7 @@
  * tabela de frete vigente e grava no ERP (GKS.A_GER_PROVISAO_FRETE). Server-only.
  */
 import { centralDb } from "./central-db";
+import { municipiosAprendidos } from "./frete-area";
 import { montarPreviewPagamentoRota } from "./rota-pagamento.server";
 import {
   detalharEntrega,
@@ -249,7 +250,7 @@ async function calcular(routeId: string): Promise<Calculo> {
     tabela: tabela ? { id: tabela.id, nome: tabela.nome } : null,
     pracas: (tabela?.tabelas_preco_frete_rotas ?? [])
       .filter((r) => r.id && r.destino)
-      .map((r) => ({ id: r.id!, destino: r.destino! }))
+      .map((r) => ({ id: r.id!, destino: r.destino!, municipios: municipiosAprendidos(r.observacao) }))
       .sort((a, b) => a.destino.localeCompare(b.destino)),
     notas,
     entregas,
