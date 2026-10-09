@@ -7,10 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BackButton } from "@/components/layout/BackButton";
+import { useServerFn } from "@tanstack/react-start";
+import { listarProvisoesNotas } from "@/lib/provisao-frete.functions";
 import { exportarXlsx } from "@/components/data-table/export-xlsx";
 import {
   calendarioComercialQueryOptions,
   carregarMercadorias,
+  aplicarProvisoes,
   cicloAtual,
   type CicloComercial,
   type LinhaMercadoria,
@@ -55,6 +58,7 @@ const fmt = (c: Col, v: unknown) =>
 const rotulo = (c: CicloComercial) => `${c.mes_comerc.slice(5, 7)}/${c.mes_comerc.slice(0, 4)} (${dataBr(c.de)} a ${dataBr(c.ate)})`;
 
 function MercadoriasPage() {
+  const listarProvisoes = useServerFn(listarProvisoesNotas);
   const { ciclo: cicloParam } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const calQ = useQuery(calendarioComercialQueryOptions());

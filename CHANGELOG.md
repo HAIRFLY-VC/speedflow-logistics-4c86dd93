@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.36.0] - 2026-10-09
+### Adicionado
+- Mercadorias faturadas: notas sem frete real exibem os valores provisionados (frete, perna, diária, pernoite, reentrega, descarrego).
+- Nova coluna ORIGEM_FRETE (R = real, P = provisionado) e total de frete dividido entre real e provisionado.
+
 ## [1.35.0] - 2026-10-09
 ### Alterado
 - Base dos demonstrativos de custo com frete restrita às agendas 417 e 427: Sync ERP passa a gravar só essas agendas e as telas (Custo de Frete, "% Frete do ciclo" e detalhamento de Mercadorias faturadas) ignoram as demais.
