@@ -177,20 +177,11 @@ export async function carregarCustoFrete(ciclo: CicloComercial): Promise<LinhaCu
       console.warn("Provisões indisponíveis", err);
     }
   }
-  const fretePorNf = new Map<string, number>();
-  for (const m of mercFinal) {
-    const k = `${m.nro_nf}|${m.cod_pedido}`;
-    fretePorNf.set(k, (fretePorNf.get(k) ?? 0) + Number(m.vlr_frete ?? 0));
-  }
-  const usado = new Set<string>();
+  const consolidadas = consolidarReentregas(mercFinal);
 
-  return entregas.map((e) => {
+  return consolidadas.map((e) => {
     const fp = fretePedido.get(e.cod_pedido);
-    const totPed = valorPedidoNfs.get(e.cod_pedido) ?? 0;
-    void totPed;
-    const kNf = `${e.nro_nf}|${e.cod_pedido}`;
-    const frete = usado.has(kNf) ? 0 : fretePorNf.get(kNf) ?? 0;
-    usado.add(kNf);
+    const frete = Number(e.vlr_frete ?? 0);
     const cli = e.cod_cliente ? cliPor.get(e.cod_cliente) : undefined;
     const resp = fp?.rota.erp_carrier_code ? respPor.get(fp.rota.erp_carrier_code) : undefined;
     const nomeCli = cli?.razao_social || cli?.nome_nf || "Cliente";
@@ -214,6 +205,39 @@ export async function carregarCustoFrete(ciclo: CicloComercial): Promise<LinhaCu
       tipo: resp?.tipo_frete ?? null,
     };
   });
+}
+
+const CAMPOS_FRETE = ["vlr_frete", "vlr_perna", "vlr_diaria", "vlr_pernoite", "vlr_reentrega", "vlr_descarrego"] as const;
+
+/**
+ * Pedido reentregue (mais de uma nota/borderô no ciclo) vira uma única linha:
+ * dados da nota de maior borderô e os 6 campos de frete somados.
+ */
+export function consolidarReentregas(linhas: LinhaMercadoria[]): LinhaMercadoria[] {
+  const grupos = new Map<string, LinhaMercadoria[]>();
+  for (const l of linhas) {
+    const g = grupos.get(l.cod_pedido);
+    if (g) g.push(l); else grupos.set(l.cod_pedido, [l]);
+  }
+  const out: LinhaMercadoria[] = [];
+  for (const g of grupos.values()) {
+    if (g.length === 1) { out.push({ ...g[0], reentrega: null }); continue; }
+    const ord = [...g].sort((a, b) =>
+      Number(a.bordero ?? 0) - Number(b.bordero ?? 0) ||
+      String(a.dt_saida ?? "").localeCompare(String(b.dt_saida ?? "")) ||
+      Number(a.nro_nf) - Number(b.nro_nf));
+    const base = ord[ord.length - 1];
+    const soma = Object.fromEntries(CAMPOS_FRETE.map((k) => {
+      const vals = g.map((l) => l[k]).filter((v) => v != null) as number[];
+      return [k, vals.length ? vals.reduce((s, v) => s + Number(v), 0) : null];
+    })) as Pick<LinhaMercadoria, (typeof CAMPOS_FRETE)[number]>;
+    const origem = g.some((l) => l.origem_frete === "R") ? "R" : g.some((l) => l.origem_frete === "P") ? "P" : null;
+    out.push({
+      ...base, ...soma, origem_frete: origem,
+      reentrega: { qtd: g.length, borderos: ord.map((l) => l.bordero ?? "—"), nfs: ord.map((l) => l.nro_nf) },
+    });
+  }
+  return out;
 }
 
 export const custoFreteQueryOptions = (ciclo: CicloComercial | null) =>
@@ -258,6 +282,8 @@ export type LinhaMercadoria = {
   tipos_ocorrencia: string | null;
   /** R = frete real do ERP; P = provisionado; null = sem frete. */
   origem_frete: "R" | "P" | null;
+  /** Preenchido quando o pedido teve mais de uma entrega (borderôs) no ciclo. */
+  reentrega?: { qtd: number; borderos: string[]; nfs: string[] } | null;
 };
 
 export type ProvisaoLinha = { cod_filial: string; nro_nf: string; vlr_frete: number; vlr_perna: number; vlr_diaria: number; vlr_pernoite: number; vlr_reentrega: number; vlr_descarrego: number };
