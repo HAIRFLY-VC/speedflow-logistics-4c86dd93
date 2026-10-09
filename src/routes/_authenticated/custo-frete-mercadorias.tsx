@@ -42,7 +42,7 @@ const COLS: Col[] = [
   { k: "dt_agendamento", t: "DT_AGENDAMENTO", tipo: "data" }, { k: "cod_transp_prn", t: "COD_TRANSP_PRN" },
   { k: "tipo_transp_pn", t: "TIPO_TRANSP_PN" }, { k: "placa_veiculo_ent", t: "PLACA_VEICULO_ENT" },
   { k: "cod_transp_ent", t: "COD_TRANSP_ENT" }, { k: "tipo_transp_ent", t: "TIPO_TRANSP_ENT" }, { k: "nro_nf", t: "NRO_NF" },
-  { k: "valor", t: "VALOR", tipo: "num" }, { k: "peso", t: "PESO", tipo: "kg" }, { k: "vlr_frete", t: "VLR_FRETE", tipo: "num" },
+  { k: "valor", t: "VALOR", tipo: "num" }, { k: "peso", t: "PESO", tipo: "kg" }, { k: "vlr_frete", t: "VLR_FRETE", tipo: "num" }, { k: "origem_frete", t: "ORIGEM_FRETE" },
   { k: "vlr_perna", t: "VLR_PERNA", tipo: "num" }, { k: "vlr_diaria", t: "VLR_DIARIA", tipo: "num" },
   { k: "vlr_pernoite", t: "VLR_PERNOITE", tipo: "num" }, { k: "vlr_reentrega", t: "VLR_REENTREGA", tipo: "num" },
   { k: "vlr_descarrego", t: "VLR_DESCARREGO", tipo: "num" }, { k: "tipos_ocorrencia", t: "TIPOS_OCORRENCIA" },
@@ -62,7 +62,18 @@ function MercadoriasPage() {
   const ciclo = ciclos.find((c) => c.mes_comerc === cicloParam) ?? cicloAtual(ciclos);
   const q = useQuery({
     queryKey: ["custo-frete-mercadorias", ciclo?.mes_comerc ?? "-"],
-    queryFn: () => carregarMercadorias(ciclo!),
+    queryFn: async () => {
+      const base = await carregarMercadorias(ciclo!);
+      const semFrete = base.filter((l) => l.origem_frete !== "R").map((l) => l.nro_nf);
+      if (!semFrete.length) return { linhas: base, avisoProv: null as string | null };
+      try {
+        const provs = await listarProvisoes({ data: { nfs: semFrete } });
+        return { linhas: aplicarProvisoes(base, provs), avisoProv: null as string | null };
+      } catch (e) {
+        console.warn("Provisões indisponíveis", e);
+        return { linhas: base, avisoProv: "Valores provisionados indisponíveis no momento; exibindo apenas frete real." };
+      }
+    },
     enabled: !!ciclo,
     staleTime: 5 * 60_000,
   });
@@ -71,7 +82,7 @@ function MercadoriasPage() {
 
   const linhas = useMemo(() => {
     const b = busca.trim().toLowerCase();
-    const f = (q.data ?? []).filter((l) => !b || COLS.some((c) => String(l[c.k] ?? "").toLowerCase().includes(b)));
+    const f = (q.data?.linhas ?? []).filter((l) => !b || COLS.some((c) => String(l[c.k] ?? "").toLowerCase().includes(b)));
     const col = COLS.find((c) => c.k === ord.k)!;
     return f.sort((a, z) => {
       const x = a[ord.k], y = z[ord.k];
@@ -81,6 +92,7 @@ function MercadoriasPage() {
   }, [q.data, busca, ord]);
 
   const tot = (k: K) => linhas.reduce((s, l) => s + Number(l[k] ?? 0), 0);
+  const totOrig = (o: "R" | "P") => linhas.reduce((s, l) => s + (l.origem_frete === o ? Number(l.vlr_frete ?? 0) : 0), 0);
 
   const exportar = () =>
     exportarXlsx({
@@ -118,11 +130,14 @@ function MercadoriasPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {([["Notas", linhas.length.toLocaleString("pt-BR")], ["Valor", `R$ ${num2.format(tot("valor"))}`], ["Peso", `${num2.format(tot("peso"))} kg`], ["Vlr. Frete (ERP)", `R$ ${num2.format(tot("vlr_frete"))}`]] as const).map(([t, v]) => (
-          <Card key={t}><CardContent className="p-3"><p className="text-xs text-muted-foreground">{t}</p><p className="text-lg font-bold tabular-nums">{q.isLoading ? "…" : v}</p></CardContent></Card>
+        {([["Notas", linhas.length.toLocaleString("pt-BR")], ["Valor", `R$ ${num2.format(tot("valor"))}`], ["Peso", `${num2.format(tot("peso"))} kg`], ["Vlr. Frete", `R$ ${num2.format(tot("vlr_frete"))}`]] as const).map(([t, v]) => (
+          <Card key={t}><CardContent className="p-3"><p className="text-xs text-muted-foreground">{t}</p><p className="text-lg font-bold tabular-nums">{q.isLoading ? "…" : v}</p>
+            {t === "Vlr. Frete" && !q.isLoading && <p className="text-[11px] text-muted-foreground tabular-nums">Real R$ {num2.format(totOrig("R"))} / Provisionado R$ {num2.format(totOrig("P"))}</p>}
+          </CardContent></Card>
         ))}
       </div>
 
+      {q.data?.avisoProv && <p className="text-xs text-muted-foreground">{q.data.avisoProv}</p>}
       {q.isError && <p className="text-sm text-destructive">Não foi possível carregar: {(q.error as Error)?.message}</p>}
 
       <Card>
