@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.30.3] - 2026-10-09
+### Alterado
+- Praças da tabela TABELA-FRACIONADA (Solution) refeitas conforme a planilha da transportadora: 196 cidades em 8 praças, reconhecidas automaticamente no provisionamento e na auditoria de CT-e.
+
 ## [1.30.2] - 2026-10-09
 ### Alterado
 - "Baixar tabela original": o arquivo da tabela de frete é baixado direto na área de downloads (sem abrir nova aba).
