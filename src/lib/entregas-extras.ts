@@ -1,7 +1,7 @@
-/** Campos extras de A_GERENTREGAS (v1.33.0). Gravados só se a coluna existir no banco central. */
+/** Campos extras de A_GERENTREGAS (v1.33.0; `vendedor` desde v1.37.4). Gravados só se a coluna existir no banco central. */
 export const CAMPOS_EXTRAS_ENTREGA = [
   "dt_etrg_trsp", "cod_transp_prn", "tipo_transp_pn", "vlr_frete", "vlr_perna",
-  "vlr_diaria", "vlr_pernoite", "vlr_reentrega", "vlr_descarrego",
+  "vlr_diaria", "vlr_pernoite", "vlr_reentrega", "vlr_descarrego", "vendedor",
 ] as const;
 
 export const SQL_EXTRAS_ENTREGA =

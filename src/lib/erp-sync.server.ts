@@ -785,9 +785,13 @@ async function sincronizarNotasFaturadas(): Promise<number> {
         byKey.set(k, { ...fica, tipos_ocorrencia: oc.size ? Array.from(oc).join(", ") : null });
       } else byKey.set(k, nova);
     }
-    const payload = Array.from(byKey.values());
+    let payload = Array.from(byKey.values());
     for (let i = 0; i < payload.length; i += 200) {
-      const { error } = await centralDb.from("notas_faturadas" as never).upsert(payload.slice(i, i + 200) as never, { onConflict: "nro_nf,cod_pedido" });
+      let { error } = await centralDb.from("notas_faturadas" as never).upsert(payload.slice(i, i + 200) as never, { onConflict: "nro_nf,cod_pedido" });
+      if (error && erroColunaAusente(error.message)) {
+        payload = payload.map(semExtras);
+        ({ error } = await centralDb.from("notas_faturadas" as never).upsert(payload.slice(i, i + 200) as never, { onConflict: "nro_nf,cod_pedido" }));
+      }
       if (error) throw error;
     }
     const { error: delErr } = await centralDb
