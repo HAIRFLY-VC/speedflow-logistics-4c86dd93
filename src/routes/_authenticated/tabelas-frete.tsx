@@ -1192,6 +1192,7 @@ function TabelaDialog({
                 <span className="min-w-0">% Reentrega</span>
                 <span className="min-w-0">Prazo de</span>
                 <span className="min-w-0">Prazo até</span>
+                <span>Municípios</span>
                 <span />
               </div>
               {rotas.map((r, i) => (

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.32.0] - 2026-10-09
+### Adicionado
+- Tabelas de frete: consulta e manutenção dos municípios de cada praça (buscar, adicionar, remover e mover entre praças).
+### Corrigido
+- Salvar a tabela de frete não apaga mais a lista de municípios das praças.
+
 ## [1.31.0] - 2026-10-09
 ### Adicionado
 - Provisionamento: busca de praça digitando parte do nome do município, com a praça correspondente ao lado.
