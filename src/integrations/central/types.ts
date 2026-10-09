@@ -239,6 +239,7 @@ export type EntregaAbertaRow = {
   vlr_pernoite?: number | null;
   vlr_reentrega?: number | null;
   vlr_descarrego?: number | null;
+  vendedor?: string | null;
   atualizado_em: string;
 };
 
