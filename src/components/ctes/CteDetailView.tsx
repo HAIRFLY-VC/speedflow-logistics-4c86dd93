@@ -1,4 +1,5 @@
-import { AlertTriangle, CheckCircle2, FileCode, FileDown, Loader2, ScanSearch } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileCode, FileDown, FileText, Loader2, ScanSearch } from "lucide-react";
+import { abrirArquivoTabelaFrete } from "@/lib/tabela-frete-arquivo";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link, useRouter } from "@tanstack/react-router";
@@ -253,8 +254,33 @@ export function CteDetailView({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tabelas_preco_frete")
-        .select("id, nome, data_inicio, data_fim, uf_destino, tipo_calculo")
+        .select(
+          "id, nome, data_inicio, data_fim, uf_destino, tipo_calculo, arquivo_path, arquivo_nome, arquivo_tipo",
+        )
         .eq("id", ultimaAuditoria!.tabela_preco_id!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Sem auditoria: oferece o arquivo da tabela vigente na emissão do CT-e.
+  const { data: tabelaVigenteEmissao } = useQuery({
+    queryKey: ["cte-tabela-vigente", cte.id, cte.transportadora_id, cte.data_emissao],
+    enabled: !ultimaAuditoria && !!cte.transportadora_id && !!cte.data_emissao,
+    queryFn: async () => {
+      const emissao = cte.data_emissao!.slice(0, 10);
+      const { data, error } = await supabase
+        .from("tabelas_preco_frete")
+        .select(
+          "id, nome, data_inicio, data_fim, uf_destino, tipo_calculo, arquivo_path, arquivo_nome, arquivo_tipo",
+        )
+        .eq("transportadora_id", cte.transportadora_id!)
+        .eq("ativo", true)
+        .lte("data_inicio", emissao)
+        .or(`data_fim.is.null,data_fim.gte.${emissao}`)
+        .order("data_inicio", { ascending: false })
+        .limit(1)
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -913,10 +939,29 @@ export function CteDetailView({
         </div>
 
         {!ultimaAuditoria ? (
-          <p className="text-muted-foreground text-sm">
-            Nenhuma auditoria executada. Compare a cobrança com a tabela de frete da transportadora
-            emissora.
-          </p>
+          <div className="space-y-2">
+            <p className="text-muted-foreground text-sm">
+              Nenhuma auditoria executada. Compare a cobrança com a tabela de frete da transportadora
+              emissora.
+            </p>
+            {tabelaVigenteEmissao?.arquivo_path ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  abrirArquivoTabelaFrete(
+                    tabelaVigenteEmissao.arquivo_path!,
+                    tabelaVigenteEmissao.arquivo_nome,
+                  )
+                }
+              >
+                <FileText className="mr-1 h-4 w-4" /> Ver tabela original
+                <span className="text-muted-foreground ml-1 text-xs">
+                  (vigente na emissão — auditoria ainda não executada)
+                </span>
+              </Button>
+            ) : null}
+          </div>
         ) : (
           <div
             className={`rounded-md border p-3 ${
@@ -971,6 +1016,24 @@ export function CteDetailView({
                         : " (sem término)"}
                       {tabelaUsada.uf_destino ? ` · UF ${tabelaUsada.uf_destino}` : ""}
                     </span>
+                  ) : null}
+                  {tabelaUsada?.arquivo_path ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="ml-2 h-6 px-2 text-xs"
+                      title={tabelaUsada.arquivo_nome ?? "Ver arquivo original da tabela"}
+                      onClick={() =>
+                        abrirArquivoTabelaFrete(
+                          tabelaUsada.arquivo_path!,
+                          tabelaUsada.arquivo_nome,
+                        )
+                      }
+                    >
+                      <FileText className="mr-1 h-3.5 w-3.5" /> Ver tabela original
+                    </Button>
+                  ) : ultimaAuditoria.tabela_preco_id && tabelaUsada ? (
+                    <span className="ml-2">· tabela sem arquivo anexado</span>
                   ) : null}
                 </>
               ) : (

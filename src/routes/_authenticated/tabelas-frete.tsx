@@ -3,6 +3,7 @@ import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Loader2, Trash2, FileText, Upload, Download, X } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { TABELA_FRETE_BUCKET, abrirArquivoTabelaFrete } from "@/lib/tabela-frete-arquivo";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/central/client";
@@ -137,24 +138,9 @@ const num = (v: string) => {
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const BUCKET = "tabelas-frete";
+const BUCKET = TABELA_FRETE_BUCKET;
 
-async function signedUrl(path: string, download?: string) {
-  const { data, error } = await storageClient.storage
-    .from(BUCKET)
-    .createSignedUrl(path, 300, download ? { download } : undefined);
-  if (error) throw error;
-  return data.signedUrl;
-}
-
-async function abrirArquivo(path: string, nome?: string | null, baixar?: boolean) {
-  try {
-    const url = await signedUrl(path, baixar ? (nome ?? "tabela") : undefined);
-    window.open(url, "_blank", "noopener,noreferrer");
-  } catch (e) {
-    toast.error((e as Error).message);
-  }
-}
+const abrirArquivo = abrirArquivoTabelaFrete;
 
 function emptyForm(): TabelaForm {
   return {
