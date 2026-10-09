@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.37.3] - 2026-10-09
+### Corrigido
+- Pedido reentregue (mais de um borderô no ciclo) passa a aparecer em uma única linha, com dados do maior borderô e os valores de frete somados, em todos os cálculos de % frete.
+- Linha do pedido reentregue destacada com ícone e explicação ao passar o mouse; Excel ganhou coluna REENTREGA.
+
 ## [1.37.2] - 2026-10-09
 ### Alterado
 - Os status "01-DIGITADO" e "02-CRITICADO" aparecem em fonte vermelha no detalhe da rota, em Pedidos sem rota e no PDF de impressão, como já acontecia em Rotas Pendentes.
