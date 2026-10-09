@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.31.0] - 2026-10-09
+### Adicionado
+- Provisionamento: busca de praça digitando parte do nome do município, com a praça correspondente ao lado.
+
 ## [1.30.4] - 2026-10-09
 ### Alterado
 - Gravação do provisionamento de frete no ERP mais rápida: números da sequência obtidos de uma vez e notas gravadas em lotes paralelos de 5.
