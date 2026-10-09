@@ -1,3 +1,4 @@
+import { SQL_EXTRAS_ENTREGA, extrasEntrega, semExtras, erroColunaAusente } from "@/lib/entregas-extras";
 // Auditoria de "rota completa" para a autorização de pagamento de frete.
 // Confere no ERP se todos os pedidos da rota (GKS.A_GER_ROTAS_PEDIDOS) têm nota
 // expedida e em aberto (GKS.A_GERENTREGAS) e importa para o app o que faltar.
@@ -131,7 +132,7 @@ export async function auditarEImportarRotas(
        G.COD_AGENDA, G.BORDERO, G.DT_PEDIDO, G.DT_FATUR, G.DT_SAIDA,
        G.DT_ENTREGA_CLI, G.DT_AGENDAMENTO, G.ENTREGA_AGEND,
        G.COD_TRANSP_ENT, G.TIPO_TRANSP_ENT, G.PLACA_VEICULO_ENT,
-       G.VALOR, G.PESO, G.TIPOS_OCORRENCIA, G.STATUS,
+       G.VALOR, G.PESO, G.TIPOS_OCORRENCIA, G.STATUS, ${SQL_EXTRAS_ENTREGA},
        R.DT_PREV_EXP DT_PREV_EXP, R.NOME_ROTA, R.COD_FRT_TRP, R.NOME_MOTORISTA,
        R.ID AS ID_ROTA, R.STATUS AS ROTA_STATUS
   FROM GKS.A_GER_ROTAS R, GKS.A_GER_ROTAS_PEDIDOS P, GKS.A_GERENTREGAS G
@@ -236,6 +237,7 @@ export async function auditarEImportarRotas(
         peso: num(v, "PESO"),
         tipos_ocorrencia: txt(v, "TIPOS_OCORRENCIA"),
         status: txt(v, "STATUS"),
+        ...extrasEntrega((k) => v[k], (x) => (x == null ? null : data({ X: x } as Row, "X"))),
         atualizado_em: agora,
       }));
       // O ERP pode repetir a mesma NF/pedido (uma linha por ocorrência):
@@ -254,9 +256,13 @@ export async function auditarEImportarRotas(
           unicas.set(k, { ...e, tipos_ocorrencia: oc.size ? Array.from(oc).join(", ") : null });
         } else unicas.set(k, e);
       }
-      const { error: eErr } = await centralDb
+      let { error: eErr } = await centralDb
         .from("entregas_abertas")
         .upsert(Array.from(unicas.values()) as never, { onConflict: "nro_nf,cod_pedido" });
+      if (eErr && erroColunaAusente(eErr.message))
+        ({ error: eErr } = await centralDb
+          .from("entregas_abertas")
+          .upsert(Array.from(unicas.values()).map(semExtras) as never, { onConflict: "nro_nf,cod_pedido" }));
       if (eErr) throw new Error(`Gravar notas: ${eErr.message}`);
 
       // 2) Pedidos: agrega por pedido (pode ter mais de uma NF)
