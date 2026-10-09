@@ -137,6 +137,8 @@ export function ProvisaoFreteDialog(props: {
   // Oferece o vínculo quando a transportadora foi identificada mas não tem
   // tabela de frete vigente.
   const semTabela = !!d?.transportadora && !d?.tabela;
+  const hojeIso = new Date().toISOString().slice(0, 10);
+  const vencida = (fim: string | null) => !!fim && fim < hojeIso;
 
   const tabelasQ = useQuery({
     queryKey: ["provisao-frete", "tabelas-ativas"],
@@ -295,6 +297,11 @@ export function ProvisaoFreteDialog(props: {
                           {t.data_fim
                             ? ` até ${new Date(`${t.data_fim}T00:00:00`).toLocaleDateString("pt-BR")}`
                             : ""}
+                          {vencida(t.data_fim) && (
+                            <span className="ml-2 rounded bg-destructive/10 px-1 text-[10px] font-semibold text-destructive">
+                              vencida
+                            </span>
+                          )}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -313,6 +320,18 @@ export function ProvisaoFreteDialog(props: {
                     Vincular tabela
                   </Button>
                 </div>
+                {vencida(tabelasQ.data?.find((t) => t.id === tabelaSel)?.data_fim ?? null) && (
+                  <p className="text-xs text-destructive">
+                    Esta tabela está vencida. Mesmo vinculada, ela não será usada (e as praças não
+                    aparecerão) até que a data final da vigência seja estendida ou removida.
+                  </p>
+                )}
+                <a
+                  href="/tabelas-frete"
+                  className="inline-block text-xs font-medium text-primary underline-offset-2 hover:underline"
+                >
+                  Editar tabela de frete
+                </a>
               </div>
             )}
             <div className="max-h-[55vh] overflow-auto">
@@ -354,7 +373,9 @@ export function ProvisaoFreteDialog(props: {
                           <td className="p-1 text-right tabular-nums">
                             {e.vlr_frete == null ? (
                               <div className="flex items-center justify-end gap-1">
-                                <span className="text-destructive">praça não encontrada</span>
+                                <span className="text-destructive">
+                                  {d.tabela ? "praça não encontrada" : "sem tabela vigente"}
+                                </span>
                                 {seletorPraca(e.cidade, null)}
                               </div>
                             ) : (

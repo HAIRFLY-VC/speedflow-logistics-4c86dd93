@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.29.3] - 2026-10-09
+### Alterado
+- Provisionamento de frete: tabelas vencidas aparecem com o selo "vencida" e um aviso; entregas sem tabela vigente mostram "sem tabela vigente" em vez de "praça não encontrada"; atalho para editar a tabela de frete.
+
 ## [1.29.2] - 2026-10-08
 ### Corrigido
 - Rotas montadas e expedidas entre dois Sync ERP (ex.: rota 459) passam a receber os pedidos, o borderô e o fretista do ERP e voltam a aparecer em "Autorizar pagamento de frete".
