@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.35.0] - 2026-10-09
+### Alterado
+- Base dos demonstrativos de custo com frete restrita às agendas 417 e 427: Sync ERP passa a gravar só essas agendas e as telas (Custo de Frete, "% Frete do ciclo" e detalhamento de Mercadorias faturadas) ignoram as demais.
+
 ## [1.34.0] - 2026-10-09
 ### Alterado
 - Custo de Frete, card "% Frete do ciclo" e detalhamento de Mercadorias faturadas passam a considerar todas as notas faturadas do ciclo, inclusive as já entregues (antes só as entregas em aberto). Requer o script `db/central/2026-10-09_notas_faturadas.sql` e um Sync ERP.
