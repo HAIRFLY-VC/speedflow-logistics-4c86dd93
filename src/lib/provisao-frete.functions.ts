@@ -38,3 +38,12 @@ export const gravarProvisaoFrete = createServerFn({ method: "POST" })
     const { gravarProvisao } = await import("./provisao-frete.server");
     return gravarProvisao(data.routeId, ctx.claims?.email ?? ctx.userId, !!data.substituir);
   });
+
+/** Valores provisionados no ERP para as notas informadas (somente leitura). */
+export const listarProvisoesNotas = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ nfs: z.array(z.string().max(20)).max(20000) }).parse(i))
+  .handler(async ({ data }) => {
+    const { listarProvisoesPorNotas } = await import("./provisao-frete.server");
+    return listarProvisoesPorNotas(data.nfs);
+  });

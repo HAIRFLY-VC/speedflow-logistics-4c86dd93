@@ -400,3 +400,36 @@ export async function gravarProvisao(
   if (error) throw new Error(error.message);
   return { total: c.total, linhas: c.notas.length };
 }
+
+export type ProvisaoNotaValores = {
+  cod_filial: string; nro_nf: string;
+  vlr_frete: number; vlr_perna: number; vlr_diaria: number; vlr_pernoite: number; vlr_reentrega: number; vlr_descarrego: number;
+};
+
+/** Soma dos valores provisionados ativos (status 'A') por filial+NF. */
+export async function listarProvisoesPorNotas(nfs: string[]): Promise<ProvisaoNotaValores[]> {
+  const nums = Array.from(new Set(nfs.map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0)));
+  const out: ProvisaoNotaValores[] = [];
+  for (let i = 0; i < nums.length; i += 500) {
+    const lote = nums.slice(i, i + 500);
+    const r = await chamarErp("/v1/query", {
+      sql: `select cod_filial, nro_nf, sum(nvl(vlr_frete,0)) vlr_frete, sum(nvl(vlr_perna,0)) vlr_perna,
+                   sum(nvl(vlr_diaria,0)) vlr_diaria, sum(nvl(vlr_pernoite,0)) vlr_pernoite,
+                   sum(nvl(vlr_reentrega,0)) vlr_reentrega, sum(nvl(vlr_descarrego,0)) vlr_descarrego
+              from gks.a_ger_provisao_frete
+             where status = 'A' and nro_nf in (${lote.join(",")})
+             group by cod_filial, nro_nf`,
+      limit: lote.length * 5,
+    });
+    const rows = (r["rows"] as Record<string, unknown>[] | undefined) ?? [];
+    const g = (row: Record<string, unknown>, k: string) => row[k.toUpperCase()] ?? row[k];
+    for (const row of rows)
+      out.push({
+        cod_filial: String(g(row, "cod_filial") ?? ""), nro_nf: String(g(row, "nro_nf") ?? ""),
+        vlr_frete: Number(g(row, "vlr_frete") ?? 0), vlr_perna: Number(g(row, "vlr_perna") ?? 0),
+        vlr_diaria: Number(g(row, "vlr_diaria") ?? 0), vlr_pernoite: Number(g(row, "vlr_pernoite") ?? 0),
+        vlr_reentrega: Number(g(row, "vlr_reentrega") ?? 0), vlr_descarrego: Number(g(row, "vlr_descarrego") ?? 0),
+      });
+  }
+  return out;
+}

@@ -234,7 +234,22 @@ export type LinhaMercadoria = {
   nro_nf: string; valor: number; peso: number;
   vlr_frete: number | null; vlr_perna: number | null; vlr_diaria: number | null; vlr_pernoite: number | null; vlr_reentrega: number | null; vlr_descarrego: number | null;
   tipos_ocorrencia: string | null;
+  /** R = frete real do ERP; P = provisionado; null = sem frete. */
+  origem_frete: "R" | "P" | null;
 };
+
+export type ProvisaoLinha = { cod_filial: string; nro_nf: string; vlr_frete: number; vlr_perna: number; vlr_diaria: number; vlr_pernoite: number; vlr_reentrega: number; vlr_descarrego: number };
+
+/** Preenche notas sem frete real com os valores provisionados. */
+export function aplicarProvisoes(linhas: LinhaMercadoria[], provs: ProvisaoLinha[]): LinhaMercadoria[] {
+  const m = new Map(provs.map((p) => [`${Number(p.cod_filial)}|${Number(p.nro_nf)}`, p]));
+  return linhas.map((l) => {
+    if (l.origem_frete === "R") return l;
+    const p = m.get(`${Number(l.cod_filial)}|${Number(l.nro_nf)}`);
+    if (!p) return l;
+    return { ...l, vlr_frete: p.vlr_frete, vlr_perna: p.vlr_perna, vlr_diaria: p.vlr_diaria, vlr_pernoite: p.vlr_pernoite, vlr_reentrega: p.vlr_reentrega, vlr_descarrego: p.vlr_descarrego, origem_frete: "P" };
+  });
+}
 
 export async function carregarMercadorias(ciclo: CicloComercial): Promise<LinhaMercadoria[]> {
   const linhas: Record<string, unknown>[] = [];
@@ -284,5 +299,6 @@ export async function carregarMercadorias(ciclo: CicloComercial): Promise<LinhaM
     nro_nf: String(l.nro_nf), valor: Number(l.valor ?? 0), peso: Number(l.peso ?? 0),
     vlr_frete: n(l.vlr_frete), vlr_perna: n(l.vlr_perna), vlr_diaria: n(l.vlr_diaria), vlr_pernoite: n(l.vlr_pernoite), vlr_reentrega: n(l.vlr_reentrega), vlr_descarrego: n(l.vlr_descarrego),
     tipos_ocorrencia: s(l.tipos_ocorrencia),
+    origem_frete: Number(l.vlr_frete ?? 0) > 0 ? ("R" as const) : null,
   }));
 }
