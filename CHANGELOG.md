@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.30.0] - 2026-10-09
+### Adicionado
+- Detalhe do CT-e: botão "Ver tabela original" na seção de auditoria abre o arquivo original da tabela de frete usada na auditoria; sem auditoria, oferece o arquivo da tabela vigente na emissão do CT-e.
+
 ## [1.29.3] - 2026-10-09
 ### Alterado
 - Provisionamento de frete: tabelas vencidas aparecem com o selo "vencida" e um aviso; entregas sem tabela vigente mostram "sem tabela vigente" em vez de "praça não encontrada"; atalho para editar a tabela de frete.

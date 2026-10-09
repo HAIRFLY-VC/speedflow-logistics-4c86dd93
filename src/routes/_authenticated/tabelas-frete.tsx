@@ -3,6 +3,7 @@ import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Loader2, Trash2, FileText, Upload, Download, X } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { TABELA_FRETE_BUCKET, abrirArquivoTabelaFrete } from "@/lib/tabela-frete-arquivo";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { supabase } from "@/integrations/central/client";
