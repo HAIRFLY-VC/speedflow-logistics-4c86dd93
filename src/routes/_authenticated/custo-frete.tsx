@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { listVendedoresExternos } from "@/lib/external-catalog.functions";
 import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,22 +43,28 @@ export const rotuloCiclo = (c: CicloComercial) => {
   return `${mes}/${a.slice(2)} (${diaBr(c.de)} a ${diaBr(c.ate)})`;
 };
 
-type Dim = { id: string; titulo: string; chave: (l: LinhaCustoFrete) => string };
+const rotuloVendedor = (cod: string | null, vend?: Map<string, string>) => {
+  if (!cod) return "Sem vendedor";
+  const nome = vend?.get(cod)?.trim();
+  return nome ? `${nome} (${cod})` : cod;
+};
+
+type Dim = { id: string; titulo: string; chave: (l: LinhaCustoFrete, vend?: Map<string, string>) => string };
 const DIMENSOES: Dim[] = [
   { id: "resp", titulo: "Fretista / Transportadora", chave: (l) => (l.responsavel ? `${l.responsavel}${l.tipo ? ` · ${l.tipo}` : ""}` : "Sem frete confirmado") },
   { id: "uf", titulo: "UF", chave: (l) => l.uf ?? "Sem UF" },
   { id: "cidade", titulo: "Cidade", chave: (l) => (l.cidade ? `${l.cidade}${l.uf ? `/${l.uf}` : ""}` : "Sem cidade") },
   { id: "cliente", titulo: "Cliente", chave: (l) => l.cliente },
-  { id: "vendedor", titulo: "Vendedor", chave: (l) => l.cod_vendedor ?? "Sem vendedor" },
+  { id: "vendedor", titulo: "Vendedor", chave: (l, vend) => rotuloVendedor(l.cod_vendedor, vend) },
   { id: "rota", titulo: "Rota", chave: (l) => l.rota ?? "Sem frete confirmado" },
 ];
 
 type Grupo = { nome: string; frete: number; valor: number; peso: number; pedidos: number; pct: number | null };
 
-function agrupar(linhas: LinhaCustoFrete[], dim: Dim): Grupo[] {
+function agrupar(linhas: LinhaCustoFrete[], dim: Dim, vend?: Map<string, string>): Grupo[] {
   const m = new Map<string, { frete: number; valor: number; peso: number; pedidos: Set<string> }>();
   for (const l of linhas) {
-    const k = dim.chave(l);
+    const k = dim.chave(l, vend);
     const g = m.get(k) ?? { frete: 0, valor: 0, peso: 0, pedidos: new Set<string>() };
     g.frete += l.frete; g.valor += l.valor; g.peso += l.peso; g.pedidos.add(l.cod_pedido);
     m.set(k, g);
@@ -66,9 +74,9 @@ function agrupar(linhas: LinhaCustoFrete[], dim: Dim): Grupo[] {
 
 type Ordem = "frete" | "valor" | "pct" | "pedidos";
 
-function TabelaDimensao({ dim, linhas, ciclo }: { dim: Dim; linhas: LinhaCustoFrete[]; ciclo: string }) {
+function TabelaDimensao({ dim, linhas, ciclo, vendMap }: { dim: Dim; linhas: LinhaCustoFrete[]; ciclo: string; vendMap?: Map<string, string> }) {
   const [ordem, setOrdem] = useState<Ordem>("frete");
-  const grupos = useMemo(() => agrupar(linhas, dim).sort((a, b) => (b[ordem] ?? -1) - (a[ordem] ?? -1)), [linhas, dim, ordem]);
+  const grupos = useMemo(() => agrupar(linhas, dim, vendMap).sort((a, b) => (b[ordem] ?? -1) - (a[ordem] ?? -1)), [linhas, dim, ordem, vendMap]);
   const maxFrete = Math.max(1, ...grupos.map((g) => g.frete));
   const th = (id: Ordem, t: string) => (
     <th className="cursor-pointer px-2 py-1 text-right font-medium hover:text-foreground" onClick={() => setOrdem(id)}>
@@ -162,11 +170,32 @@ function Evolucao({ ciclos }: { ciclos: CicloComercial[] }) {
 
 function CustoFretePage() {
   const calQ = useQuery(calendarioComercialQueryOptions());
+  const listarVendedores = useServerFn(listVendedoresExternos);
+  const vendQ = useQuery({
+    queryKey: ["vendedores-erp-nomes"],
+    queryFn: async () => {
+      try {
+        const { rows } = await listarVendedores();
+        return new Map(rows.filter((v) => v.cod_rca).map((v) => [v.cod_rca, v.nome ?? ""]));
+      } catch (e) {
+        console.warn("Nomes de vendedores indisponíveis", e);
+        return new Map<string, string>();
+      }
+    },
+    staleTime: 60 * 60_000,
+  });
   const ciclos = calQ.data ?? [];
   const [sel, setSel] = useState<string | null>(null);
   const ciclo = ciclos.find((c) => c.mes_comerc === sel) ?? cicloAtual(ciclos);
   const q = useQuery(custoFreteQueryOptions(ciclo));
   const linhas = q.data ?? [];
+  // Nome do vendedor: prioriza o nome gravado no espelho do ERP; o cadastro
+  // externo de vendedores serve de fallback para códigos sem nome no espelho.
+  const vendMap = useMemo(() => {
+    const m = new Map<string, string>(vendQ.data ?? []);
+    for (const l of linhas) if (l.cod_vendedor && l.vendedor) m.set(l.cod_vendedor, l.vendedor);
+    return m;
+  }, [linhas, vendQ.data]);
   const r = resumir(linhas);
 
   const kpis: [string, string][] = [
@@ -227,7 +256,7 @@ function CustoFretePage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {DIMENSOES.map((d) => (
-          <TabelaDimensao key={d.id} dim={d} linhas={linhas} ciclo={ciclo?.mes_comerc ?? ""} />
+          <TabelaDimensao key={d.id} dim={d} linhas={linhas} ciclo={ciclo?.mes_comerc ?? ""} vendMap={vendMap} />
         ))}
       </div>
     </div>

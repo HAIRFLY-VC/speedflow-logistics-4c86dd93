@@ -610,7 +610,7 @@ async function completarCadastroClientesFaltantes(
 
 // Entregas já expedidas e ainda não entregues (aba "ABERTOS" do modelo).
 const ENTREGAS_ABERTAS_SQL = `
-  SELECT G.NRO_NF, G.COD_PEDIDO, G.COD_CLIENTE, G.COD_VENDEDOR, G.COD_FILIAL,
+  SELECT G.NRO_NF, G.COD_PEDIDO, G.COD_CLIENTE, G.COD_VENDEDOR, G.VENDEDOR, G.COD_FILIAL,
          G.COD_AGENDA, G.BORDERO, G.DT_PEDIDO, G.DT_FATUR, G.DT_SAIDA,
          G.DT_ENTREGA_CLI, G.DT_AGENDAMENTO, G.ENTREGA_AGEND,
          G.COD_TRANSP_ENT, G.TIPO_TRANSP_ENT, G.PLACA_VEICULO_ENT,
@@ -674,6 +674,7 @@ async function sincronizarEntregasAbertas(): Promise<{ total: number; clientes: 
       cod_pedido: pedido,
       cod_cliente: cod,
       cod_vendedor: txt(row.COD_VENDEDOR),
+      vendedor: txt(row.VENDEDOR),
       cod_filial: txt(row.COD_FILIAL),
       cod_agenda: txt(row.COD_AGENDA),
       bordero: txt(row.BORDERO),
@@ -741,7 +742,7 @@ async function sincronizarNotasFaturadas(): Promise<number> {
   const ymd = (d: string) => d.slice(0, 10).replace(/-/g, "");
   let total = 0;
   for (const c of (ciclos ?? []) as { de: string; ate: string }[]) {
-    const sql = `SELECT G.NRO_NF, G.COD_PEDIDO, G.COD_CLIENTE, G.COD_VENDEDOR, G.COD_FILIAL,
+    const sql = `SELECT G.NRO_NF, G.COD_PEDIDO, G.COD_CLIENTE, G.COD_VENDEDOR, G.VENDEDOR, G.COD_FILIAL,
          G.COD_AGENDA, G.BORDERO, G.DT_PEDIDO, G.DT_FATUR, G.DT_SAIDA,
          G.DT_ENTREGA_CLI, G.DT_AGENDAMENTO, G.ENTREGA_AGEND,
          G.COD_TRANSP_ENT, G.TIPO_TRANSP_ENT, G.PLACA_VEICULO_ENT,
@@ -767,7 +768,7 @@ async function sincronizarNotasFaturadas(): Promise<number> {
       if (!nf || !pedido) continue;
       const nova: Record<string, unknown> = {
         nro_nf: nf, cod_pedido: pedido,
-        cod_cliente: txt(row.COD_CLIENTE), cod_vendedor: txt(row.COD_VENDEDOR), cod_filial: txt(row.COD_FILIAL),
+        cod_cliente: txt(row.COD_CLIENTE), cod_vendedor: txt(row.COD_VENDEDOR), vendedor: txt(row.VENDEDOR), cod_filial: txt(row.COD_FILIAL),
         cod_agenda: txt(row.COD_AGENDA), bordero: txt(row.BORDERO),
         dt_pedido: soData(row.DT_PEDIDO), dt_fatur: soData(row.DT_FATUR), dt_saida: soData(row.DT_SAIDA),
         dt_entrega_cli: soData(row.DT_ENTREGA_CLI), dt_agendamento: soData(row.DT_AGENDAMENTO),
@@ -784,9 +785,13 @@ async function sincronizarNotasFaturadas(): Promise<number> {
         byKey.set(k, { ...fica, tipos_ocorrencia: oc.size ? Array.from(oc).join(", ") : null });
       } else byKey.set(k, nova);
     }
-    const payload = Array.from(byKey.values());
+    let payload = Array.from(byKey.values());
     for (let i = 0; i < payload.length; i += 200) {
-      const { error } = await centralDb.from("notas_faturadas" as never).upsert(payload.slice(i, i + 200) as never, { onConflict: "nro_nf,cod_pedido" });
+      let { error } = await centralDb.from("notas_faturadas" as never).upsert(payload.slice(i, i + 200) as never, { onConflict: "nro_nf,cod_pedido" });
+      if (error && erroColunaAusente(error.message)) {
+        payload = payload.map(semExtras);
+        ({ error } = await centralDb.from("notas_faturadas" as never).upsert(payload.slice(i, i + 200) as never, { onConflict: "nro_nf,cod_pedido" }));
+      }
       if (error) throw error;
     }
     const { error: delErr } = await centralDb

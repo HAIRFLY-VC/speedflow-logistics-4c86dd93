@@ -33,6 +33,7 @@ export type LinhaCustoFrete = {
   cidade: string | null;
   uf: string | null;
   cod_vendedor: string | null;
+  vendedor: string | null;
   valor: number;
   peso: number;
   frete: number;
@@ -66,13 +67,13 @@ async function emLotes<T, R>(itens: T[], fn: (lote: T[]) => Promise<R[]>): Promi
  * CONFIRMADO da rota rateado pelo valor das mercadorias de cada pedido.
  */
 export async function carregarCustoFrete(ciclo: CicloComercial): Promise<LinhaCustoFrete[]> {
-  type Ent = { nro_nf: string; cod_pedido: string; cod_cliente: string | null; cod_vendedor: string | null; valor: number; peso: number };
+  type Ent = { nro_nf: string; cod_pedido: string; cod_cliente: string | null; cod_vendedor: string | null; vendedor: string | null; valor: number; peso: number };
   const entregas: Ent[] = [];
   const fonte = await tabelaNotas();
   for (let de = 0; de < 100_000; de += PAGINA) {
     const { data, error } = await supabase
       .from(fonte as "entregas_abertas")
-      .select("nro_nf,cod_pedido,cod_cliente,cod_vendedor,valor,peso")
+      .select("nro_nf,cod_pedido,cod_cliente,cod_vendedor,vendedor,valor,peso")
       .in("cod_agenda", ["417", "427"])
       .gte("dt_fatur", ciclo.de)
       .lte("dt_fatur", ciclo.ate)
@@ -193,6 +194,7 @@ export async function carregarCustoFrete(ciclo: CicloComercial): Promise<LinhaCu
       cidade: cli?.cidade ?? null,
       uf: cli?.uf ?? null,
       cod_vendedor: e.cod_vendedor,
+      vendedor: e.vendedor,
       valor: Number(e.valor ?? 0),
       peso: Number(e.peso ?? 0),
       frete,
@@ -273,7 +275,7 @@ export function resumir(linhas: LinhaCustoFrete[]): ResumoCustoFrete {
 /** Linha do detalhamento "Mercadorias faturadas" (layout da planilha do ERP). */
 export type LinhaMercadoria = {
   id_rota: string | null;
-  cod_pedido: string; cod_cliente: string | null; cod_vendedor: string | null; cod_filial: string | null; cod_agenda: string | null;
+  cod_pedido: string; cod_cliente: string | null; cod_vendedor: string | null; vendedor: string | null; cod_filial: string | null; cod_agenda: string | null;
   dt_pedido: string | null; status: string | null; dt_fatur: string | null; entrega_agend: string | null; bordero: string | null;
   dt_saida: string | null; dt_etrg_trsp: string | null; dt_entrega_cli: string | null; dt_agendamento: string | null;
   cod_transp_prn: string | null; tipo_transp_pn: string | null; placa_veiculo_ent: string | null; cod_transp_ent: string | null; tipo_transp_ent: string | null;
@@ -340,7 +342,7 @@ export async function carregarMercadorias(ciclo: CicloComercial): Promise<LinhaM
   const n = (v: unknown) => (v == null ? null : Number(v));
   return linhas.map((l) => ({
     id_rota: rotaPor.get(String(l.cod_pedido)) ?? null,
-    cod_pedido: String(l.cod_pedido), cod_cliente: s(l.cod_cliente), cod_vendedor: s(l.cod_vendedor), cod_filial: s(l.cod_filial), cod_agenda: s(l.cod_agenda),
+    cod_pedido: String(l.cod_pedido), cod_cliente: s(l.cod_cliente), cod_vendedor: s(l.cod_vendedor), vendedor: s(l.vendedor), cod_filial: s(l.cod_filial), cod_agenda: s(l.cod_agenda),
     dt_pedido: s(l.dt_pedido), status: s(l.status), dt_fatur: s(l.dt_fatur), entrega_agend: s(l.entrega_agend), bordero: s(l.bordero),
     dt_saida: s(l.dt_saida), dt_etrg_trsp: s(l.dt_etrg_trsp), dt_entrega_cli: s(l.dt_entrega_cli), dt_agendamento: s(l.dt_agendamento),
     cod_transp_prn: s(l.cod_transp_prn), tipo_transp_pn: s(l.tipo_transp_pn), placa_veiculo_ent: s(l.placa_veiculo_ent), cod_transp_ent: s(l.cod_transp_ent), tipo_transp_ent: s(l.tipo_transp_ent),
