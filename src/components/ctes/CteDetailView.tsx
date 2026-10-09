@@ -287,8 +287,6 @@ export function CteDetailView({
     },
   });
 
-  const tabelaArquivo = tabelaUsada ?? tabelaVigenteEmissao ?? null;
-
 
   const componentes = (Array.isArray(cte.componentes) ? cte.componentes : []) as {
     nome?: string;
