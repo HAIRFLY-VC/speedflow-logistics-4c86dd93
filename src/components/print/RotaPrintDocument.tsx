@@ -241,7 +241,7 @@ export function RotaPrintDocument({ routeId }: { routeId: string }) {
                 <thead>
                   <tr>
                     <th>Pedido</th><th>Status</th><th>Filial</th><th>NF</th><th>Borderô</th>
-                    <th>Vendedor</th><th>Agenda</th><th>Dt. pedido</th><th>Dt. agenda</th>
+                    <th>Vendedor</th><th>Agenda</th><th>Dt. pedido</th><th>Dt. fatur.</th>
                     <th className="num">Valor</th><th className="num">Peso (kg)</th>
                     {prefs.observacoes && <th>Observações</th>}
                   </tr>

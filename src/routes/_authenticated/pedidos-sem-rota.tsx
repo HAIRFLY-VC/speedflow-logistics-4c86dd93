@@ -892,7 +892,7 @@ function PedidosSemRotaPage() {
                   <div className="hidden grid-cols-[26px_82px_minmax(92px,.8fr)_44px_70px_minmax(110px,1fr)_48px_68px_68px_78px_56px_34px_42px_42px] gap-x-1 border-b bg-muted/20 px-2 py-1 text-[9px] font-semibold text-muted-foreground lg:grid">
                     <span />
                     <span>Pedido</span><span>Status</span><span>Filial</span><span>NF</span><span>Vendedor</span>
-                    <span>Agenda</span><span>Dt. pedido</span><span>Dt. agenda</span><span className="text-right">Valor</span><span className="text-right">Peso (kg)</span><span>OBS</span><span>OBS LOG.</span><span>INF_CMP</span>
+                    <span>Agenda</span><span>Dt. pedido</span><span>Dt. fatur.</span><span className="text-right">Valor</span><span className="text-right">Peso (kg)</span><span>OBS</span><span>OBS LOG.</span><span>INF_CMP</span>
                   </div>
 
                   <ul className="divide-y divide-dashed">
@@ -921,7 +921,7 @@ function PedidosSemRotaPage() {
                               <div className="min-w-0 lg:contents"><dt className="text-muted-foreground lg:hidden">Vendedor</dt><dd className="min-w-0 break-words">{p.vendedor ?? "—"}{p.codVendedor ? ` (${p.codVendedor})` : ""}</dd></div>
                               <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Agenda</dt><dd>{p.agenda || "—"}</dd></div>
                               <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Dt. pedido</dt><dd className="whitespace-nowrap">{dataBr(p.dtPedido)}</dd></div>
-                              <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Dt. agenda</dt><dd className="whitespace-nowrap">{dataBr(p.dtAgenda)}</dd></div>
+                              <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Dt. fatur.</dt><dd className="whitespace-nowrap">{dataBr(p.dtAgenda)}</dd></div>
                               <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Valor</dt><dd className="whitespace-nowrap tabular-nums lg:text-right">{brl(p.valor)}</dd></div>
                               <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Peso</dt><dd className="whitespace-nowrap tabular-nums lg:text-right">{p.peso.toLocaleString("pt-BR",{maximumFractionDigits:1})} kg</dd></div>
                             </dl>

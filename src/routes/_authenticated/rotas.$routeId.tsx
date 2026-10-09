@@ -849,7 +849,7 @@ function PedidosDaRotaTabela({
             <th className={th}>Vendedor</th>
             <th className={th}>Agenda</th>
             <th className={th}>Dt. pedido</th>
-            <th className={th}>Dt. agenda</th>
+            <th className={th}>Dt. fatur.</th>
             <th className={`${th} text-right`}>Valor</th>
             <th className={`${th} text-right`}>Peso</th>
             <th className={th}>OBS</th>
