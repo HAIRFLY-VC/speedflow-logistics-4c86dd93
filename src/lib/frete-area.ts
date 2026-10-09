@@ -121,3 +121,16 @@ export function acharRotaPorMunicipio(
   });
   return { index: i, origem: i >= 0 ? "nome" : null };
 }
+
+/** Substitui (ou remove) a linha `MUNICIPIOS:` da observação pela lista informada. */
+export function observacaoComMunicipios(
+  observacao: string | null | undefined,
+  municipios: string[],
+): string {
+  const lista = Array.from(new Set(municipios.map(normalizeArea).filter(Boolean)));
+  const base = (observacao ?? "").trim();
+  const linha = lista.length > 0 ? `MUNICIPIOS: ${lista.join("; ")}` : "";
+  if (MUNICIPIOS_RE.test(base)) return base.replace(MUNICIPIOS_RE, linha).trim();
+  if (!linha) return base;
+  return base ? `${base}\n${linha}` : linha;
+}
