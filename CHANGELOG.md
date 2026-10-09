@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.30.1] - 2026-10-09
+### Corrigido
+- "Ver tabela original" não é mais bloqueado pelo navegador (Edge): o arquivo é aberto/baixado pelo próprio app.
+
 ## [1.30.0] - 2026-10-09
 ### Adicionado
 - Detalhe do CT-e: botão "Ver tabela original" na seção de auditoria abre o arquivo original da tabela de frete usada na auditoria; sem auditoria, oferece o arquivo da tabela vigente na emissão do CT-e.
