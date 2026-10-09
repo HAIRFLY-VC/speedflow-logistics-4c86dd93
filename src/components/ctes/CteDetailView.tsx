@@ -1,4 +1,5 @@
-import { AlertTriangle, CheckCircle2, FileCode, FileDown, Loader2, ScanSearch } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileCode, FileDown, FileText, Loader2, ScanSearch } from "lucide-react";
+import { abrirArquivoTabelaFrete } from "@/lib/tabela-frete-arquivo";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link, useRouter } from "@tanstack/react-router";
@@ -940,10 +941,29 @@ export function CteDetailView({
         </div>
 
         {!ultimaAuditoria ? (
-          <p className="text-muted-foreground text-sm">
-            Nenhuma auditoria executada. Compare a cobrança com a tabela de frete da transportadora
-            emissora.
-          </p>
+          <div className="space-y-2">
+            <p className="text-muted-foreground text-sm">
+              Nenhuma auditoria executada. Compare a cobrança com a tabela de frete da transportadora
+              emissora.
+            </p>
+            {tabelaVigenteEmissao?.arquivo_path ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  abrirArquivoTabelaFrete(
+                    tabelaVigenteEmissao.arquivo_path!,
+                    tabelaVigenteEmissao.arquivo_nome,
+                  )
+                }
+              >
+                <FileText className="mr-1 h-4 w-4" /> Ver tabela original
+                <span className="text-muted-foreground ml-1 text-xs">
+                  (vigente na emissão — auditoria ainda não executada)
+                </span>
+              </Button>
+            ) : null}
+          </div>
         ) : (
           <div
             className={`rounded-md border p-3 ${
