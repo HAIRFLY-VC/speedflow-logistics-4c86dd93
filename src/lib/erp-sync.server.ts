@@ -619,6 +619,7 @@ const ENTREGAS_ABERTAS_SQL = `
    WHERE G.STATUS = 'A'
      AND G.DT_SAIDA IS NOT NULL
      AND G.DT_ENTREGA_CLI IS NULL
+     AND G.COD_AGENDA IN (417, 427)
 `;
 
 function soData(v: unknown): string | null {
@@ -712,6 +713,7 @@ async function sincronizarEntregasAbertas(): Promise<{ total: number; clientes: 
   const { error: delErr } = await centralDb
     .from("entregas_abertas")
     .delete()
+    .in("cod_agenda", ["417", "427"])
     .lt("atualizado_em", agora);
   if (delErr) throw delErr;
 
@@ -746,6 +748,7 @@ async function sincronizarNotasFaturadas(): Promise<number> {
          G.VALOR, G.PESO, G.TIPOS_OCORRENCIA, G.STATUS, ${SQL_EXTRAS_ENTREGA}
     FROM GKS.A_GERENTREGAS G
    WHERE G.NRO_NF IS NOT NULL
+     AND G.COD_AGENDA IN (417, 427)
      AND G.DT_FATUR >= TO_DATE('${ymd(c.de)}','yyyyMMdd')
      AND G.DT_FATUR < TO_DATE('${ymd(c.ate)}','yyyyMMdd') + 1`;
     const res = await fetch(`${cleanBase}/v1/query`, {
@@ -789,6 +792,7 @@ async function sincronizarNotasFaturadas(): Promise<number> {
     const { error: delErr } = await centralDb
       .from("notas_faturadas" as never)
       .delete()
+      .in("cod_agenda", ["417", "427"])
       .gte("dt_fatur", c.de.slice(0, 10))
       .lte("dt_fatur", c.ate.slice(0, 10))
       .lt("atualizado_em", agora);
