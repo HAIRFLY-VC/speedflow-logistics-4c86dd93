@@ -713,6 +713,7 @@ async function sincronizarEntregasAbertas(): Promise<{ total: number; clientes: 
   const { error: delErr } = await centralDb
     .from("entregas_abertas")
     .delete()
+    .in("cod_agenda", ["417", "427"])
     .lt("atualizado_em", agora);
   if (delErr) throw delErr;
 
