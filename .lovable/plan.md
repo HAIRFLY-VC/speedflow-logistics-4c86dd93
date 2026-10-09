@@ -1,7 +1,7 @@
 # Frete provisionado no detalhamento "Mercadorias faturadas" (v1.36.0 — MINOR)
 
 ## O que muda para o usuário
-- Na tela Mercadorias faturadas, quando a nota não tiver VLR_FRETE informado pelo ERP (vazio ou zero), o app procura o valor provisionado para essa nota (gravado em "Autorizar pagamento de frete") e o exibe na coluna VLR_FRETE.
+- Na tela Mercadorias faturadas, quando a nota não tiver VLR_FRETE informado pelo ERP (vazio ou zero), o app procura o provisionamento dessa nota (gravado em "Autorizar pagamento de frete") e exibe os valores provisionados nas colunas VLR_FRETE, VLR_PERNA, VLR_DIARIA, VLR_PERNOITE, VLR_REENTREGA e VLR_DESCARREGO.
 - Nova coluna **ORIGEM_FRETE**, logo após VLR_FRETE:
   - **R** = valor real (veio do ERP)
   - **P** = valor provisionado
