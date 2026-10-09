@@ -7,6 +7,7 @@
 
 ### Adicionado
 - Script `db/central/2026-10-09_notas_vendedor.sql`: coluna `vendedor` (texto, nullable) nas tabelas de espelho `notas_faturadas` e `entregas_abertas`. Retrocompatível; sem risco para a versão publicada.
+- O Sync ERP segue funcionando mesmo antes do script rodar (os nomes são gravados assim que a coluna existir; depois, rode o Sync ERP novamente).
 
 ## [1.37.3] - 2026-10-09
 ### Corrigido
