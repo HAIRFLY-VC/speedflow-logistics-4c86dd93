@@ -296,20 +296,21 @@ export async function gravarProvisao(
     }
   }
 
-  // O ID de cada linha vem da sequência do ERP (sem trigger na tabela).
-  const proximoId = async (): Promise<number> => {
-    const r = await chamarErp("/v1/query", {
-      sql: "select gks.SEQ_PROVISAO_FRETE.nextval id from dual",
-      limit: 1,
-    });
-    const row = ((r["rows"] as Record<string, unknown>[] | undefined) ?? [])[0] ?? {};
-    const id = Number(row["ID"] ?? row["id"] ?? 0);
-    if (!Number.isFinite(id) || id <= 0)
-      throw new Error("ERP não retornou o próximo ID da sequência de provisionamento.");
-    return id;
-  };
+  // Todos os IDs da sequência em uma única consulta (sem trigger na tabela).
+  const t0 = Date.now();
+  const qtdNotas = c.notas.length;
+  const rSeq = await chamarErp("/v1/query", {
+    sql: `select gks.SEQ_PROVISAO_FRETE.nextval id from dual connect by level <= ${qtdNotas}`,
+    limit: qtdNotas,
+  });
+  const ids = ((rSeq["rows"] as Record<string, unknown>[] | undefined) ?? [])
+    .map((row) => Number(row["ID"] ?? row["id"] ?? 0))
+    .filter((id) => Number.isFinite(id) && id > 0);
+  if (ids.length < qtdNotas)
+    throw new Error("ERP não retornou os IDs da sequência de provisionamento.");
+  console.log(`[provisao] ids sequência: ${Date.now() - t0}ms`);
 
-  for (const n of c.notas) {
+  const montarBinds = (n: ProvisaoNota, id: number) => {
     const memoria = {
       versao: 2,
       calculado_em: new Date().toISOString(),
@@ -340,26 +341,45 @@ export async function gravarProvisao(
       })(),
       rateio: "proporcional ao peso da nota na entrega",
     };
-    await chamarErp("/v1/execute/insert_provisao_frete", {
-      binds: {
-        id: await proximoId(),
-        id_rota: idRota,
-        cod_filial: Number(n.cod_filial),
-        nro_nf: Number(n.nro_nf),
-        bordero: Number(n.bordero),
-        cod_pedido: Number(n.pedidos[0]),
-        cod_transp: c.transportadora?.cod_erp ?? null,
-        vlr_frete: n.vlr_frete ?? 0,
-        vlr_perna: 0,
-        vlr_diaria: 0,
-        vlr_pernoite: 0,
-        vlr_reentrega: 0,
-        vlr_descarrego: 0,
-        memoria_calculo: JSON.stringify(memoria),
-        usuario: usuario.slice(0, 100),
-      },
+    return {
+      id,
+      id_rota: idRota,
+      cod_filial: Number(n.cod_filial),
+      nro_nf: Number(n.nro_nf),
+      bordero: Number(n.bordero),
+      cod_pedido: Number(n.pedidos[0]),
+      cod_transp: c.transportadora?.cod_erp ?? null,
+      vlr_frete: n.vlr_frete ?? 0,
+      vlr_perna: 0,
+      vlr_diaria: 0,
+      vlr_pernoite: 0,
+      vlr_reentrega: 0,
+      vlr_descarrego: 0,
+      memoria_calculo: JSON.stringify(memoria),
+      usuario: usuario.slice(0, 100),
+    };
+  };
+
+  // Grava em lotes de 5 em paralelo (limite de conexões simultâneas do servidor).
+  const t1 = Date.now();
+  const falhas: string[] = [];
+  for (let i = 0; i < qtdNotas; i += 5) {
+    const lote = c.notas.slice(i, i + 5);
+    const res = await Promise.allSettled(
+      lote.map((n, j) =>
+        chamarErp("/v1/execute/insert_provisao_frete", { binds: montarBinds(n, ids[i + j]) }),
+      ),
+    );
+    res.forEach((r, j) => {
+      if (r.status === "rejected")
+        falhas.push(`NF ${lote[j].nro_nf}: ${(r.reason as Error)?.message ?? r.reason}`);
     });
   }
+  console.log(`[provisao] inserts (${qtdNotas}): ${Date.now() - t1}ms`);
+  if (falhas.length > 0)
+    throw new Error(
+      `${qtdNotas - falhas.length} de ${qtdNotas} nota(s) gravadas. Falhas: ${falhas.slice(0, 3).join(" | ")}`,
+    );
 
   // Confere se o ERP gravou todas as notas.
   const conf = await chamarErp("/v1/query", {
