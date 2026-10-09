@@ -189,6 +189,13 @@ function CustoFretePage() {
   const ciclo = ciclos.find((c) => c.mes_comerc === sel) ?? cicloAtual(ciclos);
   const q = useQuery(custoFreteQueryOptions(ciclo));
   const linhas = q.data ?? [];
+  // Nome do vendedor: prioriza o nome gravado no espelho do ERP; o cadastro
+  // externo de vendedores serve de fallback para códigos sem nome no espelho.
+  const vendMap = useMemo(() => {
+    const m = new Map<string, string>(vendQ.data ?? []);
+    for (const l of linhas) if (l.cod_vendedor && l.vendedor) m.set(l.cod_vendedor, l.vendedor);
+    return m;
+  }, [linhas, vendQ.data]);
   const r = resumir(linhas);
 
   const kpis: [string, string][] = [
@@ -249,7 +256,7 @@ function CustoFretePage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {DIMENSOES.map((d) => (
-          <TabelaDimensao key={d.id} dim={d} linhas={linhas} ciclo={ciclo?.mes_comerc ?? ""} vendMap={vendQ.data} />
+          <TabelaDimensao key={d.id} dim={d} linhas={linhas} ciclo={ciclo?.mes_comerc ?? ""} vendMap={vendMap} />
         ))}
       </div>
     </div>
