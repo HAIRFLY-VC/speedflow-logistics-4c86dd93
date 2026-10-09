@@ -3,6 +3,10 @@
 ## [1.37.4] - 2026-10-09
 ### Alterado
 - O card "Vendedor" no Custo de Frete passa a exibir o nome do vendedor seguido do código entre parênteses (ex.: `NOME (5245)`); o Excel do card segue o mesmo rótulo. Códigos sem nome no cadastro permanecem sozinhos.
+- O nome do vendedor agora vem do próprio ERP (gravado no espelho durante o Sync ERP), garantindo cobertura para todos os pedidos; o cadastro de vendedores externo continua como fallback.
+
+### Adicionado
+- Script `db/central/2026-10-09_notas_vendedor.sql`: coluna `vendedor` (texto, nullable) nas tabelas de espelho `notas_faturadas` e `entregas_abertas`. Retrocompatível; sem risco para a versão publicada.
 
 ## [1.37.3] - 2026-10-09
 ### Corrigido
