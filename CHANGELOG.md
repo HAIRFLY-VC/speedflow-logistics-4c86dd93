@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.33.1] - 2026-10-09
+### Corrigido
+- Detalhamento de Mercadorias faturadas não listava as notas (erro ao ler o vínculo pedido → rota).
+
 ## [1.33.0] - 2026-10-09
 ### Adicionado
 - Card "Mercadorias faturadas" do painel Custo de Frete abre o detalhamento por nota no layout da planilha do ERP, com busca, ordenação, totais e exportação para Excel.
