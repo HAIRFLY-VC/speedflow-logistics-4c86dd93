@@ -1,3 +1,4 @@
+import { SQL_EXTRAS_ENTREGA, extrasEntrega, semExtras, erroColunaAusente } from "@/lib/entregas-extras";
 // Server-only helper: importa pedidos pendentes de expedição do ERP Oracle (Hairfly).
 // API: POST {ERP_API_BASE_URL}/v1/query com { sql, binds, limit } e header X-API-Key.
 
@@ -613,7 +614,7 @@ const ENTREGAS_ABERTAS_SQL = `
          G.COD_AGENDA, G.BORDERO, G.DT_PEDIDO, G.DT_FATUR, G.DT_SAIDA,
          G.DT_ENTREGA_CLI, G.DT_AGENDAMENTO, G.ENTREGA_AGEND,
          G.COD_TRANSP_ENT, G.TIPO_TRANSP_ENT, G.PLACA_VEICULO_ENT,
-         G.VALOR, G.PESO, G.TIPOS_OCORRENCIA, G.STATUS
+         G.VALOR, G.PESO, G.TIPOS_OCORRENCIA, G.STATUS, ${SQL_EXTRAS_ENTREGA}
     FROM GKS.A_GERENTREGAS G
    WHERE G.STATUS = 'A'
      AND G.DT_SAIDA IS NOT NULL
@@ -688,15 +689,22 @@ async function sincronizarEntregasAbertas(): Promise<{ total: number; clientes: 
       peso: num(row.PESO),
       tipos_ocorrencia: txt(row.TIPOS_OCORRENCIA),
       status: txt(row.STATUS),
+      ...extrasEntrega((k) => row[k], soData),
       atualizado_em: agora,
     });
   }
 
-  const payload = Array.from(byKey.values());
+  let payload = Array.from(byKey.values());
   for (let i = 0; i < payload.length; i += 200) {
-    const { error } = await centralDb
+    let { error } = await centralDb
       .from("entregas_abertas")
       .upsert(payload.slice(i, i + 200) as never, { onConflict: "nro_nf,cod_pedido" });
+    if (error && erroColunaAusente(error.message)) {
+      payload = payload.map(semExtras);
+      ({ error } = await centralDb
+        .from("entregas_abertas")
+        .upsert(payload.slice(i, i + 200) as never, { onConflict: "nro_nf,cod_pedido" }));
+    }
     if (error) throw error;
   }
 

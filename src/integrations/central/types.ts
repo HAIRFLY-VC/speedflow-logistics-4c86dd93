@@ -230,6 +230,15 @@ export type EntregaAbertaRow = {
   peso: number;
   tipos_ocorrencia: string | null;
   status: string | null;
+  dt_etrg_trsp?: string | null;
+  cod_transp_prn?: string | null;
+  tipo_transp_pn?: string | null;
+  vlr_frete?: number | null;
+  vlr_perna?: number | null;
+  vlr_diaria?: number | null;
+  vlr_pernoite?: number | null;
+  vlr_reentrega?: number | null;
+  vlr_descarrego?: number | null;
   atualizado_em: string;
 };
 

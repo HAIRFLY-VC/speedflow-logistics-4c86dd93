@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
@@ -206,14 +206,21 @@ function CustoFretePage() {
       {q.isError && <p className="text-sm text-destructive">Não foi possível carregar os dados de frete: {(q.error as Error)?.message}</p>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {kpis.map(([t, v]) => (
-          <Card key={t}>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">{t}</p>
-              <p className="text-lg font-bold tabular-nums">{q.isLoading ? "…" : v}</p>
-            </CardContent>
-          </Card>
-        ))}
+        {kpis.map(([t, v]) => {
+          const card = (
+            <Card className={t === "Mercadorias faturadas" ? "h-full cursor-pointer transition hover:border-primary hover:shadow-md" : undefined}>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">{t}{t === "Mercadorias faturadas" ? " ›" : ""}</p>
+                <p className="text-lg font-bold tabular-nums">{q.isLoading ? "…" : v}</p>
+              </CardContent>
+            </Card>
+          );
+          return t === "Mercadorias faturadas" ? (
+            <Link key={t} to="/custo-frete-mercadorias" search={{ ciclo: ciclo?.mes_comerc }} title="Ver detalhamento">{card}</Link>
+          ) : (
+            <div key={t}>{card}</div>
+          );
+        })}
       </div>
 
       <Evolucao ciclos={ciclos} />

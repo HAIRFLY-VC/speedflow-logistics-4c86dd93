@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.33.0] - 2026-10-09
+### Adicionado
+- Card "Mercadorias faturadas" do painel Custo de Frete abre o detalhamento por nota no layout da planilha do ERP, com busca, ordenação, totais e exportação para Excel.
+- Sync ERP passa a trazer Dt. entrega transportadora, transportador principal e valores de frete (frete, perna, diária, pernoite, reentrega, descarrego) — requer o script `db/central/2026-10-09_entregas_detalhe_frete.sql`.
+
 ## [1.32.1] - 2026-10-09
 ### Alterado
 - Rotas Pendentes: o card "% Frete do ciclo" agora aparece antes do card "Pedidos pendentes sem rota".
