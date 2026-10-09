@@ -21,6 +21,7 @@ import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authen
 import { Route as AuthenticatedConfiguracoesFretesRouteImport } from './routes/_authenticated/configuracoes-fretes'
 import { Route as AuthenticatedCtesRouteRouteImport } from './routes/_authenticated/ctes.route'
 import { Route as AuthenticatedCustoFreteRouteImport } from './routes/_authenticated/custo-frete'
+import { Route as AuthenticatedCustoFreteMercadoriasRouteImport } from './routes/_authenticated/custo-frete-mercadorias'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticated/empresas'
 import { Route as AuthenticatedEntregasAbertasRouteImport } from './routes/_authenticated/entregas-abertas'
@@ -116,6 +117,12 @@ const AuthenticatedCustoFreteRoute = AuthenticatedCustoFreteRouteImport.update({
   path: '/custo-frete',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCustoFreteMercadoriasRoute =
+  AuthenticatedCustoFreteMercadoriasRouteImport.update({
+    id: '/custo-frete-mercadorias',
+    path: '/custo-frete-mercadorias',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -300,6 +307,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-fretes': typeof AuthenticatedConfiguracoesFretesRoute
   '/custo-frete': typeof AuthenticatedCustoFreteRoute
+  '/custo-frete-mercadorias': typeof AuthenticatedCustoFreteMercadoriasRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
   '/entregas-abertas': typeof AuthenticatedEntregasAbertasRoute
@@ -343,6 +351,7 @@ export interface FileRoutesByTo {
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/configuracoes-fretes': typeof AuthenticatedConfiguracoesFretesRoute
   '/custo-frete': typeof AuthenticatedCustoFreteRoute
+  '/custo-frete-mercadorias': typeof AuthenticatedCustoFreteMercadoriasRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/empresas': typeof AuthenticatedEmpresasRoute
   '/entregas-abertas': typeof AuthenticatedEntregasAbertasRoute
@@ -389,6 +398,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/configuracoes-fretes': typeof AuthenticatedConfiguracoesFretesRoute
   '/_authenticated/custo-frete': typeof AuthenticatedCustoFreteRoute
+  '/_authenticated/custo-frete-mercadorias': typeof AuthenticatedCustoFreteMercadoriasRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/empresas': typeof AuthenticatedEmpresasRoute
   '/_authenticated/entregas-abertas': typeof AuthenticatedEntregasAbertasRoute
@@ -435,6 +445,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/configuracoes-fretes'
     | '/custo-frete'
+    | '/custo-frete-mercadorias'
     | '/dashboard'
     | '/empresas'
     | '/entregas-abertas'
@@ -478,6 +489,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/configuracoes-fretes'
     | '/custo-frete'
+    | '/custo-frete-mercadorias'
     | '/dashboard'
     | '/empresas'
     | '/entregas-abertas'
@@ -523,6 +535,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracoes'
     | '/_authenticated/configuracoes-fretes'
     | '/_authenticated/custo-frete'
+    | '/_authenticated/custo-frete-mercadorias'
     | '/_authenticated/dashboard'
     | '/_authenticated/empresas'
     | '/_authenticated/entregas-abertas'
@@ -655,6 +668,13 @@ declare module '@tanstack/react-router' {
       path: '/custo-frete'
       fullPath: '/custo-frete'
       preLoaderRoute: typeof AuthenticatedCustoFreteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/custo-frete-mercadorias': {
+      id: '/_authenticated/custo-frete-mercadorias'
+      path: '/custo-frete-mercadorias'
+      fullPath: '/custo-frete-mercadorias'
+      preLoaderRoute: typeof AuthenticatedCustoFreteMercadoriasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -903,6 +923,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConfiguracoesFretesRoute: typeof AuthenticatedConfiguracoesFretesRoute
   AuthenticatedCustoFreteRoute: typeof AuthenticatedCustoFreteRoute
+  AuthenticatedCustoFreteMercadoriasRoute: typeof AuthenticatedCustoFreteMercadoriasRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEmpresasRoute: typeof AuthenticatedEmpresasRoute
   AuthenticatedEntregasAbertasRoute: typeof AuthenticatedEntregasAbertasRoute
@@ -936,6 +957,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConfiguracoesFretesRoute: AuthenticatedConfiguracoesFretesRoute,
   AuthenticatedCustoFreteRoute: AuthenticatedCustoFreteRoute,
+  AuthenticatedCustoFreteMercadoriasRoute:
+    AuthenticatedCustoFreteMercadoriasRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEmpresasRoute: AuthenticatedEmpresasRoute,
   AuthenticatedEntregasAbertasRoute: AuthenticatedEntregasAbertasRoute,
