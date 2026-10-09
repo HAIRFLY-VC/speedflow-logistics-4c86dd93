@@ -1019,6 +1019,24 @@ export function CteDetailView({
                       {tabelaUsada.uf_destino ? ` · UF ${tabelaUsada.uf_destino}` : ""}
                     </span>
                   ) : null}
+                  {tabelaUsada?.arquivo_path ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="ml-2 h-6 px-2 text-xs"
+                      title={tabelaUsada.arquivo_nome ?? "Ver arquivo original da tabela"}
+                      onClick={() =>
+                        abrirArquivoTabelaFrete(
+                          tabelaUsada.arquivo_path!,
+                          tabelaUsada.arquivo_nome,
+                        )
+                      }
+                    >
+                      <FileText className="mr-1 h-3.5 w-3.5" /> Ver tabela original
+                    </Button>
+                  ) : ultimaAuditoria.tabela_preco_id && tabelaUsada ? (
+                    <span className="ml-2">· tabela sem arquivo anexado</span>
+                  ) : null}
                 </>
               ) : (
                 <span className="text-amber-600">
