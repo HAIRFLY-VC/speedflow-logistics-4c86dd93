@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.37.2] - 2026-10-09
+### Alterado
+- Os status "01-DIGITADO" e "02-CRITICADO" aparecem em fonte vermelha no detalhe da rota, em Pedidos sem rota e no PDF de impressão, como já acontecia em Rotas Pendentes.
+
+
 ## [1.37.1] - 2026-10-09
 ### Alterado
 - A coluna "Dt. agenda" passa a se chamar "Dt. fatur." no detalhe da rota, em Pedidos sem rota e no PDF de impressão. As datas exibidas permanecem as mesmas.

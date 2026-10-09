@@ -1,4 +1,5 @@
 import { PedidoCodigo } from "@/components/orders/PedidoCodigo";
+import { isStatusCriticoErp } from "@/lib/erp-status";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -914,7 +915,7 @@ function PedidosSemRotaPage() {
                             <div className="ml-8 -mt-5 lg:m-0">
                               <PedidoCodigo codigo={p.numero} />
                                                           </div>
-                            <p className="mt-2 text-xs font-medium lg:m-0 lg:text-[10px]">{p.status ?? "—"}</p>
+                            <p className={`mt-2 text-xs font-medium lg:m-0 lg:text-[10px]${isStatusCriticoErp(p.status) ? " text-destructive" : ""}`}>{p.status ?? "—"}</p>
                             <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] sm:grid-cols-4 lg:contents">
                               <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">Filial</dt><dd>{p.filial || "—"}</dd></div>
                               <div className="lg:contents"><dt className="text-muted-foreground lg:hidden">NF</dt><dd className="break-words">{p.nf ?? "—"}</dd></div>

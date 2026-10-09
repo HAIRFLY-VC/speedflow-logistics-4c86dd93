@@ -38,6 +38,7 @@ import { SuggestionMap, sequenceStops } from "@/components/route-suggestions/Sug
 import { getOrderCoord } from "@/lib/order-coords";
 import { aproximarPorLocalidade } from "@/lib/route-stops";
 import { formatCurrency, type OrderStatus } from "@/lib/orderStatus";
+import { isStatusCriticoErp } from "@/lib/erp-status";
 import { RouteEditDialog, type EditableRoute } from "@/components/routes/RouteEditDialog";
 import {
   useResponsavelRota,
@@ -910,7 +911,7 @@ function PedidosDaRotaTabela({
               {g.itens.map(({ num, d, amount, weight, bordero }) => (
                 <tr key={num} className="border-t border-dashed">
                   <td className={`${td} pl-8 whitespace-nowrap`}><PedidoCodigo codigo={num} /></td>
-                  <td className={`${td} whitespace-nowrap`}>{d?.status ?? "—"}</td>
+                  <td className={`${td} whitespace-nowrap${isStatusCriticoErp(d?.status) ? " text-destructive font-medium" : ""}`}>{d?.status ?? "—"}</td>
                   <td className={td}>{d?.codFilial ?? "—"}</td>
                   <td className={td}>{d?.nf ?? "—"}</td>
                   <td className={`${td} whitespace-nowrap tabular-nums`}>{bordero ?? "—"}</td>
