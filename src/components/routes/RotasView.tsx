@@ -7,6 +7,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Plus, Loader2, RefreshCw, Package, Weight, ShoppingCart, MapPin, Calculator, Pencil, ArrowRight, Check, ChevronsUpDown, X, AlertTriangle, CircleAlert, Printer } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { isFeatureOn } from "@/config/features";
+import { isStatusCriticoErp } from "@/lib/erp-status";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -419,10 +420,7 @@ function slugify(s: string): string {
 }
 
 // Status em destaque vermelho (situações críticas de digitação/crítica)
-const STATUS_VERMELHO = new Set(["01-DIGITADO", "02-CRITICADO"]);
-function statusVermelho(st: string) {
-  return STATUS_VERMELHO.has(st.trim().toUpperCase());
-}
+const statusVermelho = isStatusCriticoErp;
 
 function StatusList({ map }: { map: Map<string, number> }) {
   const sorted = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
