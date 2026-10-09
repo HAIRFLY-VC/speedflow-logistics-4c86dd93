@@ -13,16 +13,47 @@ export async function tabelaFreteSignedUrl(path: string, download?: string) {
   return data.signedUrl;
 }
 
-/** Abre o arquivo original em nova aba (ou força download quando `baixar`). */
+function nomeArquivo(path: string, nome?: string | null) {
+  return nome || path.split("/").pop() || "tabela";
+}
+
+/**
+ * Abre o arquivo original (ou força download quando `baixar`).
+ * Baixa o conteúdo pela sessão do app e usa um link local (blob:), evitando
+ * que navegadores/extensões bloqueiem o endereço externo do storage.
+ */
 export async function abrirArquivoTabelaFrete(
   path: string,
   nome?: string | null,
   baixar?: boolean,
 ) {
+  const fileName = nomeArquivo(path, nome);
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
+  const visualizavel = !baixar && ["pdf", "png", "jpg", "jpeg", "gif", "webp", "txt"].includes(ext);
+  // Abre a aba de forma síncrona para não ser bloqueada como pop-up.
+  const win = visualizavel ? window.open("", "_blank") : null;
   try {
-    const url = await tabelaFreteSignedUrl(path, baixar ? (nome ?? "tabela") : undefined);
-    window.open(url, "_blank", "noopener,noreferrer");
+    const { data, error } = await storageClient.storage.from(TABELA_FRETE_BUCKET).download(path);
+    if (error || !data) throw error ?? new Error("Arquivo não encontrado");
+    const url = URL.createObjectURL(data);
+    if (visualizavel && win) {
+      win.location.href = url;
+    } else {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   } catch (e) {
-    toast.error((e as Error).message);
+    win?.close();
+    const msg = (e as Error)?.message || "";
+    toast.error(
+      /not found|não encontrado/i.test(msg)
+        ? "Arquivo original da tabela não encontrado."
+        : `Não foi possível abrir o arquivo: ${msg}`,
+    );
   }
 }
