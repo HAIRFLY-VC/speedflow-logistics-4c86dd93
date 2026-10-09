@@ -619,6 +619,7 @@ const ENTREGAS_ABERTAS_SQL = `
    WHERE G.STATUS = 'A'
      AND G.DT_SAIDA IS NOT NULL
      AND G.DT_ENTREGA_CLI IS NULL
+     AND G.COD_AGENDA IN (417, 427)
 `;
 
 function soData(v: unknown): string | null {
@@ -746,6 +747,7 @@ async function sincronizarNotasFaturadas(): Promise<number> {
          G.VALOR, G.PESO, G.TIPOS_OCORRENCIA, G.STATUS, ${SQL_EXTRAS_ENTREGA}
     FROM GKS.A_GERENTREGAS G
    WHERE G.NRO_NF IS NOT NULL
+     AND G.COD_AGENDA IN (417, 427)
      AND G.DT_FATUR >= TO_DATE('${ymd(c.de)}','yyyyMMdd')
      AND G.DT_FATUR < TO_DATE('${ymd(c.ate)}','yyyyMMdd') + 1`;
     const res = await fetch(`${cleanBase}/v1/query`, {
