@@ -955,7 +955,7 @@ export function CteDetailView({
                   )
                 }
               >
-                <FileText className="mr-1 h-4 w-4" /> Ver tabela original
+                <FileText className="mr-1 h-4 w-4" /> Baixar tabela original
                 <span className="text-muted-foreground ml-1 text-xs">
                   (vigente na emissão — auditoria ainda não executada)
                 </span>
@@ -1030,7 +1030,7 @@ export function CteDetailView({
                         )
                       }
                     >
-                      <FileText className="mr-1 h-3.5 w-3.5" /> Ver tabela original
+                      <FileText className="mr-1 h-3.5 w-3.5" /> Baixar tabela original
                     </Button>
                   ) : ultimaAuditoria.tabela_preco_id && tabelaUsada ? (
                     <span className="ml-2">· tabela sem arquivo anexado</span>

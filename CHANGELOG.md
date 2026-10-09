@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.30.2] - 2026-10-09
+### Alterado
+- "Baixar tabela original": o arquivo da tabela de frete é baixado direto na área de downloads (sem abrir nova aba).
+
 ## [1.30.1] - 2026-10-09
 ### Corrigido
 - "Ver tabela original" não é mais bloqueado pelo navegador (Edge): o arquivo é aberto/baixado pelo próprio app.
