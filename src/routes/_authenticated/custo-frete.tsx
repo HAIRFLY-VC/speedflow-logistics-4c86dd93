@@ -6,14 +6,14 @@ import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BackButton } from "@/components/layout/BackButton";
+import { CicloMultiSelect, rotuloCiclo } from "@/components/custo-frete/CicloMultiSelect";
 import { exportarXlsx } from "@/components/data-table/export-xlsx";
 import {
   calendarioComercialQueryOptions,
   carregarCustoFrete,
   cicloAtual,
-  custoFreteQueryOptions,
+  custoFreteMultiQueryOptions,
   resumir,
   type CicloComercial,
   type LinhaCustoFrete,
@@ -36,12 +36,6 @@ export const Route = createFileRoute("/_authenticated/custo-frete")({
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const kg = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
 const pctFmt = (v: number | null) => (v == null ? "—" : `${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`);
-const diaBr = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-export const rotuloCiclo = (c: CicloComercial) => {
-  const [a, m] = c.mes_comerc.split("-");
-  const mes = new Date(Number(a), Number(m) - 1, 1).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
-  return `${mes}/${a.slice(2)} (${diaBr(c.de)} a ${diaBr(c.ate)})`;
-};
 
 const rotuloVendedor = (cod: string | null, vend?: Map<string, string>) => {
   if (!cod) return "Sem vendedor";
@@ -185,9 +179,11 @@ function CustoFretePage() {
     staleTime: 60 * 60_000,
   });
   const ciclos = calQ.data ?? [];
-  const [sel, setSel] = useState<string | null>(null);
-  const ciclo = ciclos.find((c) => c.mes_comerc === sel) ?? cicloAtual(ciclos);
-  const q = useQuery(custoFreteQueryOptions(ciclo));
+  const [sel, setSel] = useState<string[]>([]);
+  const ciclo = cicloAtual(ciclos);
+  const marcados = ciclos.filter((c) => sel.includes(c.mes_comerc));
+  const ciclosSel = marcados.length ? marcados : ciclo ? [ciclo] : [];
+  const q = useQuery(custoFreteMultiQueryOptions(ciclosSel));
   const linhas = q.data ?? [];
   // Nome do vendedor: prioriza o nome gravado no espelho do ERP; o cadastro
   // externo de vendedores serve de fallback para códigos sem nome no espelho.
@@ -219,14 +215,7 @@ function CustoFretePage() {
             Frete real do ERP ou provisionado sobre as notas faturadas no ciclo comercial (mesmo critério de Mercadorias faturadas).
           </p>
         </div>
-        <Select value={ciclo?.mes_comerc ?? ""} onValueChange={setSel}>
-          <SelectTrigger className="w-64"><SelectValue placeholder="Ciclo comercial" /></SelectTrigger>
-          <SelectContent>
-            {ciclos.slice(0, 12).map((c) => (
-              <SelectItem key={c.mes_comerc} value={c.mes_comerc}>{rotuloCiclo(c)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <CicloMultiSelect ciclos={ciclos.slice(0, 12)} selecionados={sel} onChange={setSel} />
       </div>
 
       {calQ.isSuccess && ciclos.length === 0 && (
@@ -245,7 +234,7 @@ function CustoFretePage() {
             </Card>
           );
           return t === "Mercadorias faturadas" ? (
-            <Link key={t} to="/custo-frete-mercadorias" search={{ ciclo: ciclo?.mes_comerc }} title="Ver detalhamento">{card}</Link>
+            <Link key={t} to="/custo-frete-mercadorias" search={{ ciclo: sel.length ? sel.join(",") : ciclo?.mes_comerc }} title="Ver detalhamento">{card}</Link>
           ) : (
             <div key={t}>{card}</div>
           );
@@ -256,7 +245,7 @@ function CustoFretePage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {DIMENSOES.map((d) => (
-          <TabelaDimensao key={d.id} dim={d} linhas={linhas} ciclo={ciclo?.mes_comerc ?? ""} vendMap={vendMap} />
+          <TabelaDimensao key={d.id} dim={d} linhas={linhas} ciclo={ciclosSel.map((c) => c.mes_comerc).join("-") || "atual"} vendMap={vendMap} />
         ))}
       </div>
     </div>
