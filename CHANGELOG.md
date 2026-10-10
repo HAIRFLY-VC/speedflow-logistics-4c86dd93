@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.38.1] - 2026-10-10
+### Adicionado
+- Mercadorias faturadas: nova coluna UF logo após COD_CLIENTE, preenchida com a UF do cadastro do cliente no ERP.
+
 ## [1.38.0] - 2026-10-10
 ### Adicionado
 - Mercadorias faturadas: filtro em cada coluna no estilo Excel, adequado ao tipo (lista de valores e condições de texto; comparações e "entre" para valores/peso; antes/depois/entre/vazio para datas). Cards, totais e Excel refletem a listagem filtrada; filtros ficam salvos por usuário.
