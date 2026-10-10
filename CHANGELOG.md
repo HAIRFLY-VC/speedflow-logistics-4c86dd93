@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.39.3] - 2026-10-10
+### Corrigido
+- Mercadorias faturadas e Custo de Frete com muitos ciclos davam erro e zeravam a tela: ciclos e provisões passam a ser carregados em lotes menores; falhas parciais não apagam os dados e a mensagem de erro fica legível.
+
 ## [1.39.2] - 2026-10-10
 ### Corrigido
 - Clientes apareciam como "Sem UF" no Custo de Frete: o Sync ERP (inclusive manual) passa a completar o cadastro dos clientes das notas faturadas, reconsulta clientes sem UF, e as telas buscam no ERP a UF que faltar.

@@ -324,7 +324,7 @@ export const custoFreteMultiQueryOptions = (ciclos: CicloComercial[]) =>
   queryOptions({
     queryKey: ["custo-frete", "multi", ciclos.map((c) => c.mes_comerc).join(",")],
     queryFn: async () => {
-      return (await Promise.all(ciclos.map((c) => carregarCustoFrete(c)))).flat();
+      return (await mapLimitado(ciclos, 3, (c) => carregarCustoFrete(c))).flat();
     },
     enabled: ciclos.length > 0,
     staleTime: 5 * 60_000,
@@ -451,4 +451,20 @@ async function carregarMercadoriasBase(ciclo: CicloComercial): Promise<LinhaMerc
     tipos_ocorrencia: s(l.tipos_ocorrencia),
     origem_frete: Number(l.vlr_frete ?? 0) > 0 ? ("R" as const) : null,
   }));
+}
+
+/** Executa `fn` sobre os itens com no máximo `limite` tarefas simultâneas. */
+export async function mapLimitado<T, R>(itens: T[], limite: number, fn: (t: T, i: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(itens.length);
+  let p = 0;
+  const worker = async () => { while (p < itens.length) { const i = p++; out[i] = await fn(itens[i], i); } };
+  await Promise.all(Array.from({ length: Math.min(limite, itens.length) }, worker));
+  return out;
+}
+
+/** Remove HTML bruto (páginas de erro do servidor) das mensagens. */
+export function msgErroAmigavel(e: unknown): string {
+  const m = e instanceof Error ? e.message : String(e ?? "");
+  if (/<!DOCTYPE|<html/i.test(m)) return "o servidor demorou ou falhou ao processar o volume de dados. Tente novamente ou selecione menos ciclos.";
+  return m.length > 300 ? m.slice(0, 300) + "…" : m;
 }
