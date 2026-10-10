@@ -12,6 +12,18 @@ export type NfeItem = {
   valor_total: number;
 };
 
+export type NfeEnderecoDest = {
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  municipio: string | null;
+  uf: string | null;
+  cep: string | null;
+  pais: string | null;
+  formatado: string | null;
+};
+
 export type ParsedNfe = {
   chave_acesso: string;
   numero: string | null;
@@ -22,6 +34,7 @@ export type ParsedNfe = {
   cnpj_destinatario: string | null;
   nome_destinatario: string | null;
   uf_destino: string | null;
+  endereco_destinatario: NfeEnderecoDest | null;
   data_emissao: string | null;
   valor_total: number;
   valor_produtos: number;
@@ -96,6 +109,32 @@ export function parseNfeXml(xml: string): ParsedNfe {
 
   const dh = tagValue(ide, "dhEmi") ?? tagValue(ide, "dEmi");
 
+  const enderecoDestinatario: NfeEnderecoDest = {
+    logradouro: tagValue(enderDest, "xLgr"),
+    numero: tagValue(enderDest, "nro"),
+    complemento: tagValue(enderDest, "xCpl"),
+    bairro: tagValue(enderDest, "xBairro"),
+    municipio: tagValue(enderDest, "xMun"),
+    uf: tagValue(enderDest, "UF"),
+    cep: null,
+    pais: tagValue(enderDest, "xPais"),
+    formatado: null,
+  };
+  const cepRaw = onlyDigits(tagValue(enderDest, "CEP") ?? "");
+  enderecoDestinatario.cep = cepRaw
+    ? cepRaw.replace(/^(\d{5})(\d{3})$/, "$1-$2")
+    : null;
+  const linha1 = [enderecoDestinatario.logradouro, enderecoDestinatario.numero]
+    .filter(Boolean)
+    .join(", ");
+  const partesEndereco = [
+    [linha1, enderecoDestinatario.complemento].filter(Boolean).join(" - "),
+    enderecoDestinatario.bairro,
+    [enderecoDestinatario.municipio, enderecoDestinatario.uf].filter(Boolean).join("/"),
+    enderecoDestinatario.cep ? `CEP ${enderecoDestinatario.cep}` : null,
+  ].filter((parte) => parte && parte.length > 0);
+  enderecoDestinatario.formatado = partesEndereco.length ? partesEndereco.join(", ") : null;
+
   // A NF-e pode ter vários blocos <vol>; somamos volumes e pesos.
   const blocosVol = allTags(transp, "vol");
   const fonteVol = blocosVol.length > 0 ? blocosVol.map((b) => b.body) : vol ? [vol] : [];
@@ -122,6 +161,7 @@ export function parseNfeXml(xml: string): ParsedNfe {
       : null,
     nome_destinatario: tagValue(dest, "xNome"),
     uf_destino: tagValue(enderDest, "UF"),
+    endereco_destinatario: enderecoDestinatario.formatado ? enderecoDestinatario : null,
     data_emissao: dh ? new Date(dh).toISOString() : null,
     valor_total: toNumber(tagValue(total, "vNF")),
     valor_produtos: toNumber(tagValue(total, "vProd")),
