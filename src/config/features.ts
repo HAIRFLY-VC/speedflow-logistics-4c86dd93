@@ -20,6 +20,8 @@ export const FEATURES = {
   notasFiscaisNaListaCte: { test: true, production: true },
   /** Endereço completo do destinatário e praça usada no detalhe da NF-e. */
   enderecoPracaDetalheNfe: { test: true, production: true },
+  /** Código da rota no ERP na listagem principal de CT-e. */
+  rotaNaListaCte: { test: true, production: true },
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;

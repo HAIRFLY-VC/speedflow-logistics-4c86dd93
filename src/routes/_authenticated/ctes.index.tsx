@@ -78,6 +78,8 @@ type Empresa = Tables<"empresas">;
 type CteRow = Cte & {
   empresas: Pick<Empresa, "id" | "cnpj" | "razao_social"> | null;
   nfs_exibicao?: Cte["nfs_referenciadas"];
+  rotas_codigo?: string[];
+  rotas_pedidos?: string[];
 };
 
 
@@ -95,6 +97,95 @@ function numerosNfesDoCte(cte: Cte): string[] {
   });
 
   return Array.from(new Set(numeros));
+}
+
+/**
+ * Resolve os códigos de rota (ERP) de cada CT-e a partir das NF-es referenciadas:
+ * NF -> pedido (espelho notas_faturadas) -> rota do pedido.
+ */
+async function resolverRotasPorCte(linhas: CteRow[]): Promise<{
+  rotas: Map<string, string[]>;
+  pedidos: Map<string, string[]>;
+}> {
+  const nfPorCte = new Map<string, string[]>();
+  const todasNf = new Set<string>();
+  for (const cte of linhas) {
+    const nf = numerosNfesDoCte(cte);
+    if (nf.length > 0) {
+      nfPorCte.set(cte.id, nf);
+      nf.forEach((n) => todasNf.add(n));
+    }
+  }
+  const saida = { rotas: new Map<string, string[]>(), pedidos: new Map<string, string[]>() };
+  if (todasNf.size === 0) return saida;
+
+  // NF -> pedidos no espelho de notas faturadas.
+  const pedidosPorNf = new Map<string, Set<string>>();
+  const listaNf = Array.from(todasNf);
+  for (let inicio = 0; inicio < listaNf.length; inicio += 100) {
+    const { data, error } = await supabase
+      .from("notas_faturadas" as never)
+      .select("nro_nf,cod_pedido")
+      .in("nro_nf", listaNf.slice(inicio, inicio + 100));
+    if (error) throw error;
+    for (const r of (data ?? []) as unknown as { nro_nf: string; cod_pedido: string }[]) {
+      const nf = String(r.nro_nf);
+      const set = pedidosPorNf.get(nf) ?? new Set<string>();
+      set.add(String(r.cod_pedido));
+      pedidosPorNf.set(nf, set);
+    }
+  }
+
+  // Pedido -> códigos de rota (ERP ou local).
+  const todosPedidos = Array.from(
+    new Set(Array.from(pedidosPorNf.values()).flatMap((s) => Array.from(s))),
+  );
+  type OrdRota = {
+    order_number: string;
+    route_orders: { routes: { code: string; erp_route_id: string | null } | null }[] | null;
+  };
+  const rotaPorPedido = new Map<string, string[]>();
+  for (let inicio = 0; inicio < todosPedidos.length; inicio += 100) {
+    const { data, error } = await supabase
+      .from("orders")
+      .select("order_number, route_orders(routes(code, erp_route_id))")
+      .in("order_number", todosPedidos.slice(inicio, inicio + 100));
+    if (error) throw error;
+    for (const o of (data ?? []) as unknown as OrdRota[]) {
+      const vinculos = Array.isArray(o.route_orders)
+        ? o.route_orders
+        : o.route_orders
+          ? [o.route_orders]
+          : [];
+      const codigos = vinculos
+        .map((v) => v.routes)
+        .filter((rt): rt is { code: string; erp_route_id: string | null } => Boolean(rt))
+        .map((rt) => rt.erp_route_id ?? rt.code)
+        .filter(Boolean);
+      if (codigos.length > 0) rotaPorPedido.set(o.order_number, Array.from(new Set(codigos)));
+    }
+  }
+
+  for (const [cteId, nfs] of nfPorCte) {
+    const codigos = new Set<string>();
+    const pedidosCte = new Set<string>();
+    for (const nf of nfs) {
+      for (const pedido of pedidosPorNf.get(nf) ?? []) {
+        pedidosCte.add(pedido);
+        for (const c of rotaPorPedido.get(pedido) ?? []) codigos.add(c);
+      }
+    }
+    if (codigos.size > 0) {
+      saida.rotas.set(
+        cteId,
+        Array.from(codigos).sort(
+          (a, b) => (Number(a) || 0) - (Number(b) || 0) || a.localeCompare(b),
+        ),
+      );
+    }
+    if (pedidosCte.size > 0) saida.pedidos.set(cteId, Array.from(pedidosCte).sort());
+  }
+  return saida;
 }
 
 const STATUS_TONE: Record<string, string> = {
@@ -292,7 +383,7 @@ function CtesPage() {
           .map((cte) => [`${cte.cnpj_emitente}:${cte.numero}`, cte]),
       );
 
-      return linhas.map((cte) => {
+      const resumo = linhas.map((cte) => {
         if (Array.isArray(cte.nfs_referenciadas) && cte.nfs_referenciadas.length > 0) {
           return { ...cte, nfs_exibicao: cte.nfs_referenciadas };
         }
@@ -303,6 +394,14 @@ function CtesPage() {
             : undefined;
         return { ...cte, nfs_exibicao: original?.nfs_referenciadas ?? [] };
       });
+
+      // Código da rota (ERP) associada às NF-es de cada CT-e.
+      const { rotas, pedidos } = await resolverRotasPorCte(resumo);
+      return resumo.map((cte) => ({
+        ...cte,
+        rotas_codigo: rotas.get(cte.id) ?? [],
+        rotas_pedidos: pedidos.get(cte.id) ?? [],
+      }));
     },
   });
 
@@ -512,6 +611,37 @@ function CtesPage() {
                   <span className="text-xs tabular-nums">{numeros.join(", ")}</span>
                 ) : (
                   "—"
+                );
+              },
+            } satisfies ColumnDef<CteRow>,
+          ]
+        : []),
+      ...(isFeatureOn("rotaNaListaCte")
+        ? [
+            {
+              id: "rota",
+              header: "Rota",
+              pinAfter: "numero",
+              accessor: (c: CteRow) => (c.rotas_codigo ?? []).join(", "),
+              render: (c: CteRow) => {
+                const codigos = c.rotas_codigo ?? [];
+                if (codigos.length === 0) return "—";
+                const pedidos = (c.rotas_pedidos ?? []).join(", ");
+                return (
+                  <TooltipProvider delayDuration={100}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-xs tabular-nums font-medium cursor-default">
+                          {codigos.join(", ")}
+                        </span>
+                      </TooltipTrigger>
+                      {pedidos ? (
+                        <TooltipContent>
+                          <p>Pedido(s): {pedidos}</p>
+                        </TooltipContent>
+                      ) : null}
+                    </Tooltip>
+                  </TooltipProvider>
                 );
               },
             } satisfies ColumnDef<CteRow>,

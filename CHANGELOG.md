@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.42.0] - 2026-10-10
+### Adicionado
+- A listagem de CT-e passa a mostrar, em nova coluna "Rota", o código da rota no ERP associada às NF-es do conhecimento, com filtro e ordenação.
+
 ## [1.41.1] - 2026-10-10
 ### Corrigido
 - O frete mínimo passa a substituir somente o valor calculado de FRETE PESO; FRETE VALOR permanece separado, e a aplicação do mínimo é sinalizada em vermelho na auditoria do CT-e.
