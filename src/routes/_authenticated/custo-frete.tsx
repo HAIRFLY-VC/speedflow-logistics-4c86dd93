@@ -13,7 +13,7 @@ import {
   calendarioComercialQueryOptions,
   carregarCustoFrete,
   cicloAtual,
-  custoFreteQueryOptions,
+  custoFreteMultiQueryOptions,
   resumir,
   type CicloComercial,
   type LinhaCustoFrete,
@@ -36,12 +36,6 @@ export const Route = createFileRoute("/_authenticated/custo-frete")({
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const kg = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
 const pctFmt = (v: number | null) => (v == null ? "—" : `${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`);
-const diaBr = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-export const rotuloCiclo = (c: CicloComercial) => {
-  const [a, m] = c.mes_comerc.split("-");
-  const mes = new Date(Number(a), Number(m) - 1, 1).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
-  return `${mes}/${a.slice(2)} (${diaBr(c.de)} a ${diaBr(c.ate)})`;
-};
 
 const rotuloVendedor = (cod: string | null, vend?: Map<string, string>) => {
   if (!cod) return "Sem vendedor";
