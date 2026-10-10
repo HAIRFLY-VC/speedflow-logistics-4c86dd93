@@ -79,20 +79,42 @@ export const getNfe = createServerFn({ method: "POST" })
       if (cte?.transportadora_id) {
         const { acharRotaPorMunicipio } = await import("./frete-area");
         const { pickTabela } = await import("./cte-audit.server");
-        const tabelaEscolhida = auditoria?.tabela_preco_id
-          ? await centralDb
+        let tabelaEscolhida: { id: string; nome: string } | null = null;
+        let rotas: {
+          id: string;
+          origem: string;
+          destino: string;
+          observacao?: string | null;
+        }[] = [];
+        if (auditoria?.tabela_preco_id) {
+          const [{ data: tabela }, { data: rotasTabela }] = await Promise.all([
+            centralDb
               .from("tabelas_preco_frete")
-              .select("*, tabelas_preco_frete_faixas(*), tabelas_preco_frete_rotas(*)")
+              .select("id, nome")
               .eq("id", auditoria.tabela_preco_id)
-              .maybeSingle()
-              .then(({ data: tabela }) => tabela)
-          : await pickTabela(
-              centralDb,
-              cte.transportadora_id,
-              cte.uf_destino,
-              cte.data_emissao,
-            );
-        const rotas = tabelaEscolhida?.tabelas_preco_frete_rotas ?? [];
+              .maybeSingle(),
+            centralDb
+              .from("tabelas_preco_frete_rotas")
+              .select("id, origem, destino, observacao")
+              .eq("tabela_id", auditoria.tabela_preco_id),
+          ]);
+          tabelaEscolhida = tabela;
+          rotas = rotasTabela ?? [];
+        } else {
+          const tabela = await pickTabela(
+            centralDb,
+            cte.transportadora_id,
+            cte.uf_destino,
+            cte.data_emissao,
+          );
+          tabelaEscolhida = tabela ? { id: tabela.id, nome: tabela.nome } : null;
+          rotas = (tabela?.tabelas_preco_frete_rotas ?? []).map((rota) => ({
+            id: String(rota.id),
+            origem: rota.origem,
+            destino: rota.destino,
+            observacao: rota.observacao,
+          }));
+        }
         const achada = acharRotaPorMunicipio(rotas, endereco?.municipio);
         let rota = achada.index >= 0 ? rotas[achada.index] : null;
 
