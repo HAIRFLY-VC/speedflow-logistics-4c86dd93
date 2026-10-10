@@ -64,6 +64,7 @@ export type DetalheFrete = {
   peso_cobrado: number;
   tarifa_kg: number;
   frete_peso: number;
+  frete_peso_calculado: number;
   frete_valor_perc: number;
   frete_valor: number;
   faixa: string | null;
@@ -91,7 +92,7 @@ export function detalharEntrega(tabela: TabelaSim, entrega: EntregaSim): Detalhe
   const rotas = tabela.tabelas_preco_frete_rotas ?? [];
   const d: DetalheFrete = {
     metodo: "percentual_valor", praca: null, praca_id: null, praca_origem: null, peso_real: entrega.peso, peso_minimo: 0,
-    peso_cobrado: entrega.peso, tarifa_kg: 0, frete_peso: 0, frete_valor_perc: 0, frete_valor: 0,
+    peso_cobrado: entrega.peso, tarifa_kg: 0, frete_peso: 0, frete_peso_calculado: 0, frete_valor_perc: 0, frete_valor: 0,
     faixa: null, valor_fixo_faixa: 0, base_calculada: 0, frete_minimo: 0, minimo_aplicado: false,
     taxa_despacho: 0, frete_base: 0, gris_perc: 0, gris_minimo: 0, gris: 0,
     gris_minimo_aplicado: false, ad_valorem_perc: 0, ad_valorem: 0, tas: 0, subtotal: 0,
