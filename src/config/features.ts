@@ -16,6 +16,8 @@ export const FEATURES = {
   provisaoFreteTransportadora: { test: true, production: true },
   /** Card de % do frete do ciclo comercial e painel Custo de Frete. */
   painelCustoFrete: { test: true, production: true },
+  /** Números das NF-es referenciadas na listagem principal de CT-e. */
+  notasFiscaisNaListaCte: { test: true, production: true },
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;
