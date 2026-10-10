@@ -64,10 +64,36 @@ function campoVendedorIndisponivel(error: QueryError | null): boolean {
   return (error.code === "42703" || error.code === "PGRST204" || texto.includes("schema cache")) && texto.includes("vendedor");
 }
 
+const CONCORRENCIA = 6;
+
+/** Executa os lotes com até CONCORRENCIA consultas simultâneas, preservando a ordem. */
 async function emLotes<T, R>(itens: T[], fn: (lote: T[]) => Promise<R[]>): Promise<R[]> {
-  const out: R[] = [];
-  for (let i = 0; i < itens.length; i += LOTE) out.push(...(await fn(itens.slice(i, i + LOTE))));
-  return out;
+  const lotes: T[][] = [];
+  for (let i = 0; i < itens.length; i += LOTE) lotes.push(itens.slice(i, i + LOTE));
+  const res: R[][] = new Array(lotes.length);
+  let prox = 0;
+  const worker = async () => {
+    while (prox < lotes.length) {
+      const i = prox++;
+      res[i] = await fn(lotes[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(CONCORRENCIA, lotes.length) }, worker));
+  return res.flat();
+}
+
+/** Cache por ciclo (5 min): evita recarregar ciclos já buscados ao marcar/desmarcar outros. */
+const TTL = 5 * 60_000;
+const cacheCiclo = new Map<string, { em: number; p: Promise<unknown> }>();
+function memoCiclo<R>(chave: string, fn: () => Promise<R>): Promise<R> {
+  const hit = cacheCiclo.get(chave);
+  if (hit && Date.now() - hit.em < TTL) return hit.p as Promise<R>;
+  const p = fn().catch((e) => {
+    cacheCiclo.delete(chave);
+    throw e;
+  });
+  cacheCiclo.set(chave, { em: Date.now(), p });
+  return p;
 }
 
 /**
