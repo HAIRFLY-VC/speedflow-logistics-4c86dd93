@@ -621,7 +621,7 @@ function CtesPage() {
             {
               id: "rota",
               header: "Rota",
-              pinAfter: isFeatureOn("notasFiscaisNaListaCte") ? "nfes" : "numero",
+              pinAfter: "numero",
               accessor: (c: CteRow) => (c.rotas_codigo ?? []).join(", "),
               render: (c: CteRow) => {
                 const codigos = c.rotas_codigo ?? [];
