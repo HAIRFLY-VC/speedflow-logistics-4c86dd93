@@ -6,8 +6,8 @@ import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BackButton } from "@/components/layout/BackButton";
+import { CicloMultiSelect, rotuloCiclo } from "@/components/custo-frete/CicloMultiSelect";
 import { exportarXlsx } from "@/components/data-table/export-xlsx";
 import {
   calendarioComercialQueryOptions,

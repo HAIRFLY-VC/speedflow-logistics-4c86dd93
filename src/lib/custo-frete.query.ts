@@ -270,6 +270,19 @@ export const custoFreteQueryOptions = (ciclo: CicloComercial | null) =>
     staleTime: 5 * 60_000,
   });
 
+/** Mesma carga, somando os vários ciclos comerciais marcados. */
+export const custoFreteMultiQueryOptions = (ciclos: CicloComercial[]) =>
+  queryOptions({
+    queryKey: ["custo-frete", "multi", ciclos.map((c) => c.mes_comerc).join(",")],
+    queryFn: async () => {
+      const out: LinhaCustoFrete[] = [];
+      for (const c of ciclos) out.push(...(await carregarCustoFrete(c)));
+      return out;
+    },
+    enabled: ciclos.length > 0,
+    staleTime: 5 * 60_000,
+  });
+
 export type ResumoCustoFrete = {
   frete: number;
   valor: number;
