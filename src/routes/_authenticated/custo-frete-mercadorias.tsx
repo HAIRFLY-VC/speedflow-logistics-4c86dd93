@@ -157,7 +157,7 @@ function MercadoriasPage() {
 
   const exportar = () =>
     exportarXlsx({
-      fileName: `mercadorias-faturadas-${ciclo?.mes_comerc ?? ""}.xlsx`,
+      fileName: `mercadorias-faturadas-${ciclosSel.map((c) => c.mes_comerc).join("-") || "atual"}.xlsx`,
       headers: [...COLS.map((c) => c.t), "REENTREGA"],
       rows: linhas.map((l) => COLS.map((c) => {
         const v = l[c.k];
@@ -181,12 +181,11 @@ function MercadoriasPage() {
           {nFiltros > 0 && (
             <Button variant="ghost" size="sm" onClick={limparFiltros}>Limpar filtros ({nFiltros})</Button>
           )}
-          <Select value={ciclo?.mes_comerc ?? ""} onValueChange={(v) => navigate({ search: { ciclo: v } })}>
-            <SelectTrigger className="w-60"><SelectValue placeholder="Ciclo comercial" /></SelectTrigger>
-            <SelectContent>
-              {ciclos.slice(0, 12).map((c) => <SelectItem key={c.mes_comerc} value={c.mes_comerc}>{rotulo(c)}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <CicloMultiSelect
+            ciclos={ciclos.slice(0, 12)}
+            selecionados={marcados.map((c) => c.mes_comerc)}
+            onChange={(v) => navigate({ search: { ciclo: v.length ? v.join(",") : undefined } })}
+          />
           <Button variant="outline" size="sm" onClick={exportar} disabled={!linhas.length}>
             <Download className="mr-1 h-4 w-4" /> Excel
           </Button>
