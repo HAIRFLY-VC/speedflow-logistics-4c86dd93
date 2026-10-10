@@ -113,15 +113,16 @@ export function detalharEntrega(tabela: TabelaSim, entrega: EntregaSim): Detalhe
     d.frete_peso = d.peso_cobrado * d.tarifa_kg;
     d.frete_valor_perc = n(r.frete_valor_percentual);
     d.frete_valor = (d.frete_valor_perc / 100) * entrega.valorMercadoria;
-    d.base_calculada = d.frete_peso + d.frete_valor;
     d.frete_minimo = n(r.frete_minimo);
-    let sub = d.base_calculada;
-    if (d.frete_minimo > 0 && sub < d.frete_minimo) {
-      sub = d.frete_minimo;
+    // O frete mínimo se aplica somente ao Frete Peso; o Frete Valor é independente.
+    d.frete_peso_calculado = d.frete_peso;
+    if (d.frete_minimo > 0 && d.frete_peso < d.frete_minimo) {
+      d.frete_peso = d.frete_minimo;
       d.minimo_aplicado = true;
     }
+    d.base_calculada = d.frete_peso + d.frete_valor;
     d.taxa_despacho = n(r.taxa_despacho);
-    d.frete_base = sub + d.taxa_despacho;
+    d.frete_base = d.base_calculada + d.taxa_despacho;
   } else {
     if (tabela.tipo_calculo === "peso") {
       const faixas = [...(tabela.tabelas_preco_frete_faixas ?? [])].sort(
@@ -138,17 +139,26 @@ export function detalharEntrega(tabela: TabelaSim, entrega: EntregaSim): Detalhe
       d.valor_fixo_faixa = n(faixa.valor_fixo_faixa);
       d.tarifa_kg = n(faixa.valor_por_kg);
       d.frete_peso = d.tarifa_kg * entrega.peso;
+      d.frete_peso_calculado = d.frete_peso;
+      d.frete_minimo = n(tabela.frete_minimo);
+      // O frete mínimo se aplica somente ao Frete Peso; o valor fixo da faixa fica fora.
+      if (d.frete_minimo > 0 && d.frete_peso < d.frete_minimo) {
+        d.frete_peso = d.frete_minimo;
+        d.minimo_aplicado = true;
+      }
       d.base_calculada = d.valor_fixo_faixa + d.frete_peso;
+      d.frete_base = d.base_calculada;
     } else {
       d.frete_valor_perc = n(tabela.percentual_valor);
       d.frete_valor = (d.frete_valor_perc / 100) * entrega.valorMercadoria;
       d.base_calculada = d.frete_valor;
-    }
-    d.frete_minimo = n(tabela.frete_minimo);
-    d.frete_base = d.base_calculada;
-    if (d.frete_minimo > 0 && d.frete_base < d.frete_minimo) {
-      d.frete_base = d.frete_minimo;
-      d.minimo_aplicado = true;
+      d.frete_minimo = n(tabela.frete_minimo);
+      d.frete_base = d.base_calculada;
+      // Sem componente de peso: o mínimo compara com o valor calculado.
+      if (d.frete_minimo > 0 && d.frete_base < d.frete_minimo) {
+        d.frete_base = d.frete_minimo;
+        d.minimo_aplicado = true;
+      }
     }
   }
 
@@ -168,7 +178,7 @@ export function detalharEntrega(tabela: TabelaSim, entrega: EntregaSim): Detalhe
   const total = icms > 0 && icms < 1 ? d.subtotal / (1 - icms) : d.subtotal;
   d.total = round2(total);
   d.icms = round2(d.total - d.subtotal);
-  for (const k of ["frete_peso", "frete_valor", "base_calculada", "frete_base", "gris", "ad_valorem", "subtotal"] as const)
+  for (const k of ["frete_peso", "frete_peso_calculado", "frete_valor", "base_calculada", "frete_base", "gris", "ad_valorem", "subtotal"] as const)
     d[k] = round2(d[k]);
   return d;
 }
