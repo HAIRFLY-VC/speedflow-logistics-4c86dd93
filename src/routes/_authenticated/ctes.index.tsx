@@ -75,15 +75,19 @@ export const Route = createFileRoute("/_authenticated/ctes/")({
 type Cte = Tables<"ctes">;
 type Transportadora = Tables<"transportadoras">;
 type Empresa = Tables<"empresas">;
-type CteRow = Cte & { empresas: Pick<Empresa, "id" | "cnpj" | "razao_social"> | null };
+type CteRow = Cte & {
+  empresas: Pick<Empresa, "id" | "cnpj" | "razao_social"> | null;
+  nfs_exibicao?: Cte["nfs_referenciadas"];
+};
 
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function numerosNfesDoCte(cte: Cte): string[] {
-  if (!Array.isArray(cte.nfs_referenciadas)) return [];
+  const referencias = "nfs_exibicao" in cte ? cte.nfs_exibicao : cte.nfs_referenciadas;
+  if (!Array.isArray(referencias)) return [];
 
-  const numeros = cte.nfs_referenciadas.flatMap((valor) => {
+  const numeros = referencias.flatMap((valor) => {
     if (typeof valor !== "string") return [];
     const chave = valor.replace(/\D/g, "");
     if (chave.length !== 44) return [];
@@ -239,7 +243,66 @@ function CtesPage() {
         .order("created_at", { ascending: false })
         .limit(1000);
       if (error) throw error;
-      return data as CteRow[];
+      const linhas = data as CteRow[];
+      const semNotas = linhas.filter((cte) => {
+        const temNotas = Array.isArray(cte.nfs_referenciadas) && cte.nfs_referenciadas.length > 0;
+        if (temNotas) return false;
+        const reentrega = cte.tipo_cte === 4;
+        const devolucao = cte.tipo_cte === 5;
+        const complementar =
+          cte.tipo_cte === 1 ||
+          (!reentrega && !devolucao && !(Number(cte.peso_taxado) > 0));
+        return complementar || reentrega;
+      });
+
+      const chavesOriginais = Array.from(
+        new Set(semNotas.map((cte) => cte.chave_cte_complementado).filter(Boolean)),
+      ) as string[];
+      const numerosOriginais = Array.from(
+        new Set(
+          semNotas
+            .filter((cte) => !cte.chave_cte_complementado)
+            .map((cte) => cte.numero_cte_complementado)
+            .filter(Boolean),
+        ),
+      ) as string[];
+
+      const buscarEmLotes = async (campo: "chave_acesso" | "numero", valores: string[]) => {
+        const resultados: Cte[] = [];
+        for (let inicio = 0; inicio < valores.length; inicio += 100) {
+          const { data: originais, error: erroOriginais } = await supabase
+            .from("ctes")
+            .select("*")
+            .in(campo, valores.slice(inicio, inicio + 100));
+          if (erroOriginais) throw erroOriginais;
+          resultados.push(...((originais ?? []) as Cte[]));
+        }
+        return resultados;
+      };
+
+      const [porChave, porNumero] = await Promise.all([
+        buscarEmLotes("chave_acesso", chavesOriginais),
+        buscarEmLotes("numero", numerosOriginais),
+      ]);
+      const candidatos = [...linhas, ...porChave, ...porNumero];
+      const originalPorChave = new Map(candidatos.map((cte) => [cte.chave_acesso, cte]));
+      const originalPorEmitenteNumero = new Map(
+        candidatos
+          .filter((cte) => cte.cnpj_emitente && cte.numero)
+          .map((cte) => [`${cte.cnpj_emitente}:${cte.numero}`, cte]),
+      );
+
+      return linhas.map((cte) => {
+        if (Array.isArray(cte.nfs_referenciadas) && cte.nfs_referenciadas.length > 0) {
+          return { ...cte, nfs_exibicao: cte.nfs_referenciadas };
+        }
+        const original = cte.chave_cte_complementado
+          ? originalPorChave.get(cte.chave_cte_complementado)
+          : cte.cnpj_emitente && cte.numero_cte_complementado
+            ? originalPorEmitenteNumero.get(`${cte.cnpj_emitente}:${cte.numero_cte_complementado}`)
+            : undefined;
+        return { ...cte, nfs_exibicao: original?.nfs_referenciadas ?? [] };
+      });
     },
   });
 
