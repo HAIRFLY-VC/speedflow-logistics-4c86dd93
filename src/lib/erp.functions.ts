@@ -42,3 +42,15 @@ export const checkErpConfig = createServerFn({ method: "GET" })
       ready: allowed && hasBaseUrl && hasApiKey,
     };
   });
+
+/** Busca no ERP a UF/cidade de clientes que estão sem UF no espelho local e grava. */
+export const completarUfClientes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { cods: string[] }) => ({
+    cods: Array.from(new Set((input?.cods ?? []).map((c) => String(c).trim()).filter((c) => /^[0-9A-Za-z._-]{1,30}$/.test(c)))).slice(0, 2000),
+  }))
+  .handler(async ({ data }) => {
+    if (!data.cods.length) return { gravados: 0 };
+    const { gravarClientesDoErp } = await import("./erp-sync.server");
+    return { gravados: await gravarClientesDoErp(data.cods) };
+  });

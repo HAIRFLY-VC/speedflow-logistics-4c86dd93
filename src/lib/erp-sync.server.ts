@@ -542,16 +542,25 @@ async function completarCadastroClientesFaltantes(
   for (let offset = 0; ; offset += 1000) {
     const { data, error } = await centralDb
       .from("clientes_erp")
-      .select("cod_cliente")
+      .select("cod_cliente,uf")
       .range(offset, offset + 999);
     if (error) throw error;
-    for (const r of data ?? []) jaTem.add(String((r as { cod_cliente: string }).cod_cliente).trim());
+    // Só conta como cadastrado quem já tem UF; os demais são consultados de novo.
+    for (const r of (data ?? []) as { cod_cliente: string; uf: string | null }[]) if (r.uf && r.uf.trim()) jaTem.add(String(r.cod_cliente).trim());
     if (!data || data.length < 1000) break;
   }
 
   const faltantes = Array.from(codigosPedidos).filter((c) => !jaTem.has(c)).slice(0, limitePorExecucao);
   if (faltantes.length === 0) return 0;
 
+  return gravarClientesDoErp(faltantes);
+}
+
+/** Consulta o cadastro do ERP (GKS.A_CADCTIPO) e grava no espelho de clientes. */
+export async function gravarClientesDoErp(faltantes: string[]): Promise<number> {
+  const baseUrl = process.env.ERP_API_BASE_URL;
+  const apiKey = process.env.ERP_API_KEY;
+  if (!baseUrl || !apiKey || faltantes.length === 0) return 0;
   const cleanBase = baseUrl.replace(/\/+$/, "").replace(/\/v1\/query$/, "");
   let gravados = 0;
   // Oracle limita listas IN a 1000 itens.
@@ -726,7 +735,7 @@ async function sincronizarEntregasAbertas(): Promise<{ total: number; clientes: 
  * Espelho de TODAS as notas faturadas (qualquer status) dos ciclos comerciais
  * recentes — base do painel Custo de Frete. Uma consulta por ciclo.
  */
-async function sincronizarNotasFaturadas(): Promise<number> {
+async function sincronizarNotasFaturadas(clientes?: Set<string>): Promise<number> {
   const baseUrl = process.env.ERP_API_BASE_URL;
   const apiKey = process.env.ERP_API_KEY;
   if (!baseUrl || !apiKey) return 0;
@@ -777,6 +786,7 @@ async function sincronizarNotasFaturadas(): Promise<number> {
         valor: num(row.VALOR), peso: num(row.PESO), tipos_ocorrencia: txt(row.TIPOS_OCORRENCIA),
         status: txt(row.STATUS), ...extrasEntrega((k) => row[k], soData), atualizado_em: agora,
       };
+      if (clientes && nova.cod_cliente) clientes.add(String(nova.cod_cliente));
       const k = `${nf}|${pedido}`;
       const prev = byKey.get(k);
       if (prev) {
@@ -1550,11 +1560,19 @@ export async function syncErpOrders(opts: {
   // Pedidos e rotas já estão persistidos neste ponto; as tarefas complementares
   // abaixo permanecem reservadas à execução agendada.
   // Notas faturadas dos ciclos recentes (painel Custo de Frete), também no manual.
+  const clientesNotas = new Set<string>();
   try {
-    const n = await sincronizarNotasFaturadas();
+    const n = await sincronizarNotasFaturadas(clientesNotas);
     console.log(`[erp-sync] ${n} notas faturadas espelhadas`);
   } catch (err) {
     console.warn("[erp-sync] sincronizar notas faturadas falhou:", err);
+  }
+  // UF/cidade dos clientes das notas faturadas (também no Sync manual).
+  try {
+    const n = await completarCadastroClientesFaltantes(1000, clientesNotas);
+    if (n > 0) console.log(`[erp-sync] cadastro de ${n} clientes das notas completado`);
+  } catch (err) {
+    console.warn("[erp-sync] completar clientes das notas falhou:", err);
   }
 
   if (opts.trigger === "manual") {
