@@ -77,6 +77,37 @@ export const getNfe = createServerFn({ method: "POST" })
         ? (ctes ?? []).find((item) => item.id === auditoria.cte_id)
         : (ctes ?? [])[0];
       if (cte?.transportadora_id) {
+        const criteriosAuditoria =
+          auditoria && Array.isArray(auditoria.detalhamento)
+            ? auditoria.detalhamento
+                .map((item) =>
+                  item && typeof item === "object" && "criterio" in item
+                    ? String(item.criterio ?? "")
+                    : "",
+                )
+                .filter(Boolean)
+            : [];
+        const pracaAuditada = criteriosAuditoria
+          .map((criterio) => /·\s*([^·—]+?)\s*—\s*praça/i.exec(criterio)?.[1]?.trim())
+          .find(Boolean);
+        if (auditoria?.tabela_preco_id && pracaAuditada) {
+          const { data: tabelaAuditada } = await centralDb
+            .from("tabelas_preco_frete")
+            .select("nome")
+            .eq("id", auditoria.tabela_preco_id)
+            .maybeSingle();
+          if (tabelaAuditada) {
+            praca = {
+              nome: pracaAuditada,
+              tabelaNome: tabelaAuditada.nome,
+              cteId: cte.id,
+              criterio: "auditoria",
+            };
+          }
+        }
+
+        if (praca) return { nfe, endereco, praca };
+
         const { acharRotaPorMunicipio } = await import("./frete-area");
         const { pickTabela } = await import("./cte-audit.server");
         let tabelaEscolhida: { id: string; nome: string } | null = null;
@@ -119,13 +150,7 @@ export const getNfe = createServerFn({ method: "POST" })
         let rota = achada.index >= 0 ? rotas[achada.index] : null;
 
         if (!rota && auditoria && Array.isArray(auditoria.detalhamento)) {
-          const criterios = auditoria.detalhamento
-            .map((item) =>
-              item && typeof item === "object" && "criterio" in item
-                ? String(item.criterio ?? "")
-                : "",
-            )
-            .join(" ");
+          const criterios = criteriosAuditoria.join(" ");
           rota =
             rotas.find(
               (item) => item.destino && criterios.includes(`· ${item.destino} —`),
