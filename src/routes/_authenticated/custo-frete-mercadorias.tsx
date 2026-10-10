@@ -81,24 +81,24 @@ function MercadoriasPage() {
   const q = useQuery({
     queryKey: ["custo-frete-mercadorias", "multi", ciclosSel.map((c) => c.mes_comerc).join(",")],
     queryFn: async () => {
-      const todas: LinhaMercadoria[] = [];
       let aviso: string | null = null;
-      for (const c of ciclosSel) {
-        const base = await carregarMercadorias(c);
-        const semFrete = base.filter((l) => l.origem_frete !== "R").map((l) => l.nro_nf);
-        if (!semFrete.length) {
-          todas.push(...base);
-          continue;
-        }
-        try {
-          const provs = await listarProvisoes({ data: { nfs: semFrete } });
-          todas.push(...aplicarProvisoes(base, provs));
-        } catch (e) {
-          console.warn("Provisões indisponíveis", e);
-          todas.push(...base);
-          aviso = "Valores provisionados indisponíveis no momento; exibindo apenas frete real.";
-        }
-      }
+      // Ciclos carregados em paralelo (cada ciclo fica em cache por 5 min).
+      const partes = await Promise.all(
+        ciclosSel.map(async (c) => {
+          const base = await carregarMercadorias(c);
+          const semFrete = base.filter((l) => l.origem_frete !== "R").map((l) => l.nro_nf);
+          if (!semFrete.length) return base;
+          try {
+            const provs = await listarProvisoes({ data: { nfs: semFrete } });
+            return aplicarProvisoes(base, provs);
+          } catch (e) {
+            console.warn("Provisões indisponíveis", e);
+            aviso = "Valores provisionados indisponíveis no momento; exibindo apenas frete real.";
+            return base;
+          }
+        }),
+      );
+      const todas: LinhaMercadoria[] = partes.flat();
       return { linhas: consolidarReentregas(todas), avisoProv: aviso };
     },
     enabled: ciclosSel.length > 0,

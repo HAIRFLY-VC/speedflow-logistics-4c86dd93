@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.39.1] - 2026-10-10
+### Alterado
+- Custo de Frete e Mercadorias faturadas carregam vários ciclos ao mesmo tempo, com consultas em paralelo e ciclos já buscados reaproveitados por 5 minutos, reduzindo bastante a espera.
+
 ## [1.39.0] - 2026-10-10
 ### Adicionado
 - O seletor de ciclo comercial em Custo de Frete e Mercadorias faturadas agora permite marcar vários ciclos; cards, totais, tabelas e Excel somam os ciclos marcados.
