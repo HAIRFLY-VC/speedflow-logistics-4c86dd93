@@ -67,7 +67,6 @@ const valorFiltro = (c: Col, l: LinhaMercadoria): string | number | null => {
   if (c.tipo) return Number(v);
   return String(v);
 };
-const rotulo = (c: CicloComercial) => `${c.mes_comerc.slice(5, 7)}/${c.mes_comerc.slice(0, 4)} (${dataBr(c.de)} a ${dataBr(c.ate)})`;
 
 function MercadoriasPage() {
   const listarProvisoes = useServerFn(listarProvisoesNotas);
@@ -75,22 +74,34 @@ function MercadoriasPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const calQ = useQuery(calendarioComercialQueryOptions());
   const ciclos = calQ.data ?? [];
-  const ciclo = ciclos.find((c) => c.mes_comerc === cicloParam) ?? cicloAtual(ciclos);
+  const pedidoCiclos = (cicloParam ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const cicloAtualC = cicloAtual(ciclos);
+  const marcados = ciclos.filter((c) => pedidoCiclos.includes(c.mes_comerc));
+  const ciclosSel = marcados.length ? marcados : cicloAtualC ? [cicloAtualC] : [];
   const q = useQuery({
-    queryKey: ["custo-frete-mercadorias", ciclo?.mes_comerc ?? "-"],
+    queryKey: ["custo-frete-mercadorias", "multi", ciclosSel.map((c) => c.mes_comerc).join(",")],
     queryFn: async () => {
-      const base = await carregarMercadorias(ciclo!);
-      const semFrete = base.filter((l) => l.origem_frete !== "R").map((l) => l.nro_nf);
-      if (!semFrete.length) return { linhas: consolidarReentregas(base), avisoProv: null as string | null };
-      try {
-        const provs = await listarProvisoes({ data: { nfs: semFrete } });
-        return { linhas: consolidarReentregas(aplicarProvisoes(base, provs)), avisoProv: null as string | null };
-      } catch (e) {
-        console.warn("Provisões indisponíveis", e);
-        return { linhas: consolidarReentregas(base), avisoProv: "Valores provisionados indisponíveis no momento; exibindo apenas frete real." };
+      const todas: LinhaMercadoria[] = [];
+      let aviso: string | null = null;
+      for (const c of ciclosSel) {
+        const base = await carregarMercadorias(c);
+        const semFrete = base.filter((l) => l.origem_frete !== "R").map((l) => l.nro_nf);
+        if (!semFrete.length) {
+          todas.push(...base);
+          continue;
+        }
+        try {
+          const provs = await listarProvisoes({ data: { nfs: semFrete } });
+          todas.push(...aplicarProvisoes(base, provs));
+        } catch (e) {
+          console.warn("Provisões indisponíveis", e);
+          todas.push(...base);
+          aviso = "Valores provisionados indisponíveis no momento; exibindo apenas frete real.";
+        }
       }
+      return { linhas: consolidarReentregas(todas), avisoProv: aviso };
     },
-    enabled: !!ciclo,
+    enabled: ciclosSel.length > 0,
     staleTime: 5 * 60_000,
   });
   const [busca, setBusca] = useState("");
