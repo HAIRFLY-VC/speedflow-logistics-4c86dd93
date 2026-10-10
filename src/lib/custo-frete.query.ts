@@ -56,6 +56,14 @@ async function tabelaNotas(): Promise<"notas_faturadas" | "entregas_abertas"> {
 const PAGINA = 1000;
 const LOTE = 150;
 
+type QueryError = { code?: string; message?: string; details?: string };
+
+function campoVendedorIndisponivel(error: QueryError | null): boolean {
+  if (!error) return false;
+  const texto = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
+  return (error.code === "42703" || error.code === "PGRST204" || texto.includes("schema cache")) && texto.includes("vendedor");
+}
+
 async function emLotes<T, R>(itens: T[], fn: (lote: T[]) => Promise<R[]>): Promise<R[]> {
   const out: R[] = [];
   for (let i = 0; i < itens.length; i += LOTE) out.push(...(await fn(itens.slice(i, i + LOTE))));
@@ -71,7 +79,7 @@ export async function carregarCustoFrete(ciclo: CicloComercial): Promise<LinhaCu
   const entregas: Ent[] = [];
   const fonte = await tabelaNotas();
   for (let de = 0; de < 100_000; de += PAGINA) {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from(fonte as "entregas_abertas")
       .select("nro_nf,cod_pedido,cod_cliente,cod_vendedor,vendedor,valor,peso")
       .in("cod_agenda", ["417", "427"])
@@ -79,6 +87,18 @@ export async function carregarCustoFrete(ciclo: CicloComercial): Promise<LinhaCu
       .lte("dt_fatur", ciclo.ate)
       .order("nro_nf")
       .range(de, de + PAGINA - 1);
+    if (campoVendedorIndisponivel(error)) {
+      const fallback = await supabase
+        .from(fonte as "entregas_abertas")
+        .select("nro_nf,cod_pedido,cod_cliente,cod_vendedor,valor,peso")
+        .in("cod_agenda", ["417", "427"])
+        .gte("dt_fatur", ciclo.de)
+        .lte("dt_fatur", ciclo.ate)
+        .order("nro_nf")
+        .range(de, de + PAGINA - 1);
+      data = (fallback.data ?? []).map((linha) => ({ ...linha, vendedor: null })) as typeof data;
+      error = fallback.error;
+    }
     if (error) throw error;
     entregas.push(...((data ?? []) as Ent[]));
     if ((data ?? []).length < PAGINA) break;
