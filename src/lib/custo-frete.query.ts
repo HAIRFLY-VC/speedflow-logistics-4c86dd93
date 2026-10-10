@@ -66,6 +66,24 @@ function campoVendedorIndisponivel(error: QueryError | null): boolean {
 
 const CONCORRENCIA = 6;
 
+type CliUf = { cod_cliente: string; razao_social: string | null; nome_nf: string | null; cidade: string | null; uf: string | null };
+/** Clientes sem UF no espelho: busca no ERP, grava e devolve o cadastro atualizado. */
+async function completarFaltantesUf(cods: string[]): Promise<CliUf[]> {
+  if (!cods.length) return [];
+  try {
+    const { completarUfClientes } = await import("./erp.functions");
+    for (let i = 0; i < cods.length; i += 1000) await completarUfClientes({ data: { cods: cods.slice(i, i + 1000) } });
+    return await emLotes(cods, async (lote) => {
+      const { data, error } = await supabase.from("clientes_erp").select("cod_cliente,razao_social,nome_nf,cidade,uf").in("cod_cliente", lote);
+      if (error) throw error;
+      return (data ?? []) as CliUf[];
+    });
+  } catch (e) {
+    console.warn("Completar UF dos clientes falhou", e);
+    return [];
+  }
+}
+
 /** Executa os lotes com até CONCORRENCIA consultas simultâneas, preservando a ordem. */
 async function emLotes<T, R>(itens: T[], fn: (lote: T[]) => Promise<R[]>): Promise<R[]> {
   const lotes: T[][] = [];
@@ -204,6 +222,7 @@ async function carregarCustoFreteBase(ciclo: CicloComercial): Promise<LinhaCusto
     return (data ?? []) as Cli[];
   });
   const cliPor = new Map(clis.map((c) => [c.cod_cliente, c]));
+  for (const c of await completarFaltantesUf(codClientes.filter((c) => !cliPor.get(c)?.uf))) cliPor.set(c.cod_cliente, c);
   const codResp = Array.from(new Set(rotas.map((r) => r.erp_carrier_code).filter(Boolean) as string[]));
   type Resp = { cod_erp: string; razao_social: string | null; tipo_frete: string | null };
   const resps = await emLotes(codResp, async (lote) => {
@@ -394,6 +413,7 @@ async function carregarMercadoriasBase(ciclo: CicloComercial): Promise<LinhaMerc
         for (const c of (data ?? []) as { cod_cliente: string; uf: string | null }[]) if (c.uf) ufPor.set(c.cod_cliente, c.uf);
         return [];
       });
+      for (const c of await completarFaltantesUf(codClientes.filter((c) => !ufPor.has(c)))) if (c.uf) ufPor.set(c.cod_cliente, c.uf);
     } catch (e) {
       console.warn("UF dos clientes indisponível", e);
     }

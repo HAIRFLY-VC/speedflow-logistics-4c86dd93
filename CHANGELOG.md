@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.39.2] - 2026-10-10
+### Corrigido
+- Clientes apareciam como "Sem UF" no Custo de Frete: o Sync ERP (inclusive manual) passa a completar o cadastro dos clientes das notas faturadas, reconsulta clientes sem UF, e as telas buscam no ERP a UF que faltar.
+
 ## [1.39.1] - 2026-10-10
 ### Alterado
 - Custo de Frete e Mercadorias faturadas carregam vários ciclos ao mesmo tempo, com consultas em paralelo e ciclos já buscados reaproveitados por 5 minutos, reduzindo bastante a espera.
