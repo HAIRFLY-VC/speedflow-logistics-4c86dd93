@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.40.1] - 2026-10-10
+### Corrigido
+- CT-es complementares sem notas próprias passam a mostrar na listagem as NF-es vinculadas ao CT-e original, conforme já exibido no detalhamento.
+
 ## [1.40.0] - 2026-10-10
 ### Adicionado
 - A listagem de CT-e passa a mostrar os números das NF-es participantes em uma nova coluna filtrável e ordenável.
