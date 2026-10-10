@@ -1055,6 +1055,7 @@ export function CteDetailView({
                       esperado?: number;
                       cobrado?: number | null;
                       criterio?: string | null;
+                      alerta?: string | null;
                       cte_id?: string | null;
                     }[])
                   : []
@@ -1063,6 +1064,7 @@ export function CteDetailView({
                 esperado: Number(d.esperado ?? 0),
                 cobrado: d.cobrado == null ? null : Number(d.cobrado),
                 criterio: d.criterio ?? null,
+                alerta: d.alerta ?? null,
                 cte_id: d.cte_id ?? null,
               }));
               const linhas = todasLinhas.filter(
@@ -1125,6 +1127,11 @@ export function CteDetailView({
                           {l.criterio ? (
                             <span className="text-muted-foreground block text-[10px] leading-tight font-normal">
                               {l.criterio}
+                            </span>
+                          ) : null}
+                          {l.alerta ? (
+                            <span className="text-destructive block text-[10px] leading-tight font-medium">
+                              {l.alerta}
                             </span>
                           ) : null}
                         </span>

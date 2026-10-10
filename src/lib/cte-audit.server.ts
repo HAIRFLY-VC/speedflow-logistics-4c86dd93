@@ -14,6 +14,8 @@ export type AuditItem = {
   cobrado: number | null;
   /** Explicação de como o valor esperado foi calculado. */
   criterio?: string;
+  /** Alerta relevante para a conferência do componente. */
+  alerta?: string;
   /** Identifica o CT-e de origem do componente (original ou complemento). */
   cte_id?: string;
 };
@@ -165,12 +167,12 @@ function calcularEsperado(
         (r as { percentual_reentrega?: number | string | null }).percentual_reentrega,
       );
       const fator = isReentrega ? perc / 100 : 1;
-      const fretePeso = pesoCob * tarifa * fator;
+      const fretePesoCalculado = pesoCob * tarifa * fator;
       const freteValor = (percValor / 100) * valorMercadoria * fator;
-      let sub = fretePeso + freteValor;
       const min = Number(r.frete_minimo ?? 0) * fator;
-      const aplicouMinimo = min > 0 && sub < min;
-      if (aplicouMinimo) sub = min;
+      const aplicouMinimo = min > 0 && fretePesoCalculado < min;
+      const fretePeso = aplicouMinimo ? min : fretePesoCalculado;
+      const sub = fretePeso + freteValor;
       const despacho = Number(r.taxa_despacho ?? 0) * fator;
       return {
         id: r.id as string,
@@ -181,6 +183,7 @@ function calcularEsperado(
         tarifa,
         percValor,
         fretePeso,
+        fretePesoCalculado,
         freteValor,
         despacho,
         aplicouMinimo,
@@ -223,6 +226,9 @@ function calcularEsperado(
       esperado: round2(escolhida.fretePeso),
       cobrado: null,
       criterio: `${pesoTxt} × ${brl(escolhida.tarifa)}/kg · ${escolhida.destino} — ${comoEscolheu}${reentregaTxt}`,
+      alerta: escolhida.aplicouMinimo
+        ? `Foi cobrado o frete mínimo de ${brl(escolhida.freteMinimo)} em vez do valor calculado de ${brl(escolhida.fretePesoCalculado)}.`
+        : undefined,
       cte_id: cteId,
     });
     itens.push({
@@ -232,17 +238,6 @@ function calcularEsperado(
       criterio: `${num(escolhida.percValor)}% sobre mercadoria de ${brl(valorMercadoria)} · ${escolhida.destino}${reentregaTxt}`,
       cte_id: cteId,
     });
-    if (escolhida.aplicouMinimo) {
-      itens.push({
-        nome: "AJUSTE FRETE MÍNIMO",
-        esperado: round2(
-          escolhida.freteMinimo - (escolhida.fretePeso + escolhida.freteValor),
-        ),
-        cobrado: null,
-        criterio: `frete mínimo da praça ${escolhida.destino}: ${brl(escolhida.freteMinimo)}${reentregaTxt}`,
-        cte_id: cteId,
-      });
-    }
     if (escolhida.despacho) {
       itens.push({
         nome: "DESPACHO",

@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.41.1] - 2026-10-10
+### Corrigido
+- O frete mínimo passa a substituir somente o valor calculado de FRETE PESO; FRETE VALOR permanece separado, e a aplicação do mínimo é sinalizada em vermelho na auditoria do CT-e.
+
 ## [1.41.0] - 2026-10-10
 ### Adicionado
 - O detalhe da NF-e passa a mostrar o endereço completo do destinatário e a praça utilizada na tabela de preço do CT-e associado.
