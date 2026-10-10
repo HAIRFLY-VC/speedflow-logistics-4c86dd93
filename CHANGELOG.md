@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.42.1] - 2026-10-10
+### Corrigido
+- No detalhamento de frete da rota, o frete mínimo da tabela passa a ser aplicado somente sobre o Frete Peso (o Frete Valor fica fora da comparação), mesma regra da auditoria de CT-e; a linha Frete Peso mostra o valor final com aviso em vermelho quando o mínimo foi aplicado, e a linha separada "Frete mínimo" foi removida.
+
 ## [1.42.0] - 2026-10-10
 ### Adicionado
 - A listagem de CT-e passa a mostrar, em nova coluna "Rota", o código da rota no ERP associada às NF-es do conhecimento, com filtro e ordenação.
