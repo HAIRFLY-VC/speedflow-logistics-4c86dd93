@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.40.0] - 2026-10-10
+### Adicionado
+- A listagem de CT-e passa a mostrar os números das NF-es participantes em uma nova coluna filtrável e ordenável.
+
 ## [1.39.3] - 2026-10-10
 ### Corrigido
 - Mercadorias faturadas e Custo de Frete com muitos ciclos davam erro e zeravam a tela: ciclos e provisões passam a ser carregados em lotes menores; falhas parciais não apagam os dados e a mensagem de erro fica legível.

@@ -46,6 +46,7 @@ import {
 
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
 import { PAPEL_LABEL } from "@/lib/cte-tomador";
+import { isFeatureOn } from "@/config/features";
 import type { Tables } from "@/integrations/supabase/types";
 
 
@@ -78,6 +79,19 @@ type CteRow = Cte & { empresas: Pick<Empresa, "id" | "cnpj" | "razao_social"> | 
 
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+function numerosNfesDoCte(cte: Cte): string[] {
+  if (!Array.isArray(cte.nfs_referenciadas)) return [];
+
+  const numeros = cte.nfs_referenciadas.flatMap((valor) => {
+    if (typeof valor !== "string") return [];
+    const chave = valor.replace(/\D/g, "");
+    if (chave.length !== 44) return [];
+    return [String(Number(chave.slice(25, 34)))];
+  });
+
+  return Array.from(new Set(numeros));
+}
 
 const STATUS_TONE: Record<string, string> = {
   RECEBIDO: "bg-blue-500/10 text-blue-600",
@@ -422,6 +436,24 @@ function CtesPage() {
           </div>
         ),
       },
+      ...(isFeatureOn("notasFiscaisNaListaCte")
+        ? [
+            {
+              id: "nfes",
+              header: "NF-es",
+              pinAfter: "numero",
+              accessor: (c: CteRow) => numerosNfesDoCte(c).join(", "),
+              render: (c: CteRow) => {
+                const numeros = numerosNfesDoCte(c);
+                return numeros.length > 0 ? (
+                  <span className="text-xs tabular-nums">{numeros.join(", ")}</span>
+                ) : (
+                  "—"
+                );
+              },
+            } satisfies ColumnDef<CteRow>,
+          ]
+        : []),
       {
         id: "transportadora",
         header: "Transportadora",
