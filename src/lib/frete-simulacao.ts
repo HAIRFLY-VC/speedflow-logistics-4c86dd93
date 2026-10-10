@@ -64,6 +64,7 @@ export type DetalheFrete = {
   peso_cobrado: number;
   tarifa_kg: number;
   frete_peso: number;
+  frete_peso_calculado: number;
   frete_valor_perc: number;
   frete_valor: number;
   faixa: string | null;
@@ -91,7 +92,7 @@ export function detalharEntrega(tabela: TabelaSim, entrega: EntregaSim): Detalhe
   const rotas = tabela.tabelas_preco_frete_rotas ?? [];
   const d: DetalheFrete = {
     metodo: "percentual_valor", praca: null, praca_id: null, praca_origem: null, peso_real: entrega.peso, peso_minimo: 0,
-    peso_cobrado: entrega.peso, tarifa_kg: 0, frete_peso: 0, frete_valor_perc: 0, frete_valor: 0,
+    peso_cobrado: entrega.peso, tarifa_kg: 0, frete_peso: 0, frete_peso_calculado: 0, frete_valor_perc: 0, frete_valor: 0,
     faixa: null, valor_fixo_faixa: 0, base_calculada: 0, frete_minimo: 0, minimo_aplicado: false,
     taxa_despacho: 0, frete_base: 0, gris_perc: 0, gris_minimo: 0, gris: 0,
     gris_minimo_aplicado: false, ad_valorem_perc: 0, ad_valorem: 0, tas: 0, subtotal: 0,
@@ -112,15 +113,16 @@ export function detalharEntrega(tabela: TabelaSim, entrega: EntregaSim): Detalhe
     d.frete_peso = d.peso_cobrado * d.tarifa_kg;
     d.frete_valor_perc = n(r.frete_valor_percentual);
     d.frete_valor = (d.frete_valor_perc / 100) * entrega.valorMercadoria;
-    d.base_calculada = d.frete_peso + d.frete_valor;
     d.frete_minimo = n(r.frete_minimo);
-    let sub = d.base_calculada;
-    if (d.frete_minimo > 0 && sub < d.frete_minimo) {
-      sub = d.frete_minimo;
+    // O frete mínimo se aplica somente ao Frete Peso; o Frete Valor é independente.
+    d.frete_peso_calculado = d.frete_peso;
+    if (d.frete_minimo > 0 && d.frete_peso < d.frete_minimo) {
+      d.frete_peso = d.frete_minimo;
       d.minimo_aplicado = true;
     }
+    d.base_calculada = d.frete_peso + d.frete_valor;
     d.taxa_despacho = n(r.taxa_despacho);
-    d.frete_base = sub + d.taxa_despacho;
+    d.frete_base = d.base_calculada + d.taxa_despacho;
   } else {
     if (tabela.tipo_calculo === "peso") {
       const faixas = [...(tabela.tabelas_preco_frete_faixas ?? [])].sort(
@@ -137,17 +139,26 @@ export function detalharEntrega(tabela: TabelaSim, entrega: EntregaSim): Detalhe
       d.valor_fixo_faixa = n(faixa.valor_fixo_faixa);
       d.tarifa_kg = n(faixa.valor_por_kg);
       d.frete_peso = d.tarifa_kg * entrega.peso;
+      d.frete_peso_calculado = d.frete_peso;
+      d.frete_minimo = n(tabela.frete_minimo);
+      // O frete mínimo se aplica somente ao Frete Peso; o valor fixo da faixa fica fora.
+      if (d.frete_minimo > 0 && d.frete_peso < d.frete_minimo) {
+        d.frete_peso = d.frete_minimo;
+        d.minimo_aplicado = true;
+      }
       d.base_calculada = d.valor_fixo_faixa + d.frete_peso;
+      d.frete_base = d.base_calculada;
     } else {
       d.frete_valor_perc = n(tabela.percentual_valor);
       d.frete_valor = (d.frete_valor_perc / 100) * entrega.valorMercadoria;
       d.base_calculada = d.frete_valor;
-    }
-    d.frete_minimo = n(tabela.frete_minimo);
-    d.frete_base = d.base_calculada;
-    if (d.frete_minimo > 0 && d.frete_base < d.frete_minimo) {
-      d.frete_base = d.frete_minimo;
-      d.minimo_aplicado = true;
+      d.frete_minimo = n(tabela.frete_minimo);
+      d.frete_base = d.base_calculada;
+      // Sem componente de peso: o mínimo compara com o valor calculado.
+      if (d.frete_minimo > 0 && d.frete_base < d.frete_minimo) {
+        d.frete_base = d.frete_minimo;
+        d.minimo_aplicado = true;
+      }
     }
   }
 
@@ -167,7 +178,7 @@ export function detalharEntrega(tabela: TabelaSim, entrega: EntregaSim): Detalhe
   const total = icms > 0 && icms < 1 ? d.subtotal / (1 - icms) : d.subtotal;
   d.total = round2(total);
   d.icms = round2(d.total - d.subtotal);
-  for (const k of ["frete_peso", "frete_valor", "base_calculada", "frete_base", "gris", "ad_valorem", "subtotal"] as const)
+  for (const k of ["frete_peso", "frete_peso_calculado", "frete_valor", "base_calculada", "frete_base", "gris", "ad_valorem", "subtotal"] as const)
     d[k] = round2(d[k]);
   return d;
 }

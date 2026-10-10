@@ -35,24 +35,28 @@ const pct = (f: number | null, m: number) =>
     : `${((f / m) * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 
 function Composicao({ det, mercadoria }: { det: DetalheFrete; mercadoria: number }) {
-  const linhas: [string, string, number | null][] = [];
+  const linhas: [string, string, number | null, string?][] = [];
+  const notaMinimo = det.minimo_aplicado
+    ? `frete mínimo de ${brl(det.frete_minimo)} aplicado (calculado ${brl(det.frete_peso_calculado)})`
+    : undefined;
   if (det.metodo === "praca") {
     linhas.push(["Praça da tabela", det.praca ?? "—", null]);
     linhas.push([
       "Frete peso",
       `${kg(det.peso_cobrado)} kg cobrados${det.peso_cobrado > det.peso_real ? ` (mínimo ${kg(det.peso_minimo)} kg; real ${kg(det.peso_real)} kg)` : ""} × ${brl(det.tarifa_kg)}/kg`,
       det.frete_peso,
+      notaMinimo,
     ]);
     linhas.push(["Frete valor", `${num(det.frete_valor_perc)}% × ${brl(mercadoria)}`, det.frete_valor]);
   } else if (det.metodo === "faixa_peso") {
     linhas.push(["Faixa de peso", det.faixa ?? "—", null]);
     linhas.push(["Valor fixo da faixa", "", det.valor_fixo_faixa]);
-    linhas.push(["Frete peso", `${kg(det.peso_real)} kg × ${brl(det.tarifa_kg)}/kg`, det.frete_peso]);
+    linhas.push(["Frete peso", `${kg(det.peso_real)} kg × ${brl(det.tarifa_kg)}/kg`, det.frete_peso, notaMinimo]);
   } else {
     linhas.push(["Frete valor", `${num(det.frete_valor_perc)}% × ${brl(mercadoria)}`, det.frete_valor]);
   }
   linhas.push(["= Frete calculado", "", det.base_calculada]);
-  if (det.frete_minimo > 0)
+  if (det.frete_minimo > 0 && det.metodo === "percentual_valor")
     linhas.push([
       "Frete mínimo",
       det.minimo_aplicado ? `aplicado (${brl(det.frete_minimo)})` : `não aplicado (${brl(det.frete_minimo)})`,
@@ -73,10 +77,13 @@ function Composicao({ det, mercadoria }: { det: DetalheFrete; mercadoria: number
   return (
     <table className="w-full max-w-2xl text-[11px]">
       <tbody>
-        {linhas.map(([l, f, v], i) => (
+        {linhas.map(([l, f, v, nota], i) => (
           <tr key={i} className={l.startsWith("=") ? "border-t font-semibold" : ""}>
             <td className="py-0.5 pr-2">{l.replace(/^= /, "")}</td>
-            <td className="py-0.5 pr-2 text-muted-foreground">{f}</td>
+            <td className="py-0.5 pr-2 text-muted-foreground">
+              {f}
+              {nota ? <span className="block text-destructive">{nota}</span> : null}
+            </td>
             <td className="py-0.5 text-right tabular-nums">{v == null ? "" : brl(v)}</td>
           </tr>
         ))}
