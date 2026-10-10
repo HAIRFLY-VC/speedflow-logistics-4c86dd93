@@ -441,6 +441,7 @@ function CtesPage() {
             {
               id: "nfes",
               header: "NF-es",
+              pinAfter: "numero",
               accessor: (c: CteRow) => numerosNfesDoCte(c).join(", "),
               render: (c: CteRow) => {
                 const numeros = numerosNfesDoCte(c);
