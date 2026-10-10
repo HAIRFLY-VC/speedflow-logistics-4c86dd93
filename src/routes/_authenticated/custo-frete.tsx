@@ -179,9 +179,11 @@ function CustoFretePage() {
     staleTime: 60 * 60_000,
   });
   const ciclos = calQ.data ?? [];
-  const [sel, setSel] = useState<string | null>(null);
-  const ciclo = ciclos.find((c) => c.mes_comerc === sel) ?? cicloAtual(ciclos);
-  const q = useQuery(custoFreteQueryOptions(ciclo));
+  const [sel, setSel] = useState<string[]>([]);
+  const ciclo = cicloAtual(ciclos);
+  const marcados = ciclos.filter((c) => sel.includes(c.mes_comerc));
+  const ciclosSel = marcados.length ? marcados : ciclo ? [ciclo] : [];
+  const q = useQuery(custoFreteMultiQueryOptions(ciclosSel));
   const linhas = q.data ?? [];
   // Nome do vendedor: prioriza o nome gravado no espelho do ERP; o cadastro
   // externo de vendedores serve de fallback para códigos sem nome no espelho.
@@ -239,7 +241,7 @@ function CustoFretePage() {
             </Card>
           );
           return t === "Mercadorias faturadas" ? (
-            <Link key={t} to="/custo-frete-mercadorias" search={{ ciclo: ciclo?.mes_comerc }} title="Ver detalhamento">{card}</Link>
+            <Link key={t} to="/custo-frete-mercadorias" search={{ ciclo: sel.length ? sel.join(",") : ciclo?.mes_comerc }} title="Ver detalhamento">{card}</Link>
           ) : (
             <div key={t}>{card}</div>
           );
