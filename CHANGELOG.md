@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.37.5] - 2026-10-10
+### Corrigido
+- O card "% Frete do ciclo" volta a calcular mesmo quando o novo campo de nome do vendedor ainda não estiver disponível no banco; nesse caso, o app mantém o código do vendedor.
+
 ## [1.37.4] - 2026-10-09
 ### Alterado
 - O card "Vendedor" no Custo de Frete passa a exibir o nome do vendedor seguido do código entre parênteses (ex.: `NOME (5245)`); o Excel do card segue o mesmo rótulo. Códigos sem nome no cadastro permanecem sozinhos.
