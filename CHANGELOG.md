@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.41.0] - 2026-10-10
+### Adicionado
+- O detalhe da NF-e passa a mostrar o endereço completo do destinatário e a praça utilizada na tabela de preço do CT-e associado.
+
 ## [1.40.1] - 2026-10-10
 ### Corrigido
 - CT-es complementares sem notas próprias passam a mostrar na listagem as NF-es vinculadas ao CT-e original, conforme já exibido no detalhamento.

@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { XmlViewerDialog } from "@/components/ctes/XmlViewerDialog";
 import { solicitarCapturaCte } from "@/lib/cte-captura.functions";
+import { isFeatureOn } from "@/config/features";
 import {
   getNfe,
   getNfeSolicitacao,
@@ -87,6 +88,7 @@ function NfeDetailPage() {
     | (Record<string, any> & { itens: NfeItem[] })
     | null
     | undefined;
+  const exibirEnderecoPraca = isFeatureOn("enderecoPracaDetalheNfe");
 
   // Assim que a tela abre sem a nota no sistema, solicita a captura automática
   // do XML na SEFAZ pelo robô que detém o certificado A1.
@@ -344,6 +346,26 @@ function NfeDetailPage() {
                 <Field label="Frete na nota" value={brl(Number(nfe.valor_frete))} />
                 <Field label="Valor total da nota" value={brl(Number(nfe.valor_total))} />
                 <Field label="Itens" value={itens.length} />
+                {exibirEnderecoPraca ? (
+                  <>
+                    <div className="col-span-2 sm:col-span-3 lg:col-span-4">
+                      <Field
+                        label="Endereço completo do destinatário"
+                        value={data?.endereco?.formatado ?? "—"}
+                      />
+                    </div>
+                    <div className="col-span-2 sm:col-span-3 lg:col-span-4">
+                      <Field
+                        label="Praça utilizada na tabela de preço"
+                        value={
+                          data?.praca
+                            ? `${data.praca.nome} · ${data.praca.tabelaNome}`
+                            : "—"
+                        }
+                      />
+                    </div>
+                  </>
+                ) : null}
               </CardContent>
             </Card>
 

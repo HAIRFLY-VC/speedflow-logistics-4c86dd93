@@ -23,7 +23,105 @@ export const getNfe = createServerFn({ method: "POST" })
       .eq("chave_acesso", data.chave)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return { nfe: nfe ?? null };
+    if (!nfe) return { nfe: null, endereco: null, praca: null };
+
+    let endereco: {
+      formatado: string | null;
+      municipio: string | null;
+      uf: string | null;
+      pais: string | null;
+    } | null = null;
+    const xml = (nfe as { xml_conteudo?: string | null }).xml_conteudo;
+    if (xml) {
+      try {
+        const { parseNfeXml } = await import("./nfe-parse.server");
+        const parsed = parseNfeXml(xml);
+        endereco = parsed.endereco_destinatario
+          ? {
+              formatado: parsed.endereco_destinatario.formatado,
+              municipio: parsed.endereco_destinatario.municipio,
+              uf: parsed.endereco_destinatario.uf,
+              pais: parsed.endereco_destinatario.pais,
+            }
+          : null;
+      } catch {
+        endereco = null;
+      }
+    }
+
+    const { data: ctes } = await centralDb
+      .from("ctes")
+      .select("id, transportadora_id, uf_destino, data_emissao, valor_total_frete")
+      .contains("nfs_referenciadas", [data.chave])
+      .order("data_emissao", { ascending: false })
+      .limit(20);
+
+    let praca: {
+      nome: string;
+      tabelaNome: string;
+      cteId: string;
+      criterio: string | null;
+    } | null = null;
+    const cteIds = (ctes ?? []).map((cte) => cte.id);
+    if (cteIds.length > 0) {
+      const { data: auditoria } = await centralDb
+        .from("cte_auditorias")
+        .select("cte_id, tabela_preco_id, detalhamento, created_at")
+        .in("cte_id", cteIds)
+        .not("tabela_preco_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const cte = auditoria
+        ? (ctes ?? []).find((item) => item.id === auditoria.cte_id)
+        : (ctes ?? [])[0];
+      if (cte?.transportadora_id) {
+        const { acharRotaPorMunicipio } = await import("./frete-area");
+        const { pickTabela } = await import("./cte-audit.server");
+        const tabelaEscolhida = auditoria?.tabela_preco_id
+          ? await centralDb
+              .from("tabelas_preco_frete")
+              .select("*, tabelas_preco_frete_faixas(*), tabelas_preco_frete_rotas(*)")
+              .eq("id", auditoria.tabela_preco_id)
+              .maybeSingle()
+              .then(({ data: tabela }) => tabela)
+          : await pickTabela(
+              centralDb,
+              cte.transportadora_id,
+              cte.uf_destino,
+              cte.data_emissao,
+            );
+        const rotas = tabelaEscolhida?.tabelas_preco_frete_rotas ?? [];
+        const achada = acharRotaPorMunicipio(rotas, endereco?.municipio);
+        let rota = achada.index >= 0 ? rotas[achada.index] : null;
+
+        if (!rota && auditoria && Array.isArray(auditoria.detalhamento)) {
+          const criterios = auditoria.detalhamento
+            .map((item) =>
+              item && typeof item === "object" && "criterio" in item
+                ? String(item.criterio ?? "")
+                : "",
+            )
+            .join(" ");
+          rota =
+            rotas.find(
+              (item) => item.destino && criterios.includes(`· ${item.destino} —`),
+            ) ?? null;
+        }
+
+        if (tabelaEscolhida && rota) {
+          praca = {
+            nome: [rota.origem, rota.destino].filter(Boolean).join(" → "),
+            tabelaNome: tabelaEscolhida.nome,
+            cteId: cte.id,
+            criterio: achada.index >= 0 ? achada.origem : "aproximacao",
+          };
+        }
+      }
+    }
+
+    return { nfe, endereco, praca };
   });
 
 export const uploadNfeXml = createServerFn({ method: "POST" })

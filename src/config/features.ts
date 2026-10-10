@@ -18,6 +18,8 @@ export const FEATURES = {
   painelCustoFrete: { test: true, production: true },
   /** Números das NF-es referenciadas na listagem principal de CT-e. */
   notasFiscaisNaListaCte: { test: true, production: true },
+  /** Endereço completo do destinatário e praça usada no detalhe da NF-e. */
+  enderecoPracaDetalheNfe: { test: true, production: true },
 } as const;
 
 export type FeatureName = keyof typeof FEATURES;
