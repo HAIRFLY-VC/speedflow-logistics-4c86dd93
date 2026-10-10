@@ -63,11 +63,10 @@ VALUES
    :memoria_calculo, :usuario);
 
 -- update_status_provisao
--- binds: status, id_rota
+-- binds: status, id  (uma linha por vez; o app busca os IDs ativos da rota)
 UPDATE GKS.A_GER_PROVISAO_FRETE
    SET STATUS = :status
- WHERE ID_ROTA = :id_rota
-   AND STATUS = 'A';
+ WHERE ID = :id;
 
 -- Reversão:
 -- DROP TABLE GKS.A_GER_PROVISAO_FRETE;

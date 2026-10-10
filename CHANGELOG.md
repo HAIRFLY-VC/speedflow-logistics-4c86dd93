@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.42.2] - 2026-10-10
+### Corrigido
+- "Substituir pelos novos valores" no provisionamento de frete deixou de dar erro no ERP: as linhas anteriores da rota são marcadas como substituídas uma a uma, e os novos valores só são gravados depois de confirmar que nenhuma linha antiga ficou ativa.
+
 ## [1.42.1] - 2026-10-10
 ### Corrigido
 - No detalhamento de frete da rota, o frete mínimo da tabela passa a ser aplicado somente sobre o Frete Peso (o Frete Valor fica fora da comparação), mesma regra da auditoria de CT-e; a linha Frete Peso mostra o valor final com aviso em vermelho quando o mínimo foi aplicado, e a linha separada "Frete mínimo" foi removida.
