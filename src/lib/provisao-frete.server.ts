@@ -283,18 +283,39 @@ export async function gravarProvisao(
 
   if (c.gravado && !substituir)
     throw new Error("Esta rota já tem provisionamento gravado. Use \"Substituir pelos novos valores\".");
-  // Substituição: marca as linhas anteriores como substituídas. Na primeira
+  // Substituição: marca as linhas anteriores como substituídas. O comando
+  // update_status_provisao do ERP atualiza uma linha por vez (WHERE ID = :id),
+  // então buscamos os IDs ativos da rota e atualizamos cada um. Na primeira
   // gravação não há o que substituir, então o passo é pulado.
   if (c.gravado) {
-    try {
-      await chamarErp("/v1/execute/update_status_provisao", {
-        binds: { status: "S", id_rota: idRota },
+    const idsAtivos = async (): Promise<number[]> => {
+      const r = await chamarErp("/v1/query", {
+        sql: `select id from gks.a_ger_provisao_frete where id_rota = :id and status = 'A'`,
+        binds: { id: idRota },
+        limit: 5000,
       });
-    } catch (e) {
-      throw new Error(
-        `Não foi possível substituir o provisionamento anterior (update_status_provisao deve aceitar os binds status e id_rota). ${(e as Error).message}`,
+      return ((r["rows"] as Record<string, unknown>[] | undefined) ?? [])
+        .map((row) => Number(row["ID"] ?? row["id"] ?? 0))
+        .filter((id) => Number.isFinite(id) && id > 0);
+    };
+    const anteriores = await idsAtivos();
+    let ok = 0;
+    const erros: string[] = [];
+    for (let i = 0; i < anteriores.length; i += 5) {
+      const lote = anteriores.slice(i, i + 5);
+      const res = await Promise.allSettled(
+        lote.map((id) => chamarErp("/v1/execute/update_status_provisao", { binds: { status: "S", id } })),
       );
+      res.forEach((r) => {
+        if (r.status === "fulfilled") ok++;
+        else erros.push((r.reason as Error)?.message ?? String(r.reason));
+      });
     }
+    const restantes = await idsAtivos();
+    if (erros.length > 0 || restantes.length > 0)
+      throw new Error(
+        `Não foi possível substituir todo o provisionamento anterior: ${ok} linha(s) substituída(s), ${restantes.length} ainda ativa(s). Nada novo foi gravado; tente novamente.${erros[0] ? ` Detalhe: ${erros[0]}` : ""}`,
+      );
   }
 
   // Todos os IDs da sequência em uma única consulta (sem trigger na tabela).
