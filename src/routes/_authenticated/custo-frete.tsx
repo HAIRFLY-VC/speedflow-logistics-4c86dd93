@@ -215,14 +215,7 @@ function CustoFretePage() {
             Frete real do ERP ou provisionado sobre as notas faturadas no ciclo comercial (mesmo critério de Mercadorias faturadas).
           </p>
         </div>
-        <Select value={ciclo?.mes_comerc ?? ""} onValueChange={setSel}>
-          <SelectTrigger className="w-64"><SelectValue placeholder="Ciclo comercial" /></SelectTrigger>
-          <SelectContent>
-            {ciclos.slice(0, 12).map((c) => (
-              <SelectItem key={c.mes_comerc} value={c.mes_comerc}>{rotuloCiclo(c)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <CicloMultiSelect ciclos={ciclos.slice(0, 12)} selecionados={sel} onChange={setSel} />
       </div>
 
       {calQ.isSuccess && ciclos.length === 0 && (
@@ -252,7 +245,7 @@ function CustoFretePage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {DIMENSOES.map((d) => (
-          <TabelaDimensao key={d.id} dim={d} linhas={linhas} ciclo={ciclo?.mes_comerc ?? ""} vendMap={vendMap} />
+          <TabelaDimensao key={d.id} dim={d} linhas={linhas} ciclo={ciclosSel.map((c) => c.mes_comerc).join("-") || "atual"} vendMap={vendMap} />
         ))}
       </div>
     </div>
