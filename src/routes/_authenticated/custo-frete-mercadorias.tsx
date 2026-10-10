@@ -20,6 +20,8 @@ import {
   aplicarProvisoes,
   consolidarReentregas,
   cicloAtual,
+  mapLimitado,
+  msgErroAmigavel,
   type LinhaMercadoria,
 } from "@/lib/custo-frete.query";
 
@@ -83,21 +85,27 @@ function MercadoriasPage() {
     queryFn: async () => {
       let aviso: string | null = null;
       // Ciclos carregados em paralelo (cada ciclo fica em cache por 5 min).
-      const partes = await Promise.all(
-        ciclosSel.map(async (c) => {
-          const base = await carregarMercadorias(c);
-          const semFrete = base.filter((l) => l.origem_frete !== "R").map((l) => l.nro_nf);
-          if (!semFrete.length) return base;
-          try {
-            const provs = await listarProvisoes({ data: { nfs: semFrete } });
-            return aplicarProvisoes(base, provs);
-          } catch (e) {
+      const falhos: string[] = [];
+      const partes = await mapLimitado(ciclosSel, 3, async (c) => {
+        let base: LinhaMercadoria[];
+        try { base = await carregarMercadorias(c); } catch (e) {
+          console.warn("Ciclo falhou", c.mes_comerc, e); falhos.push(c.mes_comerc); return [] as LinhaMercadoria[];
+        }
+        const semFrete = base.filter((l) => l.origem_frete !== "R").map((l) => l.nro_nf);
+        if (!semFrete.length) return base;
+        const lotes: string[][] = [];
+        for (let i = 0; i < semFrete.length; i += 1000) lotes.push(semFrete.slice(i, i + 1000));
+        const provs = (await mapLimitado(lotes, 2, async (nfs) => {
+          try { return await listarProvisoes({ data: { nfs } }); } catch (e) {
             console.warn("Provisões indisponíveis", e);
-            aviso = "Valores provisionados indisponíveis no momento; exibindo apenas frete real.";
-            return base;
+            aviso = "Parte dos valores provisionados está indisponível no momento; exibindo frete real onde houver.";
+            return [];
           }
-        }),
-      );
+        })).flat();
+        return provs.length ? aplicarProvisoes(base, provs as never) : base;
+      });
+      if (falhos.length === ciclosSel.length) throw new Error("Não foi possível carregar nenhum ciclo selecionado. Tente novamente.");
+      if (falhos.length) aviso = [aviso, `Ciclos não carregados: ${falhos.join(", ")}.`].filter(Boolean).join(" ");
       const todas: LinhaMercadoria[] = partes.flat();
       return { linhas: consolidarReentregas(todas), avisoProv: aviso };
     },
@@ -206,7 +214,7 @@ function MercadoriasPage() {
       </div>
 
       {q.data?.avisoProv && <p className="text-xs text-muted-foreground">{q.data.avisoProv}</p>}
-      {q.isError && <p className="text-sm text-destructive">Não foi possível carregar: {(q.error as Error)?.message}</p>}
+      {q.isError && <p className="text-sm text-destructive">Não foi possível carregar: {msgErroAmigavel(q.error)}</p>}
 
       <TooltipProvider delayDuration={150}>
       <Card>
