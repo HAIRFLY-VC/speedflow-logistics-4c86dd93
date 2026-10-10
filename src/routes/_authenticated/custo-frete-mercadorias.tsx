@@ -6,8 +6,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BackButton } from "@/components/layout/BackButton";
+import { CicloMultiSelect } from "@/components/custo-frete/CicloMultiSelect";
 import { useServerFn } from "@tanstack/react-start";
 import { listarProvisoesNotas } from "@/lib/provisao-frete.functions";
 import { exportarXlsx } from "@/components/data-table/export-xlsx";
@@ -20,7 +20,6 @@ import {
   aplicarProvisoes,
   consolidarReentregas,
   cicloAtual,
-  type CicloComercial,
   type LinhaMercadoria,
 } from "@/lib/custo-frete.query";
 
