@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.39.0] - 2026-10-10
+### Adicionado
+- O seletor de ciclo comercial em Custo de Frete e Mercadorias faturadas agora permite marcar vários ciclos; cards, totais, tabelas e Excel somam os ciclos marcados.
+- Nenhum ciclo marcado continua exibindo o ciclo atual; a URL `?ciclo=` passa a aceitar vários ciclos separados por vírgula, mantendo compatibilidade com links antigos.
+
 ## [1.38.1] - 2026-10-10
 ### Adicionado
 - Mercadorias faturadas: nova coluna UF logo após COD_CLIENTE, preenchida com a UF do cadastro do cliente no ERP.
