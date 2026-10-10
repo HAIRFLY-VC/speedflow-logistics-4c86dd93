@@ -52,10 +52,10 @@ export const getNfe = createServerFn({ method: "POST" })
     const { data: ctes, error: ctesError } = await centralDb
       .from("ctes")
       .select("id, transportadora_id, uf_destino, data_emissao, valor_total_frete")
-      .contains("nfs_referenciadas", [data.chave])
+      .filter("nfs_referenciadas", "cs", JSON.stringify([data.chave]))
       .order("data_emissao", { ascending: false })
       .limit(20);
-    if (ctesError) console.error("[getNfe] CT-es da NF-e", ctesError.message);
+    if (ctesError) throw new Error(ctesError.message);
 
     let praca: {
       nome: string;
@@ -72,13 +72,7 @@ export const getNfe = createServerFn({ method: "POST" })
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (auditoriaError) console.error("[getNfe] auditoria da NF-e", auditoriaError.message);
-      console.info("[getNfe] praça", {
-        chave: data.chave,
-        ctes: cteIds.length,
-        auditoria: Boolean(auditoria),
-        tabela: auditoria?.tabela_preco_id ?? null,
-      });
+      if (auditoriaError) throw new Error(auditoriaError.message);
 
       const cte = auditoria
         ? (ctes ?? []).find((item) => item.id === auditoria.cte_id)
