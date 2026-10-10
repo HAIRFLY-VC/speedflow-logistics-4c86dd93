@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.38.0] - 2026-10-10
+### Adicionado
+- Mercadorias faturadas: filtro em cada coluna no estilo Excel, adequado ao tipo (lista de valores e condições de texto; comparações e "entre" para valores/peso; antes/depois/entre/vazio para datas). Cards, totais e Excel refletem a listagem filtrada; filtros ficam salvos por usuário.
+
 ## [1.37.5] - 2026-10-10
 ### Corrigido
 - O card "% Frete do ciclo" volta a calcular mesmo quando o novo campo de nome do vendedor ainda não estiver disponível no banco; nesse caso, o app mantém o código do vendedor.
