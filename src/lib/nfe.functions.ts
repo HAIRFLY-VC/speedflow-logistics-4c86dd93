@@ -68,7 +68,6 @@ export const getNfe = createServerFn({ method: "POST" })
         .from("cte_auditorias")
         .select("cte_id, tabela_preco_id, detalhamento, created_at")
         .in("cte_id", cteIds)
-        .not("tabela_preco_id", "is", null)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
