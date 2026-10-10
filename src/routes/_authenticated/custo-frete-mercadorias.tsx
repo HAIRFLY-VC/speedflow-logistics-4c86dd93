@@ -11,6 +11,9 @@ import { BackButton } from "@/components/layout/BackButton";
 import { useServerFn } from "@tanstack/react-start";
 import { listarProvisoesNotas } from "@/lib/provisao-frete.functions";
 import { exportarXlsx } from "@/components/data-table/export-xlsx";
+import { ColumnFilter, type OpcaoColuna } from "@/components/data-table/ColumnFilter";
+import { combinaFiltro, contarFiltros, type ColunaTipo } from "@/components/data-table/column-filters";
+import { useColumnFilterPrefs } from "@/components/data-table/useColumnFilterPrefs";
 import {
   calendarioComercialQueryOptions,
   carregarMercadorias,
@@ -57,6 +60,14 @@ const num2 = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumF
 const dataBr = (iso: string | null) => (iso ? new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("pt-BR") : "");
 const fmt = (c: Col, v: unknown) =>
   v == null || v === "" ? "" : c.tipo === "data" ? dataBr(String(v)) : c.tipo ? num2.format(Number(v)) : String(v);
+const tipoFiltro = (c: Col): ColunaTipo => (c.tipo === "data" ? "date" : c.tipo ? "number" : "text");
+const valorFiltro = (c: Col, l: LinhaMercadoria): string | number | null => {
+  const v = l[c.k];
+  if (v == null || v === "") return null;
+  if (c.tipo === "data") return String(v).slice(0, 10);
+  if (c.tipo) return Number(v);
+  return String(v);
+};
 const rotulo = (c: CicloComercial) => `${c.mes_comerc.slice(5, 7)}/${c.mes_comerc.slice(0, 4)} (${dataBr(c.de)} a ${dataBr(c.ate)})`;
 
 function MercadoriasPage() {
@@ -84,18 +95,51 @@ function MercadoriasPage() {
     staleTime: 5 * 60_000,
   });
   const [busca, setBusca] = useState("");
-  const [ord, setOrd] = useState<{ k: K; asc: boolean }>({ k: "nro_nf", asc: true });
+  const prefs = useColumnFilterPrefs("custo-frete-mercadorias", { id: "nro_nf", dir: "asc" });
+  const { filtros, setFiltro, limparFiltros } = prefs;
+  const ordK = (COLS.find((c) => c.k === prefs.sort?.id)?.k ?? "nro_nf") as K;
+  const ord = { k: ordK, asc: prefs.sort?.dir !== "desc" };
+  const setOrd = (fn: (o: { k: K; asc: boolean }) => { k: K; asc: boolean }) => {
+    const n = fn(ord);
+    prefs.setSort({ id: n.k, dir: n.asc ? "asc" : "desc" });
+  };
+  const nFiltros = contarFiltros(filtros);
+
+  const baseBusca = useMemo(() => {
+    const b = busca.trim().toLowerCase();
+    return (q.data?.linhas ?? []).filter((l) => !b || COLS.some((c) => String(l[c.k] ?? "").toLowerCase().includes(b)));
+  }, [q.data, busca]);
+
+  const passa = (l: LinhaMercadoria, exceto?: K) =>
+    COLS.every((c) => c.k === exceto || combinaFiltro(filtros[c.k], valorFiltro(c, l)));
+
+  const opcoes = useMemo(() => {
+    const m: Partial<Record<K, OpcaoColuna[]>> = {};
+    for (const c of COLS) {
+      if (tipoFiltro(c) !== "text") continue;
+      const cont = new Map<string, number>();
+      for (const l of baseBusca) {
+        if (!passa(l, c.k)) continue;
+        const v = valorFiltro(c, l);
+        const t = v == null ? "(vazio)" : String(v);
+        cont.set(t, (cont.get(t) ?? 0) + 1);
+      }
+      m[c.k] = [...cont].map(([valor, qtd]) => ({ valor, qtd })).sort((a, b) => a.valor.localeCompare(b.valor, "pt-BR", { numeric: true }));
+    }
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseBusca, filtros]);
 
   const linhas = useMemo(() => {
-    const b = busca.trim().toLowerCase();
-    const f = (q.data?.linhas ?? []).filter((l) => !b || COLS.some((c) => String(l[c.k] ?? "").toLowerCase().includes(b)));
+    const f = baseBusca.filter((l) => passa(l));
     const col = COLS.find((c) => c.k === ord.k)!;
     return f.sort((a, z) => {
       const x = a[ord.k], y = z[ord.k];
       const r = col.tipo === "num" || col.tipo === "kg" ? Number(x ?? 0) - Number(y ?? 0) : String(x ?? "").localeCompare(String(y ?? ""), "pt-BR", { numeric: true });
       return ord.asc ? r : -r;
     });
-  }, [q.data, busca, ord]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseBusca, filtros, ord.k, ord.asc]);
 
   const tot = (k: K) => linhas.reduce((s, l) => s + Number(l[k] ?? 0), 0);
   const totOrig = (o: "R" | "P") => linhas.reduce((s, l) => s + (l.origem_frete === o ? Number(l.vlr_frete ?? 0) : 0), 0);
@@ -124,6 +168,9 @@ function MercadoriasPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Input placeholder="Buscar…" value={busca} onChange={(e) => setBusca(e.target.value)} className="w-48" />
+          {nFiltros > 0 && (
+            <Button variant="ghost" size="sm" onClick={limparFiltros}>Limpar filtros ({nFiltros})</Button>
+          )}
           <Select value={ciclo?.mes_comerc ?? ""} onValueChange={(v) => navigate({ search: { ciclo: v } })}>
             <SelectTrigger className="w-60"><SelectValue placeholder="Ciclo comercial" /></SelectTrigger>
             <SelectContent>
@@ -159,9 +206,23 @@ function MercadoriasPage() {
             <thead className="sticky top-0 z-10 bg-card text-muted-foreground">
               <tr>
                 {COLS.map((c) => (
-                  <th key={c.k} onClick={() => setOrd((o) => ({ k: c.k, asc: o.k === c.k ? !o.asc : true }))}
-                    className={`cursor-pointer whitespace-nowrap border-b px-2 py-1.5 font-medium hover:text-foreground ${c.tipo === "num" || c.tipo === "kg" ? "text-right" : "text-left"}`}>
-                    {c.t}{ord.k === c.k ? (ord.asc ? " ↑" : " ↓") : ""}
+                  <th key={c.k}
+                    className={`whitespace-nowrap border-b px-1 py-1 font-medium ${c.tipo === "num" || c.tipo === "kg" ? "text-right" : "text-left"}`}>
+                    <span className="inline-flex items-center">
+                      <ColumnFilter
+                        label={c.t}
+                        tipo={tipoFiltro(c)}
+                        opcoes={opcoes[c.k] ?? []}
+                        filtro={filtros[c.k]}
+                        onChange={(f) => setFiltro(c.k, f)}
+                        ordem={ord.k === c.k ? (ord.asc ? "asc" : "desc") : null}
+                        onOrdenar={(d) => setOrd(() => ({ k: c.k, asc: d === "asc" }))}
+                      />
+                      <button type="button" className="px-0.5 hover:text-foreground" aria-label={`Ordenar ${c.t}`}
+                        onClick={() => setOrd((o) => ({ k: c.k, asc: o.k === c.k ? !o.asc : true }))}>
+                        {ord.k === c.k ? (ord.asc ? "↑" : "↓") : "↕"}
+                      </button>
+                    </span>
                   </th>
                 ))}
               </tr>
