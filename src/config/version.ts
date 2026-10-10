@@ -4,4 +4,4 @@
  * - MINOR: nova funcionalidade compatível com o que existe
  * - MAJOR: mudança que quebra fluxo, dados ou integrações
  */
-export const APP_VERSION = "1.39.0";
+export const APP_VERSION = "1.39.1";

@@ -54,7 +54,7 @@ async function tabelaNotas(): Promise<"notas_faturadas" | "entregas_abertas"> {
 }
 
 const PAGINA = 1000;
-const LOTE = 150;
+const LOTE = 200;
 
 type QueryError = { code?: string; message?: string; details?: string };
 
@@ -100,7 +100,11 @@ function memoCiclo<R>(chave: string, fn: () => Promise<R>): Promise<R> {
  * Notas faturadas no período (data de faturamento do ERP) com o frete
  * CONFIRMADO da rota rateado pelo valor das mercadorias de cada pedido.
  */
-export async function carregarCustoFrete(ciclo: CicloComercial): Promise<LinhaCustoFrete[]> {
+export function carregarCustoFrete(ciclo: CicloComercial): Promise<LinhaCustoFrete[]> {
+  return memoCiclo(`cf:${ciclo.mes_comerc}:${ciclo.de}:${ciclo.ate}`, () => carregarCustoFreteBase(ciclo));
+}
+
+async function carregarCustoFreteBase(ciclo: CicloComercial): Promise<LinhaCustoFrete[]> {
   type Ent = { nro_nf: string; cod_pedido: string; cod_cliente: string | null; cod_vendedor: string | null; vendedor: string | null; valor: number; peso: number };
   const entregas: Ent[] = [];
   const fonte = await tabelaNotas();
@@ -301,9 +305,7 @@ export const custoFreteMultiQueryOptions = (ciclos: CicloComercial[]) =>
   queryOptions({
     queryKey: ["custo-frete", "multi", ciclos.map((c) => c.mes_comerc).join(",")],
     queryFn: async () => {
-      const out: LinhaCustoFrete[] = [];
-      for (const c of ciclos) out.push(...(await carregarCustoFrete(c)));
-      return out;
+      return (await Promise.all(ciclos.map((c) => carregarCustoFrete(c)))).flat();
     },
     enabled: ciclos.length > 0,
     staleTime: 5 * 60_000,
@@ -360,7 +362,11 @@ export function aplicarProvisoes(linhas: LinhaMercadoria[], provs: ProvisaoLinha
   });
 }
 
-export async function carregarMercadorias(ciclo: CicloComercial): Promise<LinhaMercadoria[]> {
+export function carregarMercadorias(ciclo: CicloComercial): Promise<LinhaMercadoria[]> {
+  return memoCiclo(`me:${ciclo.mes_comerc}:${ciclo.de}:${ciclo.ate}`, () => carregarMercadoriasBase(ciclo));
+}
+
+async function carregarMercadoriasBase(ciclo: CicloComercial): Promise<LinhaMercadoria[]> {
   const linhas: Record<string, unknown>[] = [];
   const fonte = await tabelaNotas();
   for (let de = 0; de < 100_000; de += PAGINA) {
