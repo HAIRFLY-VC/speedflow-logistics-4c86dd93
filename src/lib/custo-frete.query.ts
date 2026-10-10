@@ -295,7 +295,7 @@ export function resumir(linhas: LinhaCustoFrete[]): ResumoCustoFrete {
 /** Linha do detalhamento "Mercadorias faturadas" (layout da planilha do ERP). */
 export type LinhaMercadoria = {
   id_rota: string | null;
-  cod_pedido: string; cod_cliente: string | null; cod_vendedor: string | null; vendedor: string | null; cod_filial: string | null; cod_agenda: string | null;
+  cod_pedido: string; cod_cliente: string | null; uf: string | null; cod_vendedor: string | null; vendedor: string | null; cod_filial: string | null; cod_agenda: string | null;
   dt_pedido: string | null; status: string | null; dt_fatur: string | null; entrega_agend: string | null; bordero: string | null;
   dt_saida: string | null; dt_etrg_trsp: string | null; dt_entrega_cli: string | null; dt_agendamento: string | null;
   cod_transp_prn: string | null; tipo_transp_pn: string | null; placa_veiculo_ent: string | null; cod_transp_ent: string | null; tipo_transp_ent: string | null;
@@ -338,6 +338,21 @@ export async function carregarMercadorias(ciclo: CicloComercial): Promise<LinhaM
     if ((data ?? []).length < PAGINA) break;
   }
   const peds = Array.from(new Set(linhas.map((l) => String(l.cod_pedido))));
+  // UF do cliente, obtida do cadastro de clientes do ERP.
+  const codClientes = Array.from(new Set(linhas.map((l) => (l.cod_cliente == null ? null : String(l.cod_cliente))).filter(Boolean) as string[]));
+  const ufPor = new Map<string, string>();
+  if (codClientes.length) {
+    try {
+      await emLotes(codClientes, async (lote) => {
+        const { data, error } = await supabase.from("clientes_erp").select("cod_cliente,uf").in("cod_cliente", lote);
+        if (error) throw error;
+        for (const c of (data ?? []) as { cod_cliente: string; uf: string | null }[]) if (c.uf) ufPor.set(c.cod_cliente, c.uf);
+        return [];
+      });
+    } catch (e) {
+      console.warn("UF dos clientes indisponível", e);
+    }
+  }
   type Ord = { order_number: string; route_orders: { routes: { code: string; erp_route_id: string | null } | null }[] | null };
   const lista = <T,>(x: T | T[] | null | undefined): T[] => (Array.isArray(x) ? x : x ? [x] : []);
   let ords: Ord[] = [];
@@ -362,7 +377,7 @@ export async function carregarMercadorias(ciclo: CicloComercial): Promise<LinhaM
   const n = (v: unknown) => (v == null ? null : Number(v));
   return linhas.map((l) => ({
     id_rota: rotaPor.get(String(l.cod_pedido)) ?? null,
-    cod_pedido: String(l.cod_pedido), cod_cliente: s(l.cod_cliente), cod_vendedor: s(l.cod_vendedor), vendedor: s(l.vendedor), cod_filial: s(l.cod_filial), cod_agenda: s(l.cod_agenda),
+    cod_pedido: String(l.cod_pedido), cod_cliente: s(l.cod_cliente), uf: ufPor.get(String(l.cod_cliente)) ?? null, cod_vendedor: s(l.cod_vendedor), vendedor: s(l.vendedor), cod_filial: s(l.cod_filial), cod_agenda: s(l.cod_agenda),
     dt_pedido: s(l.dt_pedido), status: s(l.status), dt_fatur: s(l.dt_fatur), entrega_agend: s(l.entrega_agend), bordero: s(l.bordero),
     dt_saida: s(l.dt_saida), dt_etrg_trsp: s(l.dt_etrg_trsp), dt_entrega_cli: s(l.dt_entrega_cli), dt_agendamento: s(l.dt_agendamento),
     cod_transp_prn: s(l.cod_transp_prn), tipo_transp_pn: s(l.tipo_transp_pn), placa_veiculo_ent: s(l.placa_veiculo_ent), cod_transp_ent: s(l.cod_transp_ent), tipo_transp_ent: s(l.tipo_transp_ent),

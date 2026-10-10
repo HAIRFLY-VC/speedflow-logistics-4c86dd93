@@ -42,7 +42,7 @@ export const Route = createFileRoute("/_authenticated/custo-frete-mercadorias")(
 type K = keyof LinhaMercadoria;
 type Col = { k: K; t: string; tipo?: "data" | "num" | "kg" };
 const COLS: Col[] = [
-  { k: "id_rota", t: "ID ROTA" }, { k: "cod_pedido", t: "COD_PEDIDO" }, { k: "cod_cliente", t: "COD_CLIENTE" },
+  { k: "id_rota", t: "ID ROTA" }, { k: "cod_pedido", t: "COD_PEDIDO" }, { k: "cod_cliente", t: "COD_CLIENTE" }, { k: "uf", t: "UF" },
   { k: "cod_vendedor", t: "COD_VENDEDOR" }, { k: "cod_filial", t: "COD_FILIAL" }, { k: "cod_agenda", t: "COD_AGENDA" },
   { k: "dt_pedido", t: "DT_PEDIDO", tipo: "data" }, { k: "status", t: "STATUS" }, { k: "dt_fatur", t: "DT_FATUR", tipo: "data" },
   { k: "entrega_agend", t: "ENTREGA_AGEND" }, { k: "bordero", t: "BORDERO" }, { k: "dt_saida", t: "DT_SAIDA", tipo: "data" },
