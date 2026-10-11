@@ -1495,36 +1495,6 @@ export function RotasView({
     estimativas,
   ]);
 
-  const idsProvisao = useMemo(() => {
-    if (!permitirConfirmacao || !isFeatureOn("provisaoFreteTransportadora")) return [] as string[];
-    return (data ?? [])
-      .filter((r) => tipoFreteOf(r) === "T")
-      .map((r) => r.id)
-      .sort();
-  }, [permitirConfirmacao, data, tipoFreteOf]);
-  const listarDivergencias = useServerFn(listarDivergenciasProvisaoFrete);
-  const divergenciasProvisaoQ = useQuery({
-    queryKey: ["provisao-frete", "divergencias", idsProvisao],
-    enabled: idsProvisao.length > 0,
-    staleTime: 60_000,
-    queryFn: () => listarDivergencias({ data: { routeIds: idsProvisao } }),
-  });
-  const criticasProvisionamento = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const [routeId, mensagens] of criticasCalculoProvisionamento) {
-      map.set(routeId, [...mensagens]);
-    }
-    for (const resumo of divergenciasProvisaoQ.data ?? []) {
-      if (!resumo.divergente) continue;
-      const mensagens = map.get(resumo.route_id) ?? [];
-      mensagens.push(
-        `Provisionamento gravado no ERP (${currencyFmt.format(resumo.gravado)}) diverge do cálculo atual (${currencyFmt.format(resumo.calculado)}). Abra o lápis para conferir e substituir os valores.`,
-      );
-      map.set(resumo.route_id, mensagens);
-    }
-    return map;
-  }, [criticasCalculoProvisionamento, divergenciasProvisaoQ.data]);
-
   /** Borderô por pedido, vindo do espelho de entregas do ERP. */
   const pedidosDaTela = useMemo(() => {
     const set = new Set<string>();
@@ -1609,6 +1579,40 @@ export function RotasView({
       return { total: unicos.length, comBordero, faturados, semSaida };
     };
   }, [borderosQ.data]);
+
+  const idsProvisao = useMemo(() => {
+    if (!permitirConfirmacao || !isFeatureOn("provisaoFreteTransportadora")) return [] as string[];
+    return (data ?? [])
+      .filter(
+        (r) =>
+          tipoFreteOf(r) === "T" &&
+          (!filtro || filtro(r, { bordero: borderoDaRota(r) })),
+      )
+      .map((r) => r.id)
+      .sort();
+  }, [permitirConfirmacao, data, filtro, tipoFreteOf, borderoDaRota]);
+  const listarDivergencias = useServerFn(listarDivergenciasProvisaoFrete);
+  const divergenciasProvisaoQ = useQuery({
+    queryKey: ["provisao-frete", "divergencias", idsProvisao],
+    enabled: idsProvisao.length > 0,
+    staleTime: 60_000,
+    queryFn: () => listarDivergencias({ data: { routeIds: idsProvisao } }),
+  });
+  const criticasProvisionamento = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const [routeId, mensagens] of criticasCalculoProvisionamento) {
+      map.set(routeId, [...mensagens]);
+    }
+    for (const resumo of divergenciasProvisaoQ.data ?? []) {
+      if (!resumo.divergente) continue;
+      const mensagens = map.get(resumo.route_id) ?? [];
+      mensagens.push(
+        `Provisionamento gravado no ERP (${currencyFmt.format(resumo.gravado)}) diverge do cálculo atual (${currencyFmt.format(resumo.calculado)}). Abra o lápis para conferir e substituir os valores.`,
+      );
+      map.set(resumo.route_id, mensagens);
+    }
+    return map;
+  }, [criticasCalculoProvisionamento, divergenciasProvisaoQ.data]);
 
   /**
    * Total da simulação que pode ser mostrado na tela.
