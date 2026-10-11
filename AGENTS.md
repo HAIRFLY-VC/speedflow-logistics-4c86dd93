@@ -14,3 +14,4 @@
 - Large lists read from the central DB must paginate (PostgREST returns at most 1000 rows by default). Why: silent truncation broke lookups like tipo/PIX.
 - The pending-route card and the unassigned-orders screen share `pedidosSemRotaQueryOptions`. Why: their totals and filters must always match.
 - Grouped tables remain collapsed by default; screens that need immediate detail opt in through `defaultGroupsExpanded`. Why: preserve existing behavior elsewhere.
+- Provisioning divergence indicators use the batched authenticated summary function and the same server calculation as the detail dialog. Why: keep list and detail criteria aligned without per-row requests.

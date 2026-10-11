@@ -16,6 +16,7 @@ import {
   type ProvisaoEntrega,
   type ProvisaoGravada,
   type ProvisaoNota,
+  type ResumoDivergenciaProvisao,
 } from "./provisao-frete.types";
 
 const round2 = (v: number) => Math.round(v * 100) / 100;
@@ -268,6 +269,28 @@ export async function previewProvisao(routeId: string): Promise<PreviewProvisao>
   const { _tabela, ...rest } = await calcular(routeId);
   void _tabela;
   return rest;
+}
+
+/** Compara, em lotes pequenos, o provisionamento ativo com o cálculo atual das rotas. */
+export async function listarDivergenciasProvisao(
+  routeIds: string[],
+): Promise<ResumoDivergenciaProvisao[]> {
+  const ids = Array.from(new Set(routeIds)).slice(0, 500);
+  const resumos: ResumoDivergenciaProvisao[] = [];
+  for (let i = 0; i < ids.length; i += 3) {
+    const lote = ids.slice(i, i + 3);
+    const resultados = await Promise.allSettled(lote.map((routeId) => calcular(routeId)));
+    resultados.forEach((resultado, indice) => {
+      if (resultado.status !== "fulfilled" || !resultado.value.gravado) return;
+      resumos.push({
+        route_id: lote[indice],
+        gravado: resultado.value.gravado.total,
+        calculado: resultado.value.total,
+        divergente: resultado.value.divergente,
+      });
+    });
+  }
+  return resumos;
 }
 
 export async function gravarProvisao(

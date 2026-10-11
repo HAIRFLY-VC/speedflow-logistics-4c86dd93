@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.43.0] - 2026-10-11
+### Adicionado
+- Em "Autorizar pagamento de frete", rotas cujo provisionamento ativo no ERP diverge do cálculo atual passam a mostrar uma crítica na exclamação vermelha, com os dois totais e orientação para conferência pelo lápis.
+
 ## [1.42.2] - 2026-10-10
 ### Corrigido
 - "Substituir pelos novos valores" no provisionamento de frete deixou de dar erro no ERP: as linhas anteriores da rota são marcadas como substituídas uma a uma, e os novos valores só são gravados depois de confirmar que nenhuma linha antiga ficou ativa.

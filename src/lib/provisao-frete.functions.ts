@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { PreviewProvisao } from "@/lib/provisao-frete.types";
+import type { PreviewProvisao, ResumoDivergenciaProvisao } from "@/lib/provisao-frete.types";
 
 type Ctx = {
   supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }> };
@@ -46,4 +46,16 @@ export const listarProvisoesNotas = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { listarProvisoesPorNotas } = await import("./provisao-frete.server");
     return listarProvisoesPorNotas(data.nfs);
+  });
+
+/** Divergências entre o cálculo atual e o provisionamento ativo das rotas. */
+export const listarDivergenciasProvisaoFrete = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z.object({ routeIds: z.array(z.string().uuid()).max(500) }).parse(i),
+  )
+  .handler(async ({ data, context }): Promise<ResumoDivergenciaProvisao[]> => {
+    await podeAutorizar(context as unknown as Ctx);
+    const { listarDivergenciasProvisao } = await import("./provisao-frete.server");
+    return listarDivergenciasProvisao(data.routeIds);
   });

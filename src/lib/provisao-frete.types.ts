@@ -57,5 +57,13 @@ export type ProvisaoGravada = {
   por_nota: Record<string, number>;
 };
 
+/** Comparação resumida para sinalizar divergências na listagem de rotas. */
+export type ResumoDivergenciaProvisao = {
+  route_id: string;
+  gravado: number;
+  calculado: number;
+  divergente: boolean;
+};
+
 export const chaveNota = (n: { cod_filial: string | number; nro_nf: string | number | null; bordero: string | number | null }) =>
   `${Number(n.cod_filial)}|${Number(n.nro_nf ?? 0)}|${Number(n.bordero ?? 0)}`;
